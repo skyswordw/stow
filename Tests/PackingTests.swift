@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import Stow
 
@@ -171,6 +172,34 @@ struct PackingTests {
         #expect(double.range(of: Data("_kMDItemUserTags".utf8)) != nil)
         #expect(double.range(of: Data("com.apple.provenance".utf8)) == nil)
         #expect(FileManager.default.fileExists(atPath: back.appending(path: "Project/.DS_Store").path))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancellingLeavesNothingBehind() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        var bytes = [UInt8](repeating: 0, count: 64 << 20)
+        for index in stride(from: 0, to: bytes.count, by: 8) { bytes[index] = UInt8.random(in: 0...255) }
+        try Data(bytes).write(to: tree.project.appending(path: "noise.bin"))
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+        let report = Compatibility.report(for: PackRequest.collect([tree.project]).files, options: PackOptions())
+        let request = CreateRequest(operationID: UUID().uuidString, archiveName: "Project", format: .sevenZip, level: .smallest)
+
+        let started = Mutex(false)
+        let task = Task {
+            try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes, attributes: false,
+                                          request: request, named: "Project", in: out) { fraction in
+                if fraction > 0.25 { started.withLock { $0 = true } } // past handing over, compressing
+            }
+        }
+        let deadline = ContinuousClock.now + .seconds(30)
+        while !started.withLock({ $0 }), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        try #require(started.withLock { $0 }, "compression never started")
+        task.cancel()
+
+        await #expect(throws: EngineError(.cancelled)) { try await task.value }
+        #expect(TemporaryFolder.contents(of: out).isEmpty)
     }
 
     @Test func existingNamesAreKeptOrReplaced() async throws {
