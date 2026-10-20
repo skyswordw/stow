@@ -18,8 +18,8 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
     static func removeStaleOutputs() {
         let temporary = FileManager.default.temporaryDirectory
         let items = (try? FileManager.default.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil)) ?? []
-        for item in items where item.lastPathComponent.hasPrefix(outputPrefix) {
-            try? FileManager.default.removeItem(at: item)
+        for item in items where [outputPrefix, packPrefix, packInputPrefix].contains(where: item.lastPathComponent.hasPrefix) {
+            remove(item)
         }
     }
 
@@ -30,7 +30,7 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
             return Array(outputs.values)
         }
         running.withLock { $0.values.forEach { $0.cancel() } }
-        urls.forEach { try? FileManager.default.removeItem(at: $0) }
+        urls.forEach { Self.remove($0) }
     }
 
     func handshake(clientVersion: Int, reply: @escaping @Sendable (Int) -> Void) {
@@ -93,6 +93,65 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
         }
     }
 
+    func create(from tree: FileHandle, request payload: Data, reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        let request: CreateRequest
+        do {
+            request = try Self.decode(CreateRequest.self, from: payload)
+        } catch {
+            try? tree.close()
+            reply(nil, EngineError(error).nsError)
+            return
+        }
+        let tree = SendableHandle(tree)
+        let id = request.operationID
+        let temporary = FileManager.default.temporaryDirectory
+        let output = temporary.appending(path: Self.packPrefix + UUID().uuidString, directoryHint: .isDirectory)
+        let scratch = temporary.appending(path: Self.packInputPrefix + UUID().uuidString, directoryHint: .isDirectory)
+        let input = scratch.appending(path: "Files", directoryHint: .isDirectory)
+        let work = scratch.appending(path: "Work", directoryHint: .isDirectory)
+        let client = client
+        running.withLock { running in
+            running[id] = Task {
+                defer {
+                    _ = self.running.withLock { $0.removeValue(forKey: id) }
+                    Self.remove(scratch)
+                }
+                do {
+                    for folder in [output, input, work] {
+                        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                    }
+                    outputs.withLock { $0[id] = output }
+                    try await Self.receive(tree, into: input)
+                    try Task.checkCancellation()
+                    let report = try await Self.sevenZip().create(request, from: input, into: output, work: work) {
+                        client.progress(id, $0)
+                    }
+                    try Task.checkCancellation()
+                    reply(try JSONEncoder.engine.encode(report), nil)
+                } catch {
+                    self.discard(operation: id)
+                    let error = error is CancellationError || Task.isCancelled ? EngineError(.cancelled) : EngineError(error)
+                    reply(nil, error.nsError)
+                }
+            }
+        }
+    }
+
+    /// Blocking reads from Stow's pipe until it closes its end; off the cooperative pool.
+    private static func receive(_ tree: SendableHandle, into folder: URL) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                defer { try? tree.handle.close() }
+                do {
+                    try TreeStream.read(from: tree.handle.fileDescriptor, into: folder, flags: [.ignoreOperationNotPermitted])
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     func send(operation: String, to stream: FileHandle, reply: @escaping @Sendable (NSError?) -> Void) {
         guard let output = outputs.withLock({ $0[operation] }) else {
             try? stream.close()
@@ -114,7 +173,7 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
 
     func discard(operation: String) {
         if let output = outputs.withLock({ $0.removeValue(forKey: operation) }) {
-            try? FileManager.default.removeItem(at: output)
+            Self.remove(output)
         }
     }
 
@@ -125,6 +184,21 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
     // MARK: -
 
     private static let outputPrefix = "Extract-"
+    private static let packPrefix = "Pack-"
+    private static let packInputPrefix = "PackIn-"
+
+    /// Packed folders can arrive read-only (mode 555); make them writable so they can be emptied.
+    private static func remove(_ url: URL) {
+        let fileManager = FileManager.default
+        if let walker = fileManager.enumerator(atPath: url.path) {
+            for case let path as String in walker {
+                let full = url.appending(path: path).path
+                var info = stat()
+                if lstat(full, &info) == 0, info.st_mode & S_IFMT == S_IFDIR { chmod(full, info.st_mode | 0o700) }
+            }
+        }
+        try? fileManager.removeItem(at: url)
+    }
 
     private static func sevenZip() throws(EngineError) -> SevenZip {
         guard let sevenZip = SevenZip.bundled() else { throw EngineError(.engineMissing) }

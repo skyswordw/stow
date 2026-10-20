@@ -184,7 +184,7 @@ nonisolated struct SevenZip: Sendable {
         }
     }
 
-    private static func check(_ result: RunResult) throws(EngineError) {
+    static func check(_ result: RunResult) throws(EngineError) {
         guard result.status != 0 else { return }
         let all = result.output + "\n" + result.errors
         if all.contains("Wrong password") { throw EngineError(.wrongPassword) }
@@ -212,8 +212,9 @@ nonisolated struct SevenZip: Sendable {
     /// Runs `7zz` to completion. Cancelling the calling task terminates it. A password, when given,
     /// is answered on standard input rather than put on the command line where `ps` could see it.
     /// `posix_spawn` rather than `Process`, which closes every descriptor but 0–2 in the child.
-    private func run(_ arguments: [String], input: Int32?, password: String?,
-                     onOutput: (@Sendable (Data) -> Void)? = nil) async throws(EngineError) -> RunResult {
+    /// `directory` is the child's working directory.
+    func run(_ arguments: [String], input: Int32?, password: String?, in directory: URL? = nil,
+             onOutput: (@Sendable (Data) -> Void)? = nil) async throws(EngineError) -> RunResult {
         var stdinPipe: [Int32] = [-1, -1], stdoutPipe: [Int32] = [-1, -1], stderrPipe: [Int32] = [-1, -1]
         guard pipe(&stdinPipe) == 0, pipe(&stdoutPipe) == 0, pipe(&stderrPipe) == 0 else {
             throw EngineError(.failed, String(cString: strerror(errno)))
@@ -227,6 +228,7 @@ nonisolated struct SevenZip: Sendable {
         // Duplicated above 3 first, so dup2 onto 3 never collides with the source.
         let spare = input.map { fcntl($0, F_DUPFD_CLOEXEC, 10) } ?? -1
         if spare >= 0 { posix_spawn_file_actions_adddup2(&actions, spare, 3) }
+        if let directory { posix_spawn_file_actions_addchdir_np(&actions, directory.path) }
         var attributes: posix_spawnattr_t?
         posix_spawnattr_init(&attributes)
         defer { posix_spawnattr_destroy(&attributes) }

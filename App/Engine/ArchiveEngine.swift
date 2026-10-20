@@ -56,8 +56,77 @@ final class ArchiveEngine {
         return Output(operationID: id, report: try decode(ExtractReport.self, from: reply))
     }
 
+    /// A finished archive waiting inside the engine: `receive` it, then `discard` it.
+    struct Creation: Sendable {
+        let operationID: String
+        let report: CreateReport
+    }
+
+    /// Streams `items` to the engine and has it pack them. `onSent` reports bytes of file data handed
+    /// over; `onProgress` the engine's compression progress. Cancelling the task stops both.
+    func create(_ items: [TreeStream.Item], attributes: Bool, request: CreateRequest,
+                onSent: @escaping @Sendable (Int64) -> Void,
+                onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Creation {
+        let id = request.operationID
+        let payload = try encode(request)
+        progress.register(id, onProgress)
+        defer { progress.remove(id) }
+        let connection = XPCConnection(try await verifiedConnection())
+
+        let pipe = Pipe()
+        // If the engine goes away mid-stream, writes fail with EPIPE instead of killing Stow.
+        _ = fcntl(pipe.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+        let reading = SendableHandle(pipe.fileHandleForReading)
+        let writing = SendableHandle(pipe.fileHandleForWriting)
+        let sending = Task { try await Self.write(items, to: writing, attributes: attributes, onSent: onSent) }
+
+        let reply: Result<Data, EngineError>
+        do {
+            reply = .success(try await withTaskCancellationHandler {
+                try await Self.call(on: connection) { proxy, once in
+                    proxy.create(from: reading.handle, request: payload) { data, error in
+                        Self.resume(once, data, error)
+                    }
+                }
+            } onCancel: {
+                sending.cancel()
+                connection.proxy?.cancel(operation: id)
+            })
+        } catch {
+            reply = .failure(EngineError(error))
+        }
+        // With no reader left, a writer still blocked in the pipe wakes up with EPIPE.
+        try? reading.handle.close()
+        let sent = await sending.result
+
+        switch reply {
+        case .success(let data):
+            return Creation(operationID: id, report: try decode(CreateReport.self, from: data))
+        case .failure(let error):
+            // A file Stow couldn't read explains more than the engine's view of a cut-off stream.
+            if error.failure != .cancelled, case .failure(let sendError) = sent,
+               EngineError(sendError).failure != .cancelled {
+                throw EngineError(sendError)
+            }
+            throw error
+        }
+    }
+
+    /// Blocking writes into the pipe, off the main actor. Closes it at the end, so the engine sees EOF.
+    @concurrent
+    private nonisolated static func write(_ items: [TreeStream.Item], to pipe: SendableHandle, attributes: Bool,
+                                          onSent: @Sendable (Int64) -> Void) async throws {
+        defer { try? pipe.handle.close() }
+        try TreeStream.write(items, to: pipe.handle.fileDescriptor, attributes: attributes, onBytes: onSent)
+    }
+
     /// Streams the extracted files into `folder` (which must exist).
     func receive(_ output: Output, into folder: URL) async throws(EngineError) {
+        try await receive(operation: output.operationID, into: folder)
+    }
+
+    /// Streams an operation's output (extracted files, or a new archive) into `folder`.
+    func receive(operation id: String, into folder: URL) async throws(EngineError) {
         let pipe = Pipe()
         let reading = SendableHandle(pipe.fileHandleForReading)
         let received = Task { try await Self.read(reading, into: folder) }
@@ -65,7 +134,7 @@ final class ArchiveEngine {
         let connection = XPCConnection(try await verifiedConnection())
         do {
             let _: Bool = try await Self.call(on: connection) { (proxy, once: ResumeOnce<Bool>) in
-                proxy.send(operation: output.operationID, to: writing.handle) { error in
+                proxy.send(operation: id, to: writing.handle) { error in
                     if let error { once.resume(throwing: EngineError(error)) } else { once.resume(returning: true) }
                 }
             }
@@ -92,7 +161,11 @@ final class ArchiveEngine {
     }
 
     func discard(_ output: Output) {
-        connection.map(XPCConnection.init)?.proxy?.discard(operation: output.operationID)
+        discard(operation: output.operationID)
+    }
+
+    func discard(operation id: String) {
+        connection.map(XPCConnection.init)?.proxy?.discard(operation: id)
     }
 
     private static func open(_ archive: URL) throws(EngineError) -> FileHandle {

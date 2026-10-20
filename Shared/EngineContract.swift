@@ -7,11 +7,14 @@ import Foundation
 ///
 /// No file paths cross the boundary, only descriptors. Stow opens the archive and sends a read-only
 /// `FileHandle`; the engine extracts into its own container (the only place it can write), audits
-/// the result, and streams it back as an Apple Archive over a pipe Stow provides. The engine never
-/// touches people's folders, and neither process reaches into the other's container.
+/// the result, and streams it back as an Apple Archive over a pipe Stow provides. Creating works the
+/// same way in reverse: Stow streams the files to pack as an Apple Archive, the engine compresses them
+/// in its container and streams the finished archive back. The engine never touches people's folders,
+/// and neither process reaches into the other's container.
 nonisolated enum EngineContract {
     static let serviceName = "app.stow.Stow.Engine"
-    static let version = 1
+    /// 2: `create`.
+    static let version = 2
 }
 
 @objc(StowEngineProtocol)
@@ -30,7 +33,13 @@ nonisolated protocol EngineXPCProtocol {
     func extract(_ archive: FileHandle, named name: String, request: Data,
                  reply: @escaping @Sendable (Data?, NSError?) -> Void)
 
-    /// Writes an extraction's output to `stream` as an uncompressed Apple Archive, closes it, replies.
+    /// Reads the files to pack from `tree` (an Apple Archive, as `TreeStream.write(_:to:)` sends it) and
+    /// compresses them. `request`: JSON `CreateRequest`. Replies with JSON `CreateReport`; progress goes
+    /// to the connection's `EngineClientXPCProtocol`. The archive stays in the engine until `send`
+    /// streams it or `discard` drops it.
+    func create(from tree: FileHandle, request: Data, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+
+    /// Writes an extraction's (or creation's) output to `stream` as an uncompressed Apple Archive, closes it, replies.
     func send(operation: String, to stream: FileHandle, reply: @escaping @Sendable (NSError?) -> Void)
 
     /// Deletes an extraction's output.
@@ -95,6 +104,61 @@ nonisolated struct ExtractReport: Codable, Sendable {
     var removedLinks: [RemovedLink] = []
     /// Anything that escaped the staging folder some other way and was removed.
     var removedItems: [String] = []
+}
+
+/// What `create` can write. Compressed TARs are a TAR compressed as a second step.
+nonisolated enum PackFormat: String, Codable, CaseIterable, Identifiable, Sendable {
+    case zip, sevenZip, tar, tarGz, tarBz2, tarXz
+
+    var id: Self { self }
+
+    var fileExtension: String {
+        switch self {
+        case .zip: "zip"
+        case .sevenZip: "7z"
+        case .tar: "tar"
+        case .tarGz: "tar.gz"
+        case .tarBz2: "tar.bz2"
+        case .tarXz: "tar.xz"
+        }
+    }
+
+    var supportsPassword: Bool { self == .zip || self == .sevenZip }
+    var isCompressed: Bool { self != .tar }
+}
+
+/// 7-Zip's `-mx` levels under names people understand.
+nonisolated enum CompressionLevel: Int, Codable, CaseIterable, Identifiable, Sendable {
+    case store = 0, fastest = 1, fast = 3, balanced = 5, maximum = 7, smallest = 9
+
+    var id: Self { self }
+}
+
+nonisolated struct CreateRequest: Codable, Sendable {
+    var version = EngineContract.version
+    var operationID: String
+    /// The archive's name without extension, e.g. "Project". Stow names the file it places itself.
+    var archiveName: String
+    var format: PackFormat
+    var level: CompressionLevel = .balanced
+    /// ZIP: AES-256. 7Z: AES-256 with file names encrypted too.
+    var password: String?
+    /// Bytes per volume; nil for one file.
+    var volumeSize: Int64?
+    /// Adds `__MACOSX/…/._name` AppleDouble files carrying extended attributes (ZIP only).
+    var keepsMacMetadata = false
+    /// Tests the finished archive before replying.
+    var verify = false
+    /// Compression threads; nil lets 7-Zip use every core.
+    var threads: Int?
+}
+
+nonisolated struct CreateReport: Codable, Sendable {
+    var version = EngineContract.version
+    /// The archive's file names, in order — several for split volumes.
+    var files: [String]
+    var size: Int64
+    var verified = false
 }
 
 // MARK: - Errors
