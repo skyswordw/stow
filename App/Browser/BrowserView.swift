@@ -88,14 +88,14 @@ struct BrowserView: View {
 
         ToolbarItem(placement: .primaryAction) {
             Button {
-                model.run(.extract, on: model.archive.files)
+                model.extractAll()
             } label: {
                 Label("Extract All", systemImage: "arrow.down.to.line")
                     .labelStyle(.titleAndIcon)
                     .padding(.horizontal, Space.xs)
             }
             .buttonStyle(.glassProminent)
-            .help("Extract everything to Downloads")
+            .help("Extract everything to a folder you choose")
         }
 
         ToolbarItem(placement: .primaryAction) {

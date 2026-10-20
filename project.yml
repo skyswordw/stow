@@ -20,6 +20,9 @@ targets:
     platform: macOS
     sources:
       - path: App
+      - path: Shared
+    dependencies:
+      - target: StowEngine
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.stow.Stow
@@ -33,6 +36,54 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: YES
         ENABLE_USER_SELECTED_FILES: readwrite
+  # Sandboxed XPC service that parses every archive. It has no file access of its own: Stow passes
+  # the archive and a staging folder as URLs, and their sandbox extensions travel with them.
+  StowEngine:
+    type: xpc-service
+    platform: macOS
+    sources:
+      - path: Engine
+        excludes: ["*.entitlements", "Info.plist"]
+      - path: Shared
+    info:
+      path: Engine/Info.plist
+      properties:
+        CFBundleDisplayName: Stow Engine
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        XPCService:
+          ServiceType: Application
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.stow.Stow.Engine
+        PRODUCT_NAME: StowEngine
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: YES
+        SKIP_INSTALL: YES
+        # codesign writes a temp file beside 7zz and reads the bundle's Info.plist.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      # 7-Zip (LGPL) ships as its own unmodified executable — see THIRD_PARTY_NOTICES.md.
+      - name: Embed 7-Zip
+        inputFiles:
+          - $(SRCROOT)/Vendor/7zip/7zz
+          - $(SRCROOT)/Vendor/7zip/License.txt
+          - $(SRCROOT)/Engine/7zz.entitlements
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(EXECUTABLE_FOLDER_PATH)/7zz
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/7-Zip-License.txt
+        script: |
+          set -e
+          if [ ! -x "${SCRIPT_INPUT_FILE_0}" ]; then
+            echo "error: 7-Zip is missing. Run scripts/fetch-7zip.sh first."
+            exit 1
+          fi
+          mkdir -p "$(dirname "${SCRIPT_OUTPUT_FILE_0}")" "$(dirname "${SCRIPT_OUTPUT_FILE_1}")"
+          cp -f "${SCRIPT_INPUT_FILE_0}" "${SCRIPT_OUTPUT_FILE_0}"
+          cp -f "${SCRIPT_INPUT_FILE_1}" "${SCRIPT_OUTPUT_FILE_1}"
+          codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" --options runtime \
+            --entitlements "${SCRIPT_INPUT_FILE_2}" "${SCRIPT_OUTPUT_FILE_0}"
   StowTests:
     type: bundle.unit-test
     platform: macOS

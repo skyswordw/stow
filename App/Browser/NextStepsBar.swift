@@ -30,10 +30,24 @@ struct NextStepsBar: View {
                 ActivityCapsule(activity: activity)
                     .glassEffect(.regular, in: .capsule)
                     .glassEffectID("summary", in: glass)
-                if activity.phase == .done {
-                    Button("Show in Finder", systemImage: "folder") { model.dismissActivity() }
+                switch activity.phase {
+                case .done:
+                    Button("Show in Finder", systemImage: "folder") { model.showInFinder() }
                         .buttonStyle(.glass)
                         .glassEffectID("finder", in: glass)
+                case .running where model.archive.source != nil:
+                    Button("Stop", systemImage: "xmark") { model.cancelActivity() }
+                        .labelStyle(.iconOnly)
+                        .help("Stop — nothing is left half-extracted")
+                        .buttonStyle(.glass)
+                        .glassEffectID("stop", in: glass)
+                case .failed:
+                    Button("Dismiss", systemImage: "xmark") { model.dismissActivity() }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.glass)
+                        .glassEffectID("stop", in: glass)
+                case .running:
+                    EmptyView()
                 }
             } else {
                 if density != .actionsOnly {
@@ -114,8 +128,16 @@ private struct ActivityCapsule: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
-                Text(activity.step.doneTitle)
+                Text(activity.doneTitle)
                     .fontWeight(.medium)
+            case .failed(let message):
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.yellow)
+                Text(message)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+                    .frame(maxWidth: 360, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .font(.callout)

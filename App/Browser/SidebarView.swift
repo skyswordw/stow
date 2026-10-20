@@ -136,11 +136,14 @@ struct CheckupBadge: View {
     @State private var isHovering = false
 
     var body: some View {
-        let caution = archive.hasCautions
+        let cautions = archive.checkup.count { $0.severity == .caution }
+        let caution = cautions > 0
+        let handled = archive.checkup.count { $0.severity == .handled }
         HStack(spacing: 6) {
             Image(systemName: caution ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
                 .foregroundStyle(caution ? .yellow : .green)
-            Text(caution ? "Checkup: 1 thing to know" : "Checkup: looks safe")
+            Text(caution ? "Checkup: \(cautions) \(cautions == 1 ? "thing" : "things") to know"
+                 : handled > 0 ? "Checkup: safe, \(handled) handled" : "Checkup: looks safe")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)

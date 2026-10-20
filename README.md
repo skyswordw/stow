@@ -3,8 +3,9 @@
 A native macOS archive tool: browse, preview and extract 30+ formats, and pack files that work on the
 recipient's computer. *Stow* is a working name.
 
-**Status:** design prototype. The interface is real SwiftUI running on fictional sample data; the
-7-Zip engine, XPC helper and Quick Look extension come next.
+**Status:** prototype. Opening and extracting real archives works through a sandboxed 7-Zip engine;
+"Try the Sample", the Recent list and the design-review scenes still use fictional sample data.
+Packing, Quick Look and the other Next Steps are simulated.
 
 ## Requirements
 
@@ -14,6 +15,7 @@ recipient's computer. *Stow* is a working name.
 ## Build & run
 
 ```bash
+scripts/fetch-7zip.sh   # pinned 7-Zip 26.04, checksum-verified, into Vendor/ (gitignored)
 xcodegen generate
 xcodebuild -project Stow.xcodeproj -scheme Stow -derivedDataPath build build
 open build/Build/Products/Debug/Stow.app
@@ -31,12 +33,33 @@ scripts/snapshot.sh <scene> [light|dark]   # → snapshots/
 
 Scenes: `welcome`, `grid`, `list`, `fonts`, `search`, `activity`, `pack`, `tray`.
 
+## Archive engine
+
+All archive parsing happens in `StowEngine.xpc`, a sandboxed XPC service that runs the official
+`7zz` binary (LGPL — see `THIRD_PARTY_NOTICES.md`) as a child process inheriting its sandbox.
+
+- **Contract** (`Shared/EngineContract.swift`): versioned; requests and replies are JSON. No paths
+  cross the boundary — Stow sends the archive as an open, read-only `FileHandle` (7zz reads it as
+  fd 3), so the engine needs no access to people's files at all.
+- **Listing:** `7zz l -slt`, parsed into `ArchiveListing`, mapped into `Archive` with names shown
+  where they would actually be written, plus listing-time Checkup findings.
+- **Extraction:** the engine extracts into its *own* container (the only place it can write) with
+  `-bsp1` progress, removes links that point outside and device files, then streams the folder to
+  Stow over a pipe as an Apple Archive. Stow unpacks it into `.itemReplacementDirectory` staging on
+  the destination volume, audits it again, and moves each item into place with a no-clobber
+  `rename`. Cancel or failure leaves nothing behind.
+- **Containment** (`Shared/PathContainment.swift`): `../`, absolute paths and outside-pointing
+  links are kept inside the destination; tests pin the rules to the bundled 7-Zip build.
+
 ## Layout
 
 | Path | What |
 | --- | --- |
 | `DESIGN.md` | Design language: principles, vocabulary, color, type, motion values |
 | `App/Model` | Value types: archive listing, Checkup findings, Next Steps, packing rules |
+| `App/Engine` | Engine client (XPC), staged extraction, destination picker |
+| `Engine` | `StowEngine.xpc`: sandboxed service that drives `7zz` |
+| `Shared` | Compiled into both: XPC contract, 7-Zip driver and parser, path containment |
 | `App/Design` | Tokens (space, radius, motion), flow layout, thumbnails |
 | `App/Browser` | Main window: sidebar + archive card, grid/list, inspector, Next Steps capsule, hover preview |
 | `App/Pack` | The Pack sentence and its compatibility report |

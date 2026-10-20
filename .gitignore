@@ -10,3 +10,6 @@ DerivedData/
 .DS_Store
 # Local scratch
 /snapshots/
+
+# Third-party binaries — fetched and checksum-verified by scripts/fetch-7zip.sh
+/Vendor/

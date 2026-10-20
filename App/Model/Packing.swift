@@ -97,13 +97,7 @@ nonisolated enum Compatibility {
 
     /// Finder metadata and AppleDouble files that mean nothing off a Mac.
     static func isMacHelperFile(_ path: String) -> Bool {
-        let components = path.split(separator: "/").map(String.init)
-        guard let name = components.last else { return false }
-        if components.contains("__MACOSX") { return true }
-        if [".DS_Store", ".localized", "Icon\r", ".Spotlight-V100", ".fseventsd", ".Trashes"].contains(name) {
-            return true
-        }
-        return name.hasPrefix("._")
+        MacHelperFiles.matches(path)
     }
 
     /// A single path component made safe for Windows, or the same string if it already is.

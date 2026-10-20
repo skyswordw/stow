@@ -2,7 +2,7 @@ import Foundation
 import UniformTypeIdentifiers
 
 nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
-    case zip, sevenZip, tarGz, tarXz, rar, dmg, iso
+    case zip, sevenZip, tarGz, tarXz, rar, dmg, iso, tar, gzip, bzip2, xz, other
 
     var id: Self { self }
 
@@ -15,6 +15,11 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         case .rar: "RAR"
         case .dmg: "DMG"
         case .iso: "ISO"
+        case .tar: "TAR"
+        case .gzip: "GZ"
+        case .bzip2: "BZ2"
+        case .xz: "XZ"
+        case .other: "ARC"
         }
     }
 
@@ -27,6 +32,11 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         case .rar: "RAR"
         case .dmg: "Disk Image"
         case .iso: "ISO Image"
+        case .tar: "TAR"
+        case .gzip: "GZIP"
+        case .bzip2: "BZIP2"
+        case .xz: "XZ"
+        case .other: "Archive"
         }
     }
 
@@ -39,6 +49,11 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         case .rar: "rar"
         case .dmg: "dmg"
         case .iso: "iso"
+        case .tar: "tar"
+        case .gzip: "gz"
+        case .bzip2: "bz2"
+        case .xz: "xz"
+        case .other: ""
         }
     }
 
@@ -48,7 +63,24 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         let lower = name.lowercased()
         if lower.hasSuffix(".tar.gz") || lower.hasSuffix(".tgz") { return .tarGz }
         if lower.hasSuffix(".tar.xz") || lower.hasSuffix(".txz") { return .tarXz }
-        return allCases.first { lower.hasSuffix("." + $0.fileExtension) }
+        return allCases.first { $0 != .other && lower.hasSuffix("." + $0.fileExtension) }
+    }
+
+    /// From 7-Zip's `Type` ("zip", "7z", "Rar5", "gzip", …); the name tells a .tar.gz from a .gz.
+    init(sevenZipType type: String, name: String) {
+        let inferred = Self.infer(fromName: name)
+        switch type.lowercased() {
+        case "zip": self = .zip
+        case "7z": self = .sevenZip
+        case "rar", "rar5": self = .rar
+        case "dmg", "apfs", "hfs": self = .dmg
+        case "iso", "udf": self = .iso
+        case "tar": self = .tar
+        case "gzip": self = inferred == .tarGz ? .tarGz : .gzip
+        case "xz": self = inferred == .tarXz ? .tarXz : .xz
+        case "bzip2": self = .bzip2
+        default: self = .other
+        }
     }
 }
 
@@ -151,6 +183,14 @@ nonisolated struct CheckupFinding: Identifiable, Hashable, Sendable {
     let detail: String
 }
 
+/// Where a real archive lives, and how its entries are named inside it.
+nonisolated struct ArchiveSource: Sendable {
+    let url: URL
+    /// Displayed (contained) path → the names the archive stores for it. Several hostile names can
+    /// land on one path (`../a.txt` and `a.txt`), so it's a list.
+    let storedPaths: [String: [String]]
+}
+
 nonisolated struct Archive: Identifiable, Sendable {
     let id = UUID()
     var name: String
@@ -158,6 +198,8 @@ nonisolated struct Archive: Identifiable, Sendable {
     var isEncrypted: Bool
     var checkup: [CheckupFinding]
     private(set) var entries: [ArchiveEntry]
+    /// Nil for sample data: there is nothing on disk to extract.
+    var source: ArchiveSource?
 
     /// Builds folder entries (with aggregated sizes) from a flat list of files,
     /// the same shape a real archive listing comes in.
@@ -222,6 +264,6 @@ nonisolated struct Archive: Identifiable, Sendable {
     }
 }
 
-extension Int64 {
+nonisolated extension Int64 {
     var bytes: String { formatted(.byteCount(style: .file)) }
 }

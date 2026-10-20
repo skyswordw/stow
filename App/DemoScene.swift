@@ -4,7 +4,7 @@ import AppKit
 ///
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
-/// Scenes: welcome, grid, list, fonts, search, activity, pack, tray.
+/// Scenes: welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`).
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -42,6 +42,9 @@ enum DemoScene {
             app.browser?.run(.moveToApplications)
         case "pack":
             app.packRequest = PackRequest(files: SampleArchive.packCandidates)
+        case "open":
+            // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
+            if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
         case "tray":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),

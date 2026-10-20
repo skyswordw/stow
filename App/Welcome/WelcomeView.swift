@@ -3,7 +3,6 @@ import UniformTypeIdentifiers
 
 /// The empty window is the drop target: it says what dropping will do.
 struct WelcomeView: View {
-    let onOpenArchive: (String) -> Void
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isTargeted = false
@@ -49,9 +48,8 @@ struct WelcomeView: View {
             .accessibilityElement(children: .combine)
 
             HStack(spacing: Space.s) {
-                Button("Open Archive…") { onOpenArchive(SampleArchive.make().name) }
-                    .keyboardShortcut("o")
-                Button("Try the Sample") { onOpenArchive(SampleArchive.make().name) }
+                Button("Open Archive…") { app.isChoosingArchive = true }
+                Button("Try the Sample") { app.openArchive(named: SampleArchive.make().name) }
                     .buttonStyle(.glassProminent)
             }
             .controlSize(.large)
@@ -76,7 +74,7 @@ struct WelcomeView: View {
             SectionLabel("Recent")
             HStack(spacing: Space.m) {
                 ForEach(Self.recentNames, id: \.self) { name in
-                    Button { onOpenArchive(name) } label: {
+                    Button { app.openArchive(named: name) } label: {
                         HStack(spacing: Space.s) {
                             FormatBadge(format: ArchiveFormat.infer(fromName: name) ?? .zip)
                                 .scaleEffect(0.7)
@@ -99,7 +97,7 @@ struct WelcomeView: View {
     private func handleDrop(_ urls: [URL]) -> Bool {
         guard !urls.isEmpty else { return false }
         if urls.count == 1, ArchiveFormat.infer(fromName: urls[0].lastPathComponent) != nil {
-            onOpenArchive(urls[0].lastPathComponent)
+            app.open(urls[0])
         } else {
             app.packRequest = PackRequest(files: urls.map { PackFile(path: $0.lastPathComponent, size: $0.fileSize) })
         }
