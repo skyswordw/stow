@@ -68,3 +68,9 @@ All archive parsing happens in `StowEngine.xpc`, a sandboxed XPC service that ru
 | `App/Welcome` | Empty state / drop target |
 | `website/` | Marketing site |
 | `.claude/skills` | Project-level agent skills (design engineering, Apple design, Swift) — MIT, © Emil Kowalski |
+
+## License
+
+Stow is free software, licensed under the [GNU General Public License v3.0](LICENSE). Bundled
+third-party components keep their own licenses — see `THIRD_PARTY_NOTICES.md` (7-Zip is LGPL and
+ships as a separate, unmodified executable).
