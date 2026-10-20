@@ -1,31 +1,40 @@
 import SwiftUI
 
-struct PackRequest: Identifiable {
-    let id = UUID()
-    var files: [PackFile]
-}
-
-/// "Pack 12 items as a ZIP for Windows PCs, without a password, as one file."
+/// "Pack “Project” as a ZIP for Windows PCs, without a password, as one file."
 /// Every choice is a token in a sentence, and the report underneath says what that sentence will do.
+/// Rarer choices (compression level, checking the result) wait under More Options.
 struct PackSheet: View {
     let request: PackRequest
+    @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
     @State private var options = PackOptions()
     @State private var password = ""
+    @State private var name = ""
+    @State private var overrides: [String: String] = [:]
     @State private var showDetails = false
+    @State private var showMore = false
+    @State private var isChoosing = false
 
-    private var report: PackReport { Compatibility.report(for: request.files, options: options) }
+    private var report: PackReport {
+        Compatibility.report(for: request.files, options: options, password: password, overrides: overrides)
+    }
+
+    private var archiveName: String { Compatibility.archiveName(name, for: options.audience) }
 
     var body: some View {
+        let report = report
         VStack(alignment: .leading, spacing: Space.xl) {
             sentence
             if options.usesPassword { passwordField }
-            ReportView(report: report, showDetails: $showDetails)
-            footer
+            ReportView(report: report, audience: options.audience, overrides: $overrides, showDetails: $showDetails)
+            moreOptions
+            nameRow
+            footer(report)
         }
         .padding(Space.xxl)
-        .frame(width: 560)
+        .frame(width: 580)
         .animation(Motion.token, value: options)
+        .onAppear(perform: restore)
     }
 
     // MARK: Sentence
@@ -33,9 +42,7 @@ struct PackSheet: View {
     private var sentence: some View {
         FlowLayout(spacing: 7, lineSpacing: 8) {
             words("Pack")
-            Text("\(report.included.count) items")
-                .fontWeight(.semibold)
-                .liveNumber()
+            subject
             words("as a")
             Token(title: options.format.displayName) {
                 ForEach(options.audience.formats) { format in
@@ -46,12 +53,13 @@ struct PackSheet: View {
             Token(title: options.audience.phrase, suffix: ",") {
                 ForEach(Audience.allCases) { audience in
                     Button(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) {
-                        options.setAudience(audience)
+                        setAudience(audience)
                     }
                 }
             }
             Token(title: options.usesPassword ? "with a password" : "without a password",
-                  suffix: ",", isEnabled: options.format.supportsPassword) {
+                  suffix: ",", isEnabled: options.format.supportsPassword,
+                  disabledHelp: "\(options.format.displayName) can’t be password-protected") {
                 Button("Without a password") { options.usesPassword = false }
                 Button("With a password") { options.usesPassword = true }
             }
@@ -63,6 +71,22 @@ struct PackSheet: View {
         }
         .font(.title2)
         .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var subject: some View {
+        if request.roots.count == 1, let root = request.roots.first {
+            Text("“\(root)”")
+                .fontWeight(.semibold)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: 300)
+                .fixedSize(horizontal: true, vertical: false)
+        } else {
+            Text("\(request.roots.count) items")
+                .fontWeight(.semibold)
+                .liveNumber()
+        }
     }
 
     @ViewBuilder
@@ -82,7 +106,69 @@ struct PackSheet: View {
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
-    private var footer: some View {
+    // MARK: More options
+
+    private var moreOptions: some View {
+        DisclosureGroup("More Options", isExpanded: $showMore) {
+            VStack(alignment: .leading, spacing: Space.m) {
+                LabeledContent("Compression") {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Picker("Compression", selection: levelBinding) {
+                            ForEach(CompressionLevel.allCases) { Text($0.title).tag($0) }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                        .disabled(!options.format.isCompressed)
+                        Text(options.format.isCompressed
+                             ? "\(options.level.detail) Remembered for \(options.audience.phrase)."
+                             : "A TAR collects files without compressing them.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                LabeledContent("Check") {
+                    Toggle("Test the archive after packing", isOn: $options.verify)
+                }
+            }
+            .padding(.top, Space.s)
+            .padding(.leading, Space.xs)
+        }
+        .font(.callout)
+        .foregroundStyle(.secondary)
+    }
+
+    private var levelBinding: Binding<CompressionLevel> {
+        Binding(get: { options.level }, set: { level in
+            options.level = level
+            PackPreferences.setLevel(level, for: options.audience)
+        })
+    }
+
+    // MARK: Footer
+
+    private var nameRow: some View {
+        HStack(spacing: Space.s) {
+            Text("Save as")
+                .foregroundStyle(.secondary)
+            HStack(spacing: 2) {
+                TextField("Name", text: $name)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 220)
+                Text("." + options.format.fileExtension)
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
+            }
+            if archiveName != name.trimmingCharacters(in: .whitespaces), !name.isEmpty {
+                Text("→ \(archiveName)")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .help("Characters \(options.audience.phrase) don’t allow are replaced.")
+            }
+        }
+    }
+
+    private func footer(_ report: PackReport) -> some View {
         HStack {
             Text("≈ \(report.estimatedSize.bytes)\(report.parts > 1 ? " in \(report.parts) parts" : "")")
                 .font(.callout)
@@ -92,11 +178,66 @@ struct PackSheet: View {
             Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
                 .controlSize(.large)
-            Button("Pack") { dismiss() }
+            Button("Pack…") { pack(report) }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.glassProminent)
                 .controlSize(.large)
-                .disabled(options.usesPassword && password.isEmpty)
+                .disabled(isChoosing || report.included.isEmpty || (options.usesPassword && password.isEmpty))
+        }
+    }
+
+    // MARK: Actions
+
+    private func restore() {
+        name = request.suggestedName
+        options.setAudience(PackPreferences.audience)
+        options.level = PackPreferences.level(for: options.audience)
+        options.verify = PackPreferences.verify
+    }
+
+    private func setAudience(_ audience: Audience) {
+        options.setAudience(audience)
+        options.level = PackPreferences.level(for: audience)
+    }
+
+    private func pack(_ report: PackReport) {
+        let format = options.format
+        let fileName = archiveName + "." + format.fileExtension
+        PackPreferences.audience = options.audience
+        PackPreferences.verify = options.verify
+        guard !request.isSample else {
+            app.packing.simulate(name: fileName)
+            dismiss()
+            return
+        }
+        isChoosing = true
+        Task {
+            defer { isChoosing = false }
+            guard let destination = await PackDestination.choose(for: fileName, startingAt: request.directory) else { return }
+            var conflict = ArchiveCreation.Conflict.keepBoth
+            if !ArchiveCreation.existing(named: archiveName, format: format, in: destination).isEmpty {
+                var free = 2
+                while !ArchiveCreation.existing(named: "\(archiveName) \(free)", format: format, in: destination).isEmpty { free += 1 }
+                guard let choice = await PackDestination.resolveConflict(
+                    fileName: fileName, keepBothName: "\(archiveName) \(free).\(format.fileExtension)", in: destination
+                ) else { return }
+                conflict = choice
+            }
+            let keepsMetadata = options.audience.keepsMacMetadata && format == .zip
+            let request = CreateRequest(
+                operationID: UUID().uuidString,
+                archiveName: archiveName,
+                format: format,
+                level: options.level,
+                password: options.usesPassword ? password : nil,
+                volumeSize: options.split == .none ? nil : options.split.rawValue,
+                keepsMacMetadata: keepsMetadata,
+                verify: options.verify,
+                threads: PackPreferences.threads
+            )
+            app.packing.start(.init(items: report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,
+                                    request: request, name: archiveName, destination: destination, conflict: conflict))
+            dismiss()
         }
     }
 
@@ -111,6 +252,7 @@ private struct Token<Items: View>: View {
     let title: String
     var suffix = ""
     var isEnabled = true
+    var disabledHelp = ""
     @ViewBuilder let items: () -> Items
     @State private var isHovering = false
 
@@ -140,12 +282,14 @@ private struct Token<Items: View>: View {
         .background(.tint.opacity(isHovering && isEnabled ? 0.16 : 0.08), in: .rect(cornerRadius: 6))
         .onHover { isHovering = $0 }
         .disabled(!isEnabled)
-        .help(isEnabled ? "Click to change" : "This format can’t be password-protected")
+        .help(isEnabled ? "Click to change" : disabledHelp)
     }
 }
 
 private struct ReportView: View {
     let report: PackReport
+    let audience: Audience
+    @Binding var overrides: [String: String]
     @Binding var showDetails: Bool
 
     var body: some View {
@@ -155,36 +299,27 @@ private struct ReportView: View {
             } else {
                 row(.info,
                     "\(report.renames.count) \(report.renames.count == 1 ? "name" : "names") will be adjusted",
-                    "Characters Windows doesn’t allow are replaced. Your originals stay as they are.")
+                    audience.normalizesNames
+                        ? "Characters Windows doesn’t allow are replaced. Your originals stay as they are."
+                        : "Names that would clash are numbered. Your originals stay as they are.")
             }
             if !report.excluded.isEmpty {
                 row(.info,
-                    "\(report.excluded.count) Mac-only files left out",
+                    "\(report.excluded.count) Mac-only \(report.excluded.count == 1 ? "file" : "files") left out",
                     "“.DS_Store”, “._” and other Finder files mean nothing on other systems.")
+            }
+            if !report.leftOutLinks.isEmpty {
+                row(.info,
+                    "\(report.leftOutLinks.count) \(report.leftOutLinks.count == 1 ? "link" : "links") left out",
+                    "\(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) can’t recreate symbolic links. Choose Macs or Linux to keep them.")
             }
             ForEach(report.notes, id: \.title) { note in
                 row(note.tone, note.title, note.detail)
             }
 
             if !report.renames.isEmpty {
-                DisclosureGroup("Show changes", isExpanded: $showDetails) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(report.renames, id: \.from) { rename in
-                            HStack(spacing: 6) {
-                                Text(rename.from.replacingOccurrences(of: "\r", with: "␍"))
-                                    .strikethrough()
-                                    .foregroundStyle(.secondary)
-                                Image(systemName: "arrow.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                Text(rename.to)
-                            }
-                            .font(.callout.monospaced())
-                            .lineLimit(1)
-                        }
-                    }
-                    .padding(.top, Space.s)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                DisclosureGroup("Review names", isExpanded: $showDetails) {
+                    renameList
                 }
                 .font(.callout)
                 .padding(.leading, 26)
@@ -193,6 +328,40 @@ private struct ReportView: View {
         .padding(Space.l)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.background.secondary, in: .rect(cornerRadius: Radius.card))
+    }
+
+    /// Each suggested name is editable; what people type is made safe the same way.
+    private var renameList: some View {
+        ScrollView {
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 6, verticalSpacing: 6) {
+                ForEach(report.renames) { rename in
+                    GridRow {
+                        Text(rename.from.replacingOccurrences(of: "\r", with: "␍"))
+                            .strikethrough()
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .help(rename.path)
+                        Image(systemName: "arrow.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        TextField(rename.suggested, text: binding(for: rename))
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    .font(.callout.monospaced())
+                }
+            }
+            .padding(.top, Space.s)
+            .padding(.trailing, Space.s)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxHeight: 180)
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    private func binding(for rename: PackReport.Rename) -> Binding<String> {
+        Binding(get: { overrides[rename.path] ?? rename.to },
+                set: { overrides[rename.path] = $0.isEmpty ? nil : $0 })
     }
 
     private func row(_ tone: PackReport.Tone, _ title: String, _ detail: String) -> some View {

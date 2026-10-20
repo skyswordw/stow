@@ -147,7 +147,7 @@ private struct ActivityCapsule: View {
     }
 }
 
-private struct ProgressRing: View {
+struct ProgressRing: View {
     let progress: Double
 
     var body: some View {

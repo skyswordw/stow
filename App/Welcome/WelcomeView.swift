@@ -99,7 +99,7 @@ struct WelcomeView: View {
         if urls.count == 1, ArchiveFormat.infer(fromName: urls[0].lastPathComponent) != nil {
             app.open(urls[0])
         } else {
-            app.packRequest = PackRequest(files: urls.map { PackFile(path: $0.lastPathComponent, size: $0.fileSize) })
+            app.pack(urls)
         }
         return true
     }

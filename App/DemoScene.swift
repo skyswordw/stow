@@ -4,7 +4,10 @@ import AppKit
 ///
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
-/// Scenes: welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`).
+/// Scenes: welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
+/// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
+/// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
+/// `PackPreferences` keys work as launch arguments too.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -41,7 +44,18 @@ enum DemoScene {
             app.browser?.selection = ["Prototype/Harbor Prototype.app"]
             app.browser?.run(.moveToApplications)
         case "pack":
-            app.packRequest = PackRequest(files: SampleArchive.packCandidates)
+            if let path = defaults.string(forKey: "StowPack") {
+                app.pack([URL(filePath: path)])
+            } else {
+                app.packRequest = PackRequest(files: SampleArchive.packCandidates)
+            }
+        case "packing":
+            app.packing.preview(name: "Harbor Handoff.zip", phase: .running(0.42))
+        case "packed":
+            app.packing.preview(name: "Harbor Handoff.zip", phase: .done, verified: true)
+        case "packrun":
+            runPack(defaults)
+            return
         case "open":
             // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
@@ -80,6 +94,51 @@ enum DemoScene {
                 }
                 fflush(stdout)
                 exit(0) // terminate(_:) waits on open sheets; this is a screenshot run.
+            }
+        }
+    }
+
+    /// Packs for real through the engine and prints where the archive went, then quits:
+    ///
+    ///     -StowScene packrun -StowPack <folder> -StowPackTo <folder> -PackAudience mac
+    ///         [-StowFormat zip|sevenZip|tar|tarGz|tarBz2|tarXz] [-StowPassword pw] [-StowSplit bytes] [-PackVerify YES]
+    ///
+    /// Paths must be inside Stow's sandbox container.
+    private static func runPack(_ defaults: UserDefaults) {
+        guard let source = defaults.string(forKey: "StowPack"), let target = defaults.string(forKey: "StowPackTo") else {
+            print("packrun needs -StowPack and -StowPackTo")
+            exit(2)
+        }
+        Task {
+            let request = await PackRequest.gather([URL(filePath: source)])
+            var options = PackOptions()
+            options.setAudience(PackPreferences.audience)
+            if let format = defaults.string(forKey: "StowFormat").flatMap(PackFormat.init(rawValue:)) {
+                options.setFormat(format)
+            }
+            let password = defaults.string(forKey: "StowPassword")
+            options.usesPassword = password != nil && options.format.supportsPassword
+            options.level = PackPreferences.level(for: options.audience)
+            let split = Int64(defaults.integer(forKey: "StowSplit"))
+            let report = Compatibility.report(for: request.files, options: options, password: password ?? "")
+            let name = Compatibility.archiveName(request.suggestedName, for: options.audience)
+            let keepsMetadata = options.audience.keepsMacMetadata && options.format == .zip
+            let create = CreateRequest(operationID: UUID().uuidString, archiveName: name, format: options.format,
+                                       level: options.level, password: options.usesPassword ? password : nil,
+                                       volumeSize: split > 0 ? split : nil, keepsMacMetadata: keepsMetadata,
+                                       verify: PackPreferences.verify, threads: PackPreferences.threads)
+            do {
+                let result = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes,
+                                                           attributes: keepsMetadata, request: create, named: name,
+                                                           in: URL(filePath: target)) { _ in }
+                result.placed.forEach { print($0.path) }
+                print("renamed \(report.renames.count), left out \(report.excluded.count + report.leftOutLinks.count), verified \(result.report.verified)")
+                fflush(stdout)
+                exit(0)
+            } catch {
+                print("failed: \(EngineError(error).message)")
+                fflush(stdout)
+                exit(1)
             }
         }
     }

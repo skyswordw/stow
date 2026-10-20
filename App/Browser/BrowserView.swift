@@ -88,7 +88,7 @@ struct BrowserView: View {
 
         ToolbarItem {
             Button("New Archive", systemImage: "plus.rectangle.on.folder") {
-                app.packRequest = PackRequest(files: SampleArchive.packCandidates)
+                app.chooseFilesToPack()
             }
             .help("Pack files into a new archive")
         }

@@ -187,7 +187,12 @@ struct TrayView: View {
             Button("Clear") { tray.items.removeAll() }
                 .buttonStyle(.glass)
             Button("Pack", systemImage: "archivebox") {
-                app.packRequest = PackRequest(files: tray.items.map { PackFile(path: $0.name, size: $0.size) })
+                let urls = tray.items.compactMap(\.url)
+                if urls.isEmpty { // sample items
+                    app.packRequest = PackRequest(files: tray.items.map { PackFile(path: $0.name, size: $0.size) })
+                } else {
+                    app.pack(urls)
+                }
                 NSApp.activate()
             }
             .buttonStyle(.glassProminent)

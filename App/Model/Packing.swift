@@ -1,8 +1,88 @@
 import Foundation
 
+/// A file, folder or link to pack. `path` starts with the name of the item people chose.
 nonisolated struct PackFile: Hashable, Sendable {
     var path: String
     var size: Int64
+    var isFolder = false
+    var isLink = false
+    /// Nil for sample data: there is nothing on disk to pack.
+    var source: URL?
+}
+
+/// What people asked to pack: the items they chose, and everything inside them.
+nonisolated struct PackRequest: Identifiable, Sendable {
+    let id = UUID()
+    var files: [PackFile]
+    /// Names of the chosen items, as they appear at the top of the archive.
+    var roots: [String]
+    /// Where the chosen items live; the default place to save the archive.
+    var directory: URL?
+
+    /// Sample files: roots are their top-level names.
+    init(files: [PackFile]) {
+        self.files = files
+        var seen = Set<String>()
+        roots = files.compactMap { $0.path.split(separator: "/").first.map(String.init) }.filter { seen.insert($0).inserted }
+    }
+
+    init(files: [PackFile], roots: [String], directory: URL?) {
+        self.files = files
+        self.roots = roots
+        self.directory = directory
+    }
+
+    var isSample: Bool { files.allSatisfy { $0.source == nil } }
+
+    /// "Project" for one folder, "Report" for one file, "Archive" for several (as Archive Utility does).
+    var suggestedName: String {
+        guard roots.count == 1, let root = roots.first else { return "Archive" }
+        let isFolder = files.first { $0.path == root }?.isFolder ?? files.contains { $0.path.hasPrefix(root + "/") }
+        let stem = (root as NSString).deletingPathExtension
+        return isFolder || stem.isEmpty ? root : stem
+    }
+
+    /// Walks the chosen items (without following links). Two items with the same name get numbered.
+    @concurrent
+    static func gather(_ urls: [URL]) async -> PackRequest {
+        collect(urls)
+    }
+
+    static func collect(_ urls: [URL]) -> PackRequest {
+        var files: [PackFile] = []
+        var roots: [String] = []
+        var taken = Set<String>()
+        for url in urls {
+            var name = url.lastPathComponent
+            var attempt = 1
+            while !taken.insert(name.lowercased()).inserted {
+                attempt += 1
+                name = Compatibility.numbered(url.lastPathComponent, attempt)
+            }
+            roots.append(name)
+            guard let root = file(at: url, path: name) else { continue }
+            files.append(root)
+            guard root.isFolder else { continue }
+            let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey]
+            guard let walker = FileManager.default.enumerator(at: url, includingPropertiesForKeys: keys) else { continue }
+            let base = url.standardizedFileURL.path
+            for case let child as URL in walker {
+                let relative = String(child.standardizedFileURL.path.dropFirst(base.count))
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                if let file = file(at: child, path: name + "/" + relative) { files.append(file) }
+            }
+        }
+        return PackRequest(files: files, roots: roots, directory: urls.first?.deletingLastPathComponent())
+    }
+
+    private static func file(at url: URL, path: String) -> PackFile? {
+        guard let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey]) else {
+            return nil
+        }
+        let isLink = values.isSymbolicLink ?? false
+        return PackFile(path: path, size: Int64(values.fileSize ?? 0), isFolder: !isLink && (values.isDirectory ?? false),
+                        isLink: isLink, source: url)
+    }
 }
 
 nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
@@ -18,16 +98,24 @@ nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    var formats: [ArchiveFormat] {
+    var formats: [PackFormat] {
         switch self {
         case .windows, .mac: [.zip, .sevenZip]
-        case .linux: [.tarXz, .tarGz, .zip, .sevenZip]
+        case .linux: [.tarXz, .tarGz, .tarBz2, .tar, .zip, .sevenZip]
         case .web: [.zip]
         }
     }
 
     var dropsMacHelperFiles: Bool { self != .mac }
+    /// Windows-safe characters and reserved names.
     var normalizesNames: Bool { self == .windows || self == .web }
+    /// Precomposed (NFC) names, which is what everything but a Mac expects.
+    var composesNames: Bool { self != .mac }
+    /// Links stay links. Elsewhere they can't be recreated, so they're left out.
+    var keepsLinks: Bool { self == .mac || self == .linux }
+    /// Extended attributes travel as AppleDouble files (ZIP).
+    var keepsMacMetadata: Bool { self == .mac }
+    var hasCaseInsensitiveNames: Bool { self != .linux }
 }
 
 nonisolated enum SplitSize: Int64, CaseIterable, Identifiable, Sendable {
@@ -48,11 +136,62 @@ nonisolated enum SplitSize: Int64, CaseIterable, Identifiable, Sendable {
     }
 }
 
+nonisolated extension PackFormat {
+    var displayName: String {
+        switch self {
+        case .zip: "ZIP"
+        case .sevenZip: "7Z"
+        case .tar: "TAR"
+        case .tarGz: "TAR.GZ"
+        case .tarBz2: "TAR.BZ2"
+        case .tarXz: "TAR.XZ"
+        }
+    }
+}
+
+nonisolated extension CompressionLevel {
+    var title: String {
+        switch self {
+        case .store: "Store"
+        case .fastest: "Fastest"
+        case .fast: "Fast"
+        case .balanced: "Balanced"
+        case .maximum: "Maximum"
+        case .smallest: "Smallest"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .store: "No compression — quickest, largest."
+        case .fastest: "Light compression, very quick."
+        case .fast: "Good compression, quick."
+        case .balanced: "Smaller files at a good speed."
+        case .maximum: "Smaller still, noticeably slower."
+        case .smallest: "Smallest files, slowest."
+        }
+    }
+
+    /// Packed size relative to Balanced, for estimates.
+    var sizeFactor: Double {
+        switch self {
+        case .store: 1
+        case .fastest: 1.1
+        case .fast: 1.04
+        case .balanced: 1
+        case .maximum: 0.97
+        case .smallest: 0.95
+        }
+    }
+}
+
 nonisolated struct PackOptions: Equatable, Sendable {
     var audience: Audience = .windows
-    var format: ArchiveFormat = .zip
+    var format: PackFormat = .zip
     var usesPassword = false
     var split: SplitSize = .none
+    var level: CompressionLevel = .balanced
+    var verify = false
 
     /// Keeps format and password consistent when the audience changes.
     mutating func setAudience(_ newValue: Audience) {
@@ -61,14 +200,22 @@ nonisolated struct PackOptions: Equatable, Sendable {
         if !format.supportsPassword { usesPassword = false }
     }
 
-    mutating func setFormat(_ newValue: ArchiveFormat) {
+    mutating func setFormat(_ newValue: PackFormat) {
         format = newValue
         if !newValue.supportsPassword { usesPassword = false }
     }
 }
 
 nonisolated struct PackReport: Equatable, Sendable {
-    struct Rename: Equatable, Sendable { let from: String; let to: String }
+    /// An item whose own name changes. `path` is where it sits in the original tree.
+    struct Rename: Equatable, Identifiable, Sendable {
+        let path: String
+        let from: String
+        /// What Stow would choose; `to` differs when people edited it (or it was numbered).
+        let suggested: String
+        let to: String
+        var id: String { path }
+    }
 
     enum Tone: Sendable { case fine, info, caution }
     struct Note: Equatable, Sendable {
@@ -77,12 +224,25 @@ nonisolated struct PackReport: Equatable, Sendable {
         let detail: String
     }
 
+    /// Everything that goes in, under its archive path.
     var included: [PackFile]
+    /// Mac helper files left out.
     var excluded: [PackFile]
+    /// Links the audience can't recreate.
+    var leftOutLinks: [PackFile]
     var renames: [Rename]
     var estimatedSize: Int64
     var parts: Int
     var notes: [Note]
+
+    var fileCount: Int { included.count { !$0.isFolder } }
+    /// File data to hand over, for progress.
+    var totalBytes: Int64 { included.reduce(0) { $0 + ($1.isFolder || $1.isLink ? 0 : $1.size) } }
+
+    /// What to stream to the engine.
+    var items: [TreeStream.Item] {
+        included.compactMap { file in file.source.map { TreeStream.Item(source: $0, path: file.path) } }
+    }
 }
 
 nonisolated enum Compatibility {
@@ -92,7 +252,7 @@ nonisolated enum Compatibility {
         return names
     }()
 
-    private static let invalidWindowsCharacters = CharacterSet(charactersIn: "<>:\"\\|?*")
+    private static let invalidWindowsCharacters = CharacterSet(charactersIn: "<>:\"\\|?*/")
         .union(CharacterSet(charactersIn: Unicode.Scalar(UInt8(0))...Unicode.Scalar(UInt8(0x1F))))
 
     /// Finder metadata and AppleDouble files that mean nothing off a Mac.
@@ -119,50 +279,123 @@ nonisolated enum Compatibility {
             .joined(separator: "/")
     }
 
-    static func report(for files: [PackFile], options: PackOptions) -> PackReport {
-        var included: [PackFile] = []
+    /// How one name looks for `audience`.
+    static func component(_ name: String, for audience: Audience) -> String {
+        if audience.normalizesNames { return windowsSafeComponent(name) }
+        let composed = audience.composesNames ? name.precomposedStringWithCanonicalMapping : name
+        let clean = composed.replacingOccurrences(of: "/", with: "-")
+        return clean.isEmpty ? "_" : clean
+    }
+
+    /// The archive's own file name (without extension).
+    static func archiveName(_ name: String, for audience: Audience) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return "Archive" }
+        return component(trimmed, for: audience).replacingOccurrences(of: ":", with: "-")
+    }
+
+    /// "Report.pdf" → "Report 2.pdf"; folders and extensionless names just get the number.
+    static func numbered(_ name: String, _ attempt: Int) -> String {
+        guard attempt > 1 else { return name }
+        let ext = (name as NSString).pathExtension
+        let stem = (name as NSString).deletingPathExtension
+        return ext.isEmpty || stem.isEmpty ? "\(name) \(attempt)" : "\(stem) \(attempt).\(ext)"
+    }
+
+    /// `overrides`: names people typed, by original path.
+    static func report(for files: [PackFile], options: PackOptions, password: String = "",
+                       overrides: [String: String] = [:]) -> PackReport {
+        let audience = options.audience
         var excluded: [PackFile] = []
-        var renames: [PackReport.Rename] = []
+        var leftOutLinks: [PackFile] = []
+        var kept: [PackFile] = []
 
         for file in files {
-            if options.audience.dropsMacHelperFiles && isMacHelperFile(file.path) {
-                excluded.append(file)
-                continue
+            if audience.dropsMacHelperFiles, isUnderHelperFile(file.path) {
+                if !file.isFolder { excluded.append(file) }
+            } else if file.isLink, !audience.keepsLinks {
+                leftOutLinks.append(file)
+            } else {
+                kept.append(file)
             }
-            var output = file
-            if options.audience.normalizesNames {
-                let safe = windowsSafePath(file.path)
-                // NFC-only changes are invisible to people; report only renames they'd notice.
-                if safe != file.path.precomposedStringWithCanonicalMapping {
-                    renames.append(.init(from: file.path, to: safe))
-                }
-                output.path = safe
+        }
+
+        // Parents before children, so a folder's new name is settled before anything inside it.
+        var mapped: [String: String] = [:]
+        var owners: [String: String] = [:]
+        var renames: [PackReport.Rename] = []
+        func key(_ path: String) -> String { audience.hasCaseInsensitiveNames ? path.lowercased() : path }
+        func output(for original: String) -> String {
+            if let known = mapped[original] { return known }
+            let parent = (original as NSString).deletingLastPathComponent
+            let prefix = parent.isEmpty ? "" : output(for: parent) + "/"
+            let name = (original as NSString).lastPathComponent
+            let suggested = component(name, for: audience)
+            let typed = overrides[original].map { component($0.trimmingCharacters(in: .whitespaces), for: audience) }
+            let wanted = typed.flatMap { $0 == "_" ? nil : $0 } ?? suggested
+            var candidate = wanted
+            var attempt = 1
+            while let owner = owners[key(prefix + candidate)], owner != original {
+                attempt += 1
+                candidate = numbered(wanted, attempt)
             }
-            included.append(output)
+            owners[key(prefix + candidate)] = original
+            mapped[original] = prefix + candidate
+            if candidate.precomposedStringWithCanonicalMapping != name.precomposedStringWithCanonicalMapping {
+                renames.append(.init(path: original, from: name, suggested: suggested, to: candidate))
+            }
+            return prefix + candidate
+        }
+
+        let included = kept.sorted { $0.path < $1.path }.map { file in
+            var entry = file
+            entry.path = output(for: file.path)
+            return entry
         }
 
         let raw = included.reduce(Int64(0)) { total, file in
-            total + Int64(Double(file.size) * EntryKind.infer(fromName: file.path).typicalCompressionRatio)
+            guard !file.isFolder, !file.isLink else { return total }
+            let ratio = options.format.isCompressed && options.level != .store
+                ? EntryKind.infer(fromName: file.path).typicalCompressionRatio * options.level.sizeFactor
+                : 1
+            return total + Int64(Double(file.size) * min(1, ratio))
         }
         let factor: Double = switch options.format {
         case .sevenZip: 0.9
         case .tarXz: 0.92
+        case .tarBz2: 0.96
         default: 1.0
         }
-        let estimated = Int64(Double(raw) * factor)
+        let estimated = Int64(Double(raw) * (options.level == .store ? 1 : factor))
         let parts = options.split == .none ? 1 : max(1, Int((estimated + options.split.rawValue - 1) / options.split.rawValue))
 
         return PackReport(
             included: included,
             excluded: excluded,
+            leftOutLinks: leftOutLinks,
             renames: renames,
             estimatedSize: estimated,
             parts: parts,
-            notes: notes(for: options)
+            notes: notes(for: options, password: password)
         )
     }
 
-    private static func notes(for options: PackOptions) -> [PackReport.Note] {
+    /// The file itself, or a folder around it, is Mac-only (`__MACOSX/…`, `.Trashes/…`).
+    private static func isUnderHelperFile(_ path: String) -> Bool {
+        var prefix = ""
+        for component in path.split(separator: "/") {
+            prefix = prefix.isEmpty ? String(component) : prefix + "/" + component
+            if isMacHelperFile(prefix) { return true }
+        }
+        return false
+    }
+
+    /// ZIP's AES passwords are bytes; apps disagree on how to encode anything beyond ASCII.
+    static func passwordIsPortable(_ password: String) -> Bool {
+        password.unicodeScalars.allSatisfy { $0.isASCII && $0.value >= 0x20 }
+    }
+
+    private static func notes(for options: PackOptions, password: String) -> [PackReport.Note] {
         var notes: [PackReport.Note] = []
         switch (options.audience, options.format) {
         case (.windows, .zip) where options.usesPassword:
@@ -177,11 +410,17 @@ nonisolated enum Compatibility {
                 title: "Recent Windows 11 opens 7Z",
                 detail: "Older versions need 7-Zip. Choose ZIP if you’re not sure."
             ))
-        case (.mac, _):
+        case (.mac, .zip):
             notes.append(.init(
                 tone: .fine,
                 title: "Keeps everything a Mac cares about",
-                detail: "Finder tags, extended attributes and permissions stay intact."
+                detail: "Finder tags, extended attributes, permissions and links stay intact."
+            ))
+        case (.mac, _):
+            notes.append(.init(
+                tone: .info,
+                title: "Keeps permissions and links",
+                detail: "Finder tags and other extended attributes only travel in a ZIP."
             ))
         case (.linux, _):
             notes.append(.init(
@@ -193,6 +432,13 @@ nonisolated enum Compatibility {
             break
         }
         if options.usesPassword {
+            if options.format == .zip, !passwordIsPortable(password) {
+                notes.append(.init(
+                    tone: .caution,
+                    title: "Use plain letters and numbers for a ZIP password",
+                    detail: "Apps disagree on accented and non-Latin characters in ZIP passwords. Choose 7Z to keep this one."
+                ))
+            }
             notes.append(.init(
                 tone: .fine,
                 title: options.format == .sevenZip ? "Contents and file names are encrypted" : "Contents are encrypted with AES-256",

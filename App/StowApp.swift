@@ -10,6 +10,7 @@ final class AppState {
     }
 
     let tray = TrayController()
+    let packing = PackController()
     var browser: BrowserModel?
     var packRequest: PackRequest?
     var isChoosingArchive = false
@@ -41,6 +42,21 @@ final class AppState {
                 openFailure = OpenFailure(name: url.lastPathComponent, message: EngineError(error).message)
             }
         }
+    }
+
+    /// Shows the Pack sentence for files and folders from anywhere (drops, the Tray, New Archive).
+    func pack(_ urls: [URL]) {
+        guard !urls.isEmpty else { return }
+        Task {
+            let request = await PackRequest.gather(urls)
+            guard !request.files.isEmpty else { return }
+            packRequest = request
+        }
+    }
+
+    /// New Archive (⌘N): pick what to pack.
+    func chooseFilesToPack() {
+        Task { pack(await PackDestination.chooseSources()) }
     }
 
     /// Sample data for design review and the "Try the Sample" button.
@@ -83,6 +99,7 @@ struct StowApp: App {
 
 struct RootView: View {
     @Environment(AppState.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         @Bindable var app = app
@@ -94,7 +111,8 @@ struct RootView: View {
                     .navigationTitle("Stow")
             }
         }
-        .sheet(item: $app.packRequest) { PackSheet(request: $0) }
+        .overlay(alignment: .bottom) { packActivity }
+        .sheet(item: $app.packRequest) { PackSheet(request: $0).environment(app) }
         .fileImporter(isPresented: $app.isChoosingArchive, allowedContentTypes: [.archive, .diskImage, .data]) { result in
             if case .success(let url) = result { app.open(url) }
         }
@@ -107,6 +125,19 @@ struct RootView: View {
         }
         .task { DemoScene.apply(to: app) }
     }
+
+    /// Sits above the browser's Next Steps when both are showing.
+    private var packActivity: some View {
+        let nextSteps = app.browser.map { !$0.selection.isEmpty || $0.activity != nil } ?? false
+        return ZStack {
+            if app.packing.activity != nil {
+                PackActivityBar(packing: app.packing)
+                    .transition(.rise(reduceMotion: reduceMotion))
+            }
+        }
+        .padding(.bottom, nextSteps ? 76 : Space.l)
+        .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: app.packing.activity == nil)
+    }
 }
 
 struct StowCommands: Commands {
@@ -114,7 +145,7 @@ struct StowCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("New Archive…") { app.packRequest = PackRequest(files: SampleArchive.packCandidates) }
+            Button("New Archive…") { app.chooseFilesToPack() }
                 .keyboardShortcut("n")
             Button("Open Archive…") { app.isChoosingArchive = true }
                 .keyboardShortcut("o")
