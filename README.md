@@ -56,6 +56,7 @@ All archive parsing happens in `StowEngine.xpc`, a sandboxed XPC service that ru
 | Path | What |
 | --- | --- |
 | `DESIGN.md` | Design language: principles, vocabulary, color, type, motion values |
+| `PARITY.md` | Feature-by-feature comparison with ArcZip 1.1.1 and what is left to build |
 | `App/Model` | Value types: archive listing, Checkup findings, Next Steps, packing rules |
 | `App/Engine` | Engine client (XPC), staged extraction, destination picker |
 | `Engine` | `StowEngine.xpc`: sandboxed service that drives `7zz` |

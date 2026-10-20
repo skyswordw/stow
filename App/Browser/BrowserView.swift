@@ -9,6 +9,9 @@ struct BrowserView: View {
         NavigationSplitView {
             SidebarView(model: model)
                 .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 320)
+                // Search sits at the top of the sidebar, beside the folders it searches across,
+                // which keeps the inspector's toolbar section to just its toggle.
+                .searchable(text: $model.query, placement: .sidebar, prompt: "Search \(model.archive.files.count) files")
         } detail: {
             content
                 .overlay(alignment: .bottom) { nextSteps }
@@ -18,8 +21,14 @@ struct BrowserView: View {
         .inspector(isPresented: $model.showInspector) {
             InspectorView(model: model)
                 .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
+                // The toggle lives in the inspector's own toolbar section, pushed to the window's
+                // trailing edge — never straddling the column divider. SwiftUI keeps it in the
+                // toolbar while the inspector is collapsed, so it needs no second copy.
+                .toolbar {
+                    ToolbarSpacer(.flexible)
+                    ToolbarItem { inspectorToggle }
+                }
         }
-        .searchable(text: $model.query, placement: .toolbar, prompt: "Search \(model.archive.files.count) files")
         .toolbar { toolbar }
         .onKeyPress(.escape) {
             guard !model.selection.isEmpty else { return .ignored }
@@ -98,9 +107,12 @@ struct BrowserView: View {
             .help("Extract everything to a folder you choose")
         }
 
-        ToolbarItem(placement: .primaryAction) {
-            Button("Inspector", systemImage: "sidebar.right") { model.showInspector.toggle() }
-                .keyboardShortcut("i", modifiers: [.command, .option])
+    }
+
+    private var inspectorToggle: some View {
+        Button(model.showInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right") {
+            model.showInspector.toggle()
         }
+        .keyboardShortcut("i", modifiers: [.command, .option])
     }
 }

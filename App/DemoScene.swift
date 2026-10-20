@@ -57,6 +57,10 @@ enum DemoScene {
             break
         }
 
+        if defaults.object(forKey: "StowInspector") != nil {
+            app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
+        }
+
         if let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }),
            size.count == 2 {
             Task {

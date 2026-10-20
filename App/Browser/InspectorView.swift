@@ -43,21 +43,6 @@ private struct EntryDetail: View {
                 ("Modified", entry.modified.formatted(date: .abbreviated, time: .shortened)),
                 ("Where", entry.parent.isEmpty ? "Top level" : entry.parent),
             ])
-
-            let steps = NextStep.suggestions(for: [entry])
-            if !steps.isEmpty {
-                VStack(alignment: .leading, spacing: Space.s) {
-                    SectionLabel("Next steps")
-                    ForEach(steps) { step in
-                        Button { model.run(step, on: [entry]) } label: {
-                            Label(step.title, systemImage: step.symbol)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .controlSize(.large)
-                        .buttonStyle(.bordered)
-                    }
-                }
-            }
         }
     }
 
