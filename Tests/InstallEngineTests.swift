@@ -1,0 +1,245 @@
+import Foundation
+import Synchronization
+import Testing
+@testable import Stow
+
+/// Installs and conflict-aware extraction end to end, through the sandboxed engine.
+@Suite("Installing", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
+@MainActor
+struct InstallEngineTests {
+    let sevenZip = SevenZip.bundled()!
+
+    /// A minimal app bundle with a real Mach-O, signed ad hoc.
+    func makeApp(named name: String, version: String, in folder: URL) throws -> URL {
+        let app = folder.appending(path: "\(name).app", directoryHint: .isDirectory)
+        let macOS = app.appending(path: "Contents/MacOS", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: macOS, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: URL(filePath: "/usr/bin/true"), to: macOS.appending(path: name))
+        let info: [String: Any] = ["CFBundleExecutable": name, "CFBundleIdentifier": "app.stow.tests.\(name)",
+                                   "CFBundlePackageType": "APPL", "CFBundleShortVersionString": version]
+        try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+            .write(to: app.appending(path: "Contents/Info.plist"))
+        try run("/usr/bin/codesign", ["--force", "--sign", "-", app.path])
+        return app
+    }
+
+    func zip(_ items: [URL], to archive: URL) throws {
+        try run(sevenZip.executable.path, ["a", "-tzip", "-bso0", "-bsp0", archive.path] + items.map(\.path))
+    }
+
+    func run(_ tool: String, _ arguments: [String]) throws {
+        let process = try Process.run(URL(filePath: tool), arguments: arguments)
+        process.waitUntilExit()
+        try #require(process.terminationStatus == 0, "\(tool) \(arguments.joined(separator: " "))")
+    }
+
+    @Test func installsAnAppFromAZipThenReplacesIt() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let build = folder.url.appending(path: "Build", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: build, withIntermediateDirectories: true)
+        let applications = folder.url.appending(path: "Applications", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: applications, withIntermediateDirectories: true)
+
+        let first = folder.url.appending(path: "Tool-1.zip")
+        try zip([try makeApp(named: "Tool", version: "1.0", in: build)], to: first)
+        let archive1 = Archive(listing: try await ArchiveEngine.shared.list(first), url: first)
+        let entry1 = try #require(archive1.entry(at: "Tool.app"))
+        #expect(NextStep.suggestions(for: [entry1]).first == .moveToApplications)
+
+        let questions = Questions()
+        let installed = try await Installer.installApp(entry1, from: archive1, into: applications, removeQuarantine: false,
+                                                       ask: questions.answer(.proceed), onProgress: { _ in })
+        #expect(installed.verdict == .adHoc)
+        #expect(!installed.replaced)
+        #expect(questions.asked == ["signature adHoc"])
+        // The seal survived engine → pipe → staging → rename.
+        #expect(CodeSignature.assess(applications.appending(path: "Tool.app")) == .adHoc)
+        #expect(Installer.version(of: applications.appending(path: "Tool.app")) == "1.0")
+
+        try FileManager.default.removeItem(at: build.appending(path: "Tool.app"))
+        let second = folder.url.appending(path: "Tool-2.zip")
+        try zip([try makeApp(named: "Tool", version: "2.0", in: build)], to: second)
+        let archive2 = Archive(listing: try await ArchiveEngine.shared.list(second), url: second)
+        let replaced = try await Installer.installApp(try #require(archive2.entry(at: "Tool.app")), from: archive2,
+                                                      into: applications, removeQuarantine: false,
+                                                      ask: questions.answer(.proceed), onProgress: { _ in })
+        #expect(replaced.replaced)
+        #expect(questions.asked.last == "replace 1.0 → 2.0")
+        #expect(Installer.version(of: applications.appending(path: "Tool.app")) == "2.0")
+        #expect(TemporaryFolder.contents(of: applications).filter { !$0.contains("/") } == ["Tool.app"])
+
+        // Declining the signature warning installs nothing.
+        await #expect(throws: EngineError(.cancelled)) {
+            _ = try await Installer.installApp(try #require(archive1.entry(at: "Tool.app")), from: archive1,
+                                               into: applications, removeQuarantine: false,
+                                               ask: questions.answer(.cancel), onProgress: { _ in })
+        }
+        #expect(Installer.version(of: applications.appending(path: "Tool.app")) == "2.0")
+    }
+
+    @Test func installsFontsAndSkipsOnesAlreadyThere() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let source = try #require(["/System/Library/Fonts/Supplemental/Arial.ttf", "/System/Library/Fonts/Supplemental/Georgia.ttf"]
+            .map { URL(filePath: $0) }.filter { FileManager.default.fileExists(atPath: $0.path) }.first)
+        let work = folder.url.appending(path: "Work", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        let font = work.appending(path: "Sample.ttf")
+        try FileManager.default.copyItem(at: source, to: font)
+        let web = work.appending(path: "Sample.woff2")
+        try Data("wOF2".utf8).write(to: web)
+        let archive = folder.url.appending(path: "Fonts.zip")
+        try zip([font, web], to: archive)
+        let fonts = folder.url.appending(path: "Fonts", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: fonts, withIntermediateDirectories: true)
+
+        let opened = Archive(listing: try await ArchiveEngine.shared.list(archive), url: archive)
+        let questions = Questions()
+        let first = try await Installer.installFonts(opened.files, from: opened, into: fonts,
+                                                     ask: questions.answer(.proceed), onProgress: { _ in })
+        #expect(first.installed.map(\.lastPathComponent) == ["Sample.ttf"])
+        #expect(first.unusable == ["Sample.woff2"])
+        #expect(questions.asked.isEmpty)
+
+        let second = try await Installer.installFonts(opened.files, from: opened, into: fonts,
+                                                      ask: questions.answer(.alternate), onProgress: { _ in })
+        #expect(questions.asked == ["fonts Sample.ttf"])
+        #expect(second.installed.isEmpty && second.skipped == ["Sample.ttf"])
+        #expect(TemporaryFolder.contents(of: fonts) == ["Sample.ttf"])
+    }
+
+    @Test func extractAllIntoANamedFolderWithEachConflictChoice() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = folder.url.appending(path: "Handoff.zip")
+        try ZipFixture(entries: [.file("README.md", "new readme"), .file("Docs/a.txt", "new a"),
+                                 .file("Docs/.gitignore", "*.log"), .file("Docs/Thumbs.db", "x"),
+                                 .file("__MACOSX/Docs/._a.txt", "x")]).write(to: zip)
+        let out = folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out.appending(path: "Handoff/Docs"), withIntermediateDirectories: true)
+        try Data("old readme".utf8).write(to: out.appending(path: "Handoff/README.md"))
+        try Data("mine".utf8).write(to: out.appending(path: "Handoff/Mine.txt"))
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+
+        func extract(_ resolve: @escaping Placement.Resolver, skipSystemFiles: Bool = true) async throws -> Extraction.Result {
+            try await Extraction.run(archive, selection: nil, to: out,
+                                     options: .init(allFolder: .always, skipSystemFiles: skipSystemFiles, resolve: resolve)) { _ in }
+        }
+        func read(_ path: String) -> String? {
+            (try? Data(contentsOf: out.appending(path: path))).map { String(decoding: $0, as: UTF8.self) }
+        }
+
+        // Merge + Keep Both: the old README stays, the new one is numbered.
+        let kept = try await extract { $0.canMerge ? .merge : .keepBoth }
+        #expect(kept.placed.map(\.lastPathComponent) == ["Handoff"])
+        #expect(read("Handoff/README.md") == "old readme" && read("Handoff/README 2.md") == "new readme")
+        #expect(read("Handoff/Mine.txt") == "mine")
+        #expect(read("Handoff/Docs/.gitignore") == "*.log")
+        #expect(read("Handoff/Docs/Thumbs.db") == nil)
+
+        // Merge + Skip: nothing changes for files already there.
+        let skipped = try await extract { $0.canMerge ? .merge : .skip }
+        #expect(skipped.placement.skipped == 3) // README.md, Docs/a.txt, Docs/.gitignore
+        #expect(read("Handoff/README.md") == "old readme")
+
+        // Merge + Replace.
+        try Data("edited".utf8).write(to: out.appending(path: "Handoff/Docs/a.txt"))
+        let replaced = try await extract { $0.canMerge ? .merge : .replace }
+        #expect(replaced.placement.replaced == 3)
+        #expect(read("Handoff/README.md") == "new readme" && read("Handoff/Docs/a.txt") == "new a")
+
+        // Keep Both for the folder: a second, numbered folder.
+        let both = try await extract { _ in .keepBoth }
+        #expect(both.placed.map(\.lastPathComponent) == ["Handoff 2"])
+
+        // System files can be kept when asked.
+        let raw = try await extract({ _ in .keepBoth }, skipSystemFiles: false)
+        #expect(read("\(raw.placed[0].lastPathComponent)/Docs/Thumbs.db") == "x")
+    }
+
+    @Test func extractAllAlwaysWrapsASingleFile() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = folder.url.appending(path: "Notes.zip")
+        try ZipFixture(entries: [.file("notes.txt", "hi")]).write(to: zip)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+
+        let automatic = try await Extraction.run(archive, selection: nil, to: folder.url) { _ in }
+        #expect(automatic.placed.map(\.lastPathComponent) == ["notes.txt"])
+        let always = try await Extraction.run(archive, selection: nil, to: folder.url,
+                                              options: .init(allFolder: .always)) { _ in }
+        #expect(always.placed.map(\.lastPathComponent) == ["Notes"])
+        #expect(TemporaryFolder.contents(of: always.placed[0]) == ["notes.txt"])
+    }
+
+    static func fixture(_ name: String) throws -> URL {
+        let folder = try #require(Bundle(for: FixtureLocator.self).url(forResource: "Fixtures", withExtension: nil))
+        return folder.appending(path: name)
+    }
+
+    @Test(arguments: ["Fixture-HFS.dmg", "Fixture-APFS.dmg"])
+    func diskImageAppKeepsItsSealAndLeavesTheLayoutBehind(fixture: String) async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let image = folder.url.appending(path: fixture)
+        try FileManager.default.copyItem(at: try Self.fixture(fixture), to: image)
+
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(image), url: image)
+        #expect(archive.format == .dmg)
+        #expect(archive.dropTargets.map(\.folder) == ["/Applications"])
+        #expect(archive.children(of: archive.volumeRoot).map(\.name) == ["Fixture Tool.app"], "\(archive.children(of: archive.volumeRoot).map(\.name.debugDescription))")
+        #expect(archive.checkup.contains { $0.title == "Installer layout hidden" })
+        let model = BrowserModel(archive: archive)
+        #expect(model.folder == archive.volumeRoot)
+        #expect(model.selectedEntries.map(\.name) == ["Fixture Tool.app"])
+        let app = try #require(model.selectedEntries.first)
+        #expect(NextStep.suggestions(for: model.selectedEntries, dropTargets: archive.dropTargets).first == .moveToApplications)
+
+        let applications = folder.url.appending(path: "Applications", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: applications, withIntermediateDirectories: true)
+        let outcome = try await Installer.installApp(app, from: archive, into: applications,
+                                                     removeQuarantine: false, ask: { _ in .proceed }, onProgress: { _ in })
+        #expect(outcome.verdict == .adHoc)
+        #expect(CodeSignature.assess(outcome.app) == .adHoc)
+        #expect(TemporaryFolder.contents(of: outcome.app).allSatisfy { !$0.contains(":com.apple") })
+
+        let out = folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let all = try await Extraction.run(archive, selection: nil, to: out) { _ in }
+        #expect(all.report.removedLinks.isEmpty)
+        let names = TemporaryFolder.contents(of: out).filter { !$0.contains(".app/") }
+        #expect(!names.contains { $0.contains(".background") || $0.hasSuffix("Applications") || $0.contains("VolumeIcon") })
+        #expect(names.contains { $0.hasSuffix("Fixture Tool.app") })
+    }
+
+    @Test func encryptedDiskImagesAreExplained() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let image = folder.url.appending(path: "Locked.dmg")
+        try (Data("encrcdsa".utf8) + Data(count: 64)).write(to: image)
+        #expect(DiskImageCheck.isEncrypted(image))
+        #expect(DiskImageCheck.explain(EngineError(.notAnArchive), for: image).message.contains("encrypted"))
+        let plain = folder.url.appending(path: "Plain.dmg")
+        try Data(count: 64).write(to: plain)
+        #expect(!DiskImageCheck.isEncrypted(plain))
+    }
+}
+
+private final class FixtureLocator {}
+
+/// Records what an install asked and answers with a fixed choice.
+private final class Questions {
+    var asked: [String] = []
+
+    func answer(_ answer: Installer.Answer) -> Installer.Ask {
+        { [self] question in
+            switch question {
+            case .signature(_, let verdict): asked.append("signature \(verdict)")
+            case .replaceApp(_, let old, let new): asked.append("replace \(old ?? "?") → \(new ?? "?")")
+            case .replaceFonts(let names): asked.append("fonts \(names.joined(separator: ","))")
+            }
+            return answer
+        }
+    }
+}

@@ -1,14 +1,21 @@
 import Foundation
 
-/// Finder metadata and AppleDouble files that mean nothing off a Mac — or inside an archive.
+/// System metadata that means nothing once extracted: Finder's `.DS_Store` and AppleDouble `._`
+/// files, `__MACOSX`, volume bookkeeping, and Windows' `Thumbs.db` / `desktop.ini`. Ordinary
+/// dotfiles (`.gitignore`, `.env`, `.editorconfig`) are content and always kept.
 nonisolated enum MacHelperFiles {
+    private static let names: Set<String> = [
+        ".DS_Store", ".localized", "Icon\r", ".Spotlight-V100", ".fseventsd", ".Trashes",
+        ".TemporaryItems", ".DocumentRevisions-V100", ".apdisk",
+    ]
+    /// Windows writes these with any capitalisation.
+    private static let windowsNames: Set<String> = ["thumbs.db", "ehthumbs.db", "desktop.ini"]
+
     static func matches(_ path: String) -> Bool {
         let components = path.split(separator: "/").map(String.init)
         guard let name = components.last else { return false }
         if components.contains("__MACOSX") { return true }
-        if [".DS_Store", ".localized", "Icon\r", ".Spotlight-V100", ".fseventsd", ".Trashes"].contains(name) {
-            return true
-        }
+        if names.contains(name) || windowsNames.contains(name.lowercased()) { return true }
         return name.hasPrefix("._")
     }
 

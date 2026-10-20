@@ -18,4 +18,21 @@ enum ExtractDestination {
         }
         return response == .OK ? panel.url : nil
     }
+
+    /// One folder for a batch of archives.
+    static func choose(count: Int, near first: URL?) async -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.prompt = "Extract"
+        panel.message = "Choose where to extract \(count == 1 ? "the archive" : "\(count) archives"). Each gets its own folder."
+        panel.directoryURL = first?.deletingLastPathComponent()
+        let response = if let window = NSApp.keyWindow {
+            await panel.beginSheetModal(for: window)
+        } else {
+            panel.runModal()
+        }
+        return response == .OK ? panel.url : nil
+    }
 }

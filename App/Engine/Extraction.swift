@@ -5,53 +5,109 @@ import Foundation
 /// 1. The engine extracts and audits inside its own sandbox container (it can't write anywhere else).
 /// 2. It streams the result into a staging folder from `.itemReplacementDirectory` on the
 ///    destination's volume, where Stow audits it again.
-/// 3. Each finished item moves into place with one no-clobber rename.
+/// 3. Each finished item moves into place with one rename (`Placement`), which also settles
+///    same-name conflicts.
 ///
 /// The engine's output and the staging folder are removed on success, failure and cancel alike.
 enum Extraction {
+    struct Options {
+        var allFolder = Preferences.ExtractAllFolder.automatic
+        /// `__MACOSX`, `._*`, `.DS_Store`, `Thumbs.db`… are left out (see `MacHelperFiles`).
+        var skipSystemFiles = true
+        var resolve: Placement.Resolver = Placement.keepBoth
+
+        /// From the person's settings; conflicts resolved by `resolve`.
+        static func current(resolve: @escaping Placement.Resolver) -> Options {
+            let values = Preferences.current
+            return Options(allFolder: values.extractAllFolder, skipSystemFiles: values.skipSystemFiles, resolve: resolve)
+        }
+    }
+
     struct Result: Sendable {
         var placed: [URL]
         var report: ExtractReport
+        var placement = Placement.Result()
     }
 
-    /// `selection` nil extracts everything: a single top-level item lands as itself, several are
-    /// wrapped in a folder named after the archive. Selected items land side by side.
-    static func run(_ archive: Archive, selection: [ArchiveEntry]?, to destination: URL,
+    /// `selection` nil extracts everything (see `Options.allFolder` for where it lands). Selected
+    /// items land side by side.
+    static func run(_ archive: Archive, selection: [ArchiveEntry]?, to destination: URL, options: Options = Options(),
                     onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Result {
+        let staged = try await stage(archive, selection: selection, near: destination,
+                                     skipSystemFiles: options.skipSystemFiles, onProgress: onProgress)
+        defer { staged.discard() }
+        let items = staged.items(allFolder: options.allFolder, folderName: folderName(for: archive))
+        guard !items.isEmpty else { throw EngineError(.failed, "Nothing was extracted.") }
+        let placement = try await Placement.place(items, in: destination, resolve: options.resolve)
+        return Result(placed: placement.placed, report: staged.report, placement: placement)
+    }
+
+    /// Extracted and audited, waiting next to `destination` (same volume) to be moved into place.
+    struct Staged {
+        /// The staging folder; `root` holds the archive's contents.
+        let folder: URL
+        let root: URL
+        let selection: [ArchiveEntry]?
+        let report: ExtractReport
+
+        /// The selected entries as they landed, or the archive's top-level items.
+        func items(allFolder: Preferences.ExtractAllFolder, folderName: String) -> [(URL, String)] {
+            if let selection {
+                return selection
+                    .map { (root.appending(path: $0.path), $0.name) }
+                    .filter { Extraction.exists($0.0) }
+            }
+            let top = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+            guard !top.isEmpty else { return [] }
+            if top.count == 1 {
+                let only = top[0]
+                let alreadyNamed = only.lastPathComponent == folderName && Placement.isPlainFolder(only)
+                if allFolder == .automatic || alreadyNamed { return [(only, only.lastPathComponent)] }
+            }
+            return [(root, folderName)]
+        }
+
+        func url(for entry: ArchiveEntry) -> URL { root.appending(path: entry.path) }
+
+        func discard() { try? FileManager.default.removeItem(at: folder) }
+    }
+
+    /// Extracts into a staging folder on `destination`'s volume and audits it there.
+    static func stage(_ archive: Archive, selection: [ArchiveEntry]?, near destination: URL, skipSystemFiles: Bool = true,
+                      onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Staged {
         guard let source = archive.source else { throw EngineError(.failed, "This archive isn’t on disk.") }
         let selection = selection.map(topmost)
         let engine = ArchiveEngine.shared
         let output = try await engine.extract(
-            source.url, paths: selection.map(archive.storedPaths(for:)) ?? [], onProgress: onProgress)
+            source.url, paths: selection.map(archive.storedPaths(for:)) ?? [],
+            excludeMacHelperFiles: skipSystemFiles, onProgress: onProgress)
         defer { engine.discard(output) }
         if Task.isCancelled { throw EngineError(.cancelled) }
 
-        let staging = try makeStaging(for: destination)
-        defer { try? FileManager.default.removeItem(at: staging) }
-        let root = staging.appending(path: "Contents", directoryHint: .isDirectory)
+        let folder = try makeStaging(for: destination)
+        let root = folder.appending(path: "Contents", directoryHint: .isDirectory)
         do {
-            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+            do {
+                try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+            } catch {
+                throw EngineError(.failed, error.localizedDescription)
+            }
+            try await engine.receive(output, into: root)
+            if Task.isCancelled { throw EngineError(.cancelled) }
+            // A disk image's window dressing (background art, volume icon, the Applications alias)
+            // only means something in Finder's window for that image.
+            for extra in archive.installerExtras {
+                try? FileManager.default.removeItem(at: root.appending(path: extra))
+            }
+            var report = output.report
+            let second = try await audit(root)
+            report.removedLinks += second.removedLinks.filter { !report.removedLinks.contains($0) }
+            report.removedItems += second.removedItems.filter { !report.removedItems.contains($0) }
+            return Staged(folder: folder, root: root, selection: selection, report: report)
         } catch {
-            throw EngineError(.failed, error.localizedDescription)
+            try? FileManager.default.removeItem(at: folder)
+            throw EngineError(error)
         }
-        try await engine.receive(output, into: root)
-        if Task.isCancelled { throw EngineError(.cancelled) }
-        var report = output.report
-        let second = try await audit(root)
-        report.removedLinks += second.removedLinks.filter { !report.removedLinks.contains($0) }
-        report.removedItems += second.removedItems.filter { !report.removedItems.contains($0) }
-
-        let items: [(URL, String)]
-        if let selection {
-            items = selection
-                .map { (root.appending(path: $0.path), $0.name) }
-                .filter { exists($0.0) }
-        } else {
-            let top = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
-            items = top.count == 1 ? [(top[0], top[0].lastPathComponent)] : top.isEmpty ? [] : [(root, folderName(for: archive))]
-        }
-        guard !items.isEmpty else { throw EngineError(.failed, "Nothing was extracted.") }
-        return Result(placed: try place(items, in: destination), report: report)
     }
 
     /// On the destination's volume, so the final move is a rename.
@@ -72,32 +128,6 @@ enum Extraction {
         } catch {
             throw EngineError(.failed, error.localizedDescription)
         }
-    }
-
-    /// Moves each item into `destination` under a free name ("Photos", "Photos 2", …). Each move is
-    /// a single atomic rename that never replaces anything; if one fails, earlier ones are undone.
-    static func place(_ items: [(URL, String)], in destination: URL) throws(EngineError) -> [URL] {
-        var placed: [(from: URL, to: URL)] = []
-        for (item, name) in items {
-            var attempt = 1
-            while true {
-                let target = destination.appending(path: numbered(name, attempt))
-                if renamex_np(item.path, target.path, UInt32(RENAME_EXCL)) == 0 {
-                    placed.append((item, target))
-                    break
-                }
-                let code = errno
-                if code == EEXIST, attempt < 10_000 {
-                    attempt += 1
-                    continue
-                }
-                for move in placed.reversed() {
-                    _ = renamex_np(move.to.path, move.from.path, UInt32(RENAME_EXCL))
-                }
-                throw EngineError(.failed, "Couldn’t move “\(name)” into place: \(String(cString: strerror(code))).")
-            }
-        }
-        return placed.map(\.to)
     }
 
     /// "Report.pdf" → "Report 2.pdf"; folders and extensionless names just get the number.
@@ -125,7 +155,7 @@ enum Extraction {
     }
 
     /// Without following links: a staged link pointing at a sibling still counts.
-    private static func exists(_ url: URL) -> Bool {
+    static func exists(_ url: URL) -> Bool {
         (try? FileManager.default.attributesOfItem(atPath: url.path)) != nil
     }
 }

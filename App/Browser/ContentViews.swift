@@ -147,9 +147,12 @@ struct EntryMenu: View {
     let entry: ArchiveEntry
 
     var body: some View {
-        let steps = NextStep.suggestions(for: [entry])
+        let steps = NextStep.suggestions(for: [entry], dropTargets: model.archive.dropTargets)
         ForEach(steps) { step in
             Button(step.title, systemImage: step.symbol) { model.run(step, on: [entry]) }
+        }
+        if !entry.isFolder, model.archive.source != nil {
+            Button("Open with Default App", systemImage: "arrow.up.forward.app") { model.openWithDefaultApp([entry]) }
         }
         Divider()
         Button("Copy Name", systemImage: "doc.on.doc") {

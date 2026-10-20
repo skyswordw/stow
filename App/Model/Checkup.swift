@@ -7,6 +7,7 @@ nonisolated enum Checkup {
         var escapingPaths: [String] = []
         var links: [ListedEntry] = []
         var helperFiles = 0
+        var installerExtras = 0
         var encryptedFiles = 0
         var caseCollisions: [[String]] = []
         var totalSize: Int64 = 0
@@ -77,6 +78,14 @@ nonisolated enum Checkup {
             ))
         }
 
+        if scan.installerExtras > 0 {
+            findings.append(CheckupFinding(
+                severity: .info,
+                title: "Installer layout hidden",
+                detail: "The background picture, volume icon and “drag here” shortcuts only lay out this disk image’s window in Finder. They’re hidden and won’t be extracted."
+            ))
+        }
+
         if !findings.contains(where: { $0.severity == .handled || $0.severity == .caution }) {
             findings.append(CheckupFinding(
                 severity: .fine,
@@ -122,6 +131,12 @@ nonisolated extension Archive {
         var storedPaths: [String: [String]] = [:]
         var files: [String: ArchiveEntry] = [:]
         var explicitFolders: [String: Date] = [:]
+        let format = ArchiveFormat(sevenZipType: listing.type, name: url.lastPathComponent)
+        let layout = format == .dmg || format == .iso
+            ? DiskImageLayout.layout(of: listing.entries.map {
+                (PathContainment.containedPath(for: $0.path), $0.isFolder, $0.isSymlink, $0.linkTarget)
+            })
+            : DiskImageLayout.Layout()
 
         for item in listing.entries {
             if MacHelperFiles.matches(item.path) {
@@ -129,6 +144,10 @@ nonisolated extension Archive {
                 continue
             }
             let path = PathContainment.containedPath(for: item.path)
+            if layout.hides(path) {
+                if layout.extras.contains(path) { scan.installerExtras += 1 }
+                continue
+            }
             storedPaths[path, default: []].append(item.path)
             if PathContainment.escapes(item.path) { scan.escapingPaths.append(item.path) }
             if item.isSymlink { scan.links.append(item) }
@@ -160,11 +179,14 @@ nonisolated extension Archive {
             .values.filter { $0.count > 1 }.map { $0.sorted() }.sorted { $0[0] < $1[0] }
 
         self.init(name: url.lastPathComponent,
-                  format: ArchiveFormat(sevenZipType: listing.type, name: url.lastPathComponent),
+                  format: format,
                   isEncrypted: scan.encryptedFiles > 0,
                   files: entries,
                   checkup: Checkup.findings(for: scan))
         source = ArchiveSource(url: url, storedPaths: storedPaths)
+        volumeRoot = layout.volumeRoot
+        installerExtras = layout.extras
+        dropTargets = layout.dropTargets
     }
 
     /// The archive's own names for these entries; a folder stands for everything under it.

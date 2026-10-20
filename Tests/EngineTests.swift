@@ -146,6 +146,32 @@ struct ListingParserTests {
         #expect(parts.year == 2026 && parts.month == 10 && parts.day == 20 && parts.second == 47)
     }
 
+    @Test func diskImageModeFieldsMarkFoldersAndLinks() throws {
+        let listing = try #require(SevenZip.parseListing("""
+        --
+        Path = 4.apfs
+        Type = APFS
+
+        ----------
+        Path = Tool.app
+        Mode = drwxr-xr-x
+        Symbolic Link = \("")
+
+        Path = Applications
+        Mode = lrwxr-xr-x
+        Symbolic Link = /Applications
+
+        """))
+        #expect(listing.entries[0].isFolder && !listing.entries[0].isSymlink)
+        #expect(listing.entries[1].isSymlink && listing.entries[1].linkTarget == "/Applications")
+    }
+
+    @Test func namesEndingInCarriageReturnStayIntact() throws {
+        let listing = try #require(SevenZip.parseListing("--\nType = zip\n\n----------\nPath = Docs/Icon\r\nSize = 0\nFolder = -\n\nPath = Docs/a.txt\nSize = 3\n\n"))
+        #expect(listing.entries.map(\.path) == ["Docs/Icon\r", "Docs/a.txt"])
+        #expect(listing.entries[1].size == 3)
+    }
+
     @Test func notAnArchiveHasNoListing() {
         #expect(SevenZip.parseListing("ERROR: x.txt : Cannot open the file as archive") == nil)
     }

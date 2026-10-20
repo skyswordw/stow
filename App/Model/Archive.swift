@@ -97,8 +97,8 @@ nonisolated enum EntryKind: Sendable {
         case "json", "yml", "yaml", "xml", "csv": return .data
         case "otf", "ttf", "ttc", "woff2": return .font
         case "app": return .app
-        case "pkg", "mpkg", "dmg": return .installer
-        case "zip", "7z", "rar", "gz", "xz", "tar", "tgz": return .archive
+        case "pkg", "mpkg": return .installer
+        case "zip", "7z", "rar", "gz", "xz", "tar", "tgz", "dmg", "iso": return .archive
         case "wav", "mp3", "m4a", "aiff", "flac": return .audio
         case "mov", "mp4", "m4v": return .video
         default: return .other
@@ -159,7 +159,15 @@ nonisolated struct ArchiveEntry: Identifiable, Hashable, Sendable {
     var id: String { path }
     var name: String { (path as NSString).lastPathComponent }
     var parent: String { (path as NSString).deletingLastPathComponent }
-    var kind: EntryKind { isFolder ? .folder : EntryKind.infer(fromName: name) }
+    /// App bundles are folders inside an archive, but they're one thing to the person.
+    var kind: EntryKind {
+        guard isFolder else { return EntryKind.infer(fromName: name) }
+        return switch (name as NSString).pathExtension.lowercased() {
+        case "app": .app
+        case "pkg", "mpkg": .installer
+        default: .folder
+        }
+    }
 
     var contentType: UTType {
         if isFolder { return .folder }
@@ -200,6 +208,13 @@ nonisolated struct Archive: Identifiable, Sendable {
     private(set) var entries: [ArchiveEntry]
     /// Nil for sample data: there is nothing on disk to extract.
     var source: ArchiveSource?
+    /// Disk images: the folder that stands for the volume ("" when the image lists its contents at
+    /// the top), the window dressing left out (see `DiskImageLayout`), and "drag here" shortcuts.
+    var volumeRoot = ""
+    var installerExtras: [String] = []
+    var dropTargets: [DiskImageLayout.DropTarget] = []
+
+    var isDiskImage: Bool { format == .dmg || format == .iso }
 
     /// Builds folder entries (with aggregated sizes) from a flat list of files,
     /// the same shape a real archive listing comes in.

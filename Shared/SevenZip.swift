@@ -105,8 +105,11 @@ nonisolated struct SevenZip: Sendable {
             current = [:]
         }
 
-        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
-            let line = line.hasSuffix("\r") ? line.dropLast() : line
+        // Split on the byte: as Characters, "\r\n" is one unit, and names can end in "\r" ("Icon\r",
+        // HFS+'s private folder) — those keep it; other lines lose a stray carriage return.
+        for raw in text.utf8.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: false) {
+            let decoded = Substring(decoding: raw, as: UTF8.self)
+            let line = decoded.hasSuffix("\r") && !decoded.hasPrefix("Path = ") ? decoded.dropLast() : decoded
             if line == "--" && section == 0 {
                 section = 1
                 continue
@@ -146,7 +149,8 @@ nonisolated struct SevenZip: Sendable {
         guard let path = fields["Path"], !path.isEmpty else { return nil }
         let attributes = fields["Attributes"] ?? ""
         // "D drwxr-xr-x", " lrwxr-xr-x", "A -rw-r--r--": DOS flags, then a Unix mode string.
-        let mode = attributes.split(separator: " ").last.map(String.init) ?? ""
+        // HFS+ and APFS images report the mode on its own ("Mode = lrwxr-xr-x") instead.
+        let mode = fields["Mode"] ?? attributes.split(separator: " ").last.map(String.init) ?? ""
         let isFolder = fields["Folder"] == "+" || attributes.hasPrefix("D") || mode.hasPrefix("d")
         let link = fields["Symbolic Link"].flatMap { $0.isEmpty ? nil : $0 }
         return ListedEntry(
