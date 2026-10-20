@@ -2,43 +2,73 @@ import SwiftUI
 
 /// Floating glass capsule with the right next steps for the current selection.
 /// While a step runs, the summary morphs into a progress capsule in place.
+/// Labels never truncate: in a narrow window suggestions collapse to icons, then the summary goes.
 struct NextStepsBar: View {
     let model: BrowserModel
     @Namespace private var glass
 
+    private enum Density { case full, iconSuggestions, actionsOnly }
+
     var body: some View {
-        let entries = model.selectedEntries
-        let steps = NextStep.suggestions(for: entries)
-
         GlassEffectContainer(spacing: Space.s) {
-            HStack(spacing: Space.s) {
-                if let activity = model.activity {
-                    ActivityCapsule(activity: activity)
-                        .glassEffect(.regular, in: .capsule)
-                        .glassEffectID("summary", in: glass)
-                    if activity.phase == .done {
-                        Button("Show in Finder", systemImage: "folder") { model.dismissActivity() }
-                            .buttonStyle(.glass)
-                            .glassEffectID("finder", in: glass)
-                    }
-                } else {
-                    SelectionSummary(entries: entries)
-                        .glassEffect(.regular, in: .capsule)
-                        .glassEffectID("summary", in: glass)
-
-                    ForEach(steps.dropLast()) { step in
-                        Button(step.title, systemImage: step.symbol) { model.run(step) }
-                            .buttonStyle(.glass)
-                            .glassEffectID(step, in: glass)
-                    }
-                    Button(NextStep.extract.title, systemImage: NextStep.extract.symbol) { model.run(.extract) }
-                        .buttonStyle(.glassProminent)
-                        .keyboardShortcut("e", modifiers: [.command])
-                        .glassEffectID(NextStep.extract, in: glass)
-                }
+            ViewThatFits(in: .horizontal) {
+                row(.full)
+                row(.iconSuggestions)
+                row(.actionsOnly)
             }
             .controlSize(.large)
         }
+        .padding(.horizontal, Space.l)
+    }
+
+    private func row(_ density: Density) -> some View {
+        let entries = model.selectedEntries
+        let steps = NextStep.suggestions(for: entries)
+
+        return HStack(spacing: Space.s) {
+            if let activity = model.activity {
+                ActivityCapsule(activity: activity)
+                    .glassEffect(.regular, in: .capsule)
+                    .glassEffectID("summary", in: glass)
+                if activity.phase == .done {
+                    Button("Show in Finder", systemImage: "folder") { model.dismissActivity() }
+                        .buttonStyle(.glass)
+                        .glassEffectID("finder", in: glass)
+                }
+            } else {
+                if density != .actionsOnly {
+                    SelectionSummary(entries: entries)
+                        .glassEffect(.regular, in: .capsule)
+                        .glassEffectID("summary", in: glass)
+                }
+                ForEach(steps.dropLast()) { step in
+                    Button(step.title, systemImage: step.symbol) { model.run(step) }
+                        .labelStyle(density == .full ? AnyLabelStyle(.titleAndIcon) : AnyLabelStyle(.iconOnly))
+                        .help(step.title)
+                        .buttonStyle(.glass)
+                        .glassEffectID(step, in: glass)
+                }
+                Button(NextStep.extract.title, systemImage: NextStep.extract.symbol) { model.run(.extract) }
+                    .labelStyle(.titleAndIcon)
+                    .buttonStyle(.glassProminent)
+                    .keyboardShortcut("e", modifiers: [.command])
+                    .glassEffectID(NextStep.extract, in: glass)
+            }
+        }
+        .fixedSize()
+    }
+}
+
+/// Type-erased label style so density can switch between title+icon and icon-only.
+private struct AnyLabelStyle: LabelStyle {
+    private let make: (Configuration) -> AnyView
+
+    init(_ style: some LabelStyle) {
+        make = { AnyView(style.makeBody(configuration: $0)) }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        make(configuration)
     }
 }
 

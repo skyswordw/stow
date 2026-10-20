@@ -5,6 +5,7 @@ import AppKit
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
 /// Scenes: welcome, grid, list, fonts, search, activity, pack, tray.
+/// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
 enum DemoScene {
@@ -51,6 +52,15 @@ enum DemoScene {
             app.tray.show()
         default:
             break
+        }
+
+        if let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }),
+           size.count == 2 {
+            Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                guard let window = NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible }) else { return }
+                window.setContentSize(CGSize(width: size[0], height: size[1]))
+            }
         }
 
         if defaults.bool(forKey: "StowSnapshot") {
