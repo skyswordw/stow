@@ -77,7 +77,10 @@ struct StowApp: App {
         }
         .defaultSize(width: 1120, height: 700)
         .windowToolbarStyle(.unified)
-        .commands { StowCommands(app: app) }
+        .commands {
+            StowCommands(app: app)
+            BrowseCommands(app: app)
+        }
     }
 }
 
@@ -124,13 +127,6 @@ struct StowCommands: Commands {
             Button("Close Archive") { app.closeArchive() }
                 .keyboardShortcut("w", modifiers: [.command, .shift])
                 .disabled(app.browser == nil)
-        }
-        CommandGroup(before: .toolbar) {
-            Button("as Icons") { app.browser?.viewMode = .grid }
-                .keyboardShortcut("1")
-            Button("as List") { app.browser?.viewMode = .list }
-                .keyboardShortcut("2")
-            Divider()
         }
         CommandGroup(after: .windowArrangement) {
             Button(app.tray.isShown ? "Hide Tray" : "Show Tray") { app.tray.toggle() }

@@ -45,6 +45,7 @@ enum DemoScene {
         case "open":
             // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
+            BrowseDemo.apply(to: app)
         case "tray":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
@@ -72,7 +73,8 @@ enum DemoScene {
 
         if defaults.bool(forKey: "StowSnapshot") {
             Task {
-                try? await Task.sleep(for: .seconds(1.6))
+                try? await Task.sleep(for: .seconds(defaults.object(forKey: "StowSnapshotDelay") == nil ? 1.6
+                                                     : defaults.double(forKey: "StowSnapshotDelay")))
                 for (index, window) in NSApp.windows.filter(\.isVisible).enumerated() {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
                     let name = index == 0 ? "\(scene)-\(kind)" : "\(scene)-\(kind)\(index)"

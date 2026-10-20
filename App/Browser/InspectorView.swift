@@ -25,15 +25,22 @@ private struct EntryDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            EntryThumbnail(entry: entry, style: .large)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 140)
+            Group {
+                if model.archive.source != nil, entry.kind.isPreviewable {
+                    RichPreviewView(entry: entry, model: model)
+                        .frame(height: 200)
+                } else {
+                    EntryThumbnail(entry: entry, style: .large)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 140)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name)
                     .font(.title3.weight(.semibold))
                     .textSelection(.enabled)
-                Text(entry.kind.label)
+                Text(entry.kindDescription)
                     .foregroundStyle(.secondary)
             }
 
@@ -98,7 +105,7 @@ private struct ArchiveSummary: View {
             }
 
             MetadataGrid(rows: [
-                ("Files", "\(archive.files.count)"),
+                ("Files", archive.files.count.formatted()),
                 ("Unpacked", archive.totalSize.bytes),
                 ("Packed", archive.packedSize.bytes),
                 ("Encryption", archive.isEncrypted ? "AES-256" : "None"),

@@ -33,8 +33,21 @@ nonisolated struct SevenZip: Sendable {
         defer { input.cleanUp() }
         let result = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor, password: password)
         try Self.check(result)
-        guard let listing = Self.parseListing(result.output) else {
+        guard var (listing, legacy) = Self.parse(result.output) else {
             throw EngineError(.notAnArchive)
+        }
+        if !legacy.isEmpty {
+            // Under a Latin-1 locale 7-Zip maps each byte of an unflagged name to the character with
+            // the same number, so the bytes come back intact. Only for reading: the file system
+            // rejects those names, so extraction keeps the UTF-8 locale and Stow renames afterwards.
+            let raw = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor,
+                                    password: password, locale: "en_US.ISO8859-1")
+            if raw.status == 0, let (rawListing, _) = Self.parse(raw.output),
+               rawListing.entries.count == listing.entries.count {
+                for index in legacy {
+                    listing.entries[index].rawPath = rawListing.entries[index].path.data(using: .isoLatin1)
+                }
+            }
         }
         return listing
     }
@@ -93,13 +106,26 @@ nonisolated struct SevenZip: Sendable {
 
     /// Parses `7zz l -slt`. Returns nil when the output has no archive section.
     static func parseListing(_ text: String) -> ArchiveListing? {
+        parse(text)?.listing
+    }
+
+    /// Also returns the entries whose names were stored without saying how they're encoded: ZIP
+    /// entries without the UTF-8 flag (7-Zip lists it under "Characteristics") that aren't ASCII.
+    private static func parse(_ text: String) -> (listing: ArchiveListing, legacy: [Int])? {
         var archiveFields: [String: String] = [:]
         var entries: [ListedEntry] = []
+        var legacy: [Int] = []
         var current: [String: String] = [:]
         var section = 0 // 0: preamble, 1: archive properties ("--"), 2: entries ("----------")
 
         func flush() {
-            if section == 2, let entry = entry(from: current) { entries.append(entry) }
+            if section == 2, let entry = entry(from: current) {
+                if archiveFields["Type"] == "zip", !(current["Characteristics"] ?? "").contains("UTF8"),
+                   !entry.path.allSatisfy(\.isASCII) {
+                    legacy.append(entries.count)
+                }
+                entries.append(entry)
+            }
             current = [:]
         }
 
@@ -133,11 +159,12 @@ nonisolated struct SevenZip: Sendable {
         flush()
 
         guard let type = archiveFields["Type"] else { return nil }
-        return ArchiveListing(
+        let listing = ArchiveListing(
             type: type,
             physicalSize: archiveFields["Physical Size"].flatMap { Int64($0) },
             entries: entries
         )
+        return (listing, legacy)
     }
 
     private static func entry(from fields: [String: String]) -> ListedEntry? {
@@ -212,7 +239,7 @@ nonisolated struct SevenZip: Sendable {
     /// Runs `7zz` to completion. Cancelling the calling task terminates it. A password, when given,
     /// is answered on standard input rather than put on the command line where `ps` could see it.
     /// `posix_spawn` rather than `Process`, which closes every descriptor but 0–2 in the child.
-    private func run(_ arguments: [String], input: Int32?, password: String?,
+    private func run(_ arguments: [String], input: Int32?, password: String?, locale: String? = nil,
                      onOutput: (@Sendable (Data) -> Void)? = nil) async throws(EngineError) -> RunResult {
         var stdinPipe: [Int32] = [-1, -1], stdoutPipe: [Int32] = [-1, -1], stderrPipe: [Int32] = [-1, -1]
         guard pipe(&stdinPipe) == 0, pipe(&stdoutPipe) == 0, pipe(&stderrPipe) == 0 else {
@@ -233,7 +260,9 @@ nonisolated struct SevenZip: Sendable {
         posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_CLOEXEC_DEFAULT))
 
         let argv = ([executable.path] + arguments).map { strdup($0) } + [nil]
-        let environment = ProcessInfo.processInfo.environment.map { strdup("\($0)=\($1)") } + [nil]
+        var variables = ProcessInfo.processInfo.environment
+        if let locale { variables.merge(["LC_ALL": locale, "LANG": locale]) { $1 } }
+        let environment = variables.map { strdup("\($0)=\($1)") } + [nil]
         defer { (argv + environment).forEach { free($0) } }
         var pid: pid_t = 0
         let spawned = posix_spawn(&pid, executable.path, &actions, &attributes, argv, environment)
