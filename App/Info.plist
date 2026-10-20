@@ -88,6 +88,94 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Stow: Extract Here</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>extractHere</string>
+			<key>NSPortName</key>
+			<string>Stow</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.archive</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Stow: Extract To…</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>extractTo</string>
+			<key>NSPortName</key>
+			<string>Stow</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.archive</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Stow: Quick Compress</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>quickCompress</string>
+			<key>NSPortName</key>
+			<string>Stow</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.item</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Stow: Compress…</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>compress</string>
+			<key>NSPortName</key>
+			<string>Stow</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.item</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Send to Stow</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>sendToStow</string>
+			<key>NSPortName</key>
+			<string>Stow</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.item</string>
+			</array>
+		</dict>
+	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>

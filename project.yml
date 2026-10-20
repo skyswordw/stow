@@ -38,6 +38,34 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: app.stow.handoff
             CFBundleURLSchemes: [stow]
+        # Services menu (App/Integration/ServicesProvider.swift). NSRequiredContext makes them
+        # appear without people turning them on in Keyboard settings first.
+        NSServices:
+          - NSMenuItem: {default: "Stow: Extract Here"}
+            NSMessage: extractHere
+            NSPortName: Stow
+            NSRequiredContext: {}
+            NSSendFileTypes: [public.archive]
+          - NSMenuItem: {default: "Stow: Extract To…"}
+            NSMessage: extractTo
+            NSPortName: Stow
+            NSRequiredContext: {}
+            NSSendFileTypes: [public.archive]
+          - NSMenuItem: {default: "Stow: Quick Compress"}
+            NSMessage: quickCompress
+            NSPortName: Stow
+            NSRequiredContext: {}
+            NSSendFileTypes: [public.item]
+          - NSMenuItem: {default: "Stow: Compress…"}
+            NSMessage: compress
+            NSPortName: Stow
+            NSRequiredContext: {}
+            NSSendFileTypes: [public.item]
+          - NSMenuItem: {default: "Send to Stow"}
+            NSMessage: sendToStow
+            NSPortName: Stow
+            NSRequiredContext: {}
+            NSSendFileTypes: [public.item]
         CFBundleDocumentTypes:
           - CFBundleTypeName: Archive
             CFBundleTypeRole: Viewer
