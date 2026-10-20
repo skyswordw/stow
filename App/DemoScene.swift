@@ -6,7 +6,11 @@ import SwiftUI
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
 /// Scenes: welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
-/// quicklook (the Finder preview; `-StowPreview encrypted|slow`, or `-StowOpen <path>` for a real file).
+/// quicklook (the Finder preview; `-StowPreview encrypted|slow`, or `-StowOpen <path>` for a real file),
+/// associations (Settings › File Types), integration (Settings › Integration; `-StowRepair YES`
+/// runs Repair for real).
+/// `-StowScene associations -StowAssociationsCheck <UTI>` makes Stow the real default for one
+/// type, switches it back, prints both reports and quits — a live check of Launch Services.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -49,6 +53,17 @@ enum DemoScene {
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
         case "quicklook":
             showQuickLook(defaults)
+        case "associations":
+            let model = Associations()
+            if let uti = defaults.string(forKey: "StowAssociationsCheck") {
+                checkAssociations(model, uti: uti)
+                return
+            }
+            model.selection = ["public.zip-archive", "org.7-zip.7-zip-archive", "com.rarlab.rar-archive"]
+            showSettingsPane(AssociationsView(model: model), title: "File Types", size: CGSize(width: 560, height: 640))
+        case "integration":
+            showSettingsPane(IntegrationView(), title: "Integration", size: CGSize(width: 560, height: 640))
+            if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
         case "tray":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
@@ -118,6 +133,36 @@ enum DemoScene {
     }
 
     private static var quickLookWindow: NSWindow?
+
+    private static func showSettingsPane(_ view: some View, title: String, size: CGSize) {
+        let window = NSWindow(contentRect: CGRect(origin: .zero, size: size),
+                              styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        window.title = title
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: view)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        quickLookWindow = window
+    }
+
+    private static func checkAssociations(_ model: Associations, uti: String) {
+        Task {
+            @MainActor func line(_ label: String) {
+                let row = model.rows.first { $0.id == uti }
+                print("\(label): \(model.name(of: row?.app)) (Stow: \(row?.opensWithStow ?? false), previous: \(row?.previous ?? "-"))")
+            }
+            line("before")
+            model.selection = [uti]
+            await model.makeStowDefault()
+            print("make default → \(model.report?.summary ?? "?") \(model.report?.failed ?? [:])")
+            line("after")
+            await model.restorePrevious()
+            print("switch back → \(model.report?.summary ?? "?") \(model.report?.failed ?? [:])")
+            line("restored")
+            fflush(stdout)
+            exit(0)
+        }
+    }
 
     /// Captures the window as the window server composited it — glass, shadows and all.
     /// `CGWindowListCreateImage` is hidden from the SDK but still exported; an app may

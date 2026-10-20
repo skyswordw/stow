@@ -21,6 +21,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSUpdateDynamicServices()
     }
 
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        DockPolicy.shared.install()
+        IntegrationSettings.shared.publishFinderSettings()
+    }
+
+    /// Stow keeps running without windows so Finder and Services actions don't wait for a launch.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    /// Clicking Stow in Finder, Launchpad or the Dock with no window open brings the window back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { app?.showMainWindow() }
+        return true
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         if let sender = Self.sender() { Self.log.info("Open from \(sender, privacy: .public)") }
         enqueue { $0.receive(urls) }
