@@ -1,10 +1,12 @@
 import AppKit
+import SwiftUI
 
 /// Launch-argument hooks for design review and screenshots:
 ///
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
-/// Scenes: welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`).
+/// Scenes: welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
+/// quicklook (the Finder preview; `-StowPreview encrypted|slow`, or `-StowOpen <path>` for a real file).
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -45,6 +47,8 @@ enum DemoScene {
         case "open":
             // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
+        case "quicklook":
+            showQuickLook(defaults)
         case "tray":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
@@ -83,6 +87,37 @@ enum DemoScene {
             }
         }
     }
+
+    /// The Quick Look extension's view in a window the size Finder gives it.
+    private static func showQuickLook(_ defaults: UserDefaults) {
+        let sample = SampleArchive.make()
+        let fallback = { (reason: ArchivePreviewFallback.Reason) in
+            ArchivePreviewContent.fallback(ArchivePreviewFallback(name: "Quarterly Backup.7z", format: .sevenZip,
+                                                                  size: 2_480_000_000, reason: reason))
+        }
+        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 640, height: 480),
+                              styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        window.title = "Quick Look"
+        window.isReleasedWhenClosed = false
+        func show(_ content: ArchivePreviewContent) {
+            window.contentView = NSHostingView(rootView: ArchivePreview(content: content, openInStow: {}))
+            window.center()
+            window.makeKeyAndOrderFront(nil)
+        }
+        switch defaults.string(forKey: "StowPreview") {
+        case "encrypted": show(fallback(.encrypted))
+        case "slow": show(fallback(.tooSlow))
+        default:
+            if let path = defaults.string(forKey: "StowOpen") {
+                Task { show(await ArchivePreviewLoader.load(URL(filePath: path)) { try await ArchiveEngine.shared.list($0) }) }
+            } else {
+                show(.listed(ArchivePreviewModel(archive: sample)))
+            }
+        }
+        quickLookWindow = window
+    }
+
+    private static var quickLookWindow: NSWindow?
 
     /// Captures the window as the window server composited it — glass, shadows and all.
     /// `CGWindowListCreateImage` is hidden from the SDK but still exported; an app may

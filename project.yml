@@ -20,9 +20,78 @@ targets:
     platform: macOS
     sources:
       - path: App
+        excludes: ["Info.plist"]
       - path: Shared
+      - path: Preview
     dependencies:
       - target: StowEngine
+      - target: StowQuickLook
+    # Merged with the generated Info.plist. Every type here mirrors Shared/ArchiveTypes.swift
+    # (a test checks); the second document type is Alternate so Stow never takes over disk images
+    # or installers unless people choose it in File Types.
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Archive
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Default
+            LSItemContentTypes: [public.zip-archive, com.winzip.zipx-archive, org.7-zip.7-zip-archive, com.rarlab.rar-archive, app.stow.split-archive, public.tar-archive, org.gnu.gnu-zip-tar-archive, public.tar-bzip2-archive, org.tukaani.tar-xz-archive, org.gnu.gnu-zip-archive, public.bzip2-archive, org.tukaani.xz-archive, org.tukaani.lzma-archive, public.lzip-archive, public.z-archive, app.stow.zstd-archive, public.cpio-archive, com.microsoft.cab, app.stow.arj-archive, cx.c3.lha-archive, app.stow.cbz-archive, app.stow.cbr-archive, app.stow.cb7-archive]
+          - CFBundleTypeName: Disk image or package
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.apple.disk-image-udif, public.iso-image, app.stow.wim-image, app.stow.vhd-image, com.apple.xar-archive, com.apple.installer-package-archive, com.redhat.rpm-archive, app.stow.deb-archive, app.stow.msi-installer, com.sun.java-archive, public.archive.apk]
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: app.stow.split-archive
+            UTTypeDescription: Split archive part
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: ["001"]
+          - UTTypeIdentifier: app.stow.zstd-archive
+            UTTypeDescription: Zstandard file
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [zst, tzst]
+          - UTTypeIdentifier: app.stow.arj-archive
+            UTTypeDescription: ARJ archive
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [arj]
+          - UTTypeIdentifier: app.stow.cbz-archive
+            UTTypeDescription: Comic book (ZIP)
+            UTTypeConformsTo: [public.zip-archive, public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [cbz]
+          - UTTypeIdentifier: app.stow.cbr-archive
+            UTTypeDescription: Comic book (RAR)
+            UTTypeConformsTo: [com.rarlab.rar-archive, public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [cbr]
+          - UTTypeIdentifier: app.stow.cb7-archive
+            UTTypeDescription: Comic book (7Z)
+            UTTypeConformsTo: [org.7-zip.7-zip-archive, public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [cb7]
+          - UTTypeIdentifier: app.stow.wim-image
+            UTTypeDescription: Windows image
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [wim]
+          - UTTypeIdentifier: app.stow.vhd-image
+            UTTypeDescription: Virtual hard disk
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [vhd]
+          - UTTypeIdentifier: app.stow.deb-archive
+            UTTypeDescription: Debian package
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [deb]
+          - UTTypeIdentifier: app.stow.msi-installer
+            UTTypeDescription: Windows installer
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [msi]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.stow.Stow
@@ -84,6 +153,45 @@ targets:
           cp -f "${SCRIPT_INPUT_FILE_1}" "${SCRIPT_OUTPUT_FILE_1}"
           codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" --options runtime \
             --entitlements "${SCRIPT_INPUT_FILE_2}" "${SCRIPT_OUTPUT_FILE_0}"
+  # Quick Look preview for archives in Finder. Lists (never extracts) through its own copy of the
+  # engine: Quick Look extensions may not launch processes, and can't reach the app's XPC services.
+  StowQuickLook:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: QuickLook
+        excludes: ["Info.plist"]
+      - path: Preview
+      - path: Shared
+      - path: App/Model/Archive.swift
+      - path: App/Model/Checkup.swift
+      - path: App/Engine/ArchiveEngine.swift
+    dependencies:
+      - target: StowEngine
+        embed: true
+        copy:
+          destination: wrapper
+          subpath: Contents/XPCServices
+    info:
+      path: QuickLook/Info.plist
+      properties:
+        CFBundleDisplayName: Stow Quick Look
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.preview
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PreviewViewController
+          NSExtensionAttributes:
+            QLIsDataBasedPreview: false
+            QLSupportsSearchableItems: false
+            QLSupportedContentTypes: [public.zip-archive, com.winzip.zipx-archive, org.7-zip.7-zip-archive, com.rarlab.rar-archive, app.stow.split-archive, public.tar-archive, org.gnu.gnu-zip-tar-archive, public.tar-bzip2-archive, org.tukaani.tar-xz-archive, org.gnu.gnu-zip-archive, public.bzip2-archive, org.tukaani.xz-archive, org.tukaani.lzma-archive, public.lzip-archive, public.z-archive, app.stow.zstd-archive, public.cpio-archive, com.microsoft.cab, app.stow.arj-archive, cx.c3.lha-archive, app.stow.cbz-archive, app.stow.cbr-archive, app.stow.cb7-archive, com.apple.disk-image-udif, public.iso-image, app.stow.wim-image, app.stow.vhd-image, com.apple.xar-archive, com.apple.installer-package-archive, com.redhat.rpm-archive, app.stow.deb-archive, app.stow.msi-installer, com.sun.java-archive, public.archive.apk]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.stow.Stow.QuickLook
+        PRODUCT_NAME: StowQuickLook
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: YES
+        SKIP_INSTALL: YES
   StowTests:
     type: bundle.unit-test
     platform: macOS

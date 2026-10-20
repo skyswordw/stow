@@ -99,6 +99,10 @@ nonisolated struct SevenZip: Sendable {
         var section = 0 // 0: preamble, 1: archive properties ("--"), 2: entries ("----------")
 
         func flush() {
+            // Single-stream formats (xz, gzip, bzip2…) list their one item without a name.
+            if section == 2, !current.isEmpty, current["Path"] == nil, let archive = archiveFields["Path"] {
+                current["Path"] = innerName(of: archive)
+            }
             if section == 2, let entry = entry(from: current) { entries.append(entry) }
             current = [:]
         }
@@ -138,6 +142,15 @@ nonisolated struct SevenZip: Sendable {
             physicalSize: archiveFields["Physical Size"].flatMap { Int64($0) },
             entries: entries
         )
+    }
+
+    /// What 7-Zip names a compressed stream's content: "logs.tar.xz" → "logs.tar", "a.tgz" → "a.tar".
+    static func innerName(of archive: String) -> String {
+        let name = (archive as NSString).lastPathComponent
+        let ext = (name as NSString).pathExtension.lowercased()
+        let stem = (name as NSString).deletingPathExtension
+        if ["tgz", "tbz", "tbz2", "txz", "tzst", "taz"].contains(ext) { return stem + ".tar" }
+        return stem.isEmpty ? name : stem
     }
 
     private static func entry(from fields: [String: String]) -> ListedEntry? {

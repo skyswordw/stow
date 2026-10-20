@@ -43,6 +43,14 @@ final class AppState {
         }
     }
 
+    /// URLs macOS opened Stow with. Archives open in the browser (the first one; Stow has one window).
+    func receive(_ urls: [URL]) {
+        if let archive = urls.first(where: \.isFileURL) {
+            NSApp.activate()
+            open(archive)
+        }
+    }
+
     /// Sample data for design review and the "Try the Sample" button.
     func openArchive(named name: String) {
         releaseScope()
@@ -68,12 +76,14 @@ final class AppState {
 
 @main
 struct StowApp: App {
+    @NSApplicationDelegateAdaptor private var delegate: AppDelegate
     @State private var app = AppState()
 
     var body: some Scene {
         Window("Stow", id: "main") {
             RootView()
                 .environment(app)
+                .onAppear { delegate.app = app }
         }
         .defaultSize(width: 1120, height: 700)
         .windowToolbarStyle(.unified)
