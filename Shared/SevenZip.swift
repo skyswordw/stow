@@ -99,6 +99,12 @@ nonisolated struct SevenZip: Sendable {
         var section = 0 // 0: preamble, 1: archive properties ("--"), 2: entries ("----------")
 
         func flush() {
+            // xz and bzip2 store no name: 7-Zip extracts the stream as the archive's name minus its
+            // extension ("logs.tar.xz" → "logs.tar"), so list it that way.
+            if section == 2, !current.isEmpty, current["Path"] == nil, let archive = archiveFields["Path"] {
+                let stem = ((archive as NSString).lastPathComponent as NSString).deletingPathExtension
+                current["Path"] = stem.isEmpty ? "archive" : stem
+            }
             if section == 2, let entry = entry(from: current) { entries.append(entry) }
             current = [:]
         }

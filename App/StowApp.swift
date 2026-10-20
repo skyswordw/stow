@@ -106,12 +106,14 @@ struct RootView: View {
         Group {
             if let browser = app.browser {
                 BrowserView(model: browser)
+                    .overlay(alignment: .bottom) { packActivity }
             } else {
+                // Below the welcome content rather than over the Recent row.
                 WelcomeView()
                     .navigationTitle("Stow")
+                    .safeAreaInset(edge: .bottom, spacing: 0) { packActivity }
             }
         }
-        .overlay(alignment: .bottom) { packActivity }
         .sheet(item: $app.packRequest) { PackSheet(request: $0).environment(app) }
         .fileImporter(isPresented: $app.isChoosingArchive, allowedContentTypes: [.archive, .diskImage, .data]) { result in
             if case .success(let url) = result { app.open(url) }
@@ -135,7 +137,7 @@ struct RootView: View {
                     .transition(.rise(reduceMotion: reduceMotion))
             }
         }
-        .padding(.bottom, nextSteps ? 76 : Space.l)
+        .padding(.bottom, app.packing.activity == nil ? 0 : nextSteps ? 76 : Space.l)
         .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: app.packing.activity == nil)
     }
 }

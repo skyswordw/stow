@@ -146,6 +146,24 @@ struct ListingParserTests {
         #expect(parts.year == 2026 && parts.month == 10 && parts.day == 20 && parts.second == 47)
     }
 
+    @Test func namelessStreamsTakeTheArchiveName() throws {
+        let output = """
+        --
+        Path = /tmp/x/logs.tar.xz
+        Type = xz
+        Physical Size = 400
+
+        ----------
+        Size = 4990
+        Packed Size = 400
+        Method = LZMA2:19 CRC32
+
+        """
+        let listing = try #require(SevenZip.parseListing(output))
+        #expect(listing.entries.map(\.path) == ["logs.tar"])
+        #expect(listing.entries.first?.size == 4990)
+    }
+
     @Test func notAnArchiveHasNoListing() {
         #expect(SevenZip.parseListing("ERROR: x.txt : Cannot open the file as archive") == nil)
     }

@@ -28,8 +28,10 @@ struct PackSheet: View {
             if options.usesPassword { passwordField }
             ReportView(report: report, audience: options.audience, overrides: $overrides, showDetails: $showDetails)
             moreOptions
-            nameRow
-            footer(report)
+            VStack(alignment: .leading, spacing: Space.l) {
+                nameRow
+                footer(report)
+            }
         }
         .padding(Space.xxl)
         .frame(width: 580)
@@ -126,8 +128,8 @@ struct PackSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                LabeledContent("Check") {
-                    Toggle("Test the archive after packing", isOn: $options.verify)
+                LabeledContent("Verify") {
+                    Toggle("Test every file once it’s packed", isOn: $options.verify)
                 }
             }
             .padding(.top, Space.s)
@@ -150,7 +152,7 @@ struct PackSheet: View {
         HStack(spacing: Space.s) {
             Text("Save as")
                 .foregroundStyle(.secondary)
-            HStack(spacing: 2) {
+            HStack(spacing: Space.xs) {
                 TextField("Name", text: $name)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 220)
@@ -193,6 +195,8 @@ struct PackSheet: View {
         options.setAudience(PackPreferences.audience)
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
+        // Design review: -StowPackDetails YES opens both disclosures.
+        if UserDefaults.standard.bool(forKey: "StowPackDetails") { showDetails = true; showMore = true }
     }
 
     private func setAudience(_ audience: Audience) {

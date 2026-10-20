@@ -75,18 +75,21 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Create ZIP / 7Z / TAR (+gz/bz2/xz) | 🎨 Pack sentence · ⬜ engine | ➕ .tar.zst |
-| Purpose presets: General sharing, Windows, Mac-to-Mac (xattrs), Linux & servers (Unix attrs), smaller archive | 🎨 Windows/Mac/Linux/Web | |
-| Compression levels: Store, Fastest, Fast, Balanced, Maximum, Smallest (LZMA2 solid block sizes, store incompressible files) | ⬜ | |
-| Each preset remembers its level; default preset & level in Settings | ⬜ | |
-| Windows filename check with editable suggested names | ✅ rules + report · ⬜ editable names | |
-| AES encryption (ZIP), header/filename encryption (7Z); ZIP passwords ASCII-only warning | 🎨 · ⬜ | |
-| Split volumes, default volume size | 🎨 · ⬜ | |
-| Verify integrity after creating | ⬜ | |
-| CPU core limit for compression | ⬜ | |
-| Replace / Keep Both when archive exists | ⬜ | |
+| Create ZIP / 7Z / TAR (+gz/bz2/xz) | ✅ | Sandboxed engine; files stream in as an Apple Archive, the archive streams back. .tar.zst: the bundled 7zz can only read zstd, so not yet |
+| Purpose presets: General sharing, Windows, Mac-to-Mac (xattrs), Linux & servers (Unix attrs), smaller archive | ✅ Windows/Mac/Linux/Web | ➕ each audience changes the archive itself: Windows/Web get safe names, NFC, no Finder files, no links; Linux keeps links and modes; Mac keeps tags/xattrs as `__MACOSX` AppleDouble (ZIP) |
+| Compression levels: Store, Fastest, Fast, Balanced, Maximum, Smallest (LZMA2 solid block sizes, store incompressible files) | ✅ More Options | -mx 0/1/3/5/7/9 with 7-Zip's solid-block defaults; ZIP stores incompressible files per entry |
+| Each preset remembers its level; default preset & level in Settings | ✅ remembered · ⬜ Settings UI | Last audience is remembered too |
+| Windows filename check with editable suggested names | ✅ | ➕ clashes after renaming (incl. case-only) are numbered; edited names are made safe too |
+| AES encryption (ZIP), header/filename encryption (7Z); ZIP passwords ASCII-only warning | ✅ | Password goes to 7-Zip on stdin, never argv |
+| Split volumes, default volume size | ✅ 100 MB / 700 MB / 4 GB · ⬜ default in Settings | `Name.7z.001…`; Archive Utility can't open split ZIPs |
+| Verify integrity after creating | ✅ More Options | Failed test keeps nothing |
+| CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · ⬜ Settings UI | |
+| Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
 | Create disk image (DMG) | ⬜ | (string present in ArcZip; low priority) |
 | Quick Compress with defaults (Finder) | ⬜ | |
+
+Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.
+Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 
 ## 5. Editing existing archives
 
