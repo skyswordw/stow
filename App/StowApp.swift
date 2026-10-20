@@ -10,6 +10,7 @@ final class AppState {
     }
 
     let tray = TrayController()
+    let system = SystemActions()
     var browser: BrowserModel?
     var packRequest: PackRequest?
     var isChoosingArchive = false
@@ -19,8 +20,12 @@ final class AppState {
     /// The open archive's security scope (Open panel URLs need it claimed; dropped URLs don't).
     private var scopedURL: URL?
 
+    /// Brings back the main window (it may have been closed while Stow kept running).
+    var showMainWindow: () -> Void = {}
+
     init() {
         tray.app = self
+        system.app = self
     }
 
     /// Lists a real archive through the engine and shows it in the browser.
@@ -45,8 +50,12 @@ final class AppState {
 
     /// URLs macOS opened Stow with. Archives open in the browser (the first one; Stow has one window).
     func receive(_ urls: [URL]) {
+        for url in urls where Handoff.isHandoff(url) {
+            system.receive(url)
+        }
         if let archive = urls.first(where: \.isFileURL) {
             NSApp.activate()
+            showMainWindow()
             open(archive)
         }
     }
@@ -93,6 +102,7 @@ struct StowApp: App {
 
 struct RootView: View {
     @Environment(AppState.self) private var app
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         @Bindable var app = app
@@ -116,6 +126,7 @@ struct RootView: View {
             Text(failure.message)
         }
         .task { DemoScene.apply(to: app) }
+        .onAppear { app.showMainWindow = { [openWindow] in openWindow(id: "main") } }
     }
 }
 

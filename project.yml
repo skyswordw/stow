@@ -23,15 +23,21 @@ targets:
         excludes: ["Info.plist"]
       - path: Shared
       - path: Preview
+      - path: Handoff
     dependencies:
       - target: StowEngine
       - target: StowQuickLook
+      - target: StowFinderSync
     # Merged with the generated Info.plist. Every type here mirrors Shared/ArchiveTypes.swift
     # (a test checks); the second document type is Alternate so Stow never takes over disk images
     # or installers unless people choose it in File Types.
     info:
       path: App/Info.plist
       properties:
+        # Only ever carries a one-time token from the Finder extension — see Handoff/Handoff.swift.
+        CFBundleURLTypes:
+          - CFBundleURLName: app.stow.handoff
+            CFBundleURLSchemes: [stow]
         CFBundleDocumentTypes:
           - CFBundleTypeName: Archive
             CFBundleTypeRole: Viewer
@@ -189,6 +195,34 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.stow.Stow.QuickLook
         PRODUCT_NAME: StowQuickLook
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: YES
+        SKIP_INSTALL: YES
+  # Finder context menu. Sees only the selection's paths; hands them to Stow under a one-time
+  # token (Handoff/) and never opens the files itself.
+  StowFinderSync:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: FinderSync
+        excludes: ["Info.plist"]
+      - path: Handoff
+      - path: Shared/ArchiveTypes.swift
+    info:
+      path: FinderSync/Info.plist
+      properties:
+        CFBundleDisplayName: Stow Finder Extension
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.FinderSync
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FinderSync
+          NSExtensionAttributes: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.stow.Stow.FinderSync
+        PRODUCT_NAME: StowFinderSync
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: YES
         SKIP_INSTALL: YES
