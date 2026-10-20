@@ -13,9 +13,9 @@ points and English UI strings. No code was decompiled or run.
 | --- | --- | --- |
 | Engine | Bundled official `7zz` + ZIPFoundation | Bundled official `7zz` (pinned, checksum-verified) |
 | Parsing process | `ArcZipArchiveService.xpc` (no sandbox entitlements) | `StowEngine.xpc`, **sandboxed**, gets a read-only file handle, never a path |
-| Main app | **Not sandboxed**; onboarding asks for Full Disk Access | Sandboxed, user-selected files only. Some flows (install to /Applications, Finder actions) need a privileged helper or user-granted folder access — see *Integration* |
-| Extensions | Finder Sync (`com.apple.FinderSync`), Quick Look preview (zip/7z/tar only) | Planned: both, Quick Look covering every format the engine opens |
-| Services menu | 5 Finder services | Planned: same set |
+| Main app | **Not sandboxed**; onboarding asks for Full Disk Access | Sandboxed, user-selected files only. Finder actions ask once per folder (security-scoped bookmark, README › Sandbox and Finder actions); install to /Applications still needs a decision |
+| Extensions | Finder Sync (`com.apple.FinderSync`), Quick Look preview (zip/7z/tar only) | Both; Quick Look covers all 34 registered types and runs its own sandboxed engine copy |
+| Services menu | 5 Finder services | Same set |
 | Updates | Sparkle | Sparkle (open-source appcast on GitHub Releases) |
 | Licensing | Ed25519-signed licenses, device seats, trial, Keychain | **None** — open source |
 | Languages | English, Simplified Chinese | English, Simplified Chinese at launch (String Catalog) |
@@ -29,7 +29,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 
 | ArcZip | Stow | Notes / how Stow goes further |
 | --- | --- | --- |
-| 30+ formats: zip zipx 7z rar cbr tar tgz tbz tbz2 txz gz bz2 xz lzma lz dmg iso cab cpio arj lha lzh xar rpm msi pkg jar apk spk exe(SFX) swf .001 | ✅ via 7zz (needs format registration in Info.plist) | ➕ add zstd/.tar.zst, .deb, .cbz/.cb7, .epub/.docx “Show Package Contents” |
+| 30+ formats: zip zipx 7z rar cbr tar tgz tbz tbz2 txz gz bz2 xz lzma lz dmg iso cab cpio arj lha lzh xar rpm msi pkg jar apk spk exe(SFX) swf .001 | ✅ via 7zz; 34 types registered (Shared/ArchiveTypes.swift), disk images & installers as Alternate | ➕ add zstd/.tar.zst, .deb, .cbz/.cb7, .epub/.docx “Show Package Contents” |
 | Icon, list, **column** views | ✅ icons, list · ⬜ columns | |
 | Folder navigation, back/forward history, Up One Level, path bar | 🎨 up only · ⬜ history, path bar | |
 | Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ⬜ (Table has keys; grid doesn't) | |
@@ -51,7 +51,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | Space → Quick Look of an entry; arrow keys switch target | ⬜ | QLPreviewPanel fed from engine-extracted temp files |
 | Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | 🎨 timing + art only | ➕ warm neighbours open instantly (done in design) |
 | Thumbnails in icon view | 🎨 generated art · ⬜ real | |
-| Quick Look extension for archives in Finder | ⬜ | ➕ all formats, not just zip/7z/tar; shows Checkup summary |
+| Quick Look extension for archives in Finder | ✅ | ➕ all 34 types, not just zip/7z/tar; one-line Checkup, encryption, sizes; 3 s timeout with fallbacks; Open in Stow. .tar.xz/.tar.gz show the inner .tar until tarballs are unwrapped |
 | Encrypted entries: preview after unlock | ⬜ | in progress in a side session (password prompt) |
 | Extract to temp & open with default app | ⬜ | |
 
@@ -86,7 +86,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | CPU core limit for compression | ⬜ | |
 | Replace / Keep Both when archive exists | ⬜ | |
 | Create disk image (DMG) | ⬜ | (string present in ArcZip; low priority) |
-| Quick Compress with defaults (Finder) | ⬜ | |
+| Quick Compress with defaults (Finder) | ✅ wired (Services, `ArchivePacking`) · ⬜ create engine | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 ## 5. Editing existing archives
 
@@ -134,11 +134,11 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Finder context menu (Finder Sync) incl. optional external drives; Repair Finder menu (re-register, restart Finder) | ⬜ | |
-| Services: Extract Here, Extract To…, Quick Compress, Compress…, Send to app | ⬜ | |
-| File associations UI: choose formats, set/restore default app, report result | ⬜ | |
-| Launch at login, Dock icon hides with last window | ⬜ | |
-| URL scheme for extension → app hand-off (one-time requests) | ⬜ | |
+| Finder context menu (Finder Sync) incl. optional external drives; Repair Finder menu (re-register, restart Finder) | ✅ menu, external-drive setting · 🎨 repair (sandbox: LSRegisterURL/pluginkit refused, so it opens the extension switch and explains relaunching Finder) | Extract Here, Extract To…, Open in Stow, Compress with Stow… |
+| Services: Extract Here, Extract To…, Quick Compress, Compress…, Send to app | ✅ (Quick Compress waits on the create engine) | results revealed in Finder; progress on the Dock icon |
+| File associations UI: choose formats, set/restore default app, report result | ✅ model + view (Settings host pending) | ➕ remembers each type's previous app; reports refusals and types macOS kept |
+| Launch at login, Dock icon hides with last window | ✅ (opt-in) | login item shows macOS's real status |
+| URL scheme for extension → app hand-off (one-time requests) | ✅ | ➕ 128-bit one-time tokens, 60 s, no paths in URLs |
 | Reading files dropped from other apps (WeChat etc.), permission guidance | ⬜ | |
 
 ## 10. Settings, onboarding, maintenance
