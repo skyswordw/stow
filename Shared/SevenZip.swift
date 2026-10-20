@@ -51,7 +51,9 @@ nonisolated struct SevenZip: Sendable {
                  progress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> [RemovedLink] {
         let input = try Prepared(archive)
         defer { input.cleanUp() }
-        var arguments = ["x", "-y", "-aou", "-bso0", "-bsp1", "-sccUTF-8", "-o" + directory.path]
+        // `-sns-`: on macOS 7-Zip would write HFS+/APFS extended attributes as extra files named
+        // "file:com.apple.quarantine", which breaks the seal of every signed app in a disk image.
+        var arguments = ["x", "-y", "-aou", "-sns-", "-bso0", "-bsp1", "-sccUTF-8", "-o" + directory.path]
         var listFile: URL?
         if !paths.isEmpty {
             // A list file instead of arguments: selections can exceed ARG_MAX. `-spd` makes `*` and
