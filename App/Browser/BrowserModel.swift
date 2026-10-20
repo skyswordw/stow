@@ -102,7 +102,7 @@ final class BrowserModel {
     private var typeahead = (text: "", at: Date.distantPast)
 
     init(archive: Archive, previews: PreviewService = PreviewService()) {
-        let root = Level(archive: archive)
+        let root = Level(archive: archive, password: archive.source?.password)
         levels = [root]
         self.previews = previews
         // A disk image opens at its volume, with the one thing to install already selected.
@@ -690,11 +690,18 @@ final class BrowserModel {
         perform(.extract, itemCount: selection?.count ?? archive.files.count, prepare: { () async throws(EngineError) in
             destination = await ExtractDestination.choose(for: archive)
             if destination == nil { throw EngineError(.cancelled) }
-        }) { progress throws(EngineError) in
+        }) { [weak self, passwords] progress throws(EngineError) in
             guard let destination else { throw EngineError(.cancelled) }
             let options = Extraction.Options.current(resolve: ConflictPolicy().resolver)
-            let result = try await Extraction.run(archive, selection: selection, to: destination, options: options,
-                                                  onProgress: progress)
+            // Encrypted contents only need the password now; one that worked before is tried first.
+            let (result, password) = try await passwords.retrying(archive.name, for: .extract,
+                                                                  known: archive.source?.password) { password in
+                var attempt = archive
+                attempt.source?.password = password
+                return try await Extraction.run(attempt, selection: selection, to: destination, options: options,
+                                                onProgress: progress)
+            }
+            if let password { self?.rememberPassword(password) }
             var finished = Finished(placed: result.placed, findings: result.findings)
             if result.placed.isEmpty { finished.title = "Nothing new — everything was already there" }
             if selection == nil {
@@ -731,6 +738,12 @@ final class BrowserModel {
             guard !Task.isCancelled else { return }
             withAnimation(Motion.appear) { self?.activity = nil }
         }
+    }
+
+    /// A password that worked stays with the open archive (memory only) for later steps and previews.
+    private func rememberPassword(_ password: String) {
+        archive.source?.password = password
+        if levels.count == 1 { level.password = password }
     }
 
     /// Where an app goes: the disk image's own "drag to Applications" shortcut, or /Applications.

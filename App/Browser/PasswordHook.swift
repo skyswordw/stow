@@ -1,20 +1,31 @@
 import Foundation
 
-/// How browsing asks for a password — opening an encrypted archive inside another, or previewing
-/// encrypted contents. The browser doesn't build its own prompt: whoever creates it injects `ask`
-/// (wired to the app's password sheet). Without one, the engine's "needs a password" is reported.
+/// How browsing asks for a password — opening an encrypted archive inside another, extracting or
+/// previewing encrypted contents. The browser doesn't build its own prompt: whoever creates it
+/// injects `ask` (the app wires it to its password sheet). Without one, the engine's "needs a
+/// password" is reported.
 struct PasswordHook {
+    typealias Purpose = PasswordPrompt.Question.Purpose
+
     /// Asks for `archiveName`'s password; `isRetry` when the last one was rejected. Nil: cancelled.
-    var ask: (_ archiveName: String, _ isRetry: Bool) async -> String?
+    var ask: (_ archiveName: String, _ purpose: Purpose, _ isRetry: Bool) async -> String?
     let isWired: Bool
 
     init(ask: @escaping (_ archiveName: String, _ isRetry: Bool) async -> String?) {
-        self.ask = ask
+        self.ask = { name, _, retry in await ask(name, retry) }
+        isWired = true
+    }
+
+    /// Asks through the app's password sheet, worded for what the password is for.
+    init(prompt: PasswordPrompt) {
+        ask = { name, purpose, retry in
+            await prompt.ask(.init(archiveName: name, purpose: purpose, isRetry: retry))
+        }
         isWired = true
     }
 
     private init() {
-        ask = { _, _ in nil }
+        ask = { _, _, _ in nil }
         isWired = false
     }
 
@@ -22,7 +33,7 @@ struct PasswordHook {
 
     /// Runs `operation` with `known` first, then asks each time the engine wants a password.
     /// Returns the value with the password that worked.
-    func retrying<T>(_ archiveName: String, known: String? = nil,
+    func retrying<T>(_ archiveName: String, for purpose: Purpose = .open, known: String? = nil,
                      _ operation: (String?) async throws -> T) async throws(EngineError) -> (value: T, password: String?) {
         var password = known
         while true {
@@ -30,9 +41,8 @@ struct PasswordHook {
                 return (try await operation(password), password)
             } catch {
                 let error = EngineError(error)
-                guard error.failure == .passwordRequired || error.failure == .wrongPassword else { throw error }
-                guard isWired else { throw error }
-                guard let next = await ask(archiveName, password != nil) else { throw EngineError(.cancelled) }
+                guard error.needsPassword, isWired else { throw error }
+                guard let next = await ask(archiveName, purpose, password != nil) else { throw EngineError(.cancelled) }
                 password = next
             }
         }

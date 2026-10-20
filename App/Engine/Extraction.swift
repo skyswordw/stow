@@ -95,7 +95,8 @@ enum Extraction {
         if restoreMetadata, !paths.isEmpty { paths += appleDoubles(for: paths, in: archive.appleDoublePaths) }
         let engine = ArchiveEngine.shared
         let output = try await engine.extract(
-            source.url, paths: paths, excludeMacHelperFiles: skipSystemFiles, restoreMacMetadata: restoreMetadata,
+            source.url, paths: paths, password: source.password, excludeMacHelperFiles: skipSystemFiles,
+            restoreMacMetadata: restoreMetadata,
             onProgress: onProgress)
         defer { engine.discard(output) }
         if Task.isCancelled { throw EngineError(.cancelled) }

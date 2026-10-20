@@ -14,7 +14,7 @@ import SwiftUI
 /// runs Repair for real).
 /// `-StowScene associations -StowAssociationsCheck <UTI>` makes Stow the real default for one
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
-/// extract-options, install-options, batch, conflict, signature-warning, replace-app.
+/// password (the sheet after a rejected password), extract-options, install-options, batch, conflict, signature-warning, replace-app.
 /// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
@@ -65,6 +65,9 @@ enum DemoScene {
         case "packrun":
             runPack(defaults)
             return
+        case "password":
+            // The question after a rejected password; nothing is checked against an archive.
+            Task { _ = await app.passwords.ask(.init(archiveName: "Harbor Handoff.7z", purpose: .extract, isRetry: true)) }
         case "open":
             // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }

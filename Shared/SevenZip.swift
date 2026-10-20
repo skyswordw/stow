@@ -258,7 +258,10 @@ nonisolated struct SevenZip: Sendable {
         }
         let all = result.output + "\n" + result.errors
         if all.contains("Wrong password") { throw EngineError(.wrongPassword) }
-        if all.contains("Enter password") || all.contains("Can not open encrypted archive") {
+        // With `-bso0` the prompt itself isn't printed; 7-Zip reads EOF from standard input (the
+        // only thing it reads there) and stops with "Break signaled". Cancelling never gets here.
+        if all.contains("Enter password") || all.contains("Can not open encrypted archive")
+            || all.contains("Break signaled") {
             throw EngineError(.passwordRequired)
         }
         if all.contains("Cannot open the file as") || all.contains("Can not open the file as")

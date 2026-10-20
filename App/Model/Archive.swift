@@ -236,6 +236,9 @@ nonisolated struct ArchiveSource: Sendable {
     /// Displayed (contained) path → the names the archive stores for it. Several hostile names can
     /// land on one path (`../a.txt` and `a.txt`), so it's a list.
     let storedPaths: [String: [String]]
+    /// The password that worked, once someone has entered it. Memory only, for as long as the
+    /// archive is open.
+    var password: String?
 }
 
 nonisolated struct Archive: Identifiable, Sendable {

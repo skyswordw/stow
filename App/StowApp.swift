@@ -15,6 +15,7 @@ final class AppState {
     let tray = TrayController()
     let packing = PackController()
     let system = SystemActions()
+    let passwords = PasswordPrompt()
     var browser: BrowserModel?
     var packRequest: PackRequest?
     var isChoosingArchive = false
@@ -48,20 +49,28 @@ final class AppState {
             do {
                 try await DownloadCheck.waitUntilComplete(url)
                 let listing: ArchiveListing
+                let password: String?
                 do {
-                    listing = try await ArchiveEngine.shared.list(url)
+                    // 7z archives with an encrypted file list need the password just to be listed.
+                    (listing, password) = try await passwords.retrying(url.lastPathComponent, for: .open) { password in
+                        try await ArchiveEngine.shared.list(url, password: password)
+                    }
                 } catch {
                     throw DiskImageCheck.explain(EngineError(error), for: url)
                 }
-                let archive = await Self.makeArchive(listing, url: url)
+                var archive = await Self.makeArchive(listing, url: url)
+                archive.source?.password = password
                 releaseScope()
                 scopedURL = scoped ? url : nil
                 browser = makeBrowser(archive)
                 browser?.verifyDiskImage()
             } catch {
+                let error = EngineError(error)
                 if scoped { url.stopAccessingSecurityScopedResource() }
-                openFailure = OpenFailure(name: url.lastPathComponent, message: EngineError(error).message,
-                                          canOpenInFinder: DiskImageCheck.isDiskImage(url), url: url)
+                if error.failure != .cancelled {
+                    openFailure = OpenFailure(name: url.lastPathComponent, message: error.message,
+                                              canOpenInFinder: DiskImageCheck.isDiskImage(url), url: url)
+                }
             }
         }
     }
@@ -101,6 +110,7 @@ final class AppState {
 
     private func makeBrowser(_ archive: Archive) -> BrowserModel {
         let model = BrowserModel(archive: archive)
+        model.passwords = PasswordHook(prompt: passwords)
         model.onArchiveGone = { [weak self] in self?.closeArchive() }
         model.onCloseWindow = { [weak self] in self?.closeWindow() }
         return model
@@ -183,6 +193,7 @@ struct RootView: View {
                 if case .success(let urls) = result, !urls.isEmpty { app.extractArchives(urls) }
             }
         }
+        .passwordSheet(app.passwords)
         .fileImporter(isPresented: $app.isChoosingArchive, allowedContentTypes: [.archive, .diskImage, .data]) { result in
             if case .success(let url) = result { app.open(url) }
         }
