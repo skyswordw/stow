@@ -17,6 +17,12 @@ settings:
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_IDENTITY: "-"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
+packages:
+  # Zstandard (BSD) for .tar.zst: the bundled 7zz reads zstd but can't write it. Linked into the
+  # app and the engine; Quick Look never creates archives, so it goes without.
+  zstd:
+    url: https://github.com/facebook/zstd
+    exactVersion: 1.5.7
 targets:
   Stow:
     type: application
@@ -42,6 +48,8 @@ targets:
       - target: StowEngine
       - target: StowQuickLook
       - target: StowFinderSync
+      - package: zstd
+        product: libzstd
     # Merged with the generated Info.plist. Every type here mirrors Shared/ArchiveTypes.swift
     # (a test checks); the second document type is Alternate so Stow never takes over disk images
     # or installers unless people choose it in File Types.
@@ -214,6 +222,9 @@ targets:
       - path: Engine
         excludes: ["InfoPlist.xcstrings", "*.entitlements", "Info.plist"]
       - path: Shared
+    dependencies:
+      - package: zstd
+        product: libzstd
     info:
       path: Engine/Info.plist
       properties:
@@ -298,6 +309,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.stow.Stow.QuickLook
         PRODUCT_NAME: StowQuickLook
+        # Shared/Zstd.swift: Quick Look never creates archives, so it doesn't link the encoder.
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) STOW_NO_ZSTD"
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: YES
         SKIP_INSTALL: YES

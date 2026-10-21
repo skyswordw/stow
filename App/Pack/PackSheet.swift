@@ -7,6 +7,7 @@ struct PackSheet: View {
     let request: PackRequest
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var options = PackOptions()
     @State private var password = ""
     @State private var name = ""
@@ -120,10 +121,21 @@ struct PackSheet: View {
             Button("Suggest") { password = Self.suggestedPassword() }
                 .controlSize(.large)
         }
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        // Slides down from the sentence that asked for it; goes faster than it came.
+        .transition(AnyTransition.asymmetric(insertion: reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)),
+                                removal: .opacity.animation(Motion.resolved(Motion.exit, reduceMotion: reduceMotion))))
     }
 
     // MARK: More options
+
+    private var levelCaption: String {
+        guard options.format.isCompressed else { return String(localized: "A TAR collects files without compressing them.") }
+        if options.format == .tarZst, options.level == .store {
+            // zstd has no stored mode (Zstd.level(for:)), so say what Store means here.
+            return String(localized: "Zstandard always compresses; Store uses its fastest level. Remembered for \(options.audience.phrase).")
+        }
+        return String(localized: "\(options.level.detail) Remembered for \(options.audience.phrase).")
+    }
 
     private var moreOptions: some View {
         DisclosureGroup("More Options", isExpanded: $showMore) {
@@ -136,9 +148,7 @@ struct PackSheet: View {
                         .labelsHidden()
                         .fixedSize()
                         .disabled(!options.format.isCompressed)
-                        Text(options.format.isCompressed
-                             ? String(localized: "\(options.level.detail) Remembered for \(options.audience.phrase).")
-                             : String(localized: "A TAR collects files without compressing them."))
+                        Text(levelCaption)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -173,6 +183,8 @@ struct PackSheet: View {
                     .frame(width: 220)
                 Text("." + options.format.fileExtension)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize() // ".tar.zst" wrapped after "tar."
                     .contentTransition(.opacity)
             }
             if archiveName != name.trimmingCharacters(in: .whitespaces), !name.isEmpty {
@@ -208,7 +220,14 @@ struct PackSheet: View {
     private func restore() {
         name = request.suggestedName
         options.setAudience(PackPreferences.audience)
-        if let format = request.initialFormat { options.format = format }
+        if let format = request.initialFormat {
+            // A format only one audience offers (TAR.ZST) brings that audience with it.
+            if !options.audience.formats.contains(format),
+               let audience = Audience.allCases.first(where: { $0.formats.contains(format) }) {
+                options.setAudience(audience)
+            }
+            options.format = format
+        }
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
         options.split = SettingsKeys.splitSize()
@@ -278,6 +297,7 @@ private struct Token<Items: View>: View {
     var disabledHelp = ""
     @ViewBuilder let items: () -> Items
     @State private var isHovering = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 1) {
@@ -294,7 +314,8 @@ private struct Token<Items: View>: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(isEnabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
                 .id(title)
-                .transition(.blurReplace)
+                // Blur-replace scales a little, so Reduce Motion gets the cross-fade alone.
+                .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
         }
         .menuStyle(.button)
         .buttonStyle(.plain)

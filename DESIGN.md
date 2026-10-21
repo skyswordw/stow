@@ -75,8 +75,11 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | --- | --- | --- |
 | Next Steps capsule appears | Spring, from bottom, scale 0.96 → 1 + opacity | `response 0.32, damping 1.0` |
 | Next Steps content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
+| Floating chrome leaves (Next Steps, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
+| A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
+| Capsules or the inspector shown/hidden by a key (arrows, ⌘A, Esc, ⌥⌘I) | **None** | — |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
-| Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open | 140 ms fade |
+| Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |
 | Tray panel show/hide | Same edge in, same edge out | `response 0.35, damping 1.0` |
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
@@ -84,7 +87,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
 
-Reduced Motion: springs become 150 ms opacity fades; nothing translates or scales.
+Reduced Motion: springs become 150 ms opacity fades (exits 100 ms); nothing translates or scales.
 Reduced Transparency: glass falls back to solid window background (the system does this for us).
 
 ## Signature details

@@ -68,6 +68,7 @@ struct BrowserView: View {
                 model.quickLook.attach(to: window)
                 model.dragOut.install(in: window)
                 ToolbarPriority.install(in: window)
+                app.glance.prepareMainWindow(window)
             }
             .id(ObjectIdentifier(model))
         }
@@ -80,38 +81,9 @@ struct BrowserView: View {
     @ViewBuilder
     private var content: some View {
         if model.isSearching, model.visibleEntries.isEmpty {
-            if let progress = model.indexingProgress {
-                ContentUnavailableView(progress, systemImage: "magnifyingglass",
-                                       description: Text("You can keep browsing while Stow finishes reading the names."))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ContentUnavailableView {
-                    Label("No files match “\(model.query)”", systemImage: "magnifyingglass")
-                } description: {
-                    Text("Stow looked in every folder of this archive. Check the spelling, or search for part of a name.")
-                } actions: {
-                    Button("Clear Search") { model.query = "" }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        } else if model.visibleEntries.isEmpty, model.folder.isEmpty {
-            ContentUnavailableView {
-                Label("“\(model.archive.name)” is empty", systemImage: "archivebox")
-            } description: {
-                Text("There’s nothing inside to extract. It may have been packed before its files were added — ask the sender for a fresh copy.")
-            } actions: {
-                Button("Open Another Archive…") { app.isChoosingArchive = true }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if model.visibleEntries.isEmpty, model.viewMode != .columns {
-            ContentUnavailableView {
-                Label("“\((model.folder as NSString).lastPathComponent)” is empty", systemImage: "folder")
-            } description: {
-                Text("Nothing was packed inside this folder.")
-            } actions: {
-                Button("Enclosing Folder") { model.goUp() }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            NoSearchResultsView(model: model)
+        } else if model.visibleEntries.isEmpty, model.folder.isEmpty || model.viewMode != .columns {
+            EmptyContentView(model: model) { app.isChoosingArchive = true }
         } else {
             // View-mode switches are keyboard-speed actions: no animation.
             switch model.isSearching && model.viewMode == .columns ? .list : model.viewMode {
@@ -132,7 +104,8 @@ struct BrowserView: View {
             }
         }
         .padding(.bottom, Space.l + PathBar.height + (model.editSession.isEdited ? EditingBar.height : 0))
-        .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: visible)
+        // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
+        .animation(Motion.presence(visible, reduceMotion: reduceMotion), value: visible)
     }
 
     @ToolbarContentBuilder
@@ -195,7 +168,8 @@ struct BrowserView: View {
 
     private var inspectorToggle: some View {
         Button(model.showInspector ? String(localized: "Hide Inspector") : String(localized: "Show Inspector"), systemImage: "sidebar.right") {
-            model.showInspector.toggle()
+            // ⌥⌘I is a keyboard action: the inspector snaps; a click on the toggle still slides it.
+            withTransaction(Motion.keyboardAware) { model.showInspector.toggle() }
         }
         .keyboardShortcut("i", modifiers: [.command, .option])
     }
