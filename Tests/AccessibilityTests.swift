@@ -71,4 +71,15 @@ struct AccessibilityTests {
         #expect(Motion.resolved(Motion.appear, reduceMotion: false) == Motion.appear)
         #expect(Motion.resolved(Motion.exit, reduceMotion: false) == Motion.exit)
     }
+
+    @Test func nestedSearchResultSaysWhichArchive() {
+        let file = entry("Q3.pdf")
+        #expect(AccessibilityText.entry(file, container: "Reports.zip") == "Q3.pdf, \(file.kindDescription), \(file.size.bytes), in Reports.zip")
+    }
+
+    @Test func selectionSummaryReadsAsOneSentence() {
+        let one = entry("report.pdf", size: 2_400)
+        #expect(AccessibilityText.selectionSummary([one]) == "report.pdf, \(Int64(2_400).bytes)")
+        #expect(AccessibilityText.selectionSummary([one, entry("b.txt", size: 600)]) == "2 items, \(Int64(3_000).bytes)")
+    }
 }

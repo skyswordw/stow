@@ -194,7 +194,7 @@ private struct GridTile: View {
         }
         .contentShape(.rect)
         .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
-        .accessibilityLabel(AccessibilityText.entry(entry, itemCount: entry.isNavigable ? model.archive.children(of: entry.path, includingHelpers: model.showHelperItems).count : nil))
+        .accessibilityLabel(model.accessibilityLabel(for: entry))
         .accessibilityAction { model.select([entry.id]); model.open(entry) }
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
@@ -278,7 +278,7 @@ struct ContentList: View {
                     .opacity(entry.isHelper ? 0.55 : 1)
                     .contentShape(.rect)
                     .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
-                    .accessibilityLabel(AccessibilityText.entry(entry, itemCount: entry.isNavigable ? model.archive.children(of: entry.path, includingHelpers: model.showHelperItems).count : nil))
+                    .accessibilityLabel(model.accessibilityLabel(for: entry))
                     .accessibilityAddTraits(model.selection.contains(entry.id) ? .isSelected : [])
                     .hoverPreview(for: entry, model: hover, browser: model)
                     .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)

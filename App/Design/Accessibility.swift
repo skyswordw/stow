@@ -2,9 +2,19 @@ import SwiftUI
 
 /// Shared spoken descriptions; keep punctuation and number formatting out of view bodies.
 enum AccessibilityText {
-    static func entry(_ entry: ArchiveEntry, itemCount: Int? = nil) -> String {
+    /// "report.pdf, PDF document, 2.4 MB"; a folder says how many items it holds; a search result
+    /// inside an inner archive says which one ("…, in Photos.zip").
+    static func entry(_ entry: ArchiveEntry, itemCount: Int? = nil, container: String? = nil) -> String {
         let detail = entry.isNavigable ? itemCount.map { String(localized: "\($0) items") } : entry.size.bytes
-        return [entry.name, entry.kindDescription, detail].compactMap { $0 }.joined(separator: ", ")
+        let place = container.map { String(localized: "in \($0)") }
+        return [entry.name, entry.kindDescription, detail, place].compactMap { $0 }.joined(separator: ", ")
+    }
+
+    /// What Next Steps' summary shows, as one sentence: "3 items, 12 MB" or "report.pdf, 2.4 MB".
+    static func selectionSummary(_ entries: [ArchiveEntry]) -> String {
+        let size = entries.reduce(Int64(0)) { $0 + $1.size }
+        let what = entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items")
+        return [what, size.bytes].joined(separator: ", ")
     }
 
     static func progress(_ fraction: Double) -> String {
@@ -59,4 +69,13 @@ private struct AccessibleBar: ViewModifier {
 
 extension View {
     func accessibleBar() -> some View { modifier(AccessibleBar()) }
+}
+
+extension BrowserModel {
+    /// The VoiceOver label for a row or tile in any view mode.
+    func accessibilityLabel(for entry: ArchiveEntry) -> String {
+        AccessibilityText.entry(entry,
+                                itemCount: entry.isNavigable ? archive.children(of: entry.path, includingHelpers: showHelperItems).count : nil,
+                                container: nestedHits[entry.id]?.container.name)
+    }
 }

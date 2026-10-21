@@ -26,6 +26,7 @@ struct NextStepsMoreMenu: View {
         .glassEffect(.regular.interactive(), in: .circle)
         .help("More actions for the selection")
         .accessibilityLabel("More actions")
+        .accessibilityHint("Every other step for the selection, and Customize Next Steps")
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { NextStepsDemo.moreButtonFrame = $0 }
     }
 }

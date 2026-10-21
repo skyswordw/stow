@@ -97,7 +97,8 @@ private struct NestedResultRow: View {
                 .font(.callout)
                 .padding(.horizontal, Space.l)
                 .padding(.vertical, 9)
-                .glassEffect(.regular, in: .capsule)
+                .accessibleGlass(in: .capsule)
+                .accessibilityElement(children: .combine)
             }
             Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: "arrow.down.right.and.arrow.up.left") {
                 model.showNested(hit)
@@ -110,7 +111,7 @@ private struct NestedResultRow: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, Space.l)
                 .padding(.vertical, 9)
-                .glassEffect(.regular, in: .capsule)
+                .accessibleGlass(in: .capsule)
         }
     }
 }
@@ -149,5 +150,7 @@ private struct SelectionSummary: View {
         .font(.callout)
         .padding(.horizontal, Space.l)
         .padding(.vertical, 9)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(AccessibilityText.selectionSummary(entries))
     }
 }

@@ -204,7 +204,7 @@ private struct GlanceList: View {
                     .opacity(entry.isHelper ? 0.55 : 1)
                     .contentShape(.rect)
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel(AccessibilityText.entry(entry, itemCount: entry.isNavigable ? model.archive.children(of: entry.path, includingHelpers: model.showHelperItems).count : nil))
+                    .accessibilityLabel(model.accessibilityLabel(for: entry))
                     .accessibilityAddTraits(model.selection.contains(entry.id) ? .isSelected : [])
                     .hoverPreview(for: entry, model: hover, browser: model)
                 }
