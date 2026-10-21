@@ -19,7 +19,8 @@ import SwiftUI
 /// password (the sheet after a rejected password), extract-options, install-options, batch, conflict, signature-warning, replace-app.
 /// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, empty-archive, empty-folder, search-empty, tray-empty.
-/// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly.
+/// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly,
+/// rename-archive (File › Rename Archive…), save-changes (closing with unsaved edits).
 /// Tray states: tray-collect (naming the folder for Collect into a Folder), tray-failed (a failure told inside the Tray).
 /// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
@@ -50,6 +51,15 @@ enum DemoScene {
             BrowseDemo.editing(in: app)
             if scene == "editing-saving" { app.browser?.editSession.showSavingForDemo(progress: 0.42) }
             if scene == "editing-refused" { app.browser?.editSession.message = String(localized: "That name is already taken.") }
+        case "rename-archive", "save-changes":
+            // The prompts File › Rename Archive… and closing with unsaved edits show, on the editing scene.
+            BrowseDemo.editing(in: app)
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard let model = app.browser else { return }
+                let prompt: Prompt = scene == "rename-archive" ? .renameArchive(model.archive.name) : .saveChanges(model.archive.name)
+                _ = await Prompts.present(prompt, on: model.editingWindow)
+            }
         case "external":
             BrowseDemo.externalChange(in: app)
         case "readonly":
