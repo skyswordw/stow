@@ -175,6 +175,8 @@ enum DemoScene {
         if defaults.bool(forKey: "StowSnapshot") {
             Task {
                 let delay = defaults.double(forKey: "StowSnapshotDelay")
+                // `-StowActivate YES`: capture as the front app, so default buttons show their colour.
+                if defaults.bool(forKey: "StowActivate") { NSApp.activate() }
                 try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
                 for (index, window) in NSApp.windows.filter(\.isVisible).enumerated() {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
