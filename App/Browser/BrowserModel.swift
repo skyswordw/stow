@@ -45,7 +45,7 @@ final class BrowserModel {
         init(archive: Archive, password: String? = nil, entryPath: String? = nil) {
             self.archive = archive
             savedArchive = archive
-            let base = archive.source?.listing ?? ArchiveListing(type: archive.format == .sevenZip ? "7z" : archive.format.rawValue, entries: (archive.entries + archive.index.helpers).map { ListedEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size) })
+            let base = archive.source?.listing ?? ArchiveListing(type: archive.format == .sevenZip ? "7z" : archive.format.rawValue, entries: (archive.entries + archive.index.helpers).map { ListedEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size, packedSize: $0.packedSize, modified: $0.modified) })
             edits = EditSession(base: base, url: archive.source?.url, name: archive.name, nested: entryPath != nil)
             self.password = password
             self.entryPath = entryPath
