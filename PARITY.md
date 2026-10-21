@@ -29,37 +29,38 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 
 | ArcZip | Stow | Notes / how Stow goes further |
 | --- | --- | --- |
-| 30+ formats: zip zipx 7z rar cbr tar tgz tbz tbz2 txz gz bz2 xz lzma lz dmg iso cab cpio arj lha lzh xar rpm msi pkg jar apk spk exe(SFX) swf .001 | ✅ via 7zz (needs format registration in Info.plist) | ➕ add zstd/.tar.zst, .deb, .cbz/.cb7, .epub/.docx “Show Package Contents” |
-| Icon, list, **column** views | ✅ icons, list · ⬜ columns | |
-| Folder navigation, back/forward history, Up One Level, path bar | 🎨 up only · ⬜ history, path bar | |
-| Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ⬜ (Table has keys; grid doesn't) | |
-| Archive search by name **or path**, background full-file index with progress | ✅ name search (sample) · ⬜ path search, index | ➕ search across nested archives |
-| Nested archives opened in place, depth limit, encrypted nested containers | 🎨 Next Step only · ⬜ engine | |
-| Archive details / inspector, archive overview | ✅ | ➕ Checkup |
-| Show/hide macOS auxiliary items (__MACOSX, .DS_Store) | ✅ hidden by Checkup (listing) · ⬜ toggle | |
-| Mixed / legacy filename encodings (GBK etc.), garbled-name repair | ⬜ | ➕ encoding picker with live preview |
-| Extension ≠ real format detection; ZIP with prepended/appended data; SFX RAR/7Z | partly (7zz) | |
-| Lazy browsing of huge archives (browse before index finishes) | ⬜ | |
+| 30+ formats: zip zipx 7z rar cbr tar tgz tbz tbz2 txz gz bz2 xz lzma lz dmg iso cab cpio arj lha lzh xar rpm msi pkg jar apk spk exe(SFX) swf .001 | ✅ via 7zz (needs format registration in Info.plist) | ➕ compressed tarballs (.tar.gz/.tgz/.tar.xz/.tar.bz2/.tar.zst/.tar.lz…) browse as the tar inside: two 7zz piped, nothing written to disk. ➕ “Show Package Contents” on .docx/.xlsx/.pptx/.epub/.pages opens them as the ZIPs they are |
+| Icon, list, **column** views | ✅ icons, list, columns (⌘1 ⌘2 ⌘3) | Column view has a preview column with the file's real content |
+| Folder navigation, back/forward history, Up One Level, path bar | ✅ | ⌘[ ⌘] ⌘↑ ⌘↓; going back selects where you came from; the path bar spans nested archives |
+| Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ✅ | Grid: arrows by row/column, ⇧ extends, ⌘/⇧ click, marquee (⇧/⌘ adds), type-to-select, Return opens, Space Quick Look. No animation on keyboard moves |
+| Archive search by name **or path**, background full-file index with progress | ✅ | Terms match anywhere in the path (“docs/ handoff”), case/accent/width-insensitive, name matches first. Index builds in the background in chunks; the search field reads “Indexing… 12,000 of 40,000” and results grow while you keep browsing. ⬜ search across nested archives |
+| Nested archives opened in place, depth limit, encrypted nested containers | ✅ | Depth limit 8. Passwords through an injectable `PasswordHook` (wire to the password sheet when that branch merges); without it, “needs a password” is reported |
+| Archive details / inspector, archive overview | ✅ | ➕ Checkup; inspector shows real previews, several selected stack real thumbnails |
+| Show/hide macOS auxiliary items (__MACOSX, .DS_Store) | ✅ View › Show macOS Helper Items (⌘⇧.) | Hidden by default, dimmed when shown, never extracted |
+| Mixed / legacy filename encodings (GBK etc.), garbled-name repair | ✅ | ➕ Raw name bytes come from a second listing under a Latin-1 locale, so nothing is lost; each name is read in the encoding that suits it (mixed archives read right), a banner says how, and Read Names As… previews every encoding live. Extraction renames to the shown names |
+| Extension ≠ real format detection; ZIP with prepended/appended data; SFX RAR/7Z | partly (7zz) | ⬜ say so in Checkup |
+| Lazy browsing of huge archives (browse before index finishes) | ✅ | 100,500 entries open in 2.8 s (Release; 7-Zip's own listing is ~0.9 s of that), browse at once while search indexes (0.18 s). Scrolling 100,000 items: grid median 4.0 ms / p95 6.3 ms of main-thread work per step, list median 5.3 ms / p95 8.2 ms (`-StowScrollBenchmark`). ⬜ stream the listing itself |
 | iCloud placeholders: wait for download, cancel | ⬜ | |
 | Open Recent menu, clear history | 🎨 recents are sample · ⬜ | |
-| Read-only preview of DMG/ISO (mount read-only, verify, skip installer extras like the Applications alias) | ⬜ | |
+| Read-only preview of DMG/ISO (mount read-only, verify, skip installer extras like the Applications alias) | ⬜ (session D) | |
 
 ## 2. Previews
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Space → Quick Look of an entry; arrow keys switch target | ⬜ | QLPreviewPanel fed from engine-extracted temp files |
-| Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | 🎨 timing + art only | ➕ warm neighbours open instantly (done in design) |
-| Thumbnails in icon view | 🎨 generated art · ⬜ real | |
-| Quick Look extension for archives in Finder | ⬜ | ➕ all formats, not just zip/7z/tar; shows Checkup summary |
-| Encrypted entries: preview after unlock | ⬜ | in progress in a side session (password prompt) |
-| Extract to temp & open with default app | ⬜ | |
+| Space → Quick Look of an entry; arrow keys switch target | ✅ | System Quick Look panel; arrow keys move the browser's selection and the panel follows; several selected page with ← →; ⌘Y too |
+| Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | ✅ previews · ⬜ Settings toggle | Real content read from the archive: images (downsampled), PDF/Office/others (Quick Look), Markdown (rendered), CSV (table), code/logs (monospaced, unwrapped), fonts (the real face), audio (artwork, title, length), video (a frame, length). ➕ 450 ms, then neighbours open instantly |
+| Thumbnails in icon view | ✅ | Quick Look thumbnails, only for tiles on screen, batched into one engine trip; files over 48 MB keep their icon |
+| Quick Look extension for archives in Finder | ⬜ (session B) | ➕ all formats, not just zip/7z/tar; shows Checkup summary |
+| Encrypted entries: preview after unlock | ✅ with the hook | Previews use the password that opened a nested archive; for the outer archive, once the password branch stores it |
+| Extract to temp & open with default app | ✅ | Open / double-click / ⌘↓. Files land read-only in a per-window cache (512 MB, least recently used first, keyed by archive identity + entry path + date), removed on close and quit, swept at launch |
+| Drag out to Finder | ✅ | `NSFilePromiseProvider` per item; extracted only when dropped, through the usual staging and no-clobber placement, progress in Next Steps |
 
 ## 3. Extraction
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Extract all / selected / drag-out to Finder | ✅ all & selected · ⬜ drag-out (file promises) | |
+| Extract all / selected / drag-out to Finder | ✅ | drag-out: file promises, see Previews |
 | Extract All → folder named after archive | ⬜ | |
 | After Extract All: keep / move archive to Trash / ask | ⬜ | |
 | Auto-close window after extract / install | ⬜ | |
