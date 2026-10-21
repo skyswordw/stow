@@ -213,6 +213,9 @@ final class GlanceController: NSObject, NSWindowDelegate {
         window.contentMinSize = GlancePlacement.minimumSize
         window.collectionBehavior.insert(.fullScreenAuxiliary)
         window.tabbingMode = .disallowed
+        // Glance has its own entrance (springing out of the pointer) and none by keyboard; AppKit's
+        // window zoom would play on top of both. Closing is instant.
+        window.animationBehavior = .none
         window.delegate = self
         let host = NSHostingController(rootView: GlanceRoot(glance: self).environment(app ?? AppState()))
         // SwiftUI's toolbar and title become the window's own.
