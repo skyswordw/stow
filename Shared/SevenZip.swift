@@ -42,6 +42,11 @@ nonisolated struct SevenZip: Sendable {
         guard var listing = Self.parseListing(result.output) else {
             throw EngineError(.notAnArchive)
         }
+        if Self.isTarball(name: (input.path as NSString).lastPathComponent),
+           let entries = try? await tarballEntries(path: input.path, descriptor: input.descriptor) {
+            listing.entries = entries // still "gzip", "xz"…: the format reads as TAR.GZ, TAR.XZ
+            return listing
+        }
         let legacy = listing.type == "zip" ? Self.legacyNames(in: result.output) : []
         if !legacy.isEmpty {
             // Under a Latin-1 locale 7-Zip maps each byte of an unflagged name to the character with
@@ -98,6 +103,10 @@ nonisolated struct SevenZip: Sendable {
                  progress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> [RemovedLink] {
         let input = try Prepared(archive)
         defer { input.cleanUp() }
+        if Self.isTarball(name: (input.path as NSString).lastPathComponent) {
+            return try await extractTarball(path: input.path, descriptor: input.descriptor, into: directory,
+                                            paths: paths, progress: progress)
+        }
         var arguments = ["x", "-y", "-aou", "-bso0", "-bsp1", "-sccUTF-8", "-o" + directory.path]
         var listFile: URL?
         if !paths.isEmpty {
@@ -231,7 +240,7 @@ nonisolated struct SevenZip: Sendable {
         }
     }
 
-    private static func check(_ result: RunResult) throws(EngineError) {
+    static func check(_ result: RunResult) throws(EngineError) {
         guard result.status != 0 else { return }
         let all = result.output + "\n" + result.errors
         if all.contains("Wrong password") { throw EngineError(.wrongPassword) }

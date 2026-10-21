@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Builds real archives for trying browsing and previews: scripts/make-fixtures.sh [output folder]
+# Builds real archives for trying browsing and previews: scripts/make-browse-fixtures.sh [output folder]
 # Default output is Stow's sandbox temporary folder, so `-StowScene open -StowOpen <path>` can read them.
 #   Showcase.zip   photos, PDF, Word, Markdown, CSV, code, audio, video (if ffmpeg), a font, a nested 7z
 #   Legacy GBK.zip names stored in GBK without the UTF-8 flag (garbled until decoded)

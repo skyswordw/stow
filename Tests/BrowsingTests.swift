@@ -377,3 +377,47 @@ private nonisolated final class Reports: Sendable {
     var values: [Int] { storage.withLock { $0 } }
     func add(_ value: Int) { storage.withLock { $0.append(value) } }
 }
+
+@Suite("Tarballs", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
+@MainActor
+struct TarballTests {
+    /// .tar.gz and .tar.xz browse as the tar inside and extract from it, selection included.
+    @Test(arguments: [("logs.tar.gz", "-czf"), ("logs.tar.xz", "-cJf"), ("logs.tbz2", "-cjf")])
+    func browsesAndExtractsTheTarInside(name: String, flag: String) async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let source = folder.url.appending(path: "src")
+        try FileManager.default.createDirectory(at: source.appending(path: "Docs"), withIntermediateDirectories: true)
+        try Data("alpha".utf8).write(to: source.appending(path: "Docs/a.txt"))
+        try Data("bravo".utf8).write(to: source.appending(path: "b.md"))
+        let tarball = folder.url.appending(path: name)
+        let tar = try Process.run(URL(filePath: "/usr/bin/tar"),
+                                  arguments: ["--no-mac-metadata", flag, tarball.path, "-C", source.path, "Docs", "b.md"])
+        tar.waitUntilExit()
+        try #require(tar.terminationStatus == 0)
+
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(tarball), url: tarball)
+        #expect(Set(archive.files.map(\.path)) == ["Docs/a.txt", "b.md"])
+
+        let out = folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let picked = try await Extraction.run(archive, selection: [archive.entry(at: "Docs/a.txt")!], to: out) { _ in }
+        #expect(picked.placed.map(\.lastPathComponent) == ["a.txt"])
+        #expect(try String(contentsOf: out.appending(path: "a.txt"), encoding: .utf8) == "alpha")
+
+        let cache = PreviewCache()
+        let preview = try await cache.file(for: archive.entry(at: "b.md")!, in: archive)
+        #expect(try String(contentsOf: preview, encoding: .utf8) == "bravo")
+    }
+
+    @Test func aPlainGzipStaysOneFile() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let text = folder.url.appending(path: "notes.txt")
+        try Data(String(repeating: "note ", count: 100).utf8).write(to: text)
+        let gzip = try Process.run(URL(filePath: "/usr/bin/gzip"), arguments: ["-k", text.path])
+        gzip.waitUntilExit()
+        let listing = try await ArchiveEngine.shared.list(folder.url.appending(path: "notes.txt.gz"))
+        #expect(listing.type == "gzip" && listing.entries.count == 1)
+    }
+}
