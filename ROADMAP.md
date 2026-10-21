@@ -84,7 +84,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Search across nested archives | today search covers the open level |
 | Streaming listings beyond ~100k entries | 100,500 entries open in 2.8 s today |
 | Reading files dropped from other apps (e.g. WeChat) with permission guidance | |
-| Error details with codes for bug reports | partial |
+| Error details with codes for bug reports | done (#14): every failure has a stable code (`EXT-120`, see [ERROR-CODES.md](ERROR-CODES.md)) and Copy Details |
 | Create disk images (DMG) | low priority |
 | TAR.ZST creation | blocked: the bundled 7-Zip reads but can't write zstd |
 | Restore Mac metadata on Stow's own extraction | done for `__MACOSX` AppleDouble; check Finder comments on every format |
@@ -126,7 +126,7 @@ Everything marked ⬜ or 🎨 in [PARITY.md](PARITY.md):
 - Onboarding, Sparkle updates, Simplified Chinese
 - Next Steps customisation and alternative-actions list
 - iCloud placeholders, Open Recent, search across nested archives, extension ≠ format warning
-- Reading files from other apps' containers, error codes for support
+- Reading files from other apps' containers
 - DMG creation; TAR.ZST creation (blocked upstream)
 - App icon; signed, notarized, universal release
 

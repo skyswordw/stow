@@ -62,6 +62,13 @@ struct Failure: Equatable, Sendable {
     /// What to do about it: one or two sentences.
     var advice: String
     var action: Action?
+    /// Stable code for bug reports: "EXT-120".
+    var code: ErrorCode
+    /// The error's own words and codes, for the copied details (not shown on screen).
+    var diagnostic = ""
+
+    /// What "Copy Details" puts on the clipboard.
+    var report: String { ErrorReport.text(for: self) }
 
     /// A few words for a row that already shows the file's name.
     var brief: String {
@@ -77,15 +84,29 @@ struct Failure: Equatable, Sendable {
     }
 
     /// A message that has no more to say (Stow's own limits, like nesting depth).
-    init(_ title: String, advice: String = "", action: Action? = nil) {
-        self.init(kind: .other, title: title, advice: advice, action: action)
+    init(_ title: String, advice: String = "", action: Action? = nil, code: ErrorCode = ErrorCode(.general, .limit)) {
+        self.init(kind: .other, title: title, advice: advice, action: action, code: code)
     }
 
-    init(kind: Kind, title: String, advice: String, action: Action? = nil) {
+    init(kind: Kind, title: String, advice: String, action: Action? = nil, code: ErrorCode? = nil) {
         self.kind = kind
         self.title = title
         self.advice = advice
         self.action = action
+        self.code = code ?? ErrorCode(.general, Self.reason(for: kind))
+    }
+
+    /// The code's reason for a kind, when nothing more precise is known.
+    static func reason(for kind: Kind) -> ErrorCode.Reason {
+        switch kind {
+        case .notAnArchive: .notAnArchive
+        case .damaged: .damagedData
+        case .needsPassword: .passwordRequired
+        case .diskFull: .diskFull
+        case .noWriteAccess: .noWriteAccess
+        case .engine: .engineStopped
+        case .other: .unknown
+        }
     }
 
     /// Explains `error` from `operation` on the archive (or file) `name`. `destination` is where
@@ -94,6 +115,27 @@ struct Failure: Equatable, Sendable {
     init(_ error: any Error, _ operation: Operation, name: String, destination: URL? = nil, needs bytes: Int64 = 0) {
         let engine = EngineError(error)
         let cause = Self.cause(of: error, message: engine.message, destination: destination)
+        self.init(explaining: engine, cause: cause, operation, name: name, destination: destination, needs: bytes)
+        code = ErrorCode(operation.area, Self.reason(failure: engine.failure, cause: cause, message: engine.message))
+        diagnostic = ErrorReport.diagnostic(for: error, message: engine.message)
+    }
+
+    /// The code's reason: the cause read from the error when there is one, otherwise the engine's.
+    static func reason(failure: EngineFailure, cause: Cause?, message: String) -> ErrorCode.Reason {
+        switch (failure, cause) {
+        case (.notAnArchive, _), (.passwordRequired, _), (.wrongPassword, _), (.engineMissing, _),
+             (.incompatibleVersion, _), (.connectionLost, _), (.cancelled, _), (.changedOnDisk, _):
+            return ErrorCode.reason(for: failure)
+        case (_, .damaged(let file)):
+            return file == nil && !message.contains("Data Error") && !message.contains("CRC Failed") ? .damagedStructure : .damagedData
+        case (_, .diskFull): return .diskFull
+        case (_, .noWriteAccess): return .noWriteAccess
+        default: return .unknown
+        }
+    }
+
+    private init(explaining engine: EngineError, cause: Cause?, _ operation: Operation, name: String,
+                 destination: URL?, needs bytes: Int64) {
         switch (engine.failure, cause) {
         case (.notAnArchive, _):
             self.init(kind: .notAnArchive,
