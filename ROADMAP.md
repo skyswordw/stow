@@ -97,7 +97,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Welcome window | Feels empty at large sizes: real Open Recent, a smaller drop target, a quieter title bar. |
 | Motion audit | Run the `review-animations` skill over every transition; enforce DESIGN.md (no animation on keyboard actions, exits faster than entrances, springs only where touched). |
 | Consistency | One progress capsule style for packing, extracting, installing and batch; one prompt style for conflicts, signatures and passwords. |
-| Accessibility | Done (#29): composed VoiceOver labels, reading order and keyboard paths; shared motion, solid-surface and contrast handling with automated coverage. |
+| Accessibility | done (#29): composed VoiceOver labels (grid, list, columns, Glance, Tray, nested search results, Next Steps summary), headers for the rotor, reading order sidebar → content → inspector → Next Steps, keyboard paths (Tray rows, onboarding, Quick Look); no animation for keyboard actions, solid surfaces under Reduce Transparency, stronger outlines and metadata under Increase Contrast. Manual VoiceOver checklist in #66 / #38 |
 | Empty and error states | Every failure says what happened and what to do, in plain words, with one action. |
 | Website | Real product video of Pack and Checkup; screenshots refreshed from the release build. |
 
