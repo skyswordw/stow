@@ -797,7 +797,8 @@ final class BrowserModel {
         guard levels.count < Self.maxDepth else {
             activity = Activity(step: .openInside, itemCount: 1,
                                 phase: .failed(Failure(String(localized: "Stow opens archives up to \(Self.maxDepth) levels deep"),
-                                                       advice: String(localized: "Extract this one first, then open it from Finder."))))
+                                                       advice: String(localized: "Extract this one first, then open it from Finder."),
+                                                       code: ErrorCode(.open, .limit))))
             return
         }
         let archive = archive, parentLevels = levels

@@ -92,6 +92,10 @@ nonisolated struct ArchiveListing: Codable, Sendable {
     var type: String
     var physicalSize: Int64?
     var entries: [ListedEntry]
+    /// Bytes before the archive starts: a self-extracting stub or other prepended data.
+    var startOffset: Int64? = nil
+    /// Bytes after the archive ends that aren't part of it.
+    var tailSize: Int64? = nil
 }
 
 nonisolated struct ExtractRequest: Codable, Sendable {

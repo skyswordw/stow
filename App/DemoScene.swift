@@ -48,6 +48,13 @@ enum DemoScene {
             BrowseDemo.editing(in: app)
         case "external":
             BrowseDemo.externalChange(in: app)
+        case "checkup-format":
+            // A 7Z named .zip with data after it, as Checkup words it; the popover opens by itself.
+            let sample = SampleArchive.make()
+            let scan = Checkup.FormatScan(name: sample.name, real: .sevenZip, realType: "7z", tailSize: 2_048)
+            app.browser = BrowserModel(archive: Archive(name: sample.name, format: .sevenZip, files: sample.files,
+                                                        checkup: scan.findings + sample.checkup.filter { $0.severity == .info }))
+            ArchiveCard.opensCheckupForDemo = true
         case "readonly":
             BrowseDemo.readOnly(in: app)
         case "grid":

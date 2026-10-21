@@ -38,7 +38,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Archive details / inspector, archive overview | ✅ | ➕ Checkup; inspector shows real previews, several selected stack real thumbnails |
 | Show/hide macOS auxiliary items (__MACOSX, .DS_Store) | ✅ View › Show macOS Helper Items (⌘⇧.) | Hidden by default, dimmed when shown, never extracted |
 | Mixed / legacy filename encodings (GBK etc.), garbled-name repair | ✅ | ➕ Raw name bytes come from a second listing under a Latin-1 locale, so nothing is lost; each name is read in the encoding that suits it (mixed archives read right), a banner says how, and Read Names As… previews every encoding live. Extraction renames to the shown names |
-| Extension ≠ real format detection; ZIP with prepended/appended data; SFX RAR/7Z | partly (7zz) | ⬜ say so in Checkup |
+| Extension ≠ real format detection; ZIP with prepended/appended data; SFX RAR/7Z | ✅ | Checkup says it in words: “Named .zip, but it’s really 7Z”, “Self-extracting 7Z archive” (stub size, never run), extra data before/after the archive (left out when extracting). ZIP with raw prepended data whose offsets weren't adjusted opens only behind a program's extension (.exe) — that's 7-Zip's rule |
 | Lazy browsing of huge archives (browse before index finishes) | ✅ | 100,500 entries open in 2.8 s (Release; 7-Zip's own listing is ~0.9 s of that), browse at once while search indexes (0.18 s). Scrolling 100,000 items: grid median 4.0 ms / p95 6.3 ms of main-thread work per step, list median 5.3 ms / p95 8.2 ms (`-StowScrollBenchmark`). ⬜ stream the listing itself |
 | iCloud placeholders: wait for download, cancel | ⬜ | |
 | Open Recent menu, clear history | 🎨 recents are sample · ⬜ | |
@@ -158,7 +158,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |
 | Updates: automatic check, install after tasks finish | ⬜ | |
 | Open-source licence viewer | 🧪 pending verification | |
-| Native dialogs, detailed error codes + request IDs for support | partial | |
+| Native dialogs, detailed error codes + request IDs for support | ✅ codes + Copy Details | Stable `AREA-NNN` codes ([ERROR-CODES.md](ERROR-CODES.md)) on every failure card, failed capsule and batch row (right-click); Copy Details copies code, what people saw, the error's own words and domain/code chain, Stow and macOS versions and the time. No request IDs: Stow has no server to correlate them with |
 
 ## Deliberately not copied
 
