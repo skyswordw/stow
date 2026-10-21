@@ -187,10 +187,19 @@ enum DemoScene {
         case "integration":
             showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
-        case "glance":
-            app.openArchive(named: SampleArchive.make().name)
-            app.browser?.navigate(to: "Photos")
-            app.browser?.select(["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"])
+        case "glance", "glance-empty":
+            if scene == "glance-empty" {
+                // The same empty folder as the full window's "empty-folder" scene.
+                let sample = SampleArchive.make()
+                let drafts = ArchiveEntry(path: "Drafts", isFolder: true, size: 0, packedSize: 0, modified: .now)
+                app.browser = BrowserModel(archive: Archive(name: sample.name, format: sample.format,
+                                                            files: sample.files + [drafts], checkup: sample.checkup))
+                app.browser?.navigate(to: "Drafts")
+            } else {
+                app.openArchive(named: SampleArchive.make().name)
+                app.browser?.navigate(to: "Photos")
+                app.browser?.select(["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"])
+            }
             let pointer = glanceEdge(defaults).pointer(in: (NSScreen.main ?? NSScreen.screens[0]).visibleFrame)
             app.glance.collapse(near: pointer, animated: false)
             if let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
@@ -229,7 +238,7 @@ enum DemoScene {
             app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
         }
 
-        if scene != "glance", let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }),
+        if !scene.hasPrefix("glance"), let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }),
            size.count == 2 {
             Task {
                 try? await Task.sleep(for: .milliseconds(300))

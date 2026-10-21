@@ -95,24 +95,8 @@ struct BrowserView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        } else if model.visibleEntries.isEmpty, model.folder.isEmpty {
-            ContentUnavailableView {
-                Label("“\(model.archive.name)” is empty", systemImage: "archivebox")
-            } description: {
-                Text("There’s nothing inside to extract. It may have been packed before its files were added — ask the sender for a fresh copy.")
-            } actions: {
-                Button("Open Another Archive…") { app.isChoosingArchive = true }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if model.visibleEntries.isEmpty, model.viewMode != .columns {
-            ContentUnavailableView {
-                Label("“\((model.folder as NSString).lastPathComponent)” is empty", systemImage: "folder")
-            } description: {
-                Text("Nothing was packed inside this folder.")
-            } actions: {
-                Button("Enclosing Folder") { model.goUp() }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if model.visibleEntries.isEmpty, model.folder.isEmpty || model.viewMode != .columns {
+            EmptyContentView(model: model) { app.isChoosingArchive = true }
         } else {
             // View-mode switches are keyboard-speed actions: no animation.
             switch model.isSearching && model.viewMode == .columns ? .list : model.viewMode {

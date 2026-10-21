@@ -112,8 +112,8 @@ struct GlanceView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(.background)
         } else if model.visibleEntries.isEmpty {
-            ContentUnavailableView("Empty Folder", systemImage: "folder")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The full window's words; there's no Open panel here, so an empty archive offers nothing.
+            EmptyContentView(model: model)
                 .background(.background)
         } else {
             GlanceList(model: model)
