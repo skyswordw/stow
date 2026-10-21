@@ -73,11 +73,21 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
             return item
         }
         guard !items.isEmpty else { return }
+        dragging = entries.map(\.path)
         model.quickLook.close()
         view.beginDraggingSession(with: items, event: event, source: self)
     }
 
+    /// Design review and verification runs: told what a drag carries when it starts.
+    var onBegin: (([String]) -> Void)?
+
     // MARK: - NSDraggingSource
+
+    private var dragging: [String] = []
+
+    nonisolated func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
+        MainActor.assumeIsolated { onBegin?(dragging) }
+    }
 
     nonisolated func draggingSession(_ session: NSDraggingSession,
                                      sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {

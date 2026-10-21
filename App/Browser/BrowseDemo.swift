@@ -74,6 +74,25 @@ enum BrowseDemo {
                 }
             }
             if defaults.bool(forKey: "StowEncodingSheet") { model.isChoosingEncoding = true }
+            if defaults.bool(forKey: "StowDragTest"), let window = NSApp.windows.first(where: { $0.isVisible && !($0 is NSPanel) }),
+               let first = model.selectedEntries.first {
+                // A press on the first selected entry that turns into a drag, through the app's own
+                // event dispatch (where the drag-out monitor listens).
+                model.dragOut.onBegin = { paths in
+                    print("Drag began with \(paths.count) file promises: \(paths)")
+                    fflush(stdout)
+                }
+                model.dragOut.hovered = first.id
+                let point = NSPoint(x: window.frame.width / 2, y: window.frame.height / 2)
+                for (type, offset) in [(NSEvent.EventType.leftMouseDown, 0.0), (.leftMouseDragged, 3.0), (.leftMouseDragged, 12.0)] {
+                    if let event = NSEvent.mouseEvent(with: type, location: NSPoint(x: point.x + offset, y: point.y),
+                                                      modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                                      windowNumber: window.windowNumber, context: nil, eventNumber: 0,
+                                                      clickCount: 1, pressure: 1) {
+                        NSApp.sendEvent(event)
+                    }
+                }
+            }
             if defaults.bool(forKey: "StowScrollBenchmark"), let window = NSApp.windows.first(where: { $0.isVisible && !($0 is NSPanel) }) {
                 while model.level.indexed < model.level.search.total { try? await Task.sleep(for: .milliseconds(50)) }
                 try? await Task.sleep(for: .seconds(1.5))
