@@ -5,20 +5,21 @@ struct SidebarView: View {
 
     var body: some View {
         List(selection: folderSelection) {
-            Section {
-                Label("All Files", systemImage: "square.grid.2x2")
-                    .tag("")
-                OutlineGroup(model.archive.folderTree(includingHelpers: model.showHelperItems), children: \.children) { node in
-                    Label(node.name, systemImage: "folder")
-                        .tag(node.id)
-                }
-            } header: {
-                ArchiveCard(archive: model.archive)
-                    .padding(.bottom, Space.s)
+            Label("All Files", systemImage: "square.grid.2x2")
+                .tag("")
+            OutlineGroup(model.archive.folderTree(includingHelpers: model.showHelperItems), children: \.children) { node in
+                Label(node.name, systemImage: "folder")
+                    .tag(node.id)
             }
-            .collapsible(false)
         }
         .listStyle(.sidebar)
+        // Above the list rather than in a section header: a header row has a fixed height, so a long
+        // name or a narrow sidebar clipped or truncated the card. Here it takes the height it needs.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            ArchiveCard(archive: model.archive)
+                .padding(.horizontal, Space.m)
+                .padding(.bottom, Space.s)
+        }
     }
 
     private var folderSelection: Binding<String?> {
@@ -47,8 +48,14 @@ struct ArchiveCard: View {
                         .help(archive.name)
                         .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(.primary)
-                    Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
-                        .fixedSize(horizontal: false, vertical: true)
+                    ViewThatFits(in: .horizontal) {
+                        Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
+                            .fixedSize()
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("\(archive.files.count.formatted()) files")
+                            Text(archive.totalSize.bytes)
+                        }
+                    }
                         .font(.caption)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
