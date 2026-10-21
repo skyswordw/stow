@@ -15,13 +15,22 @@ enum OtherAppFiles {
         var name: String
     }
 
-    /// Names for the apps people most often drag archives out of; anything else is looked up.
-    static let knownNames: [String: String] = [
-        "com.tencent.xinWeChat": "WeChat", "com.tencent.qq": "QQ", "com.tencent.WeWorkMac": "WeCom",
-        "com.alibaba.DingTalkMac": "DingTalk", "com.bytedance.lark": "Lark", "com.electron.lark": "Lark",
-        "ru.keepcoder.Telegram": "Telegram", "com.apple.mail": "Mail", "com.apple.MobileSMS": "Messages",
-        "com.apple.Photos": "Photos",
-    ]
+    /// Names for the apps people most often drag archives out of, as people know them in their
+    /// language (微信, 企业微信, 钉钉, 飞书 in Chinese); anything else is looked up.
+    static var knownNames: [String: String] {
+        [
+            "com.tencent.xinWeChat": String(localized: "WeChat", comment: "App name"),
+            "com.tencent.qq": String(localized: "QQ", comment: "App name"),
+            "com.tencent.WeWorkMac": String(localized: "WeCom", comment: "App name"),
+            "com.alibaba.DingTalkMac": String(localized: "DingTalk", comment: "App name"),
+            "com.bytedance.lark": String(localized: "Lark", comment: "App name"),
+            "com.electron.lark": String(localized: "Lark", comment: "App name"),
+            "ru.keepcoder.Telegram": String(localized: "Telegram", comment: "App name"),
+            "com.apple.mail": String(localized: "Mail", comment: "App name"),
+            "com.apple.MobileSMS": String(localized: "Messages", comment: "App name"),
+            "com.apple.Photos": String(localized: "Photos", comment: "App name"),
+        ]
+    }
 
     /// Who keeps `url`, from its path: `…/Library/Containers/<bundle ID>/…` or
     /// `…/Library/Group Containers/<team>.<group ID>/…`. Nil for ordinary folders and for Stow's own.
