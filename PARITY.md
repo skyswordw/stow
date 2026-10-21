@@ -66,7 +66,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | After Extract All: keep / move archive to Trash / ask | ✅ with “Don’t ask again” | |
 | Auto-close window after extract / install | ✅ setting | |
 | Same-name folder conflicts: Merge / Keep Both; file Replace | ✅ Merge / Keep Both; Replace / Keep Both / Skip; “do the same for the rest” | ➕ replaced items go to the Trash; stopping undoes everything placed so far; apps are never merged |
-| Skip system metadata (__MACOSX, AppleDouble, .DS_Store, Thumbs.db, desktop.ini) while keeping dotfiles like .gitignore | ✅ setting, on by default | ➕ Finder tags, comments and other Mac details in AppleDouble are put back on the files |
+| Skip system metadata (__MACOSX, AppleDouble, .DS_Store, Thumbs.db, desktop.ini) while keeping dotfiles like .gitignore | ✅ setting, on by default | ➕ Finder tags, comments and other Mac details in AppleDouble are put back on the files, from every format a Mac writes them into (ZIP, 7Z, TAR and compressed TARs), also when extracting one folder |
 | Unsafe paths, special files (FIFO, sockets, devices), links | ✅ containment | ➕ explained in Checkup |
 | Password archives (incl. RAR), incorrect-password retry, CJK passwords (show-password for IME) | ✅ sheet with retry for opening (encrypted 7z file lists), extracting and nested archives; password kept in memory while the archive is open · 🧪 (pending verification) show-password-by-default setting | ZIP passwords outside ASCII get a warning when packing |
 | Batch extraction queue, stacked progress windows | ✅ File › Extract Archives… or drop several; compact progress stack | conflicts and keep/trash asked once per batch |

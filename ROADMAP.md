@@ -87,7 +87,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Error details with codes for bug reports | done (#14): every failure has a stable code (`EXT-120`, see [ERROR-CODES.md](ERROR-CODES.md)) and Copy Details |
 | Create disk images (DMG) | low priority |
 | TAR.ZST creation | done: 7-Zip writes the TAR, Stow's linked zstd 1.5.7 compresses it (Linux audience, splits into volumes, verified by 7-Zip) |
-| Restore Mac metadata on Stow's own extraction | done for `__MACOSX` AppleDouble; check Finder comments on every format |
+| Restore Mac metadata on Stow's own extraction | done (#17): Finder comments and tags come back from ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ/ZST, for Extract All, one file or one folder (`__MACOSX` and inline `._` companions). Not carried: disk images (7-Zip leaves out their attributes) and Linux `tar --xattrs` headers |
 
 ## Design polish (applies across waves)
 

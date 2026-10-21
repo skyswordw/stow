@@ -8225,16 +8225,6 @@
         }
       }
     },
-    "Add Files…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加文件…"
-          }
-        }
-      }
-    },
     "Delete": {
       "localizations": {
         "zh-Hans": {
