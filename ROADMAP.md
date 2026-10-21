@@ -78,7 +78,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Item | Notes |
 | --- | --- |
 | Next Steps: list of alternative actions, customise which show, restore suggestions | ArcZip "Flow" settings |
-| Checkup: warn when the extension doesn't match the real format (ZIP with prepended data, SFX) | engine already detects the real type |
+| Checkup: warn when the extension doesn't match the real format (ZIP with prepended data, SFX) | done (#16): Checkup names the real format, self-extracting stubs, and data before or after the archive |
 | iCloud placeholders: wait for download, cancel | `DownloadCheck` covers browser downloads only |
 | Open Recent menu with clear history | welcome window "Recent" still shows sample names |
 | Search across nested archives | today search covers the open level |
@@ -125,7 +125,7 @@ Everything marked ⬜ or 🎨 in [PARITY.md](PARITY.md):
   hover toggle, password display, temp-file clean-up, reset, licence viewer)
 - Onboarding, Sparkle updates, Simplified Chinese
 - Next Steps customisation and alternative-actions list
-- iCloud placeholders, Open Recent, search across nested archives, extension ≠ format warning
+- iCloud placeholders, Open Recent, search across nested archives
 - Reading files from other apps' containers, error codes for support
 - DMG creation; TAR.ZST creation (blocked upstream)
 - App icon; signed, notarized, universal release
