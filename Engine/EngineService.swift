@@ -178,7 +178,7 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                     var encryptedHeaders = false
                     let listing: ArchiveListing
                     do { listing = try await sevenZip.list(work) }
-                    catch let error where error.failure == .passwordRequired {
+                    catch let error where EngineError(error).failure == .passwordRequired {
                         guard request.password != nil else { throw error }
                         encryptedHeaders = true
                         listing = try await sevenZip.list(work, password: request.password)
@@ -231,7 +231,7 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                         }
                         do { try SevenZip.check(result) }
                         catch {
-                            if step.arguments.first == "t", error.failure == .failed {
+                            if step.arguments.first == "t", EngineError(error).failure == .failed {
                                 throw EngineError(.failed, String(localized: "The edited archive didn’t pass its check. The original was kept."))
                             }
                             throw error
