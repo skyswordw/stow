@@ -3,11 +3,11 @@ import UniformTypeIdentifiers
 
 /// File › Open Recent: the same list as the welcome window, with Clear Menu.
 struct OpenRecentMenu: View {
-    let recents: RecentArchives
+    let entries: [RecentArchives.Entry]
     let open: (RecentArchives.Entry) -> Void
+    let clear: () -> Void
 
     var body: some View {
-        let entries = recents.visible
         Menu("Open Recent") {
             ForEach(entries) { entry in
                 Button { open(entry) } label: {
@@ -15,7 +15,7 @@ struct OpenRecentMenu: View {
                 }
             }
             if !entries.isEmpty { Divider() }
-            Button("Clear Menu") { recents.clear() }
+            Button("Clear Menu", action: clear)
                 .disabled(entries.isEmpty)
         }
     }

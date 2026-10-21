@@ -269,7 +269,8 @@ struct StowCommands: Commands {
                 .keyboardShortcut("n")
             Button("Open Archive…") { app.isChoosingArchive = true }
                 .keyboardShortcut("o")
-            OpenRecentMenu(recents: app.recents) { app.openRecent($0) }
+            // Read here, in the Commands body: a nested view's reads don't refresh the menu.
+            OpenRecentMenu(entries: app.recents.visible, open: { app.openRecent($0) }, clear: { app.recents.clear() })
             Button("Extract Archives…") { app.isChoosingBatch = true }
                 .keyboardShortcut("e", modifiers: [.command, .option])
             Button("Open Sample Archive") { app.openArchive(named: SampleArchive.make().name) }
