@@ -193,8 +193,17 @@ nonisolated struct SevenZip: Sendable {
         return ArchiveListing(
             type: type,
             physicalSize: archiveFields["Physical Size"].flatMap { Int64($0) },
-            entries: entries
+            entries: entries,
+            startOffset: startOffset(archiveFields),
+            tailSize: archiveFields["Tail Size"].flatMap { Int64($0) }
         )
+    }
+
+    /// Where the archive starts in the file. 7-Zip says "Offset" when it found the archive after
+    /// other data, and "Embedded Stub Size" for a ZIP whose offsets already count a stub (SFX).
+    static func startOffset(_ fields: [String: String]) -> Int64? {
+        let offset = (fields["Offset"].flatMap { Int64($0) } ?? 0) + (fields["Embedded Stub Size"].flatMap { Int64($0) } ?? 0)
+        return offset > 0 ? offset : nil
     }
 
     /// What 7-Zip names a compressed stream's content: "logs.tar.xz" → "logs.tar", "a.tgz" → "a.tar".

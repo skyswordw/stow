@@ -36,6 +36,8 @@ struct SidebarView: View {
 struct ArchiveCard: View {
     let archive: Archive
     @State private var showCheckup = false
+    /// Design review: the Checkup popover opens by itself (`-StowScene checkup-format`).
+    static var opensCheckupForDemo = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
@@ -73,6 +75,11 @@ struct ArchiveCard: View {
             .buttonStyle(.plain)
             .popover(isPresented: $showCheckup, arrowEdge: .trailing) {
                 CheckupView(findings: archive.checkup)
+            }
+            .task {
+                guard Self.opensCheckupForDemo else { return }
+                try? await Task.sleep(for: .milliseconds(500))
+                showCheckup = true
             }
         }
         .padding(Space.m)

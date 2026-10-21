@@ -30,6 +30,7 @@ nonisolated extension SevenZip {
     private static func parseFast(_ bytes: UnsafeBufferPointer<UInt8>) -> (listing: ArchiveListing, legacy: [Int])? {
         var type: String?
         var physicalSize: Int64?
+        var archiveFields: [String: String] = [:]
         var entries: [ListedEntry] = []
         var legacy: [Int] = []
         var current = Fields()
@@ -67,6 +68,9 @@ nonisolated extension SevenZip {
             if section == 1 {
                 if type == nil, matches(key, "Type") { type = string(value) }
                 if physicalSize == nil, matches(key, "Physical Size") { physicalSize = number(value) }
+                if matches(key, "Offset") || matches(key, "Embedded Stub Size") || matches(key, "Tail Size") {
+                    archiveFields[string(key)] = archiveFields[string(key)] ?? string(value)
+                }
                 continue
             }
             if matches(key, "Path") {
@@ -94,7 +98,9 @@ nonisolated extension SevenZip {
         flush()
 
         guard let type, fastTypes.contains(type), section == 2 else { return nil }
-        return (ArchiveListing(type: type, physicalSize: physicalSize, entries: entries), legacy)
+        return (ArchiveListing(type: type, physicalSize: physicalSize, entries: entries,
+                               startOffset: startOffset(archiveFields),
+                               tailSize: archiveFields["Tail Size"].flatMap { Int64($0) }), legacy)
     }
 
     /// Where " = " (or a closing " =") splits a line into key and value.
