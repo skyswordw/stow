@@ -166,6 +166,12 @@ struct StowApp: App {
             StowCommands(app: app)
             BrowseCommands(app: app)
         }
+        Window("Welcome to Stow", id: "onboarding") {
+            OnboardingView().environment(app)
+        }
+        .windowResizability(.contentSize)
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
         Settings {
             SettingsView().environment(app)
         }
@@ -217,7 +223,15 @@ struct RootView: View {
         .overlay(alignment: .bottomTrailing) { BatchStack(queue: app.batch) }
         .task {
             SettingsRouter.shared.open = { openSettings() }
+            OnboardingRouter.shared.open = { openWindow(id: "onboarding") }
             DemoScene.apply(to: app)
+            guard !OnboardingRouter.shared.didCheckAutomaticPresentation else { return }
+            OnboardingRouter.shared.didCheckAutomaticPresentation = true
+            // Let the main window appear before presenting the first-run checklist.
+            await Task.yield()
+            if Onboarding.shouldShowAutomatically() {
+                openWindow(id: "onboarding")
+            }
         }
         .onAppear { app.showMainWindow = { [openWindow] in openWindow(id: "main") } }
     }
@@ -253,6 +267,9 @@ struct StowCommands: Commands {
             Button("Close Archive") { app.closeArchive() }
                 .keyboardShortcut("w", modifiers: [.command, .shift])
                 .disabled(app.browser == nil)
+        }
+        CommandGroup(after: .help) {
+            Button("Welcome to Stow") { OnboardingRouter.shared.open() }
         }
         CommandGroup(after: .windowArrangement) {
             Button(app.tray.isShown ? String(localized: "Hide Tray") : String(localized: "Show Tray")) { app.tray.toggle() }

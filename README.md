@@ -137,6 +137,10 @@ Stow stays sandboxed (user-selected files only) and asks for the narrowest acces
 - **Disk images are never mounted.** The engine reads HFS+, APFS and ISO images directly, so a DMG
   is browsed read-only with nothing attached to detach.
 
+**First run:** A skippable Welcome to Stow checklist introduces archives, file types, the Finder
+extension and Tray (⌥⌘T). Skip or Get Started finishes it; Help › Welcome to Stow reopens it.
+Resetting preferences keeps first-run completion remembered.
+
 Stow has a Settings window (⌘,) with General, Extraction, Installing, Packing, Previews,
 Passwords, File Types, Integration, Advanced and Licenses panes. Glance and Tray settings
 panes are not available yet. The host lives in `App/Settings` and reuses the extraction and

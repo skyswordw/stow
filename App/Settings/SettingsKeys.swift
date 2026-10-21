@@ -26,6 +26,7 @@ nonisolated enum SettingsKeys {
         }
     }
     // PreviousDefaultApps is restoration state, not a preference. Keep the switch-back memory.
+    // onboarding.completed is first-run state, not a preference. Keep completion remembered.
     static let resettable: [Entry] = [
         .init(key: Preferences.Key.extractAllFolder, defaultValue: .string(Preferences.defaults.extractAllFolder.rawValue)),
         .init(key: Preferences.Key.afterExtractAll, defaultValue: .string(Preferences.defaults.afterExtractAll.rawValue)),

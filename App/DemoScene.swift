@@ -5,7 +5,7 @@ import SwiftUI
 ///
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
-/// Scenes: welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
+/// Scenes: onboarding, welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too.
@@ -32,6 +32,8 @@ enum DemoScene {
         }
 
         switch scene {
+        case "onboarding":
+            OnboardingRouter.shared.open()
         case "settings":
             SettingsRouter.shared.pane = defaults.string(forKey: "StowSettingsPane").flatMap(SettingsPane.init(rawValue:)) ?? .general
             SettingsRouter.shared.open()

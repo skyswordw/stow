@@ -154,7 +154,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Compression defaults, Extraction defaults, Flow, Box, Mini panes | ⬜ | |
 | Password field: show by default (for CJK input) | 🧪 pending verification | |
 | Advanced: temp-file usage & cleanup, reset all preferences | 🧪 pending verification | |
-| Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | ⬜ | |
+| Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |
 | Updates: automatic check, install after tasks finish | ⬜ | |
 | Open-source licence viewer | 🧪 pending verification | |
 | Native dialogs, detailed error codes + request IDs for support | partial | |
