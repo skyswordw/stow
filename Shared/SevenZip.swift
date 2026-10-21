@@ -40,7 +40,10 @@ nonisolated struct SevenZip: Sendable {
         let input = try Prepared(archive)
         defer { input.cleanUp() }
         let stream = ListingStream()
-        let onOutput: (@Sendable (Data) -> Void)? = streamed ? { chunk in stream.consume(chunk) } : nil
+        var onOutput: (@Sendable (Data) -> Void)?
+        if streamed {
+            onOutput = { @Sendable chunk in stream.consume(chunk) }
+        }
         let result = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor, password: password,
                                    onOutput: onOutput)
         try Self.check(result)
