@@ -24,6 +24,7 @@ Codes are `<area>-<reason>`. Numbers are never reused or renumbered; new reasons
 | Code | Reason | Where it comes from |
 | --- | --- | --- |
 | `100` | Not an archive Stow can read | engine (`notAnArchive`) |
+| `101` | macOS doesn't let Stow read the file (e.g. kept in another app's storage, like WeChat's) | Stow's read check before opening (`EACCES`, `EPERM`) |
 | `110` | Needs a password | engine (`passwordRequired`) |
 | `111` | Wrong password | engine (`wrongPassword`) |
 | `120` | Damaged data (a file's data or checksum doesn't match) | 7-Zip "Data Error", "CRC Failed" |

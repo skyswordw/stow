@@ -40,7 +40,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Mixed / legacy filename encodings (GBK etc.), garbled-name repair | ✅ | ➕ Raw name bytes come from a second listing under a Latin-1 locale, so nothing is lost; each name is read in the encoding that suits it (mixed archives read right), a banner says how, and Read Names As… previews every encoding live. Extraction renames to the shown names |
 | Extension ≠ real format detection; ZIP with prepended/appended data; SFX RAR/7Z | ✅ | Checkup says it in words: “Named .zip, but it’s really 7Z”, “Self-extracting 7Z archive” (stub size, never run), extra data before/after the archive (left out when extracting). ZIP with raw prepended data whose offsets weren't adjusted opens only behind a program's extension (.exe) — that's 7-Zip's rule |
 | Lazy browsing of huge archives (browse before index finishes) | ✅ | 100,500 entries open in 2.8 s (Release; 7-Zip's own listing is ~0.9 s of that), browse at once while search indexes (0.18 s). Scrolling 100,000 items: grid median 4.0 ms / p95 6.3 ms of main-thread work per step, list median 5.3 ms / p95 8.2 ms (`-StowScrollBenchmark`). ⬜ stream the listing itself |
-| iCloud placeholders: wait for download, cancel | ⬜ | |
+| iCloud placeholders: wait for download, cancel | 🧪 (pending verification) | Placeholders (iCloud's not-downloaded status, or a File Provider's dataless file) are asked for, then a card shows the progress iCloud reports (a moving bar when it doesn't) with Cancel; opens when the file is here |
 | Open Recent menu, clear history | 🎨 recents are sample · ⬜ | |
 | Read-only preview of DMG/ISO (mount read-only, verify, skip installer extras like the Applications alias) | ✅ through the engine, no mounting (HFS+, APFS, ISO; zlib/LZFSE/LZMA) | ➕ nothing is attached, so nothing to detach or report busy; opens at the volume with the app selected; background art, volume icon and "drag here" shortcuts hidden and left out; checksums checked in the background; encrypted images explained with an Open in Finder way out; unfinished downloads caught |
 | Compressed tarballs; documents that are ZIPs | ✅ | ➕ .tar.gz/.tgz/.tar.xz/.tar.bz2/.tar.zst/.tar.lz… browse as the tar inside (two 7zz piped, nothing written to disk), so the inner-.tar fallback no longer shows for them. ➕ “Show Package Contents” on .docx/.xlsx/.pptx/.epub/.pages opens them as the ZIPs they are |
@@ -145,7 +145,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | File associations UI: choose formats, set/restore default app, report result | ✅ model + view · 🧪 Settings host (pending verification) | ➕ remembers each type's previous app; reports refusals and types macOS kept |
 | Launch at login, Dock icon hides with last window | ✅ (opt-in) | login item shows macOS's real status |
 | URL scheme for extension → app hand-off (one-time requests) | ✅ | ➕ 128-bit one-time tokens, 60 s, no paths in URLs |
-| Reading files dropped from other apps (WeChat etc.), permission guidance | ⬜ | |
+| Reading files dropped from other apps (WeChat etc.), permission guidance | 🧪 (pending verification) | ➕ promised drops (Mail attachments, chat files) are received into Stow's own folder, emptied at launch; unreadable files in another app's storage say which app and how to save a copy, with Show in Finder |
 
 ## 10. Settings, onboarding, maintenance
 
