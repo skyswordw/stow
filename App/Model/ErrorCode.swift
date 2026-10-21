@@ -94,13 +94,28 @@ enum ErrorReport {
             let build = info["CFBundleVersion"] as? String ?? "?"
             let system = ProcessInfo.processInfo.operatingSystemVersion
             #if arch(arm64)
-            let architecture = "Apple silicon"
+            let architecture = architectureName(arm64: true, translated: false)
             #else
-            let architecture = "Intel"
+            let architecture = architectureName(arm64: false, translated: isTranslated)
             #endif
             return Environment(appVersion: "\(version) (\(build))",
                                systemVersion: "\(system.majorVersion).\(system.minorVersion).\(system.patchVersion)",
                                architecture: architecture)
+        }
+
+        /// Stow ships as a universal binary: the x86_64 slice also runs on Apple silicon under
+        /// Rosetta (an "Open using Rosetta" Finder setting), which a report should tell apart.
+        static func architectureName(arm64: Bool, translated: Bool) -> String {
+            if arm64 { return "Apple silicon" }
+            return translated ? "Apple silicon (Rosetta)" : "Intel"
+        }
+
+        /// `sysctl.proc_translated` is 1 for a process translated by Rosetta, 0 for a native one,
+        /// and missing (ENOENT) on Intel Macs.
+        static var isTranslated: Bool {
+            var value: Int32 = 0
+            var size = MemoryLayout<Int32>.size
+            return sysctlbyname("sysctl.proc_translated", &value, &size, nil, 0) == 0 && value == 1
         }
     }
 

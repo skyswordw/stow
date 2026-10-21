@@ -24,6 +24,12 @@ echo "$sha256  $work/$archive" | shasum -a 256 --check --status \
 
 mkdir -p "$work/x" && tar -xJf "$work/$archive" -C "$work/x"
 rm -rf $dest && mkdir -p $dest
+# Stow ships Universal 2 (#33): the official macOS build has arm64 and x86_64 slices; refuse one that doesn't.
+if command -v lipo >/dev/null; then
+  archs=$(lipo -archs "$work/x/7zz")
+  [[ " $archs " == *" arm64 "* && " $archs " == *" x86_64 "* ]] \
+    || { echo "error: 7zz is not universal (has: $archs)" >&2; exit 1; }
+fi
 cp "$work/x/7zz" $dest/7zz && chmod 755 $dest/7zz
 for f in License.txt readme.txt History.txt; do [[ -f "$work/x/$f" ]] && cp "$work/x/$f" $dest/; done
 echo $version > $dest/VERSION

@@ -17,6 +17,13 @@ settings:
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_IDENTITY: "-"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
+  configs:
+    # Universal 2 (#33): Release builds every binary for Apple silicon and Intel (macOS 26 is the
+    # last release for Intel Macs). Debug keeps building only the active architecture. The bundled
+    # 7zz is already universal; CI checks every slice with scripts/check-universal.sh.
+    Release:
+      ARCHS: $(ARCHS_STANDARD)
+      ONLY_ACTIVE_ARCH: NO
 packages:
   # Zstandard (BSD) for .tar.zst: the bundled 7zz reads zstd but can't write it. Linked into the
   # app and the engine; Quick Look never creates archives, so it goes without.
