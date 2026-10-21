@@ -5,20 +5,21 @@ struct SidebarView: View {
 
     var body: some View {
         List(selection: folderSelection) {
-            Section {
-                Label("All Files", systemImage: "square.grid.2x2")
-                    .tag("")
-                OutlineGroup(model.archive.folderTree(includingHelpers: model.showHelperItems), children: \.children) { node in
-                    Label(node.name, systemImage: "folder")
-                        .tag(node.id)
-                }
-            } header: {
-                ArchiveCard(archive: model.archive)
-                    .padding(.bottom, Space.s)
+            Label("All Files", systemImage: "square.grid.2x2")
+                .tag("")
+            OutlineGroup(model.archive.folderTree(includingHelpers: model.showHelperItems), children: \.children) { node in
+                Label(node.name, systemImage: "folder")
+                    .tag(node.id)
             }
-            .collapsible(false)
         }
         .listStyle(.sidebar)
+        // Above the list rather than in a section header: a header row has a fixed height, so a long
+        // name or a narrow sidebar clipped or truncated the card. Here it takes the height it needs.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            ArchiveCard(archive: model.archive)
+                .padding(.horizontal, Space.m)
+                .padding(.bottom, Space.s)
+        }
     }
 
     private var folderSelection: Binding<String?> {
@@ -43,10 +44,18 @@ struct ArchiveCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(archive.name)
                         .font(.headline)
-                        .lineLimit(2)
+                        .lineLimit(3)
+                        .help(archive.name)
                         .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(.primary)
-                    Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
+                    ViewThatFits(in: .horizontal) {
+                        Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
+                            .fixedSize()
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("\(archive.files.count.formatted()) files")
+                            Text(archive.totalSize.bytes)
+                        }
+                    }
                         .font(.caption)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
@@ -116,10 +125,19 @@ struct CompressionBar: View {
                 }
             }
             .frame(height: 4)
-            HStack {
-                Text("\(packed.bytes) packed")
-                Spacer()
-                Text("\(Int(((1 - fraction) * 100).rounded()))% smaller")
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text("\(packed.bytes) packed")
+                        .fixedSize()
+                    Spacer()
+                    Text("\(Int(((1 - fraction) * 100).rounded()))% smaller")
+                        .fixedSize()
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(packed.bytes) packed")
+                    Text("\(Int(((1 - fraction) * 100).rounded()))% smaller")
+                }
+                .fixedSize(horizontal: false, vertical: true)
             }
             .font(.caption2)
             .monospacedDigit()
@@ -142,6 +160,8 @@ struct CheckupBadge: View {
                 .foregroundStyle(caution ? .yellow : .green)
             Text(caution ? String(localized: "Checkup: \(cautions) things to know")
                  : handled > 0 ? String(localized: "Checkup: safe, \(handled) handled") : String(localized: "Checkup: looks safe"))
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)

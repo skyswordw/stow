@@ -176,6 +176,16 @@
         }
       }
     },
+    "%@ files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 个文件"
+          }
+        }
+      }
+    },
     "%@ files · %@": {
       "localizations": {
         "zh-Hans": {
@@ -646,6 +656,16 @@
         }
       }
     },
+    "%lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另外 %lld 种"
+          }
+        }
+      }
+    },
     "%lld names differ only by capital letters": {
       "localizations": {
         "zh-Hans": {
@@ -967,28 +987,6 @@
           }
         }
       }
-    },
-    ",": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "，"
-          }
-        }
-      },
-      "comment": "Punctuation after an interactive packing sentence token."
-    },
-    ".": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "。"
-          }
-        }
-      },
-      "comment": "Punctuation at the end of the interactive packing sentence."
     },
     "1 archive done": {
       "localizations": {
@@ -4164,16 +4162,6 @@
         }
       }
     },
-    "Opening with Stow now: %@ and %lld more": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "目前用 Stow 打开：%1$@，以及另外 %2$lld 种"
-          }
-        }
-      }
-    },
     "Opening “%@”…": {
       "localizations": {
         "zh-Hans": {
@@ -6200,17 +6188,6 @@
         }
       }
     },
-    "as a": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "格式为"
-          }
-        }
-      },
-      "comment": "Connector in the interactive packing sentence, before the archive format."
-    },
     "as one file": {
       "localizations": {
         "zh-Hans": {
@@ -6240,17 +6217,6 @@
           }
         }
       }
-    },
-    "for": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "用于"
-          }
-        }
-      },
-      "comment": "Connector in the interactive packing sentence, before its intended audience."
     },
     "in 100 MB parts": {
       "localizations": {
@@ -6371,6 +6337,23 @@
           }
         }
       }
+    },
+    "pack.sentence": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将{subject}压缩为{format}格式，用于{audience}，{password}，{split}。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pack {subject} as a {format} for {audience}, {password}, {split}."
+          }
+        }
+      },
+      "comment": "Pack sheet sentence. Keep the five {…} placeholders (any order); each becomes a menu or the item name."
     },
     "the archive": {
       "localizations": {
@@ -6808,6 +6791,196 @@
           "stringUnit": {
             "state": "translated",
             "value": "≈ %1$@%2$@"
+          }
+        }
+      }
+    },
+    "A rename target already exists or is inside its source." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "新名称对应的路径已存在，或位于原项目内部。"
+          }
+        }
+      }
+    },
+    "A replacement folder on the archive’s volume is unavailable. Save a copy instead." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "无法在压缩包所在卷上创建替换目录。请改为保存副本。"
+          }
+        }
+      }
+    },
+    "A staged item points outside the staging tree." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "暂存项目指向了暂存目录之外的位置。"
+          }
+        }
+      }
+    },
+    "Added items must have top-level staging names." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "新增项目必须使用暂存目录中的顶层名称。"
+          }
+        }
+      }
+    },
+    "An edit contains duplicate paths." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "此编辑包含重复路径。"
+          }
+        }
+      }
+    },
+    "An edit path is outside the archive or is not a clean relative path." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "编辑路径超出了压缩包范围，或不是规范的相对路径。"
+          }
+        }
+      }
+    },
+    "An edit refers to an entry that no longer exists." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "此编辑引用了已不存在的项目。"
+          }
+        }
+      }
+    },
+    "An edit would overwrite an existing path or write inside a file." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "此编辑会覆盖现有路径，或尝试在文件内部写入。"
+          }
+        }
+      }
+    },
+    "An entry with an unknown filename encoding cannot be changed safely." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "无法安全修改文件名编码未知的项目。"
+          }
+        }
+      }
+    },
+    "Couldn’t create the replacement file." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "无法创建替换文件。"
+          }
+        }
+      }
+    },
+    "Couldn’t replace the archive. The original was kept." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "无法替换压缩包。原文件已保留。"
+          }
+        }
+      }
+    },
+    "Couldn’t write the replacement archive." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "无法写入替换压缩包。"
+          }
+        }
+      }
+    },
+    "Only an existing regular file can be replaced." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "只能替换现有的普通文件。"
+          }
+        }
+      }
+    },
+    "The archive changed on disk. Reload it before saving." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "磁盘上的压缩包已更改。请重新载入后再保存。"
+          }
+        }
+      }
+    },
+    "The archive contains duplicate paths and cannot be edited safely." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "压缩包包含重复路径，无法安全编辑。"
+          }
+        }
+      }
+    },
+    "The edited archive didn’t pass its check. The original was kept." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "编辑后的压缩包未通过检查。原文件已保留。"
+          }
+        }
+      }
+    },
+    "The replacement archive is incomplete. The original was kept." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "替换压缩包不完整。原文件已保留。"
+          }
+        }
+      }
+    },
+    "This archive format cannot be edited." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "无法编辑此压缩包格式。"
+          }
+        }
+      }
+    },
+    "Names beginning with @ cannot be edited safely." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "无法安全编辑名称以 @ 开头的项目。"
           }
         }
       }
