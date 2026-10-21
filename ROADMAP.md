@@ -83,7 +83,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Open Recent menu with clear history | welcome window "Recent" still shows sample names |
 | Search across nested archives | today search covers the open level |
 | Streaming listings beyond ~100k entries | 100,500 entries open in 2.8 s today |
-| Reading files dropped from other apps (e.g. WeChat) with permission guidance | |
+| Reading files dropped from other apps (e.g. WeChat) with permission guidance | built (#19), pending a real WeChat/Mail check: archives an app only promises during a drag are received first; a file macOS won't let Stow read gets plain words naming the app (`OPN-101`) and how to get a copy |
 | Error details with codes for bug reports | done (#14): every failure has a stable code (`EXT-120`, see [ERROR-CODES.md](ERROR-CODES.md)) and Copy Details |
 | Create disk images (DMG) | done (#23): Pack › DMG for Macs; hdiutil `makehybrid` (HFS+) then `convert` by level, one folder’s contents at the top like Finder; follow-ups: password (AES), APFS, custom window layout / Applications link |
 | TAR.ZST creation | done: 7-Zip writes the TAR, Stow's linked zstd 1.5.7 compresses it (Linux audience, splits into volumes, verified by 7-Zip) |

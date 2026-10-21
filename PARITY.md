@@ -145,7 +145,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | File associations UI: choose formats, set/restore default app, report result | ✅ model + view · 🧪 Settings host (pending verification) | ➕ remembers each type's previous app; reports refusals and types macOS kept |
 | Launch at login, Dock icon hides with last window | ✅ (opt-in) | login item shows macOS's real status |
 | URL scheme for extension → app hand-off (one-time requests) | ✅ | ➕ 128-bit one-time tokens, 60 s, no paths in URLs |
-| Reading files dropped from other apps (WeChat etc.), permission guidance | ⬜ | |
+| Reading files dropped from other apps (WeChat etc.), permission guidance | 🧪 (pending verification) | ➕ promised drops (Mail attachments, chat files) are received into Stow's own folder, emptied at launch; unreadable files in another app's storage say which app and how to save a copy, with Show in Finder |
 
 ## 10. Settings, onboarding, maintenance
 
