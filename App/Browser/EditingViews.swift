@@ -73,6 +73,26 @@ struct UnsavedChangesBar: View {
     }
 }
 
+
+struct ExternalChangeBar: View {
+    let model: BrowserModel
+    var body: some View {
+        HStack {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.yellow)
+            Text(EditSession.changedOnDiskSummary)
+                .font(.callout)
+            Spacer()
+            Button("Reload") { Task { await model.reloadArchive() } }
+            Button("Save a Copy…") { Task { await model.saveCopyOfArchive() } }
+                .buttonStyle(.borderedProminent)
+        }
+        .disabled(model.editSession.isSaving)
+        .padding(.horizontal, Space.m).padding(.vertical, Space.s)
+        .background(.bar)
+    }
+}
+
 private struct ArchiveDrop: ViewModifier {
     let model: BrowserModel
     let folder: String

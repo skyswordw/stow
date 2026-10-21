@@ -99,8 +99,8 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | --- | --- | --- |
 | Add, delete, replace, rename items; save; undo/redo | 🧪 engine, staged UI and undo/redo | ZIP / 7Z / TAR; pending macOS verification |
 | Original untouched until save; rollback on failure | 🧪 same-volume atomic save | Fault injection and byte-identity tests; pending macOS verification |
-| Detect archive changed on disk → reload or save a copy | ⬜ | |
-| Rename the archive itself (incl. SMB/NAS) | ⬜ | |
+| Detect archive changed on disk → reload or save a copy | 🧪 watcher + Reload / Save a Copy | pending macOS verification |
+| Rename the archive itself (incl. SMB/NAS) | 🧪 File › Rename Archive…; sibling staging for other volumes | pending SMB hand-test |
 | Keep browsing position after save | 🧪 | Folder, selection and history; pending macOS verification |
 | Read-only formats; extract and repack as ZIP / 7Z | 🧪 | RAR, compressed TAR, split and nested archives; pending macOS verification |
 
@@ -121,11 +121,11 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Opens near the pointer, compact browse/extract | ⬜ | |
-| Pin on top | ⬜ | |
-| Switch Glance ↔ full window keeping location, selection, history | ⬜ | |
-| Default to Glance when opening from Finder/Quick Look | ⬜ | |
-| Liquid Glass / classic material; colourful window controls option | ⬜ | |
+| Opens near the pointer, compact browse/extract | ✅ | clamped to the visible screen; name + size list, Next Steps, Extract All |
+| Pin on top | ✅ | remembered |
+| Switch Glance ↔ full window keeping location, selection, history | ✅ | one shared browser; ⌥⌘G |
+| Default to Glance when opening from Finder/Quick Look | ✅ | Settings › General |
+| Liquid Glass / classic material; colourful window controls option | ✅ glass, solid under Reduce Transparency | ⬜ colourful window controls option |
 
 ## 8. Collecting files (ArcZip “File Box / Shelf”) → **Tray**
 

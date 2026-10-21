@@ -21,7 +21,8 @@ struct BrowserView: View {
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
-                        if model.editSession.isEdited { UnsavedChangesBar(model: model) }
+                        if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
+                        else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
                         PathBar(model: model)
                     }
                 }
@@ -163,6 +164,11 @@ struct BrowserView: View {
         ToolbarItem {
             Button("Tray", systemImage: "tray") { app.tray.toggle() }
                 .help("Show the Tray — gather files from anywhere")
+        }
+
+        ToolbarItem {
+            Button("Glance", systemImage: "arrow.down.right.and.arrow.up.left") { app.glance.collapse() }
+                .help("Switch to Glance, a small window — same folder, selection and history")
         }
 
         ToolbarItem {

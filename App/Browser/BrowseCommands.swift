@@ -9,9 +9,16 @@ struct BrowseCommands: Commands {
         CommandGroup(replacing: .saveItem) {
             Button("Save") { if let browser { Task { await browser.saveEdits() } } }
                 .keyboardShortcut("s")
+                .disabled(browser?.editSession.isEdited != true || browser?.editSession.isSaving == true || browser?.editSession.changedOnDisk == true)
+            Button("Save a Copy…") { if let browser { Task { await browser.saveCopyOfArchive() } } }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
                 .disabled(browser?.editSession.isEdited != true || browser?.editSession.isSaving == true)
             Button("Revert to Saved") { browser?.revertEdits() }
                 .disabled(browser?.editSession.isEdited != true || browser?.editSession.isSaving == true)
+            Button("Reload") { if let browser { Task { await browser.reloadArchive() } } }
+                .disabled(browser?.archive.source == nil || browser?.editSession.isSaving == true)
+            Button("Rename Archive…") { if let browser { Task { await browser.renameArchive() } } }
+                .disabled(browser?.archive.source == nil || browser?.editSession.isSaving == true || browser?.levels.count != 1)
             if browser?.editSession.format == nil, browser != nil {
                 Button("Extract and Repack as ZIP or 7Z…") { if let browser { app.extractAndRepack(browser) } }
             }

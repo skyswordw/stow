@@ -19,7 +19,7 @@ struct SettingsTests {
                 "install.afterInstall", "install.removeQuarantine", "PackAudience", "PackVerify",
                 "PackCPUCores", "FinderMenuOnExternalDrives", "HideDockIconWithoutWindows",
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
-                "browse.hoverPreviews", "password.showByDefault",
+                "browse.hoverPreviews", "password.showByDefault", "glance.openFromFinder", "glance.pinned",
                 "tray.menuBarIcon", "tray.showWhileDragging", "tray.idleSeconds", "tray.border", "tray.pinned",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]

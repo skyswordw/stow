@@ -7,6 +7,8 @@ nonisolated enum SettingsKeys {
     static let volumeSize = "PackVolumeSize"
     static let hoverPreviews = "browse.hoverPreviews"
     static let showPassword = "password.showByDefault"
+    static let openInGlance = "glance.openFromFinder"
+    static let glancePinned = "glance.pinned"
     static let trayMenuBarIcon = "tray.menuBarIcon"
     static let trayShowWhileDragging = "tray.showWhileDragging"
     static let trayIdleSeconds = "tray.idleSeconds"
@@ -51,6 +53,8 @@ nonisolated enum SettingsKeys {
         .init(key: volumeSize, defaultValue: .integer(0)),
         .init(key: hoverPreviews, defaultValue: .bool(true)),
         .init(key: showPassword, defaultValue: .bool(false)),
+        .init(key: openInGlance, defaultValue: .bool(false)),
+        .init(key: glancePinned, defaultValue: .bool(false)),
         .init(key: trayMenuBarIcon, defaultValue: .bool(true)),
         .init(key: trayShowWhileDragging, defaultValue: .bool(true)),
         .init(key: trayIdleSeconds, defaultValue: .integer(30)),

@@ -235,7 +235,7 @@ nonisolated struct EngineError: LocalizedError, Sendable, Equatable {
         case .passwordRequired: String(localized: "This archive needs a password.")
         case .wrongPassword: String(localized: "The password is incorrect.")
         case .cancelled: String(localized: "Cancelled.")
-        case .changedOnDisk: String(localized: "The archive changed on disk. Reload it before saving.")
+        case .changedOnDisk: String(localized: "The archive changed on disk. Reload it or save a copy.")
         case .failed: String(localized: "Something went wrong reading the archive.")
         }
     }
