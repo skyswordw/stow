@@ -96,6 +96,13 @@ jobs:
           (( ${#missing} == 0 )) || { echo "Missing: ${missing[*]}"; exit 1; }
         shell: zsh {0}
 
+      - name: Collect crash reports
+        if: always()
+        run: |
+          mkdir -p shots/crashes
+          cp ~/Library/Logs/DiagnosticReports/Stow*.ips shots/crashes/ 2>/dev/null || true
+          ls shots/crashes
+
       - uses: actions/upload-artifact@v6
         if: always()
         with:
