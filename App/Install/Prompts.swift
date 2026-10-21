@@ -1,23 +1,31 @@
 import AppKit
+import SwiftUI
 
-/// The questions extraction and installs ask, as native alert sheets on the front window. Safe
-/// choices are the default button; nothing destructive happens on Return alone.
+/// The questions extraction, installs and packing ask, as `PromptCard` sheets on the front window
+/// — the same look as the password sheet and failures. Safe choices are the default button;
+/// nothing destructive happens on Return alone.
 enum Prompts {
     static func ask(_ question: Installer.Question) async -> Installer.Answer {
-        let alert = NSAlert()
+        let prompt: Prompt
+        let cancel = Prompt.Choice(title: String(localized: "Cancel"), role: .cancel)
         switch question {
         case .signature(let app, let verdict):
             let finding = verdict.finding
-            alert.alertStyle = verdict == .broken ? .critical : .warning
-            alert.messageText = verdict.headline(app: Installer.displayName(app))
-            alert.informativeText = finding.detail + String(localized: " Install it anyway?")
-            alert.addButton(withTitle: String(localized: "Cancel"))
-            alert.addButton(withTitle: String(localized: "Install Anyway"))
-            return await run(alert) == .alertSecondButtonReturn ? .proceed : .cancel
+            prompt = Prompt(symbol: verdict == .broken ? "xmark.shield.fill" : "exclamationmark.shield.fill",
+                            tint: verdict == .broken ? .red : .yellow,
+                            title: verdict.headline(app: Installer.displayName(app)),
+                            message: finding.detail + String(localized: " Install it anyway?"),
+                            choices: [.init(title: String(localized: "Install Anyway")),
+                                      .init(title: String(localized: "Cancel"), role: .primary)])
+            // Cancel is the safe default here; Escape answers it too.
+            let answer = await present(prompt)
+            return answer.choice == 0 ? .proceed : .cancel
         case .replaceApp(let app, let installed, let incoming):
             let name = Installer.displayName(app)
-            alert.messageText = String(localized: "Replace the installed “\(name)”?")
-            alert.informativeText = switch (installed, incoming) {
+            var details: [(String, String)] = []
+            if let installed { details.append((String(localized: "Installed"), String(localized: "Version \(installed)"))) }
+            if let incoming { details.append((String(localized: "In the archive"), String(localized: "Version \(incoming)"))) }
+            let message = switch (installed, incoming) {
             case let (old?, new?) where old == new:
                 String(localized: "Both are version \(old). The installed one moves to the Trash.")
             case let (old?, new?):
@@ -25,63 +33,65 @@ enum Prompts {
             default:
                 String(localized: "The installed one moves to the Trash, so you can put it back.")
             }
-            alert.addButton(withTitle: String(localized: "Replace"))
-            alert.addButton(withTitle: String(localized: "Keep Both"))
-            alert.addButton(withTitle: String(localized: "Cancel"))
+            prompt = Prompt(symbol: "square.and.arrow.down.on.square.fill", title: String(localized: "Replace the installed “\(name)”?"),
+                            message: message, details: details,
+                            choices: [cancel, .init(title: String(localized: "Keep Both")),
+                                      .init(title: String(localized: "Replace"), role: .primary)])
         case .replaceFonts(let names):
-            alert.messageText = names.count == 1 ? String(localized: "“\(names[0])” is already installed.")
-                : String(localized: "\(names.count) of these fonts are already installed.")
-            alert.informativeText = String(localized: "Replacing moves the installed copies to the Trash. Skip installs only the new ones.")
-            alert.addButton(withTitle: String(localized: "Replace"))
-            alert.addButton(withTitle: String(localized: "Skip"))
-            alert.addButton(withTitle: String(localized: "Cancel"))
+            prompt = Prompt(symbol: "textformat",
+                            title: names.count == 1 ? String(localized: "“\(names[0])” is already installed.")
+                                : String(localized: "\(names.count) of these fonts are already installed."),
+                            message: String(localized: "Replacing moves the installed copies to the Trash. Skip installs only the new ones."),
+                            choices: [cancel, .init(title: String(localized: "Skip")),
+                                      .init(title: String(localized: "Replace"), role: .primary)])
         }
-        return switch await run(alert) {
-        case .alertFirstButtonReturn: .proceed
-        case .alertSecondButtonReturn: .alternate
+        return switch await present(prompt).choice {
+        case 2: .proceed
+        case 1: .alternate
         default: .cancel
         }
     }
 
     /// Nil means stop (and undo).
     static func resolve(_ conflict: Placement.Conflict) async -> (Placement.Resolution, forAll: Bool)? {
-        let alert = NSAlert()
         let folder = FileManager.default.displayName(atPath: conflict.existing.deletingLastPathComponent().path)
-        let choices: [Placement.Resolution]
+        let stop = Prompt.Choice(title: String(localized: "Stop"), role: .cancel)
+        let prompt: Prompt
+        let choices: [Placement.Resolution?]
         if conflict.canMerge {
-            alert.messageText = String(localized: "A folder named “\(conflict.name)” is already in “\(folder)”.")
-            alert.informativeText = String(localized: "Merge puts the extracted contents into it; files already there stay unless you choose to replace them. Keep Both adds this one as “\(Extraction.numbered(conflict.name, 2))”.")
-            choices = [.merge, .keepBoth]
-            alert.addButton(withTitle: String(localized: "Merge"))
-            alert.addButton(withTitle: String(localized: "Keep Both"))
+            prompt = Prompt(symbol: "folder.fill",
+                            title: String(localized: "A folder named “\(conflict.name)” is already in “\(folder)”."),
+                            message: String(localized: "Merge puts the extracted contents into it; files already there stay unless you choose to replace them. Keep Both adds this one as “\(Extraction.numbered(conflict.name, 2))”."),
+                            choices: [stop, .init(title: String(localized: "Keep Both")),
+                                      .init(title: String(localized: "Merge"), role: .primary)],
+                            suppression: String(localized: "Do the same for other folders"))
+            choices = [nil, .keepBoth, .merge]
         } else {
-            alert.messageText = String(localized: "“\(conflict.name)” is already in “\(folder)”.")
-            alert.informativeText = String(localized: "Existing: \(describe(conflict.existing)). Extracted: \(describe(conflict.incoming)). Replacing moves the existing one to the Trash.")
-            choices = [.replace, .keepBoth, .skip]
-            alert.addButton(withTitle: String(localized: "Replace"))
-            alert.addButton(withTitle: String(localized: "Keep Both"))
-            alert.addButton(withTitle: String(localized: "Skip"))
+            prompt = Prompt(symbol: "doc.on.doc.fill",
+                            title: String(localized: "“\(conflict.name)” is already in “\(folder)”."),
+                            message: String(localized: "Keep Both adds this one as “\(Extraction.numbered(conflict.name, 2))”. Replacing moves the existing one to the Trash."),
+                            details: [(String(localized: "Existing"), describe(conflict.existing)),
+                                      (String(localized: "Extracted"), describe(conflict.incoming))],
+                            choices: [stop, .init(title: String(localized: "Skip")), .init(title: String(localized: "Replace")),
+                                      .init(title: String(localized: "Keep Both"), role: .primary)],
+                            suppression: String(localized: "Do the same for other files"))
+            choices = [nil, .skip, .replace, .keepBoth]
         }
-        alert.addButton(withTitle: String(localized: "Stop"))
-        alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = conflict.canMerge ? String(localized: "Do the same for other folders") : String(localized: "Do the same for other files")
-        let response = await run(alert)
-        let index = response.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
-        guard choices.indices.contains(index) else { return nil }
-        return (choices[index], alert.suppressionButton?.state == .on)
+        let answer = await present(prompt)
+        guard let resolution = choices[answer.choice] else { return nil }
+        return (resolution, answer.suppress)
     }
 
     /// Whether to move the archive(s) to the Trash, and whether to stop asking.
     static func trashArchives(_ names: [String], after action: String) async -> (trash: Bool, remember: Bool) {
-        let alert = NSAlert()
-        alert.messageText = names.count == 1 ? String(localized: "Move “\(names[0])” to the Trash?") : String(localized: "Move \(names.count) archives to the Trash?")
-        alert.informativeText = String(localized: "\(action) You can put \(names.count == 1 ? String(localized: "it") : String(localized: "them")) back from the Trash.")
-        alert.addButton(withTitle: String(localized: "Keep"))
-        alert.addButton(withTitle: String(localized: "Move to Trash"))
-        alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = String(localized: "Don’t ask again")
-        let trash = await run(alert) == .alertSecondButtonReturn
-        return (trash, alert.suppressionButton?.state == .on)
+        let prompt = Prompt(symbol: "trash",
+                            title: names.count == 1 ? String(localized: "Move “\(names[0])” to the Trash?") : String(localized: "Move \(names.count) archives to the Trash?"),
+                            message: String(localized: "\(action) You can put \(names.count == 1 ? String(localized: "it") : String(localized: "them")) back from the Trash."),
+                            choices: [.init(title: String(localized: "Move to Trash")),
+                                      .init(title: String(localized: "Keep"), role: .primary)],
+                            suppression: String(localized: "Don’t ask again"))
+        let answer = await present(prompt)
+        return (answer.choice == 0, answer.suppress)
     }
 
     static func describe(_ url: URL) -> String {
@@ -91,18 +101,6 @@ enum Prompts {
         let kind = values.isDirectory == true ? String(localized: "folder") : Int64(values.fileSize ?? 0).bytes
         let date = values.contentModificationDate?.formatted(date: .abbreviated, time: .shortened) ?? String(localized: "unknown date")
         return String(localized: "\(kind), \(date)")
-    }
-
-    @discardableResult
-    static func run(_ alert: NSAlert) async -> NSApplication.ModalResponse {
-        // A sheet on Stow's window even when Stow is in the background — an app-modal alert would
-        // stop everything else (progress, the batch queue) until it's answered.
-        let window = [NSApp.keyWindow, NSApp.mainWindow].compactMap(\.self).first { !($0 is NSPanel) }
-            ?? NSApp.windows.first { $0.isVisible && !($0 is NSPanel) && $0.sheetParent == nil }
-        if let window, window.attachedSheet == nil {
-            return await alert.beginSheetModal(for: window)
-        }
-        return alert.runModal()
     }
 }
 
