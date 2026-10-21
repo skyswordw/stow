@@ -40,7 +40,7 @@ final class TrayController {
     /// The row under the pointer, as rows report it (multi-item drag out starts from here).
     @ObservationIgnored var hoveredRow: UUID?
 
-    private let size = CGSize(width: 300, height: 440)
+    private let size = TrayView.size
 
     // MARK: - Menu bar
 
@@ -127,8 +127,11 @@ final class TrayController {
 
     func toggle() { isShown ? hide() : show() }
 
-    /// ⌥⌘T and Esc are keyboard actions: the Tray appears and goes without motion (DESIGN.md › Motion).
-    private var isKeyboardAction: Bool { NSApp.currentEvent?.type == .keyDown }
+    /// Whether the Tray's content is showing; the view animates it in and out with
+    /// `Motion.presence` (DESIGN.md › Motion), while the window itself just orders in and out.
+    private(set) var isPresented = false
+    /// The edge the Tray comes from and goes back to: the menu bar, or the screen's right edge.
+    private(set) var edge: UnitPoint = .top
 
     /// A drag brings the Tray out without taking the keyboard from the app being dragged from;
     /// asking for it (menu-bar icon, toolbar, ⌥⌘T) makes it key, so its controls show as active.
@@ -136,24 +139,22 @@ final class TrayController {
         let panel = panel ?? makePanel()
         self.panel = panel
         panel.border = SettingsKeys.trayBorder()
-        let final = frame()
+        panel.setFrame(frame(), display: false)
+        edge = statusItem?.button?.window == nil ? .trailing : .top
         isShown = true
         touch()
         startIdleTimer()
         if fromDrag { panel.orderFrontRegardless() } else { panel.makeKeyAndOrderFront(nil) }
-        if isKeyboardAction {
-            panel.setFrame(final, display: true)
-            panel.alphaValue = 1
+        // Nothing moves when ⌥⌘T brought it out. Decided now, while the key press is current.
+        let animation = Motion.presence(true, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        guard let animation else {
+            isPresented = true
             return
         }
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        panel.setFrame(reduceMotion ? final : final.offsetBy(dx: 0, dy: 16), display: false)
-        panel.alphaValue = 0
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.28
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1) // strong ease-out
-            panel.animator().setFrame(final, display: true)
-            panel.animator().alphaValue = 1
+        // The next turn, so the hidden state has been drawn once and there's something to animate from.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isShown else { return }
+            withAnimation(animation) { self.isPresented = true }
         }
     }
 
@@ -164,23 +165,25 @@ final class TrayController {
         idleTimer = nil
         collectingName = nil
         if QLPreviewPanel.sharedPreviewPanelExists(), QLPreviewPanel.shared().isVisible { QLPreviewPanel.shared().orderOut(nil) }
-        if isKeyboardAction {
+        // Esc and ⌥⌘T: gone at once. Otherwise `Motion.exit`, quicker than it came.
+        guard let animation = Motion.presence(false, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) else {
+            isPresented = false
             panel.orderOut(nil)
             return
         }
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.18 // leaving is faster than arriving
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1)
-            if !reduceMotion { panel.animator().setFrame(panel.frame.offsetBy(dx: 0, dy: 16), display: true) }
-            panel.animator().alphaValue = 0
-        } completionHandler: {
-            panel.orderOut(nil)
+        withAnimation(animation) { isPresented = false } completion: { [weak self] in
+            // Brought back out while it was leaving: stay.
+            if self?.isShown == false { panel.orderOut(nil) }
         }
     }
 
-    /// Under the menu-bar icon when there is one, otherwise at the right edge of the screen.
+    /// Under the menu-bar icon when there is one, otherwise at the right edge of the screen; the
+    /// window is larger by the margin its shadow is drawn in.
     private func frame() -> CGRect {
+        contentFrame().insetBy(dx: -TrayView.shadowMargin, dy: -TrayView.shadowMargin)
+    }
+
+    private func contentFrame() -> CGRect {
         if let button = statusItem?.button, let window = button.window, let screen = window.screen {
             let anchor = window.convertToScreen(button.convert(button.bounds, to: nil))
             let visible = screen.visibleFrame
@@ -391,7 +394,7 @@ final class TrayController {
     // MARK: - Panel
 
     private func makePanel() -> TrayPanel {
-        let panel = TrayPanel(contentRect: CGRect(origin: .zero, size: size),
+        let panel = TrayPanel(contentRect: frame(),
                               styleMask: [.borderless, .nonactivatingPanel],
                               backing: .buffered, defer: true)
         panel.level = .floating
@@ -399,7 +402,9 @@ final class TrayController {
         panel.isMovableByWindowBackground = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        // The view draws the shadow: the window server's follows the square frame once the panel is
+        // key, which showed as square corners behind the rounded panel.
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         let host = NSHostingView(rootView: TrayView(tray: self).environment(app ?? AppState()))
         host.sizingOptions = []
@@ -504,6 +509,9 @@ struct TrayView: View {
     @State private var isTargeted = false
 
     static let radius = Radius.card + Space.s
+    static let size = CGSize(width: 300, height: 440)
+    /// Room around the panel for its shadow.
+    static let shadowMargin: CGFloat = 24
     private var border: TrayBorder { TrayBorder(rawValue: borderName) ?? .accent }
     private var isEmpty: Bool { tray.visibleItems.isEmpty }
     private var hasFooter: Bool { tray.failure != nil || tray.collectingName != nil || !tray.items.isEmpty }
@@ -517,13 +525,25 @@ struct TrayView: View {
                 .padding(.bottom, hasFooter ? 0 : Space.s)
             if hasFooter { footer }
         }
-        .frame(width: 300, height: 440)
+        .frame(width: Self.size.width, height: Self.size.height)
         .modifier(TrayMaterial(solid: GlanceMaterial.resolve(reduceTransparency: reduceTransparency) == .solid))
         .overlay {
             RoundedRectangle(cornerRadius: Self.radius)
                 .strokeBorder(border.color.opacity(0.45), lineWidth: 1)
         }
+        .background {
+            RoundedRectangle(cornerRadius: Self.radius)
+                .fill(.black.opacity(0.001))
+                .shadow(color: .black.opacity(0.25), radius: 14, y: 6)
+        }
+        // In from its edge and back out to it: a slight scale and a fade, a fade alone under Reduce Motion.
+        .scaleEffect(tray.isPresented || reduceMotion ? 1 : 0.96, anchor: tray.edge)
+        .opacity(tray.isPresented ? 1 : 0)
+        .padding(Self.shadowMargin)
         .onHover { tray.isHovered = $0 }
+        // The panel takes the keyboard for Space and Delete; a square focus ring around a rounded
+        // panel would only show its corners.
+        .focusEffectDisabled()
         .onKeyPress(.space) { tray.quickLook(); return .handled }
         .onKeyPress(.delete) { tray.removeSelected(); return .handled }
     }
@@ -681,6 +701,8 @@ struct TrayView: View {
         .padding(.horizontal, Space.l)
         .padding(.top, Space.m)
         .padding(.bottom, Space.m)
+        // A failure turning up is a status change; the rest follow clicks and keys, and don't move.
+        .animation(tray.failure == nil ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: tray.failure)
     }
 
     private var summary: some View {
