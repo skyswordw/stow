@@ -113,7 +113,7 @@ jobs:
           ALLOWED_SKIPS: "0"
           # The total this branch reports (247 after the Tray menu bar, Glance and recents). Raise it when tests are added;
           # a lower total means suites went missing.
-          MIN_TESTS: "247"
+          MIN_TESTS: "254"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

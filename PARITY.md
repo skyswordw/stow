@@ -77,7 +77,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Create ZIP / 7Z / TAR (+gz/bz2/xz) | ✅ | Sandboxed engine; files stream in as an Apple Archive, the archive streams back. .tar.zst: the bundled 7zz can only read zstd, so not yet |
+| Create ZIP / 7Z / TAR (+gz/bz2/xz/zst) | ✅ | Sandboxed engine; files stream in as an Apple Archive, the archive streams back. ➕ .tar.zst: the bundled 7zz only reads zstd, so 7zz writes the TAR and Stow compresses it with the linked reference zstd (1.5.7, BSD), including volumes and the 7-Zip check |
 | Purpose presets: General sharing, Windows, Mac-to-Mac (xattrs), Linux & servers (Unix attrs), smaller archive | ✅ Windows/Mac/Linux/Web | ➕ each audience changes the archive itself: Windows/Web get safe names, NFC, no Finder files, no links; Linux keeps links and modes; Mac keeps tags/xattrs as `__MACOSX` AppleDouble (ZIP) |
 | Compression levels: Store, Fastest, Fast, Balanced, Maximum, Smallest (LZMA2 solid block sizes, store incompressible files) | ✅ More Options | -mx 0/1/3/5/7/9 with 7-Zip's solid-block defaults; ZIP stores incompressible files per entry |
 | Each preset remembers its level; default preset & level in Settings | ✅ remembered · 🧪 Settings UI (pending verification) | Last audience is remembered too |

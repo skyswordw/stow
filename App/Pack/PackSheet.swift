@@ -125,6 +125,15 @@ struct PackSheet: View {
 
     // MARK: More options
 
+    private var levelCaption: String {
+        guard options.format.isCompressed else { return String(localized: "A TAR collects files without compressing them.") }
+        if options.format == .tarZst, options.level == .store {
+            // zstd has no stored mode (Zstd.level(for:)), so say what Store means here.
+            return String(localized: "Zstandard always compresses; Store uses its fastest level. Remembered for \(options.audience.phrase).")
+        }
+        return String(localized: "\(options.level.detail) Remembered for \(options.audience.phrase).")
+    }
+
     private var moreOptions: some View {
         DisclosureGroup("More Options", isExpanded: $showMore) {
             VStack(alignment: .leading, spacing: Space.m) {
@@ -136,9 +145,7 @@ struct PackSheet: View {
                         .labelsHidden()
                         .fixedSize()
                         .disabled(!options.format.isCompressed)
-                        Text(options.format.isCompressed
-                             ? String(localized: "\(options.level.detail) Remembered for \(options.audience.phrase).")
-                             : String(localized: "A TAR collects files without compressing them."))
+                        Text(levelCaption)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -208,7 +215,14 @@ struct PackSheet: View {
     private func restore() {
         name = request.suggestedName
         options.setAudience(PackPreferences.audience)
-        if let format = request.initialFormat { options.format = format }
+        if let format = request.initialFormat {
+            // A format only one audience offers (TAR.ZST) brings that audience with it.
+            if !options.audience.formats.contains(format),
+               let audience = Audience.allCases.first(where: { $0.formats.contains(format) }) {
+                options.setAudience(audience)
+            }
+            options.format = format
+        }
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
         options.split = SettingsKeys.splitSize()

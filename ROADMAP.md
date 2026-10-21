@@ -86,7 +86,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Reading files dropped from other apps (e.g. WeChat) with permission guidance | |
 | Error details with codes for bug reports | partial |
 | Create disk images (DMG) | low priority |
-| TAR.ZST creation | blocked: the bundled 7-Zip reads but can't write zstd |
+| TAR.ZST creation | done: 7-Zip writes the TAR, Stow's linked zstd 1.5.7 compresses it (Linux audience, splits into volumes, verified by 7-Zip) |
 | Restore Mac metadata on Stow's own extraction | done for `__MACOSX` AppleDouble; check Finder comments on every format |
 
 ## Design polish (applies across waves)
@@ -127,7 +127,7 @@ Everything marked ⬜ or 🎨 in [PARITY.md](PARITY.md):
 - Next Steps customisation and alternative-actions list
 - iCloud placeholders, Open Recent, search across nested archives, extension ≠ format warning
 - Reading files from other apps' containers, error codes for support
-- DMG creation; TAR.ZST creation (blocked upstream)
+- DMG creation
 - App icon; signed, notarized, universal release
 
 ## Tests not yet conducted

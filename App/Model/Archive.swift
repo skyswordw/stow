@@ -3,7 +3,7 @@ import Synchronization
 import UniformTypeIdentifiers
 
 nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
-    case zip, sevenZip, tarGz, tarXz, rar, dmg, iso, tar, gzip, bzip2, xz, other
+    case zip, sevenZip, tarGz, tarXz, tarZst, rar, dmg, iso, tar, gzip, bzip2, xz, other
 
     var id: Self { self }
 
@@ -13,6 +13,7 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         case .sevenZip: "7Z"
         case .tarGz: "TGZ"
         case .tarXz: "TXZ"
+        case .tarZst: "TZST"
         case .rar: "RAR"
         case .dmg: "DMG"
         case .iso: "ISO"
@@ -30,6 +31,7 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         case .sevenZip: "7Z"
         case .tarGz: "TAR.GZ"
         case .tarXz: "TAR.XZ"
+        case .tarZst: "TAR.ZST"
         case .rar: "RAR"
         case .dmg: String(localized: "Disk Image")
         case .iso: String(localized: "ISO Image")
@@ -47,6 +49,7 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         case .sevenZip: "7z"
         case .tarGz: "tar.gz"
         case .tarXz: "tar.xz"
+        case .tarZst: "tar.zst"
         case .rar: "rar"
         case .dmg: "dmg"
         case .iso: "iso"
@@ -64,6 +67,7 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         let lower = name.lowercased()
         if lower.hasSuffix(".tar.gz") || lower.hasSuffix(".tgz") { return .tarGz }
         if lower.hasSuffix(".tar.xz") || lower.hasSuffix(".txz") { return .tarXz }
+        if lower.hasSuffix(".tar.zst") || lower.hasSuffix(".tzst") { return .tarZst }
         return allCases.first { $0 != .other && lower.hasSuffix("." + $0.fileExtension) }
     }
 
@@ -80,6 +84,7 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         case "gzip": self = inferred == .tarGz ? .tarGz : .gzip
         case "xz": self = inferred == .tarXz ? .tarXz : .xz
         case "bzip2": self = .bzip2
+        case "zstd": self = inferred == .tarZst ? .tarZst : .other
         default: self = .other
         }
     }
