@@ -38,6 +38,7 @@ struct GlanceRoot: View {
             if closed, glance.pendingName == nil { glance.close() }
         }
         .passwordSheet(app.passwords)
+        .cloudDownloadSheet(app, isActive: glance.isShown)
         // The same failure card as the full window; that window is closed while Glance shows.
         .sheet(item: Binding(get: { glance.isShown ? app.openFailure : nil }, set: { app.openFailure = $0 })) { open in
             FailureCard(failure: open.failure) { action in
@@ -108,12 +109,11 @@ struct GlanceView: View {
     @ViewBuilder
     private var content: some View {
         if model.isSearching, model.visibleEntries.isEmpty {
-            ContentUnavailableView.search(text: model.query)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            NoSearchResultsView(model: model)
                 .background(.background)
         } else if model.visibleEntries.isEmpty {
-            ContentUnavailableView("Empty Folder", systemImage: "folder")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The full window's words; there's no Open panel here, so an empty archive offers nothing.
+            EmptyContentView(model: model)
                 .background(.background)
         } else {
             GlanceList(model: model)

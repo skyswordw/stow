@@ -60,11 +60,12 @@ final class PackController {
                 guard let self else { return }
                 activity?.placed = result.placed
                 activity?.verified = result.report.verified
-                withAnimation(Motion.appear) { activity?.phase = .done }
+                withAnimation(Motion.current(Motion.status)) { activity?.phase = .done }
             } catch {
                 let failure = Failure(error, .pack, name: fileName, destination: job.destination, needs: job.totalBytes)
-                withAnimation(Motion.appear) {
-                    if EngineError(error).failure == .cancelled {
+                let cancelled = EngineError(error).failure == .cancelled
+                withAnimation(Motion.current(cancelled ? Motion.exit : Motion.status)) {
+                    if cancelled {
                         self?.activity = nil
                     } else {
                         self?.activity?.phase = .failed(failure)
@@ -86,7 +87,7 @@ final class PackController {
                 guard !Task.isCancelled else { return }
                 withAnimation(.linear(duration: 0.06)) { self?.activity?.phase = .running(Double(tick) / 24) }
             }
-            withAnimation(Motion.appear) { self?.activity?.phase = .done }
+            withAnimation(Motion.current(Motion.status)) { self?.activity?.phase = .done }
             await self?.fadeOut(after: .seconds(3))
         }
     }
@@ -103,7 +104,7 @@ final class PackController {
 
     func dismiss() {
         task?.cancel()
-        withAnimation(Motion.appear) { activity = nil }
+        withAnimation(Motion.current(Motion.exit)) { activity = nil }
     }
 
     /// A failed pack's one next step: the same pack again, here or in a folder people choose.
@@ -137,7 +138,7 @@ final class PackController {
     private func fadeOut(after delay: Duration) async {
         try? await Task.sleep(for: delay)
         guard !Task.isCancelled else { return }
-        withAnimation(Motion.appear) { activity = nil }
+        withAnimation(Motion.current(Motion.exit)) { activity = nil }
     }
 }
 
