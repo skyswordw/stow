@@ -128,9 +128,10 @@ nonisolated struct ExtractReport: Codable, Sendable {
     var macMetadata: [String: [String: Data]] = [:]
 }
 
-/// What `create` can write. Compressed TARs are a TAR compressed as a second step.
+/// What `create` can write. Compressed TARs are a TAR compressed as a second step. DMG is made by
+/// Stow itself with `hdiutil` (`DiskImageCreation`), not by the engine.
 nonisolated enum PackFormat: String, Codable, CaseIterable, Identifiable, Sendable {
-    case zip, sevenZip, tar, tarGz, tarBz2, tarXz, tarZst
+    case zip, sevenZip, tar, tarGz, tarBz2, tarXz, tarZst, dmg
 
     var id: Self { self }
 
@@ -143,11 +144,14 @@ nonisolated enum PackFormat: String, Codable, CaseIterable, Identifiable, Sendab
         case .tarBz2: "tar.bz2"
         case .tarXz: "tar.xz"
         case .tarZst: "tar.zst"
+        case .dmg: "dmg"
         }
     }
 
     var supportsPassword: Bool { self == .zip || self == .sevenZip }
     var isCompressed: Bool { self != .tar }
+    /// A disk image is always one file.
+    var supportsSplit: Bool { self != .dmg }
 }
 
 /// 7-Zip's `-mx` levels under names people understand.
