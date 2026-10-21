@@ -81,8 +81,10 @@ final class AppState {
                     var failure = Failure(error, .open, name: url.lastPathComponent)
                     // Disk images Stow can't read (encrypted, unusual formats) can still be opened by macOS.
                     if DiskImageCheck.isDiskImage(url), failure.kind == .notAnArchive || failure.kind == .other {
+                        let original = failure
                         failure = Failure(kind: .notAnArchive, title: String(localized: "Stow can’t look inside “\(url.lastPathComponent)”"),
-                                          advice: error.message, action: .openInFinder)
+                                          advice: error.message, action: .openInFinder, code: original.code)
+                        failure.diagnostic = original.diagnostic
                     }
                     openFailure = OpenFailure(failure: failure, url: url)
                 }

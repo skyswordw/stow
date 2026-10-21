@@ -111,11 +111,14 @@ struct ActivityLabel: View {
                     }
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                    // Inside the glass, so it can't take a glass style of its own.
-                    if let action = failure.action, let perform {
-                        Button(action.title) { perform(action) }
-                            .buttonStyle(.bordered)
-                            .controlSize(.regular)
+                    HStack(spacing: Space.m) {
+                        // Inside the glass, so it can't take a glass style of its own.
+                        if let action = failure.action, let perform {
+                            Button(action.title) { perform(action) }
+                                .buttonStyle(.bordered)
+                                .controlSize(.regular)
+                        }
+                        CopyErrorDetails(report: ErrorReport.Copyable(failure))
                     }
                 }
                 .frame(maxWidth: 340, alignment: .leading)

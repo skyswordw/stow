@@ -69,7 +69,9 @@ struct BatchStack: View {
         if let failure = queue.jobs.lazy.compactMap({ job -> Failure? in
             if case .failed(let failure) = job.phase { failure } else { nil }
         }).first {
-            return .failed(Failure(kind: failure.kind, title: header, advice: ""))
+            var summary = Failure(kind: failure.kind, title: header, advice: "", code: failure.code)
+            summary.diagnostic = failure.diagnostic
+            return .failed(summary)
         }
         return .done
     }
@@ -118,6 +120,11 @@ private struct BatchRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .contextMenu {
+            if case .failed(let failure) = job.phase {
+                Button("Copy Error Details (\(failure.code.description))") { ErrorReport.Copyable(failure).copy() }
+            }
+        }
     }
 
     private var glyph: ActivityGlyph.State {
