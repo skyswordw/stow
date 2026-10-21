@@ -167,7 +167,7 @@ struct FailureCard: View {
 extension Prompt {
     /// OK, plus the failure's own next step as the default when it has one.
     init(_ failure: Failure) {
-        self.init(symbol: failure.symbol, tint: .yellow, title: failure.title, message: failure.advice,
+        self.init(symbol: CheckupFinding.Severity.caution.symbol, tint: CheckupFinding.Severity.caution.color, title: failure.title, message: failure.advice,
                   choices: failure.action.map { [Choice(title: String(localized: "OK"), role: .cancel),
                                                  Choice(title: $0.title, role: .primary)] }
                       ?? [Choice(title: String(localized: "OK"), role: .primary)])

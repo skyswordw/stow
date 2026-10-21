@@ -76,15 +76,6 @@ struct Failure: Equatable, Sendable {
         }
     }
 
-    var symbol: String {
-        switch kind {
-        case .needsPassword: "lock.fill"
-        case .diskFull: "externaldrive.fill.badge.exclamationmark"
-        case .noWriteAccess: "folder.fill.badge.minus"
-        default: "exclamationmark.triangle.fill"
-        }
-    }
-
     /// A message that has no more to say (Stow's own limits, like nesting depth).
     init(_ title: String, advice: String = "", action: Action? = nil) {
         self.init(kind: .other, title: title, advice: advice, action: action)

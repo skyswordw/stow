@@ -28,9 +28,10 @@ struct ActivityCapsule: View {
 
     var body: some View {
         HStack(spacing: Space.s) {
-            ActivityLabel(phase: phase, title: title, note: note, noteHelp: noteHelp, perform: perform)
-                .padding(.horizontal, Space.l)
-                .padding(.vertical, isFailure ? Space.s + 2 : 9)
+            ActivityLabel(phase: phase, title: title, note: note, noteHelp: noteHelp, perform: perform, dismiss: dismiss)
+                .padding(.leading, Space.l)
+                .padding(.trailing, isFailure ? Space.m : Space.l)
+                .padding(.vertical, isFailure ? Space.m : 9)
                 .glassEffect(.regular, in: isFailure ? AnyShape(.rect(cornerRadius: Radius.panel + 4)) : AnyShape(.capsule))
                 .glassEffectID("summary", in: glass)
             switch phase {
@@ -49,11 +50,8 @@ struct ActivityCapsule: View {
                         .glassEffectID("finder", in: glass)
                 }
             case .failed:
-                Button("Dismiss", systemImage: "xmark", action: dismiss)
-                    .labelStyle(.iconOnly)
-                    .help("Dismiss")
-                    .buttonStyle(.glass)
-                    .glassEffectID("stop", in: glass)
+                // Dismiss sits inside the failure card (see `ActivityLabel`).
+                EmptyView()
             }
         }
     }
@@ -71,6 +69,8 @@ struct ActivityLabel: View {
     var note: String?
     var noteHelp: String?
     var perform: ((Failure.Action) -> Void)?
+    /// A failure's close button, in the card's top-trailing corner.
+    var dismiss: (() -> Void)?
 
     var body: some View {
         HStack(alignment: isFailure ? .firstTextBaseline : .center, spacing: Space.s) {
@@ -119,6 +119,14 @@ struct ActivityLabel: View {
                     }
                 }
                 .frame(maxWidth: 340, alignment: .leading)
+                if let dismiss {
+                    Button("Dismiss", systemImage: "xmark", action: dismiss)
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .fontWeight(.semibold)
+                        .help("Dismiss")
+                }
             }
         }
         .font(.callout)
@@ -131,9 +139,9 @@ struct ActivityLabel: View {
 }
 
 /// One glyph per state, shared by the capsule and the batch rows: a ring while running, a green
-/// check when done, a yellow triangle (or the failure's own symbol) when it failed.
+/// check when done, and Checkup's caution triangle for every failure.
 struct ActivityGlyph: View {
-    enum State: Equatable { case waiting, running(Double), done, failed(String), stopped }
+    enum State: Equatable { case waiting, running(Double), done, failed, stopped }
 
     let state: State
 
@@ -143,7 +151,7 @@ struct ActivityGlyph: View {
         switch phase {
         case .running(let progress): state = .running(progress)
         case .done: state = .done
-        case .failed(let failure): state = .failed(failure.symbol)
+        case .failed: state = .failed
         }
     }
 
@@ -158,9 +166,9 @@ struct ActivityGlyph: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
-            case .failed(let symbol):
-                Image(systemName: symbol)
-                    .foregroundStyle(.yellow)
+            case .failed:
+                Image(systemName: CheckupFinding.Severity.caution.symbol)
+                    .foregroundStyle(CheckupFinding.Severity.caution.color)
             case .stopped:
                 Image(systemName: "minus.circle").foregroundStyle(.secondary)
             }

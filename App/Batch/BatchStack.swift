@@ -125,7 +125,7 @@ private struct BatchRow: View {
         case .waiting: .waiting
         case .running(let progress): .running(progress)
         case .done: .done
-        case .failed(let failure): .failed(failure.symbol)
+        case .failed: .failed
         case .cancelled: .stopped
         }
     }
