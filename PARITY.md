@@ -121,11 +121,11 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Opens near the pointer, compact browse/extract | ⬜ | |
-| Pin on top | ⬜ | |
-| Switch Glance ↔ full window keeping location, selection, history | ⬜ | |
-| Default to Glance when opening from Finder/Quick Look | ⬜ | |
-| Liquid Glass / classic material; colourful window controls option | ⬜ | |
+| Opens near the pointer, compact browse/extract | ✅ | clamped to the visible screen; name + size list, Next Steps, Extract All |
+| Pin on top | ✅ | remembered |
+| Switch Glance ↔ full window keeping location, selection, history | ✅ | one shared browser; ⌥⌘G |
+| Default to Glance when opening from Finder/Quick Look | ✅ | Settings › General |
+| Liquid Glass / classic material; colourful window controls option | ✅ glass, solid under Reduce Transparency | ⬜ colourful window controls option |
 
 ## 8. Collecting files (ArcZip “File Box / Shelf”) → **Tray**
 
