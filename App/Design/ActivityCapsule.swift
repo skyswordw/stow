@@ -144,6 +144,7 @@ struct ActivityGlyph: View {
     enum State: Equatable { case waiting, running(Double), done, failed, stopped }
 
     let state: State
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(_ state: State) { self.state = state }
 
@@ -165,7 +166,8 @@ struct ActivityGlyph: View {
             case .done:
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    // A small settle, not a pop from nothing; just the fade under Reduce Motion.
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
             case .failed:
                 Image(systemName: CheckupFinding.Severity.caution.symbol)
                     .foregroundStyle(CheckupFinding.Severity.caution.color)
