@@ -78,6 +78,8 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open | 140 ms fade |
 | Tray panel show/hide | Same edge in, same edge out | `response 0.35, damping 1.0` |
+| Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
+| Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text | 180 ms |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |

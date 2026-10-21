@@ -5,7 +5,8 @@ import SwiftUI
 ///
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
-/// Scenes: onboarding, welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
+/// Scenes: onboarding, welcome (no history), recents (the welcome window with history),
+/// grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too.
@@ -20,6 +21,10 @@ import SwiftUI
 /// pack-failed, empty-archive, empty-folder, search-empty, tray-empty.
 /// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
+/// glance (the compact window over the sample archive; `-StowGlanceEdge top|bottom|left|right|topLeft|…`
+/// puts the pointer on that edge of the screen first, `-glance.pinned '<true/>'` pins it,
+/// `-StowReduceTransparency YES` shows the solid fallback). With -StowSnapshot it also writes
+/// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -182,6 +187,27 @@ enum DemoScene {
         case "integration":
             showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
+        case "glance":
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.navigate(to: "Photos")
+            app.browser?.select(["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"])
+            let pointer = glanceEdge(defaults).pointer(in: (NSScreen.main ?? NSScreen.screens[0]).visibleFrame)
+            app.glance.collapse(near: pointer, animated: false)
+            if let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
+                app.glance.show(near: pointer, size: CGSize(width: size[0], height: size[1]), animated: false)
+            }
+        case "recents":
+            // The welcome window with history; the files don't exist and nothing is saved.
+            let home = FolderAccess.home.path
+            let hour: TimeInterval = 3600
+            app.recents.preview([
+                ("\(home)/Downloads/Harbor Rebrand Handoff.zip", .now.addingTimeInterval(-0.4 * hour)),
+                ("\(home)/Documents/Field Recordings/Field Recordings.7z", .now.addingTimeInterval(-3 * hour)),
+                ("\(home)/Projects/harbor-api/server-logs.tar.xz", .now.addingTimeInterval(-26 * hour)),
+                ("\(home)/Downloads/Fonts 2026.zip", .now.addingTimeInterval(-3 * 24 * hour)),
+                ("/Volumes/Archive/Backups/Old Backup.rar", .now.addingTimeInterval(-9 * 24 * hour)),
+                ("\(home)/Desktop/Kickoff Deck.zip", .now.addingTimeInterval(-24 * 24 * hour)),
+            ])
         case "tray":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
@@ -200,7 +226,7 @@ enum DemoScene {
             app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
         }
 
-        if let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }),
+        if scene != "glance", let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }),
            size.count == 2 {
             Task {
                 try? await Task.sleep(for: .milliseconds(300))
@@ -217,11 +243,14 @@ enum DemoScene {
                 // `-StowActivate YES`: capture as the front app, so default buttons show their colour.
                 if defaults.bool(forKey: "StowActivate") { NSApp.activate() }
                 try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
+                // Glance snapshots are named by the edge they opened at, so each edge keeps its own file.
+                let label = scene == "glance" ? "glance-\(glanceEdge(defaults).rawValue)" : scene
                 for (index, window) in NSApp.windows.filter(\.isVisible).enumerated() {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
-                    let name = index == 0 ? "\(scene)-\(kind)" : "\(scene)-\(kind)\(index)"
+                    let name = index == 0 ? "\(label)-\(kind)" : "\(label)-\(kind)\(index)"
                     if let url = snapshot(window, name: name) { print(url.path) }
                 }
+                if scene == "glance", let url = glancePlacement(app, name: "\(label)-screen") { print(url.path) }
                 fflush(stdout)
                 exit(0) // terminate(_:) waits on open sheets; this is a screenshot run.
             }
@@ -357,6 +386,56 @@ enum DemoScene {
         case "installer": browser.run(.openInstaller)
         default: break
         }
+    }
+
+    private static func glanceEdge(_ defaults: UserDefaults) -> GlancePlacement.Edge {
+        defaults.string(forKey: "StowGlanceEdge").flatMap(GlancePlacement.Edge.init(rawValue:)) ?? .center
+    }
+
+    /// The whole screen at half size: the visible area, the menu bar and Dock strips Glance stays
+    /// out of, the Glance window where it opened, and the pointer that opened it.
+    private static func glancePlacement(_ app: AppState, name: String) -> URL? {
+        guard let window = app.glance.window, let screen = window.screen ?? NSScreen.main else { return nil }
+        let scale: CGFloat = 0.5
+        let bounds = screen.frame
+        let pointer = glanceEdge(.standard).pointer(in: screen.visibleFrame)
+        guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(bounds.width * scale), pixelsHigh: Int(bounds.height * scale),
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+              let context = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
+        func place(_ rect: CGRect) -> CGRect {
+            CGRect(x: (rect.minX - bounds.minX) * scale, y: (rect.minY - bounds.minY) * scale,
+                   width: rect.width * scale, height: rect.height * scale)
+        }
+        let dark = window.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        NSColor(white: dark ? 0.08 : 0.62, alpha: 1).setFill()
+        CGRect(x: 0, y: 0, width: bounds.width * scale, height: bounds.height * scale).fill()
+        NSColor(white: dark ? 0.2 : 0.86, alpha: 1).setFill()
+        place(screen.visibleFrame).fill()
+        typealias CreateImage = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
+        if let handle = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", RTLD_LAZY),
+           let symbol = dlsym(handle, "CGWindowListCreateImage"),
+           // Including the window, its frame only (no shadow), best resolution.
+           let image = unsafeBitCast(symbol, to: CreateImage.self)(.null, 1 << 3, UInt32(window.windowNumber), 1 << 0 | 1 << 3)?
+            .takeRetainedValue() {
+            context.cgContext.draw(image, in: place(window.frame))
+        } else {
+            NSColor.controlAccentColor.setFill()
+            place(window.frame).fill()
+        }
+        let dot = CGRect(x: (pointer.x - bounds.minX) * scale - 5, y: (pointer.y - bounds.minY) * scale - 5, width: 10, height: 10)
+        NSColor.systemRed.setFill()
+        NSBezierPath(ovalIn: dot).fill()
+        NSColor.white.setStroke()
+        let ring = NSBezierPath(ovalIn: dot)
+        ring.lineWidth = 1.5
+        ring.stroke()
+        NSGraphicsContext.restoreGraphicsState()
+        guard let data = rep.representation(using: .png, properties: [:]) else { return nil }
+        let url = FileManager.default.temporaryDirectory.appending(path: "\(name).png")
+        return (try? data.write(to: url)) != nil ? url : nil
     }
 
     /// Option views get a plain window until the Settings window exists.

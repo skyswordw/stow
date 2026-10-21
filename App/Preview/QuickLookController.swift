@@ -25,9 +25,11 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         var previewItemTitle: String! { entry.name }
     }
 
-    /// Joins the window's responder chain (once).
+    /// Joins the window's responder chain (once). Glance and the full window share one browser, so
+    /// moving to another window first leaves the previous one's chain as it was.
     func attach(to window: NSWindow) {
         guard self.window !== window else { return }
+        if let previous = self.window, previous.nextResponder === self { previous.nextResponder = nextResponder }
         self.window = window
         nextResponder = window.nextResponder
         window.nextResponder = self

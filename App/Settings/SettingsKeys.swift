@@ -7,6 +7,8 @@ nonisolated enum SettingsKeys {
     static let volumeSize = "PackVolumeSize"
     static let hoverPreviews = "browse.hoverPreviews"
     static let showPassword = "password.showByDefault"
+    static let openInGlance = "glance.openFromFinder"
+    static let glancePinned = "glance.pinned"
 
     enum Appearance: String, CaseIterable, Sendable { case system, light, dark }
     enum DefaultValue: Equatable, Sendable {
@@ -45,7 +47,9 @@ nonisolated enum SettingsKeys {
         .init(key: defaultView, defaultValue: .string("grid")),
         .init(key: volumeSize, defaultValue: .integer(0)),
         .init(key: hoverPreviews, defaultValue: .bool(true)),
-        .init(key: showPassword, defaultValue: .bool(false))
+        .init(key: showPassword, defaultValue: .bool(false)),
+        .init(key: openInGlance, defaultValue: .bool(false)),
+        .init(key: glancePinned, defaultValue: .bool(false))
     ] + Audience.allCases.map {
         Entry(key: "PackLevel.\($0.rawValue)", defaultValue: .integer(Int64(CompressionLevel.balanced.rawValue)))
     }
