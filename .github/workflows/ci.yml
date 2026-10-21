@@ -209,13 +209,13 @@ jobs:
           head -c 300000 /dev/urandom > "$work/noise.bin"
           seq 1 20000 > "$work/text.txt"
           Vendor/7zip/7zz a -bso0 "$work/arm.7z" "$work/text.txt" "$work/noise.bin"
-          arch -x86_64 "$sz" i | head -4
           failed=()
           check() { # <label> <7zz arguments…>
             local label=$1; shift
             if arch -x86_64 "$sz" "$@" -bso0 -bse0 -bsp0 >/dev/null 2>&1; then echo "ok    $label"
             else local status=$?; echo "FAIL  $label (exit $status)"; failed+=("$label ($status)"); fi
           }
+          check "start (7zz i)"      i
           check "list 7z"            l "$work/arm.7z"
           check "test 7z (LZMA2)"    t "$work/arm.7z"
           check "pack zip store"     a -tzip -mx0 "$work/s.zip" "$work/text.txt"
@@ -223,7 +223,7 @@ jobs:
           check "pack 7z one thread" a -t7z -mx5 -mmt1 "$work/m1.7z" "$work/text.txt"
           check "pack 7z LZMA2"      a -t7z -mx5 "$work/m.7z" "$work/text.txt" "$work/noise.bin"
           check "pack 7z AES"        a -t7z -pRosetta -mhe=on "$work/e.7z" "$work/text.txt"
-          check "test tar.xz"        a -txz "$work/t.xz" "$work/text.txt"
+          check "pack xz"            a -txz "$work/t.xz" "$work/text.txt"
           if (( ${#failed[@]} )); then
             echo "::warning::Under Rosetta the x86_64 7zz failed: ${failed[*]}. Rosetta doesn't emulate every instruction 7-Zip's x86_64 build may pick; confirm on a real Intel Mac (ROADMAP Tests #16)."
           fi
