@@ -43,7 +43,9 @@ jobs:
           [[ "$sha256" =~ ^[[:xdigit:]]{64}$ ]]
           echo "key=7zip-${{ runner.os }}-${{ runner.arch }}-${version}-${sha256}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v5
+      # Restore and save separately: a combined actions/cache only saves when the whole job passes.
+      - id: cache-7zip
+        uses: actions/cache/restore@v5
         with:
           path: Vendor/7zip
           key: ${{ steps.sevenzip.outputs.key }}
@@ -54,6 +56,12 @@ jobs:
           test -f Vendor/7zip/7zz
           test -x Vendor/7zip/7zz
           Vendor/7zip/7zz i | head -3
+
+      - if: steps.cache-7zip.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: Vendor/7zip
+          key: ${{ steps.sevenzip.outputs.key }}
 
       - name: Generate Xcode project
         run: |
@@ -93,8 +101,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # ROADMAP.md counts 156 tests; a much smaller total means suites went missing.
-          MIN_TESTS: "100"
+          # The first CI run (Xcode 27.0) reported exactly 156 tests, matching ROADMAP.md. Raise this
+          # when tests are added; a lower total means suites went missing.
+          MIN_TESTS: "156"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - uses: actions/upload-artifact@v6
