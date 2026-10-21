@@ -906,4 +906,10 @@ final class BrowserModel {
         activityTask?.cancel()
         activity = nil
     }
+
+    /// Design review only: shows a capsule state without running anything.
+    func previewActivity(_ activity: Activity) {
+        activityTask?.cancel()
+        self.activity = activity
+    }
 }

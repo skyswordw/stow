@@ -16,6 +16,8 @@ import SwiftUI
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
 /// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
 /// password (the sheet after a rejected password), extract-options, install-options, batch, conflict, signature-warning, replace-app.
+/// Empty and error states: open-failed, open-damaged, extract-damaged, extract-full, extract-denied, extract-retry,
+/// pack-failed, empty-archive, empty-folder, search-empty, tray-empty.
 /// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
@@ -117,6 +119,35 @@ enum DemoScene {
                 try? await Task.sleep(for: .milliseconds(300))
                 _ = await Prompts.ask(question)
             }
+        case "open-failed", "open-damaged":
+            // The alert after an open that failed: not an archive, or one that's damaged.
+            let damaged = scene == "open-damaged"
+            app.openFailure = AppState.OpenFailure(
+                name: damaged ? "Field Recordings.7z" : "Invoice October.pdf",
+                message: damaged ? String(localized: "7-Zip couldn’t finish: Unexpected end of archive")
+                    : EngineError(.notAnArchive).message)
+        case "extract-damaged", "extract-full", "extract-denied", "extract-retry":
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.folder = "Photos"
+            app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
+            app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailureMessage(scene))))
+        case "pack-failed":
+            app.packing.preview(name: "Harbor Handoff.zip", phase: .failed(demoFailureMessage("extract-full")))
+        case "empty-archive":
+            app.browser = BrowserModel(archive: Archive(name: "Scans 2026.zip", format: .zip, files: []))
+        case "empty-folder":
+            let sample = SampleArchive.make()
+            let drafts = ArchiveEntry(path: "Drafts", isFolder: true, size: 0, packedSize: 0, modified: .now)
+            app.browser = BrowserModel(archive: Archive(name: sample.name, format: sample.format,
+                                                        files: sample.files + [drafts], checkup: sample.checkup))
+            app.browser?.viewMode = .grid
+            app.browser?.folder = "Drafts"
+        case "search-empty":
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.query = "invoice"
+        case "tray-empty":
+            app.tray.items = []
+            app.tray.show()
         case "quicklook":
             showQuickLook(defaults)
         case "associations":
@@ -171,6 +202,16 @@ enum DemoScene {
                 fflush(stdout)
                 exit(0) // terminate(_:) waits on open sheets; this is a screenshot run.
             }
+        }
+    }
+
+    /// What a failure capsule says in the error scenes.
+    private static func demoFailureMessage(_ scene: String) -> String {
+        switch scene {
+        case "extract-damaged": "Photos/Lighthouse.jpg"
+        case "extract-full": "“Pier at Dawn.jpg” couldn’t be copied because there isn’t enough space."
+        case "extract-denied": "You don’t have permission to save the file “Photos” in the folder “Shared”."
+        default: EngineError(.connectionLost).message
         }
     }
 
