@@ -38,8 +38,9 @@ final class EditSession {
         self.base = base
         rawPaths = base.entries.filter { $0.rawPath != nil }.map(\.path)
         self.url = url
-        self.name = name ?? url?.lastPathComponent ?? "Archive"
-        format = nested ? nil : EditableFormat(listingType: base.type, fileName: self.name)
+        let resolvedName = name ?? url?.lastPathComponent ?? "Archive"
+        self.name = resolvedName
+        format = nested ? nil : EditableFormat(listingType: base.type, fileName: resolvedName)
         identity = url.flatMap { try? FileIdentity(of: $0) }
         if let url { startWatching(url) }
     }
