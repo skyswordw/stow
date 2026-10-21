@@ -4,6 +4,7 @@ struct GeneralSettingsView: View {
     @AppStorage(SettingsKeys.appearance) private var appearance = SettingsKeys.Appearance.system.rawValue
     @AppStorage(SettingsKeys.defaultView) private var viewMode = "grid"
     @AppStorage("PackCPUCores") private var cores = 0
+    @AppStorage(SettingsKeys.openInGlance) private var openInGlance = false
     var body: some View {
         Form {
             Picker("Appearance", selection: $appearance) {
@@ -16,6 +17,7 @@ struct GeneralSettingsView: View {
                 Text("List").tag("list")
                 Text("Columns").tag("columns")
             }
+            Toggle("Open archives from Finder and Quick Look in Glance", isOn: $openInGlance)
             Picker("CPU cores for packing", selection: $cores) {
                 Text("All").tag(0)
                 ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }

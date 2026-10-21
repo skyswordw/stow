@@ -122,6 +122,11 @@ struct BrowserView: View {
         }
 
         ToolbarItem {
+            Button("Glance", systemImage: "arrow.down.right.and.arrow.up.left") { app.glance.collapse() }
+                .help("Switch to Glance, a small window — same folder, selection and history")
+        }
+
+        ToolbarItem {
             Button("New Archive", systemImage: "plus.rectangle.on.folder") {
                 app.chooseFilesToPack()
             }

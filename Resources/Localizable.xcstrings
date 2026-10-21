@@ -2949,6 +2949,16 @@
         }
       }
     },
+    "Glance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "速览"
+          }
+        }
+      }
+    },
     "Go": {
       "localizations": {
         "zh-Hans": {
@@ -3370,6 +3380,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "保留两者"
+          }
+        }
+      }
+    },
+    "Keep Glance above other windows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "让速览保持在其他窗口之上"
+          }
+        }
+      }
+    },
+    "Keep Glance on Top": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "速览置顶"
           }
         }
       }
@@ -4034,12 +4064,32 @@
         }
       }
     },
+    "Open archives from Finder and Quick Look in Glance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从访达和快速查看打开的压缩包在速览中打开"
+          }
+        }
+      }
+    },
     "Open in Finder": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "在访达中打开"
+          }
+        }
+      }
+    },
+    "Open in Full Window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在完整窗口中打开"
           }
         }
       }
@@ -4120,6 +4170,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "目前用 Stow 打开：%1$@，以及另外 %2$lld 种"
+          }
+        }
+      }
+    },
+    "Opening “%@”…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在打开“%@”…"
           }
         }
       }
@@ -4261,6 +4321,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "路径"
+          }
+        }
+      }
+    },
+    "Pin on Top": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "置顶"
           }
         }
       }
@@ -4765,6 +4835,16 @@
         }
       }
     },
+    "Show this archive in the full window — same folder, selection and history": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在完整窗口中显示此压缩包，文件夹、所选项和历史记录保持不变"
+          }
+        }
+      }
+    },
     "Signature": {
       "localizations": {
         "zh-Hans": {
@@ -5015,6 +5095,16 @@
         }
       }
     },
+    "Stop keeping Glance above other windows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不再让速览保持在其他窗口之上"
+          }
+        }
+      }
+    },
     "Stop — nothing is left half-extracted": {
       "localizations": {
         "zh-Hans": {
@@ -5245,6 +5335,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "恢复之前的 App"
+          }
+        }
+      }
+    },
+    "Switch to Glance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换到速览"
+          }
+        }
+      }
+    },
+    "Switch to Glance, a small window — same folder, selection and history": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换到小巧的速览窗口，文件夹、所选项和历史记录保持不变"
           }
         }
       }
@@ -5706,6 +5816,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "解压缩后"
+          }
+        }
+      }
+    },
+    "Unpin": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消置顶"
           }
         }
       }
