@@ -108,6 +108,8 @@ struct PageArt: View {
 
 /// One entry point for every place an entry is drawn.
 struct EntryThumbnail: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     enum Style { case row, tile, large }
 
     let entry: ArchiveEntry
@@ -135,7 +137,7 @@ struct EntryThumbnail: View {
             FontSpecimen(name: entry.name, compact: true)
                 .aspectRatio(4 / 3, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: Radius.chip))
-                .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(0.1)) }
+                .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(contrastStyle.borderOpacity)) }
         case (.large, .text), (.large, .data):
             card { PageArt(seed: entry.name, monospaced: entry.kind == .data) }
         case (.large, .document):
@@ -164,7 +166,7 @@ struct EntryThumbnail: View {
             .aspectRatio(4 / 3, contentMode: .fit)
             .clipShape(.rect(cornerRadius: Radius.card))
             .overlay {
-                RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.primary.opacity(0.1))
+                RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.primary.opacity(contrastStyle.borderOpacity))
             }
     }
 }

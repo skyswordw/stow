@@ -7,6 +7,8 @@ struct SettingsView: View {
         TabView(selection: $router.pane) {
             ForEach(SettingsPane.allCases) { pane in
                 pane.content
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel(pane.title)
                     .tabItem { Label(pane.title, systemImage: pane.systemImage) }
                     .tag(pane)
             }

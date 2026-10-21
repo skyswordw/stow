@@ -9,12 +9,16 @@ struct BrowserView: View {
     var body: some View {
         NavigationSplitView {
             SidebarView(model: model)
+                .accessibilityElement(children: .contain)
+                .accessibilitySortPriority(3)
                 .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 320)
                 // Search sits at the top of the sidebar, beside the folders it searches across,
                 // which keeps the inspector's toolbar section to just its toggle.
                 .searchable(text: $model.query, placement: .sidebar, prompt: searchPrompt)
         } detail: {
             content
+                .accessibilityElement(children: .contain)
+                .accessibilitySortPriority(2)
                 .archiveDrop(model: model, folder: model.folder)
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
@@ -32,6 +36,8 @@ struct BrowserView: View {
         }
         .inspector(isPresented: $model.showInspector) {
             InspectorView(model: model)
+                .accessibilityElement(children: .contain)
+                .accessibilitySortPriority(1)
                 .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 // The toggle mirrors the sidebar's: at the inspector's leading edge, inside its own
                 // toolbar section — never straddling the column divider. SwiftUI keeps it in the
@@ -101,6 +107,8 @@ struct BrowserView: View {
         ZStack {
             if visible {
                 NextStepsBar(model: model)
+                    .accessibilityElement(children: .contain)
+                    .accessibilitySortPriority(0)
                     .transition(.rise(reduceMotion: reduceMotion))
             }
         }
@@ -114,9 +122,11 @@ struct BrowserView: View {
         ToolbarItem(placement: .navigation) {
             ControlGroup {
                 Button("Back", systemImage: "chevron.left") { model.goBack() }
+                    .accessibilityLabel(String(localized: "Back"))
                     .disabled(!model.canGoBack)
                     .help("See the previous place")
                 Button("Forward", systemImage: "chevron.right") { model.goForward() }
+                    .accessibilityLabel(String(localized: "Forward"))
                     .disabled(!model.canGoForward)
                     .help("See the next place")
             }
@@ -136,11 +146,13 @@ struct BrowserView: View {
 
         ToolbarItem {
             Button("Tray", systemImage: "tray") { app.tray.toggle() }
+                .accessibilityLabel(String(localized: "Tray"))
                 .help("Show the Tray — gather files from anywhere")
         }
 
         ToolbarItem {
             Button("Glance", systemImage: "arrow.down.right.and.arrow.up.left") { app.glance.collapse() }
+                .accessibilityLabel(String(localized: "Glance"))
                 .help("Switch to Glance, a small window — same folder, selection and history")
         }
 
@@ -148,6 +160,7 @@ struct BrowserView: View {
             Button("New Archive", systemImage: "plus.rectangle.on.folder") {
                 app.chooseFilesToPack()
             }
+            .accessibilityLabel(String(localized: "New Archive"))
             .help("Pack files into a new archive")
         }
 
@@ -172,6 +185,8 @@ struct BrowserView: View {
             // ⌥⌘I is a keyboard action: the inspector snaps; a click on the toggle still slides it.
             withTransaction(Motion.keyboardAware) { model.showInspector.toggle() }
         }
+        .accessibilityLabel(model.showInspector ? String(localized: "Hide Inspector") : String(localized: "Show Inspector"))
+        .help(model.showInspector ? String(localized: "Hide Inspector") : String(localized: "Show Inspector"))
         .keyboardShortcut("i", modifiers: [.command, .option])
     }
 }

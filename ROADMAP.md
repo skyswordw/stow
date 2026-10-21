@@ -97,7 +97,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Welcome window | Feels empty at large sizes: real Open Recent, a smaller drop target, a quieter title bar. |
 | Motion audit | Run the `review-animations` skill over every transition; enforce DESIGN.md (no animation on keyboard actions, exits faster than entrances, springs only where touched). |
 | Consistency | One progress capsule style for packing, extracting, installing and batch; one prompt style for conflicts, signatures and passwords. |
-| Accessibility | VoiceOver labels and rotor order on every screen; full keyboard path; Reduce Motion, Reduce Transparency and Increase Contrast checked per screen. |
+| Accessibility | Done (#29): composed VoiceOver labels, reading order and keyboard paths; shared motion, solid-surface and contrast handling with automated coverage. |
 | Empty and error states | Every failure says what happened and what to do, in plain words, with one action. |
 | Website | Real product video of Pack and Checkup; screenshots refreshed from the release build. |
 
@@ -152,7 +152,7 @@ have **not** been done and must be before a 1.0:
 | 12 | Archives of several GB, low disk space, and the engine's temporary copy while packing | packing needs space for the input plus the archive |
 | 13 | SMB/NAS and iCloud Drive locations (open, extract, pack, rename) | not tested |
 | 14 | Real-world corpus: multi-part RAR5, self-extracting EXE, ZIPs from Windows/Linux tools, legacy encodings beyond the fixtures | fixtures are synthetic |
-| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | not audited |
+| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | Automated parts covered (#29); manual VoiceOver/keyboard checklist is in the PR/issue #38. |
 | 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | no hardware run |
 | 17 | Signed/notarized build behaviour (Gatekeeper on extracted apps, extensions, App Group hand-off) | only ad-hoc builds exist |
 | 18 | Fuzzing malformed archives | not started |

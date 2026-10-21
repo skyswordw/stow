@@ -65,7 +65,7 @@ struct GlanceRoot: View {
     @ViewBuilder
     private var background: some View {
         switch GlanceMaterial.resolve(reduceTransparency: reduceTransparency) {
-        case .glass: Rectangle().fill(.clear).glassEffect(.regular, in: .rect)
+        case .glass: Rectangle().fill(.clear).accessibleGlass(in: .rect)
         case .solid: Color(nsColor: .windowBackgroundColor)
         }
     }
@@ -147,9 +147,11 @@ struct GlanceView: View {
         ToolbarItem(placement: .navigation) {
             ControlGroup {
                 Button("Back", systemImage: "chevron.left") { model.goBack() }
+                    .accessibilityLabel(String(localized: "Back"))
                     .disabled(!model.canGoBack)
                     .help("See the previous place")
                 Button("Forward", systemImage: "chevron.right") { model.goForward() }
+                    .accessibilityLabel(String(localized: "Forward"))
                     .disabled(!model.canGoForward)
                     .help("See the next place")
             }
@@ -168,6 +170,7 @@ struct GlanceView: View {
 
         ToolbarItem {
             Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
+                .accessibilityLabel(String(localized: "Open in Full Window"))
                 .help("Show this archive in the full window — same folder, selection and history")
         }
     }
@@ -184,6 +187,7 @@ private struct GlanceList: View {
                 TableColumn(String(localized: "Name")) { entry in
                     HStack(spacing: Space.s) {
                         RowIcon(entry: entry, model: model)
+                            .accessibilityHidden(true)
                             .frame(width: 18, height: 18)
                         VStack(alignment: .leading, spacing: 0) {
                             Text(entry.name).lineLimit(1).truncationMode(.middle)
@@ -198,6 +202,9 @@ private struct GlanceList: View {
                     }
                     .opacity(entry.isHelper ? 0.55 : 1)
                     .contentShape(.rect)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(AccessibilityText.entry(entry, itemCount: entry.isNavigable ? model.archive.children(of: entry.path, includingHelpers: model.showHelperItems).count : nil))
+                    .accessibilityAddTraits(model.selection.contains(entry.id) ? .isSelected : [])
                     .hoverPreview(for: entry, model: hover, browser: model)
                 }
 

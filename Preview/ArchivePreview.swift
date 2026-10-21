@@ -79,7 +79,7 @@ private struct PreviewHeader: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(name)
-                        .font(.title3.weight(.semibold))
+                        .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                         .lineLimit(1)
                         .truncationMode(.middle)
                     if isEncrypted {
@@ -97,6 +97,7 @@ private struct PreviewHeader: View {
             Spacer(minLength: 8)
             if let openInStow {
                 Button("Open in Stow", action: openInStow)
+                    .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
             }
@@ -156,12 +157,14 @@ private struct PackedBar: View {
 
 /// One line of Checkup: the finding that matters most, in plain words.
 private struct CheckupLine: View {
+    @Environment(\.colorSchemeContrast) private var contrast
     let finding: CheckupFinding
     let cautionCount: Int
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: symbol)
+                .accessibilityHidden(true)
                 .foregroundStyle(color)
             Text("Checkup: ").font(.callout.weight(.semibold))
                 + Text(finding.title).font(.callout)
@@ -175,6 +178,13 @@ private struct CheckupLine: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(.primary.opacity(0.04), in: .rect(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(.primary.opacity(contrast == .increased ? 0.45 : 0))
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .combine)
         .help(finding.detail)
     }
 
@@ -204,6 +214,7 @@ private struct TreeRow: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(nsImage: Self.icon(for: row))
+                .accessibilityHidden(true)
                 .resizable()
                 .frame(width: 16, height: 16)
             Text(row.name)
@@ -220,6 +231,8 @@ private struct TreeRow: View {
         .padding(.leading, 16 + CGFloat(min(row.depth, 12)) * 16)
         .padding(.trailing, 16)
         .frame(height: 22)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel([row.name, row.isFolder ? String(localized: "Folder") : (UTType(filenameExtension: (row.name as NSString).pathExtension)?.localizedDescription ?? String(localized: "File")), row.isFolder ? nil : row.size.bytes].compactMap { $0 }.joined(separator: ", "))
     }
 
     /// Finder's own icons; cached per type because Quick Look rows scroll fast.
@@ -247,10 +260,11 @@ private struct FallbackPreview: View {
             Divider()
             VStack(spacing: 8) {
                 Image(systemName: fallback.symbol)
+                    .accessibilityHidden(true)
                     .font(.system(size: 28, weight: .regular))
                     .foregroundStyle(.secondary)
                 Text(fallback.title)
-                    .font(.headline)
+                    .font(.headline).accessibilityAddTraits(.isHeader)
                 Text(fallback.message)
                     .font(.callout)
                     .foregroundStyle(.secondary)

@@ -9,7 +9,7 @@ struct LegacyNamesBanner: View {
         let reading = source?.nameEncoding?.title
             ?? NameEncoding.bestGuess(for: model.legacyNames).map { String(localized: "\($0.title), automatically") } ?? String(localized: "automatically")
         HStack(spacing: Space.s) {
-            Image(systemName: "character.book.closed")
+            Image(systemName: "character.book.closed").accessibilityHidden(true)
                 .foregroundStyle(.tint)
             Text("Some names were stored in an older encoding. Reading them as \(reading).")
                 .lineLimit(1)
@@ -21,13 +21,15 @@ struct LegacyNamesBanner: View {
         .font(.callout)
         .padding(.horizontal, Space.m)
         .padding(.vertical, 6)
-        .background(.bar)
+        .accessibleBar()
         .overlay(alignment: .bottom) { Divider() }
     }
 }
 
 /// Pick how legacy names are read, with the names themselves as the preview.
 struct EncodingSheet: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let model: BrowserModel
     @Environment(\.dismiss) private var dismiss
     @State private var choice: String
@@ -44,7 +46,7 @@ struct EncodingSheet: View {
         VStack(alignment: .leading, spacing: Space.l) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Read Names As")
-                    .font(.headline)
+                    .font(.headline).accessibilityAddTraits(.isHeader)
                 Text("This archive doesn’t say how its names are encoded. Pick the one where the names read right.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -67,7 +69,7 @@ struct EncodingSheet: View {
                                 }
                             }
                             .tag(option.id)
-                            .foregroundStyle(readable(option) ? .primary : .tertiary)
+                            .foregroundStyle(readable(option) ? AnyShapeStyle(.primary) : contrastStyle.metadata)
                         }
                     }
                 }
@@ -89,7 +91,7 @@ struct EncodingSheet: View {
                         .padding(Space.m)
                     }
                     .background(Color(nsColor: .textBackgroundColor), in: .rect(cornerRadius: Radius.chip))
-                    .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(0.1)) }
+                    .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(contrastStyle.borderOpacity)) }
                 }
                 .frame(width: 320, height: 300)
             }

@@ -1157,7 +1157,7 @@ final class BrowserModel {
 
     private func advance(to fraction: Double) {
         guard case .running(let current) = activity?.phase, fraction > current else { return }
-        withAnimation(.linear(duration: 0.1)) { activity?.phase = .running(fraction) }
+        withAnimation(Motion.current(.linear(duration: 0.1))) { activity?.phase = .running(fraction) }
     }
 
     /// Steps that don't have an engine behind them yet (and every step on sample data) run a
@@ -1169,7 +1169,7 @@ final class BrowserModel {
             for tick in 1...20 {
                 try? await Task.sleep(for: .milliseconds(55))
                 guard !Task.isCancelled else { return }
-                withAnimation(.linear(duration: 0.055)) {
+                withAnimation(Motion.current(.linear(duration: 0.055))) {
                     self?.activity?.phase = .running(Double(tick) / 20)
                 }
             }

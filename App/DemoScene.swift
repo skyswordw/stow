@@ -32,6 +32,8 @@ enum DemoScene {
     static func apply(to app: AppState) {
         let defaults = UserDefaults.standard
         guard let scene = defaults.string(forKey: "StowScene") else { return }
+        if scene == "a11y-contrast" { defaults.register(defaults: ["StowIncreaseContrast": true]) }
+        if scene == "a11y-solid" { defaults.register(defaults: ["StowReduceTransparency": true]) }
         switch defaults.string(forKey: "StowAppearance") {
         case "light": NSApp.appearance = NSAppearance(named: .aqua)
         case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -61,7 +63,7 @@ enum DemoScene {
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
-        case "list":
+        case "list", "a11y-contrast", "a11y-solid":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.viewMode = .list
             app.browser?.folder = "Specs"

@@ -38,7 +38,7 @@ private struct EntryDetail: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name)
-                    .font(.title3.weight(.semibold))
+                    .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .textSelection(.enabled)
                 if let state = model.editSession.state(for: entry.path) { Text(state).font(.caption).foregroundStyle(.secondary) }
                 Text(entry.kindDescription)
@@ -88,6 +88,7 @@ private struct SignatureSection: View {
                 let finding = verdict.finding
                 HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                     Image(systemName: finding.severity.symbol)
+                        .accessibilityHidden(true)
                         .foregroundStyle(finding.severity.color)
                         .frame(width: 16)
                     VStack(alignment: .leading, spacing: 2) {
@@ -140,7 +141,7 @@ private struct MultiDetail: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(entries.count) items")
-                    .font(.title3.weight(.semibold))
+                    .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .liveNumber()
                 Text(entries.reduce(Int64(0)) { $0 + $1.size }.bytes)
                     .foregroundStyle(.secondary)
@@ -158,7 +159,7 @@ private struct ArchiveSummary: View {
             HStack(spacing: Space.m) {
                 FormatBadge(format: archive.format)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(archive.name).font(.headline)
+                    Text(archive.name).font(.headline).accessibilityAddTraits(.isHeader)
                     Text("\(archive.format.displayName) archive").foregroundStyle(.secondary)
                 }
             }
@@ -175,6 +176,7 @@ private struct ArchiveSummary: View {
                 ForEach(archive.checkup) { finding in
                     HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                         Image(systemName: finding.severity.symbol)
+                        .accessibilityHidden(true)
                             .foregroundStyle(finding.severity.color)
                             .frame(width: 16)
                         VStack(alignment: .leading, spacing: 2) {
@@ -217,6 +219,7 @@ struct SectionLabel: View {
 
     var body: some View {
         Text(text)
+            .accessibilityAddTraits(.isHeader)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.secondary)
     }

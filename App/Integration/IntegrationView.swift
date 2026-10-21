@@ -39,7 +39,7 @@ struct IntegrationView: View {
                 Button("Extension Settings…") { settings.showExtensionSettings() }
                     .buttonStyle(.borderless)
             } header: {
-                Text("Finder")
+                Text("Finder").accessibilityAddTraits(.isHeader)
             }
 
             Section {
@@ -63,7 +63,7 @@ struct IntegrationView: View {
                     }
                 }
             } header: {
-                Text("Startup")
+                Text("Startup").accessibilityAddTraits(.isHeader)
             }
 
             Section {
@@ -83,7 +83,7 @@ struct IntegrationView: View {
                     }
                 }
             } header: {
-                Text("Folders Stow may write in")
+                Text("Folders Stow may write in").accessibilityAddTraits(.isHeader)
             } footer: {
                 Text("Stow is sandboxed: it only reads and writes where you allow it. No Full Disk Access needed.")
                     .font(.caption)

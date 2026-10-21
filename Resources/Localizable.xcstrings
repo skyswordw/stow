@@ -1488,6 +1488,16 @@
         }
       }
     },
+    "%lld percent": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "百分之 %lld"
+          }
+        }
+      }
+    },
     "%lld special files left out": {
       "localizations": {
         "zh-Hans": {
@@ -5399,6 +5409,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "预览"
+          }
+        }
+      }
+    },
+    "Progress": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "进度"
           }
         }
       }

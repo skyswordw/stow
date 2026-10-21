@@ -39,12 +39,13 @@ struct NextStepsBar: View {
             } else {
                 if density != .actionsOnly {
                     SelectionSummary(entries: entries)
-                        .glassEffect(.regular, in: .capsule)
+                        .accessibleGlass(in: .capsule)
                         .glassEffectID("summary", in: glass)
                 }
                 ForEach(steps.dropLast()) { step in
                     Button(step.title, systemImage: step.symbol) { model.run(step) }
                         .labelStyle(density == .full ? AnyLabelStyle(.titleAndIcon) : AnyLabelStyle(.iconOnly))
+                        .accessibilityLabel(step.title)
                         .help(step.title)
                         .buttonStyle(.glass)
                         .glassEffectID(step, in: glass)

@@ -12,6 +12,7 @@ struct CloudDownloadCard: View {
             HStack(spacing: Space.s) {
                 if let fraction = download.fraction {
                     ProgressView(value: fraction)
+                        .accessibilityValue(AccessibilityText.progress(fraction))
                         .accessibilityLabel(download.title)
                     Text(fraction, format: .percent.precision(.fractionLength(0)))
                         .font(.callout)

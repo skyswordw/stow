@@ -27,7 +27,7 @@ jobs:
       XCODE_APP: /Applications/Xcode_27.app
       PANES: general extraction installing packing previews passwords fileTypes integration advanced licenses
       # Other demo scenes (App/DemoScene.swift), for the layout check in every language.
-      SCENES: editing external readonly onboarding grid list search activity pack pack-zst password cloud-download batch conflict conflict-folder signature-warning replace-app tray checkup-format glance open-damaged open-unreadable extract-damaged
+      SCENES: a11y-contrast a11y-solid editing external readonly onboarding grid list search activity pack pack-zst password cloud-download batch conflict conflict-folder signature-warning replace-app tray checkup-format glance open-damaged open-unreadable extract-damaged
       LANGS: en zh-Hans
     steps:
       - uses: actions/checkout@v7

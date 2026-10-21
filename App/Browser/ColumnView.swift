@@ -121,6 +121,8 @@ private struct Column: View {
 }
 
 private struct Row: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let entry: ArchiveEntry
     let model: BrowserModel
     let isSelected: Bool
@@ -129,15 +131,16 @@ private struct Row: View {
     var body: some View {
         HStack(spacing: 6) {
             RowIcon(entry: entry, model: model)
+                .accessibilityHidden(true)
                 .frame(width: 16, height: 16)
             EditingName(model: model, entry: entry)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 0)
             if entry.isNavigable {
-                Image(systemName: "chevron.right")
+                Image(systemName: "chevron.right").accessibilityHidden(true)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.tertiary))
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.8)) : contrastStyle.metadata)
             }
         }
         .font(.body)
@@ -147,11 +150,15 @@ private struct Row: View {
         .frame(height: 22)
         .background {
             RoundedRectangle(cornerRadius: 5)
-                .fill(isSelected ? AnyShapeStyle(.tint) : isOnTheWay ? AnyShapeStyle(.primary.opacity(0.1)) : AnyShapeStyle(.clear))
+                .fill(isSelected ? AnyShapeStyle(.tint) : isOnTheWay ? AnyShapeStyle(.primary.opacity(contrastStyle.borderOpacity)) : AnyShapeStyle(.clear))
                 .padding(.horizontal, 6)
         }
         .padding(.horizontal, 6)
         .contentShape(.rect)
+        .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
+        .accessibilityLabel(AccessibilityText.entry(entry, itemCount: entry.isNavigable ? model.archive.children(of: entry.path, includingHelpers: model.showHelperItems).count : nil))
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        .accessibilityAction { model.select([entry.id]); model.open(entry) }
     }
 }
 
@@ -166,7 +173,7 @@ private struct PreviewColumn: View {
                 RichPreviewView(entry: entry, model: model)
                     .frame(height: 220)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.name).font(.headline).textSelection(.enabled)
+                    Text(entry.name).font(.headline).textSelection(.enabled).accessibilityAddTraits(.isHeader)
                     Text("\(entry.kindDescription) · \(entry.size.bytes)")
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
@@ -185,6 +192,8 @@ private struct PreviewColumn: View {
 
 /// Where you are, archive by archive and folder by folder; every part is a place to go back to.
 struct PathBar: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let model: BrowserModel
 
     static let height: CGFloat = 28
@@ -195,9 +204,9 @@ struct PathBar: View {
             HStack(spacing: 2) {
                 ForEach(Array(segments.enumerated()), id: \.element.id) { index, segment in
                     if index > 0 {
-                        Image(systemName: "chevron.compact.right")
+                        Image(systemName: "chevron.compact.right").accessibilityHidden(true)
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(contrastStyle.metadata)
                     }
                     Button {
                         model.go(to: segment)
@@ -224,7 +233,7 @@ struct PathBar: View {
         .scrollIndicators(.never)
         .defaultScrollAnchor(.leading, for: .alignment)
         .defaultScrollAnchor(.trailing, for: .initialOffset)
-        .background(.bar)
+        .accessibleBar()
         .overlay(alignment: .top) { Divider() }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Path")
