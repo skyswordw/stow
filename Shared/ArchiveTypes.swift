@@ -57,9 +57,9 @@ nonisolated struct ArchiveType: Identifiable, Hashable, Sendable {
 nonisolated enum ArchiveTypes {
     static let all: [ArchiveType] = [
         ArchiveType("public.zip-archive", String(localized: "ZIP archive"), ["zip"], .everyday),
-        ArchiveType("com.winzip.zipx-archive", String(localized: "ZIPX archive"), ["zipx"], .everyday),
+        ArchiveType("com.winzip.zipx-archive", String(localized: "ZIPX archive"), ["zipx"], .everyday, system: false),
         ArchiveType("org.7-zip.7-zip-archive", String(localized: "7-Zip archive"), ["7z"], .everyday),
-        // Not declared by macOS: Stow imports it (see project.yml).
+        // RAR, ZIPX, LZMA, LZIP, LHA, RPM and APK aren't declared by macOS: Stow imports them (project.yml).
         ArchiveType("com.rarlab.rar-archive", String(localized: "RAR archive"), ["rar"], .everyday, system: false),
         ArchiveType("app.stow.split-archive", String(localized: "Split archive part"), ["001"], .everyday, system: false),
         ArchiveType("public.tar-archive", String(localized: "TAR archive"), ["tar"], .unix),
@@ -69,14 +69,14 @@ nonisolated enum ArchiveTypes {
         ArchiveType("org.gnu.gnu-zip-archive", String(localized: "GZIP file"), ["gz"], .unix),
         ArchiveType("public.bzip2-archive", String(localized: "BZIP2 file"), ["bz2"], .unix),
         ArchiveType("org.tukaani.xz-archive", String(localized: "XZ file"), ["xz"], .unix),
-        ArchiveType("org.tukaani.lzma-archive", String(localized: "LZMA file"), ["lzma"], .unix),
-        ArchiveType("public.lzip-archive", String(localized: "LZIP file"), ["lz"], .unix),
+        ArchiveType("org.tukaani.lzma-archive", String(localized: "LZMA file"), ["lzma"], .unix, system: false),
+        ArchiveType("public.lzip-archive", String(localized: "LZIP file"), ["lz"], .unix, system: false),
         ArchiveType("public.z-archive", String(localized: "Unix compress file"), ["z"], .unix),
         ArchiveType("app.stow.zstd-archive", String(localized: "Zstandard file"), ["zst", "tzst"], .unix, system: false),
         ArchiveType("public.cpio-archive", String(localized: "CPIO archive"), ["cpio"], .unix),
         ArchiveType("com.microsoft.cab", String(localized: "Cabinet archive"), ["cab"], .everyday),
         ArchiveType("app.stow.arj-archive", String(localized: "ARJ archive"), ["arj"], .everyday, system: false),
-        ArchiveType("cx.c3.lha-archive", String(localized: "LHA archive"), ["lha", "lzh"], .everyday),
+        ArchiveType("cx.c3.lha-archive", String(localized: "LHA archive"), ["lha", "lzh"], .everyday, system: false),
         ArchiveType("app.stow.cbz-archive", String(localized: "Comic book (ZIP)"), ["cbz"], .comics, system: false),
         ArchiveType("app.stow.cbr-archive", String(localized: "Comic book (RAR)"), ["cbr"], .comics, system: false),
         ArchiveType("app.stow.cb7-archive", String(localized: "Comic book (7Z)"), ["cb7"], .comics, system: false),
@@ -86,11 +86,11 @@ nonisolated enum ArchiveTypes {
         ArchiveType("app.stow.vhd-image", String(localized: "Virtual hard disk"), ["vhd"], .diskImages, system: false, suggested: false),
         ArchiveType("com.apple.xar-archive", String(localized: "XAR archive"), ["xar"], .installers, suggested: false),
         ArchiveType("com.apple.installer-package-archive", String(localized: "Installer package"), ["pkg"], .installers, suggested: false),
-        ArchiveType("com.redhat.rpm-archive", String(localized: "RPM package"), ["rpm"], .installers, suggested: false),
+        ArchiveType("com.redhat.rpm-archive", String(localized: "RPM package"), ["rpm"], .installers, system: false, suggested: false),
         ArchiveType("app.stow.deb-archive", String(localized: "Debian package"), ["deb"], .installers, system: false, suggested: false),
         ArchiveType("app.stow.msi-installer", String(localized: "Windows installer"), ["msi"], .installers, system: false, suggested: false),
         ArchiveType("com.sun.java-archive", String(localized: "Java archive"), ["jar"], .installers, suggested: false),
-        ArchiveType("public.archive.apk", String(localized: "Android package"), ["apk"], .installers, suggested: false),
+        ArchiveType("public.archive.apk", String(localized: "Android package"), ["apk"], .installers, system: false, suggested: false),
     ]
 
     static func type(withIdentifier identifier: String) -> ArchiveType? {
