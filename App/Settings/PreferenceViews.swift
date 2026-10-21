@@ -27,6 +27,20 @@ struct GeneralSettingsView: View {
                 Text("All").tag(0)
                 ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
             }
+            LabeledContent("Next Steps bar") {
+                let hidden = NextStepPreferences.parse(hiddenSteps)
+                Menu(hidden.isEmpty ? String(localized: "Suggests every step")
+                     : String(localized: "\(hidden.count) turned off")) {
+                    ForEach(NextStep.Kind.allCases) { kind in
+                        Toggle(kind.title, isOn: suggests(kind))
+                    }
+                    Divider()
+                    Button("Restore Suggestions") { NextStepPreferences.restore() }
+                        .disabled(hidden.isEmpty)
+                }
+                .fixedSize()
+                .help(String(localized: "Turned-off steps stay in the More Actions menu and when you Control-click."))
+            }
             Section("Tray") {
                 Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
                 Toggle("Show Tray while dragging files", isOn: $trayWhileDragging)
@@ -43,18 +57,6 @@ struct GeneralSettingsView: View {
                         .tag(border.rawValue)
                     }
                 }
-            }
-            Section {
-                ForEach(NextStep.Kind.allCases) { kind in
-                    Toggle(kind.title, isOn: suggests(kind))
-                }
-                Button("Restore Suggestions") { NextStepPreferences.restore() }
-                    .disabled(hiddenSteps.isEmpty)
-            } header: {
-                Text("Suggest in the Next Steps bar")
-            } footer: {
-                Text("Turned-off steps stay in the More Actions menu and when you Control-click.")
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

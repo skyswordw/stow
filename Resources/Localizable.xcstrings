@@ -1,6 +1,36 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%lld turned off": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已关闭 %lld 项"
+          }
+        }
+      }
+    },
+    "Next Steps bar": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“下一步”栏"
+          }
+        }
+      }
+    },
+    "Suggests every step": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议所有操作"
+          }
+        }
+      }
+    },
     "Copy to a Disk Image’s Folder": {
       "localizations": {
         "zh-Hans": {
@@ -47,16 +77,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "恢复建议"
-          }
-        }
-      }
-    },
-    "Suggest in the Next Steps bar": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在“下一步”栏中建议"
           }
         }
       }
