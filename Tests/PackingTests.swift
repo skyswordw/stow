@@ -62,14 +62,8 @@ struct PackingTests {
 
         #expect(result.placed.map(\.lastPathComponent) == ["Project." + format.fileExtension])
         #expect(result.report.verified)
-        var archiveURL = result.placed[0]
-        if format.isCompressed && format != .zip && format != .sevenZip {
-            // Stow lists a compressed TAR as one inner TAR; open that one.
-            let inner = out.appending(path: "inner", directoryHint: .isDirectory)
-            try FileManager.default.createDirectory(at: inner, withIntermediateDirectories: false)
-            _ = try await #require(SevenZip.bundled()).extract(archiveURL, into: inner) { _ in }
-            archiveURL = inner.appending(path: "Project.tar")
-        }
+        // Compressed TARs list as the TAR inside, like every other archive.
+        let archiveURL = result.placed[0]
         let listing = try await ArchiveEngine.shared.list(archiveURL)
         let paths = Set(listing.entries.map(\.path))
         #expect(paths.isSuperset(of: ["Project", "Project/README.md", "Project/Docs/a.txt", "Project/Empty",
