@@ -25,6 +25,9 @@ import SwiftUI
 /// puts the pointer on that edge of the screen first, `-glance.pinned '<true/>'` pins it,
 /// `-StowReduceTransparency YES` shows the solid fallback). With -StowSnapshot it also writes
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
+/// Next Steps: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
+/// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
+/// `-nextSteps.hidden quickLook,extract` and `-nextSteps.shown NO` try other choices without saving them.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -59,6 +62,20 @@ enum DemoScene {
             ArchiveCard.opensCheckupForDemo = true
         case "readonly":
             BrowseDemo.readOnly(in: app)
+        case "next-steps", "next-steps-more":
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.folder = defaults.string(forKey: "StowFolder") ?? "Photos"
+            app.browser?.selection = Set(defaults.string(forKey: "StowSelect").map { [$0] }
+                                         ?? ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"])
+            if scene == "next-steps-more" {
+                Task {
+                    try? await Task.sleep(for: .seconds(1))
+                    NextStepsDemo.openMoreMenu()
+                }
+            }
+        case "next-steps-settings":
+            SettingsRouter.shared.pane = .nextSteps
+            SettingsRouter.shared.open()
         case "grid":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Photos"
@@ -310,6 +327,7 @@ enum DemoScene {
                     if let url = snapshot(window, name: name) { print(url.path) }
                 }
                 if scene == "glance", let url = glancePlacement(app, name: "\(label)-screen") { print(url.path) }
+                if scene == "next-steps-more", let url = NextStepsDemo.captureWithMenu(name: "\(label)-menu") { print(url.path) }
                 fflush(stdout)
                 exit(0) // terminate(_:) waits on open sheets; this is a screenshot run.
             }

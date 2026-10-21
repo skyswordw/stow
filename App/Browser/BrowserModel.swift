@@ -86,6 +86,8 @@ final class BrowserModel {
     /// Set by `AppState`: the archive went to the Trash / the window should close after a step.
     var onArchiveGone: (() -> Void)?
     var onCloseWindow: (() -> Void)?
+    /// Set by `AppState`: Pack… staged the selection; show the Pack sentence for it.
+    var onPack: ((PackRequest) -> Void)?
 
     /// Where Shift-selection extends from, and where the keyboard is.
     private(set) var anchor: ArchiveEntry.ID?
@@ -938,6 +940,7 @@ final class BrowserModel {
         let again = entries ?? (selectedEntries.isEmpty ? nil : selectedEntries)
         lastRun = { [weak self] in self?.run(step, on: again) }
         guard archive.source != nil else {
+            if step == .pack { return packSample(items) }
             simulate(step, itemCount: items.count)
             return
         }
@@ -951,6 +954,7 @@ final class BrowserModel {
             if let entries { select(Set(entries.map(\.id))) }
             quickLook.show()
         case .openInside: if let first = items.first { openInside(first) }
+        case .pack: pack(items)
         }
     }
 
@@ -1218,6 +1222,49 @@ final class BrowserModel {
     private func advance(to fraction: Double) {
         guard case .running(let current) = activity?.phase, fraction > current else { return }
         withAnimation(Motion.current(.linear(duration: 0.1))) { activity?.phase = .running(fraction) }
+    }
+
+    /// Pack…: the selection is staged in a temporary folder, then the Pack sentence takes over
+    /// (it removes the folder when it's done). Stop works while staging, as for any step.
+    private func pack(_ entries: [ArchiveEntry]) {
+        let archive = archive
+        let directory = levels.first?.archive.source?.url.deletingLastPathComponent()
+        activityTask?.cancel()
+        activity = Activity(step: .pack, itemCount: entries.count, phase: .running(0))
+        activityTask = Task { [weak self, passwords] in
+            do throws(EngineError) {
+                let (staged, password) = try await passwords.retrying(archive.name, for: .extract,
+                                                                      known: archive.source?.password) { password in
+                    var attempt = archive
+                    attempt.source?.password = password
+                    return try await Extraction.stage(attempt, selection: entries, near: FileManager.default.temporaryDirectory,
+                                                      skipSystemFiles: false) { fraction in
+                        Task { @MainActor in self?.advance(to: fraction) }
+                    }
+                }
+                guard let self, !Task.isCancelled else { return staged.discard() }
+                if let password { rememberPassword(password) }
+                var request = await PackRequest.gather(staged.items(allFolder: .automatic, folderName: archive.name).map(\.0))
+                request.directory = directory
+                request.cleanupDirectory = staged.folder
+                activity = nil
+                onPack?(request)
+            } catch {
+                guard let self, error.failure != .cancelled else { return }
+                let failure = Failure(error, .pack, name: entries.count == 1 ? entries[0].name : archive.name)
+                withAnimation(Motion.current(Motion.status)) { activity?.phase = .failed(failure) }
+            }
+        }
+    }
+
+    /// Sample archives have nothing on disk: Pack… shows the sentence for the selection's names and sizes.
+    private func packSample(_ entries: [ArchiveEntry]) {
+        let files = entries.flatMap { entry in
+            let base = entry.parent.isEmpty ? "" : entry.parent + "/"
+            let inside = archive.files.filter { $0.path.hasPrefix(entry.path + "/") }
+            return ([entry] + inside).map { PackFile(path: String($0.path.dropFirst(base.count)), size: $0.size, isFolder: $0.isFolder) }
+        }
+        onPack?(PackRequest(files: files))
     }
 
     /// Steps that don't have an engine behind them yet (and every step on sample data) run a
