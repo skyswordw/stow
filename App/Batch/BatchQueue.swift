@@ -6,11 +6,11 @@ import SwiftUI
 @Observable
 final class BatchQueue {
     struct Job: Identifiable, Equatable {
-        enum Phase: Equatable { case waiting, running(Double), done, failed(String), cancelled }
+        enum Phase: Equatable { case waiting, running(Double), done, failed(Failure), cancelled }
 
         let id = UUID()
         let url: URL
-        let destination: URL
+        var destination: URL
         var phase: Phase = .waiting
         var placed: [URL] = []
 
@@ -29,12 +29,19 @@ final class BatchQueue {
     /// Open-panel URLs need their scope claimed for reading — and for the Trash afterwards.
     private var scoped: [URL] = []
 
+    /// Opens an archive in Stow's window (set by `AppState`), where its password can be entered.
+    var onOpen: ((URL) -> Void)?
+
     var isActive: Bool { jobs.contains { !$0.isFinished } }
     var finishedCount: Int { jobs.filter(\.isFinished).count }
 
     func enqueue(_ urls: [URL], into destination: URL) {
         for url in urls where url.startAccessingSecurityScopedResource() { scoped.append(url) }
         jobs += urls.map { Job(url: $0, destination: destination) }
+        startWorker()
+    }
+
+    private func startWorker() {
         guard worker == nil else { return }
         worker = Task { [weak self] in
             await self?.drain()
@@ -67,6 +74,35 @@ final class BatchQueue {
 
     func clearFinished() {
         jobs.removeAll(where: \.isFinished)
+    }
+
+    /// A failed archive's one next step.
+    func follow(_ action: Failure.Action, for id: Job.ID) {
+        guard let job = jobs.first(where: { $0.id == id }) else { return }
+        switch action {
+        case .tryAgain:
+            retry(id)
+        case .chooseFolder:
+            Task {
+                guard let folder = await ExtractDestination.choose(count: 1, near: job.url) else { return }
+                update(id) { $0.destination = folder }
+                retry(id)
+            }
+        case .showInFinder:
+            NSWorkspace.shared.activateFileViewerSelecting([job.url])
+        case .openInFinder:
+            NSWorkspace.shared.open(job.url)
+        case .openInStow:
+            jobs.removeAll { $0.id == id }
+            onOpen?(job.url)
+        }
+    }
+
+    private func retry(_ id: Job.ID) {
+        // The first run gave its scope back when the batch finished.
+        if let url = jobs.first(where: { $0.id == id })?.url, url.startAccessingSecurityScopedResource() { scoped.append(url) }
+        update(id) { $0.phase = .waiting }
+        startWorker()
     }
 
     func showInFinder(_ id: Job.ID) {
@@ -114,7 +150,8 @@ final class BatchQueue {
             return true
         } catch {
             let error = EngineError(error)
-            update(job.id) { $0.phase = error.failure == .cancelled ? .cancelled : .failed(error.message) }
+            let failure = Failure(error, .extract, name: job.name, destination: job.destination)
+            update(job.id) { $0.phase = error.failure == .cancelled ? .cancelled : .failed(failure) }
             return false
         }
     }

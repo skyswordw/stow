@@ -78,6 +78,7 @@ private struct Column: View {
                             .id(entry.id)
                             .onTapGesture(count: 2) { model.open(entry) }
                             .simultaneousGesture(TapGesture().onEnded {
+                                guard model.renamingPath == nil else { return }
                                 onTap()
                                 model.columnSelect(entry, modifiers: NSEvent.modifierFlags)
                             })
@@ -89,6 +90,7 @@ private struct Column: View {
                                 }
                             }
                             .contextMenu { EntryMenu(model: model, entry: entry) }
+                            .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : parent)
                     }
                 }
                 .padding(.vertical, Space.xs)
@@ -128,7 +130,7 @@ private struct Row: View {
         HStack(spacing: 6) {
             RowIcon(entry: entry, model: model)
                 .frame(width: 16, height: 16)
-            Text(entry.name)
+            EditingName(model: model, entry: entry)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 0)
