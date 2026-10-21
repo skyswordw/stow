@@ -16,7 +16,7 @@ cask "stow" do
 
   # Uncomment once Sparkle updates ship (#35): Homebrew then leaves upgrades to the app.
   # auto_updates true
-  depends_on macos: ">= :tahoe"
+  depends_on macos: :tahoe
 
   app "Stow.app"
 

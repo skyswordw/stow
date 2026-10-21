@@ -28,6 +28,6 @@ Locally: `scripts/render-cask.sh 1.0.0` (downloads the DMG) or
 
 - Release tag `v<version>` and asset `Stow-<version>.dmg` with `Stow.app` at the top level
   (`render-cask.sh` fails if the template's URL drifts from that).
-- macOS 26 (Tahoe) or later; bundle ID `app.stow.Stow` and its Engine / Quick Look / Finder extension
+- macOS 26 (Tahoe) or later (`depends_on macos: :tahoe` — Homebrew reads a bare symbol as a minimum); bundle ID `app.stow.Stow` and its Engine / Quick Look / Finder extension
   containers for `zap`.
 - `auto_updates true` stays commented out until Sparkle ships (#35).
