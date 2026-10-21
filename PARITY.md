@@ -29,7 +29,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 
 | ArcZip | Stow | Notes / how Stow goes further |
 | --- | --- | --- |
-| 30+ formats: zip zipx 7z rar cbr tar tgz tbz tbz2 txz gz bz2 xz lzma lz dmg iso cab cpio arj lha lzh xar rpm msi pkg jar apk spk exe(SFX) swf .001 | ✅ via 7zz (needs format registration in Info.plist) | ➕ compressed tarballs (.tar.gz/.tgz/.tar.xz/.tar.bz2/.tar.zst/.tar.lz…) browse as the tar inside: two 7zz piped, nothing written to disk. ➕ “Show Package Contents” on .docx/.xlsx/.pptx/.epub/.pages opens them as the ZIPs they are |
+| 30+ formats: zip zipx 7z rar cbr tar tgz tbz tbz2 txz gz bz2 xz lzma lz dmg iso cab cpio arj lha lzh xar rpm msi pkg jar apk spk exe(SFX) swf .001 | ✅ via 7zz; 34 types registered (Shared/ArchiveTypes.swift), disk images & installers as Alternate | ➕ add zstd/.tar.zst, .deb, .cbz/.cb7, .epub/.docx “Show Package Contents” |
 | Icon, list, **column** views | ✅ icons, list, columns (⌘1 ⌘2 ⌘3) | Column view has a preview column with the file's real content |
 | Folder navigation, back/forward history, Up One Level, path bar | ✅ | ⌘[ ⌘] ⌘↑ ⌘↓; going back selects where you came from; the path bar spans nested archives |
 | Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ✅ | Grid: arrows by row/column, ⇧ extends, ⌘/⇧ click, marquee (⇧/⌘ adds), type-to-select, Return opens, Space Quick Look. No animation on keyboard moves |
@@ -43,6 +43,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | iCloud placeholders: wait for download, cancel | ⬜ | |
 | Open Recent menu, clear history | 🎨 recents are sample · ⬜ | |
 | Read-only preview of DMG/ISO (mount read-only, verify, skip installer extras like the Applications alias) | ⬜ (session D) | |
+| Compressed tarballs; documents that are ZIPs | ✅ | ➕ .tar.gz/.tgz/.tar.xz/.tar.bz2/.tar.zst/.tar.lz… browse as the tar inside (two 7zz piped, nothing written to disk), so the inner-.tar fallback no longer shows for them. ➕ “Show Package Contents” on .docx/.xlsx/.pptx/.epub/.pages opens them as the ZIPs they are |
 
 ## 2. Previews
 
@@ -51,7 +52,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | Space → Quick Look of an entry; arrow keys switch target | ✅ | System Quick Look panel; arrow keys move the browser's selection and the panel follows; several selected page with ← →; ⌘Y too |
 | Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | ✅ previews · ⬜ Settings toggle | Real content read from the archive: images (downsampled), PDF/Office/others (Quick Look), Markdown (rendered), CSV (table), code/logs (monospaced, unwrapped), fonts (the real face), audio (artwork, title, length), video (a frame, length). ➕ 450 ms, then neighbours open instantly |
 | Thumbnails in icon view | ✅ | Quick Look thumbnails, only for tiles on screen, batched into one engine trip; files over 48 MB keep their icon |
-| Quick Look extension for archives in Finder | ⬜ (session B) | ➕ all formats, not just zip/7z/tar; shows Checkup summary |
+| Quick Look extension for archives in Finder | ✅ | ➕ all 34 types, not just zip/7z/tar; one-line Checkup, encryption, sizes; 3 s timeout with fallbacks; Open in Stow. .tar.xz/.tar.gz show the inner .tar until tarballs are unwrapped |
 | Encrypted entries: preview after unlock | ✅ with the hook | Previews use the password that opened a nested archive; for the outer archive, once the password branch stores it |
 | Extract to temp & open with default app | ✅ | Open / double-click / ⌘↓. Files land read-only in a per-window cache (512 MB, least recently used first, keyed by archive identity + entry path + date), removed on close and quit, swept at launch |
 | Drag out to Finder | ✅ | `NSFilePromiseProvider` per item; extracted only when dropped, through the usual staging and no-clobber placement, progress in Next Steps |
