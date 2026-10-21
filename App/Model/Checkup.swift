@@ -135,8 +135,10 @@ nonisolated extension Archive {
             }
             let path = PathContainment.containedPath(for: shown)
             storedPaths[path, default: []].append(item.path)
-            let written = PathContainment.containedPath(for: item.path)
-            if written != path { renamed[written] = path }
+            if item.rawPath != nil {
+                let written = PathContainment.containedPath(for: item.path)
+                if written != path { renamed[written] = path }
+            }
             if MacHelperFiles.matches(item.path) {
                 if !item.isFolder {
                     scan.helperFiles += 1
@@ -161,9 +163,9 @@ nonisolated extension Archive {
         // Explicit folder entries only matter when empty; the rest are synthesized from file paths.
         var ancestors = Set<String>()
         for path in files.keys {
-            var parent = (path as NSString).deletingLastPathComponent
+            var parent = ArchiveEntry.parent(of: path)
             while !parent.isEmpty, ancestors.insert(parent).inserted {
-                parent = (parent as NSString).deletingLastPathComponent
+                parent = ArchiveEntry.parent(of: parent)
             }
         }
         var entries = Array(files.values)

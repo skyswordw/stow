@@ -14,9 +14,13 @@ enum BrowseDemo {
     static func apply(to app: AppState) {
         let defaults = UserDefaults.standard
         Task {
-            let deadline = ContinuousClock.now + .seconds(15)
-            while app.browser == nil, ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(50)) }
+            let started = ContinuousClock.now
+            let deadline = started + .seconds(60)
+            while app.browser == nil, ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(20)) }
             guard let model = app.browser else { return }
+            if defaults.bool(forKey: "StowScrollBenchmark") {
+                print("Opened \(model.archive.entries.count) entries in \(ContinuousClock.now - started)")
+            }
             for path in defaults.string(forKey: "StowNested")?.split(separator: "|").map(String.init) ?? [] {
                 let depth = model.levels.count
                 guard let entry = model.archive.entry(at: path) else { break }
@@ -70,6 +74,11 @@ enum BrowseDemo {
                 }
             }
             if defaults.bool(forKey: "StowEncodingSheet") { model.isChoosingEncoding = true }
+            if defaults.bool(forKey: "StowScrollBenchmark"), let window = NSApp.windows.first(where: { $0.isVisible && !($0 is NSPanel) }) {
+                try? await Task.sleep(for: .seconds(1))
+                print("Scroll (\(model.viewMode.rawValue), \(model.visibleEntries.count) items):", await ScrollBenchmark.run(in: window))
+                fflush(stdout)
+            }
         }
     }
 

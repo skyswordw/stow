@@ -3,10 +3,13 @@ import Foundation
 /// Finder metadata and AppleDouble files that mean nothing off a Mac — or inside an archive.
 nonisolated enum MacHelperFiles {
     static func matches(_ path: String) -> Bool {
-        let components = path.split(separator: "/").map(String.init)
-        guard let name = components.last else { return false }
-        if components.contains("__MACOSX") { return true }
-        if [".DS_Store", ".localized", "Icon\r", ".Spotlight-V100", ".fseventsd", ".Trashes"].contains(name) {
+        // Byte checks first: almost no name has an underscore, and Unicode-aware `contains` is slow
+        // across 100,000 names.
+        if path.utf8.contains(UInt8(ascii: "_")), path.split(separator: "/").contains("__MACOSX") { return true }
+        let trimmed = path.hasSuffix("/") ? path.dropLast() : Substring(path)
+        let name = trimmed.lastIndex(of: "/").map { trimmed[trimmed.index(after: $0)...] } ?? trimmed
+        guard !name.isEmpty else { return false }
+        if [".DS_Store", ".localized", "Icon\r", ".Spotlight-V100", ".fseventsd", ".Trashes"].contains(String(name)) {
             return true
         }
         return name.hasPrefix("._")

@@ -10,9 +10,10 @@ import CryptoKit
 /// crashed run left behind is swept on the next launch. Files are read-only: edits made in another
 /// app can't silently vanish with the cache.
 final class PreviewCache {
-    static let budget: Int64 = 512 << 20
+    static let defaultBudget: Int64 = 512 << 20
 
     let root: URL
+    let budget: Int64
     private struct Item {
         let url: URL
         let size: Int64
@@ -28,8 +29,9 @@ final class PreviewCache {
     private static let parent = FileManager.default.temporaryDirectory.appending(path: "Previews", directoryHint: .isDirectory)
     private static var swept = false
 
-    init(engine: ArchiveEngine = .shared) {
+    init(engine: ArchiveEngine = .shared, budget: Int64 = PreviewCache.defaultBudget) {
         self.engine = engine
+        self.budget = budget
         if !Self.swept {
             Self.swept = true
             try? FileManager.default.removeItem(at: Self.parent)
@@ -179,9 +181,9 @@ final class PreviewCache {
 
     private func evict(keeping fresh: Set<String>) {
         var total = usedBytes
-        guard total > Self.budget else { return }
+        guard total > budget else { return }
         for (key, item) in items.sorted(by: { $0.value.lastUse < $1.value.lastUse }) {
-            guard total > Self.budget else { break }
+            guard total > budget else { break }
             guard !fresh.contains(key), pins[item.url.path] == nil else { continue }
             Self.removeTree(item.url.deletingLastPathComponent())
             items[key] = nil

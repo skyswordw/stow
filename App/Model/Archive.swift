@@ -170,15 +170,23 @@ nonisolated struct ArchiveEntry: Identifiable, Hashable, Sendable {
     var isHelper = false
 
     var id: String { path }
-    var name: String { (path as NSString).lastPathComponent }
-    var parent: String { (path as NSString).deletingLastPathComponent }
+    var name: String { path.lastIndex(of: "/").map { String(path[path.index(after: $0)...]) } ?? path }
+    var parent: String { Self.parent(of: path) }
+
+    /// Paths here are already contained (no leading, trailing or doubled `/`), so this is plain
+    /// string work — no bridging, which matters across 100,000 entries.
+    static func parent(of path: String) -> String {
+        path.lastIndex(of: "/").map { String(path[..<$0]) } ?? ""
+    }
     var kind: EntryKind { isFolder && !isPackage ? .folder : EntryKind.infer(fromName: name) }
 
     /// A folder macOS shows as one file: apps, bundles, `.rtfd`. Opened with Show Package Contents.
     var isPackage: Bool {
         guard isFolder else { return false }
         let ext = (name as NSString).pathExtension
-        guard !ext.isEmpty, let type = UTType(filenameExtension: ext) else { return false }
+        guard !ext.isEmpty, let type = UTType(filenameExtension: ext, conformingTo: .directory), !type.isDynamic else {
+            return false
+        }
         return type.conforms(to: .package) || type.conforms(to: .bundle)
     }
 
@@ -260,7 +268,7 @@ nonisolated struct Archive: Identifiable, Sendable {
                 folders[parent] = (current.size + file.size,
                                    current.packed + file.packedSize,
                                    max(current.modified, file.modified))
-                parent = (parent as NSString).deletingLastPathComponent
+                parent = ArchiveEntry.parent(of: parent)
             }
         }
         var visible = files.filter { !$0.isFolder || folders[$0.path] == nil }
@@ -275,7 +283,7 @@ nonisolated struct Archive: Identifiable, Sendable {
             while !parent.isEmpty, known.insert(parent).inserted {
                 helperEntries.append(ArchiveEntry(path: parent, isFolder: true, size: 0, packedSize: 0,
                                                   modified: helper.modified, isHelper: true))
-                parent = (parent as NSString).deletingLastPathComponent
+                parent = ArchiveEntry.parent(of: parent)
             }
         }
         index = ArchiveIndex(visible: visible, helpers: helperEntries)
