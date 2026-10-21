@@ -175,7 +175,7 @@ enum ArchiveSaver {
         } onCancel: { state.cancel() }
     }
 
-    private final class CoordinationState: Sendable {
+    private nonisolated final class CoordinationState: Sendable {
         private let lock = Mutex<(cancelled: Bool, task: Task<ArchiveListing, any Error>?)>((false, nil))
         func start(_ task: Task<ArchiveListing, any Error>) {
             let cancelled = lock.withLock { state in
@@ -192,14 +192,14 @@ enum ArchiveSaver {
         }
     }
 
-    private final class ResultBox: Sendable {
+    private nonisolated final class ResultBox: Sendable {
         private let lock = Mutex<Result<ArchiveListing, any Error>?>(nil)
         func set(_ value: Result<ArchiveListing, any Error>) { lock.withLock { $0 = value } }
         func get() -> Result<ArchiveListing, any Error>? { lock.withLock { $0 } }
     }
 
     /// Lets a progress callback cancel the task it reports for (fault injection).
-    private final class TaskSlot<Success: Sendable>: Sendable {
+    private nonisolated final class TaskSlot<Success: Sendable>: Sendable {
         private let lock = Mutex<Task<Success, any Error>?>(nil)
         func set(_ task: Task<Success, any Error>) { lock.withLock { $0 = task } }
         func cancel() { lock.withLock { $0 }?.cancel() }
