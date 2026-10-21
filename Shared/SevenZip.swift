@@ -39,7 +39,8 @@ nonisolated struct SevenZip: Sendable {
         defer { input.cleanUp() }
         let result = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor, password: password)
         try Self.check(result)
-        guard var listing = Self.parseListing(result.output) else {
+        let fast = Self.parseListingFast(result.output)
+        guard var listing = fast?.listing ?? Self.parseListing(result.output) else {
             throw EngineError(.notAnArchive)
         }
         if Self.isTarball(name: (input.path as NSString).lastPathComponent),
@@ -47,7 +48,7 @@ nonisolated struct SevenZip: Sendable {
             listing.entries = entries // still "gzip", "xz"…: the format reads as TAR.GZ, TAR.XZ
             return listing
         }
-        let legacy = listing.type == "zip" ? Self.legacyNames(in: result.output) : []
+        let legacy = fast?.legacy ?? []
         if !legacy.isEmpty {
             // Under a Latin-1 locale 7-Zip maps each byte of an unflagged name to the character with
             // the same number, so the bytes come back intact. Only for reading: the file system
@@ -58,37 +59,12 @@ nonisolated struct SevenZip: Sendable {
                                            password: password)
             if raw.status == 0, let rawListing = Self.parseListing(raw.output),
                rawListing.entries.count == listing.entries.count {
-                for index in listing.entries.indices where legacy.contains(listing.entries[index].path) {
+                for index in legacy {
                     listing.entries[index].rawPath = rawListing.entries[index].path.data(using: .isoLatin1)
                 }
             }
         }
         return listing
-    }
-
-    /// Paths of ZIP entries stored without the UTF-8 flag (7-Zip lists it under "Characteristics")
-    /// whose names aren't ASCII: their bytes are in some older encoding nobody wrote down.
-    static func legacyNames(in output: String) -> Set<String> {
-        var names = Set<String>()
-        var path: String?
-        var flagged = false
-        func flush() {
-            if let path, !flagged, !path.allSatisfy(\.isASCII) { names.insert(path) }
-            path = nil
-            flagged = false
-        }
-        for line in output.split(separator: "\n", omittingEmptySubsequences: false) {
-            if line.isEmpty || line == "\r" {
-                flush()
-            } else if line.hasPrefix("Path = ") {
-                flush()
-                path = String(line.dropFirst("Path = ".count)).trimmingCharacters(in: .newlines)
-            } else if line.hasPrefix("Characteristics = ") {
-                flagged = line.contains("UTF8")
-            }
-        }
-        flush()
-        return names
     }
 
     func extract(_ archive: URL, into directory: URL, paths: [String] = [], password: String? = nil,

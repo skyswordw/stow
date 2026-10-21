@@ -166,11 +166,17 @@ final class BrowserModel {
         let entries = level.archive.index.visible + level.archive.index.helpers
         let search = level.search
         Task { [weak self, weak level] in
+            var lastSearch = ContinuousClock.now
             await search.build(entries) { count in
                 await MainActor.run {
                     level?.indexed = count
-                    // Results grow as the index does; search the newly indexed part too.
-                    if let self, self.isSearching, self.level === level { self.runSearch() }
+                    // Results grow as the index does. Search the newly indexed part now and then,
+                    // not every chunk: replacing 100,000 results costs the list a moment each time.
+                    let complete = count >= search.total
+                    guard let self, self.isSearching, self.level === level,
+                          complete || ContinuousClock.now - lastSearch > .milliseconds(750) else { return }
+                    lastSearch = .now
+                    self.runSearch()
                 }
             }
         }

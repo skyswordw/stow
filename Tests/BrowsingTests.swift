@@ -421,3 +421,27 @@ struct TarballTests {
         #expect(listing.type == "gzip" && listing.entries.count == 1)
     }
 }
+
+@Suite("Fast listing")
+struct FastListingTests {
+    @Test func readsTheSameAsTheGeneralParser() throws {
+        let fast = try #require(SevenZip.parseListingFast(ListingParserTests.output.replacingOccurrences(of: "Type = 7z", with: "Type = 7z")))
+        let general = try #require(SevenZip.parseListing(ListingParserTests.output))
+        #expect(fast.listing.entries == general.entries)
+        #expect(fast.listing.type == general.type && fast.listing.physicalSize == general.physicalSize)
+    }
+
+    @Test func leavesOtherFormatsToTheGeneralParser() {
+        let gzip = "--\nPath = a.gz\nType = gzip\n\n----------\nPath = a\nSize = 3\n\n"
+        #expect(SevenZip.parseListingFast(gzip) == nil)
+        #expect(SevenZip.parseListing(gzip)?.entries.count == 1)
+    }
+
+    @Test func flagsUnflaggedNonASCIIZipNames() throws {
+        let zip = "--\nPath = a.zip\nType = zip\n\n----------\nPath = é.txt\nSize = 1\nCharacteristics = \n\n"
+            + "Path = ü.txt\nSize = 1\nCharacteristics = UTF8\n\nPath = a.txt\nSize = 1\n\nPath = Icon\r\nSize = 0\n\n"
+        let parsed = try #require(SevenZip.parseListingFast(zip))
+        #expect(parsed.legacy == [0])
+        #expect(parsed.listing.entries.map(\.path) == ["é.txt", "ü.txt", "a.txt", "Icon\r"])
+    }
+}

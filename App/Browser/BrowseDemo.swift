@@ -75,7 +75,8 @@ enum BrowseDemo {
             }
             if defaults.bool(forKey: "StowEncodingSheet") { model.isChoosingEncoding = true }
             if defaults.bool(forKey: "StowScrollBenchmark"), let window = NSApp.windows.first(where: { $0.isVisible && !($0 is NSPanel) }) {
-                try? await Task.sleep(for: .seconds(1))
+                while model.level.indexed < model.level.search.total { try? await Task.sleep(for: .milliseconds(50)) }
+                try? await Task.sleep(for: .seconds(1.5))
                 print("Scroll (\(model.viewMode.rawValue), \(model.visibleEntries.count) items):", await ScrollBenchmark.run(in: window))
                 fflush(stdout)
             }

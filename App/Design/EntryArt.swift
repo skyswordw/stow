@@ -7,10 +7,24 @@ struct NativeIcon: View {
     let type: UTType
 
     var body: some View {
-        Image(nsImage: NSWorkspace.shared.icon(for: type))
+        Image(decorative: Self.bitmap(for: type), scale: 2)
             .resizable()
             .interpolation(.high)
             .aspectRatio(contentMode: .fit)
+    }
+
+    /// Drawn once per type at 128 pt: a multi-resolution icon redrawn for every tile that scrolls
+    /// into a 100,000-item grid is a dropped frame.
+    private static var bitmaps: [String: CGImage] = [:]
+
+    static func bitmap(for type: UTType) -> CGImage {
+        if let hit = bitmaps[type.identifier] { return hit }
+        let icon = NSWorkspace.shared.icon(for: type)
+        var rect = CGRect(x: 0, y: 0, width: 256, height: 256)
+        let image = icon.cgImage(forProposedRect: &rect, context: nil, hints: nil)
+            ?? NSImage(size: CGSize(width: 1, height: 1)).cgImage(forProposedRect: nil, context: nil, hints: nil)!
+        bitmaps[type.identifier] = image
+        return image
     }
 }
 
