@@ -11,9 +11,13 @@ struct BrowserView: View {
                 .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 320)
                 // Search sits at the top of the sidebar, beside the folders it searches across,
                 // which keeps the inspector's toolbar section to just its toggle.
-                .searchable(text: $model.query, placement: .sidebar, prompt: "Search \(model.archive.files.count) files")
+                .searchable(text: $model.query, placement: .sidebar, prompt: searchPrompt)
         } detail: {
             content
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) { PathBar(model: model) }
                 .overlay(alignment: .bottom) { nextSteps }
                 .navigationTitle(model.title)
                 .navigationSubtitle(model.subtitle)
@@ -31,21 +35,45 @@ struct BrowserView: View {
         }
         .toolbar { toolbar }
         .onKeyPress(.escape) {
+            if model.quickLook.isVisible {
+                model.quickLook.close()
+                return .handled
+            }
             guard !model.selection.isEmpty else { return .ignored }
-            model.selection = []
+            model.select([])
             return .handled
         }
+        .onChange(of: model.selection) { model.quickLook.selectionChanged() }
+        .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
+        .background {
+            WindowReader { window in
+                model.quickLook.attach(to: window)
+                model.dragOut.install(in: window)
+            }
+        }
+    }
+
+    private var searchPrompt: String {
+        model.indexingProgress ?? "Search \(model.archive.files.count.formatted()) files"
     }
 
     @ViewBuilder
     private var content: some View {
-        if model.visibleEntries.isEmpty {
-            ContentUnavailableView.search(text: model.query)
+        if model.isSearching, model.visibleEntries.isEmpty {
+            if let progress = model.indexingProgress {
+                ContentUnavailableView(progress, systemImage: "magnifyingglass",
+                                       description: Text("You can keep browsing while Stow finishes reading the names."))
+            } else {
+                ContentUnavailableView.search(text: model.query)
+            }
+        } else if model.visibleEntries.isEmpty, model.viewMode != .columns {
+            ContentUnavailableView("Empty Folder", systemImage: "folder")
         } else {
             // View-mode switches are keyboard-speed actions: no animation.
-            switch model.viewMode {
+            switch model.isSearching && model.viewMode == .columns ? .list : model.viewMode {
             case .grid: ContentGrid(model: model)
             case .list: ContentList(model: model)
+            case .columns: ContentColumns(model: model)
             }
         }
     }
@@ -59,22 +87,29 @@ struct BrowserView: View {
                     .transition(.rise(reduceMotion: reduceMotion))
             }
         }
-        .padding(.bottom, Space.l)
+        .padding(.bottom, Space.l + PathBar.height)
         .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: visible)
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
-            Button("Enclosing Folder", systemImage: "chevron.left") { model.goUp() }
-                .disabled(model.folder.isEmpty || model.isSearching)
-                .keyboardShortcut(.upArrow, modifiers: .command)
+            ControlGroup {
+                Button("Back", systemImage: "chevron.left") { model.goBack() }
+                    .disabled(!model.canGoBack)
+                    .help("See the previous place")
+                Button("Forward", systemImage: "chevron.right") { model.goForward() }
+                    .disabled(!model.canGoForward)
+                    .help("See the next place")
+            }
+            .controlGroupStyle(.navigation)
         }
 
         ToolbarItem {
             Picker("View", selection: $model.viewMode) {
                 Label("Icons", systemImage: "square.grid.2x2").tag(BrowserModel.ViewMode.grid)
                 Label("List", systemImage: "list.bullet").tag(BrowserModel.ViewMode.list)
+                Label("Columns", systemImage: "rectangle.split.3x1").tag(BrowserModel.ViewMode.columns)
             }
             .pickerStyle(.segmented)
         }
@@ -114,5 +149,26 @@ struct BrowserView: View {
             model.showInspector.toggle()
         }
         .keyboardShortcut("i", modifiers: [.command, .option])
+    }
+}
+
+/// Hands over the hosting window once it exists (for the responder chain and drag sessions).
+struct WindowReader: NSViewRepresentable {
+    let onWindow: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView { Reader(onWindow: onWindow) }
+    func updateNSView(_ view: NSView, context: Context) {}
+
+    private final class Reader: NSView {
+        let onWindow: (NSWindow) -> Void
+        init(onWindow: @escaping (NSWindow) -> Void) {
+            self.onWindow = onWindow
+            super.init(frame: .zero)
+        }
+        required init?(coder: NSCoder) { fatalError() }
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let window { onWindow(window) }
+        }
     }
 }

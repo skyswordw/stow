@@ -36,6 +36,7 @@ enum Extraction {
         }
         try await engine.receive(output, into: root)
         if Task.isCancelled { throw EngineError(.cancelled) }
+        LegacyNames.repair(source.renamed, in: root)
         var report = output.report
         let second = try await audit(root)
         report.removedLinks += second.removedLinks.filter { !report.removedLinks.contains($0) }

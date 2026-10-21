@@ -73,6 +73,10 @@ nonisolated struct ListedEntry: Codable, Hashable, Sendable {
     var packedSize: Int64?
     var modified: Date?
     var isEncrypted: Bool = false
+    /// The stored name's bytes, when the archive doesn't say how they're encoded (ZIP entries
+    /// without the UTF-8 flag whose names aren't ASCII). `path` is then 7-Zip's lossy reading of
+    /// them — still the name to ask for when extracting — and Stow decodes these bytes for display.
+    var rawPath: Data?
 }
 
 nonisolated struct ArchiveListing: Codable, Sendable {

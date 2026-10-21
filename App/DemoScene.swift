@@ -90,6 +90,8 @@ enum DemoScene {
             break
         }
 
+        if scene == "open" { BrowseDemo.apply(to: app) }
+
         if defaults.object(forKey: "StowInspector") != nil {
             app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
         }
@@ -105,7 +107,8 @@ enum DemoScene {
 
         if defaults.bool(forKey: "StowSnapshot") {
             Task {
-                try? await Task.sleep(for: .seconds(1.6))
+                let delay = defaults.double(forKey: "StowSnapshotDelay")
+                try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
                 for (index, window) in NSApp.windows.filter(\.isVisible).enumerated() {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
                     let name = index == 0 ? "\(scene)-\(kind)" : "\(scene)-\(kind)\(index)"

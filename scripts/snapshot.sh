@@ -6,7 +6,7 @@ cd "${0:a:h}/.."
 scene=${1:?scene}; look=${2:-light}; size=${3:-}
 app=build/Build/Products/Debug/Stow.app/Contents/MacOS/Stow
 mkdir -p snapshots
-pkill -x Stow 2>/dev/null || true; sleep 0.3
+pkill -x Stow 2>/dev/null || true; while pgrep -xq Stow; do sleep 0.1; done
 style=(-StowAppearance $look); [[ -n $size ]] && style+=(-StowWindowSize $size); style+=("${@:4}")
 "$app" -StowScene "$scene" -StowSnapshot YES $style 2>/dev/null | while read -r file; do
   out="snapshots/$scene-$look-${${file:t}#$scene-}"

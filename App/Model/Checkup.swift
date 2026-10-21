@@ -114,23 +114,41 @@ nonisolated enum Checkup {
 
 nonisolated extension Archive {
     /// Maps an engine listing into the browser's model: names are shown where they will actually be
-    /// written, folders are synthesized from file paths, and the listing-time Checkup runs.
-    init(listing: ArchiveListing, url: URL) {
+    /// written, folders are synthesized from file paths, and the listing-time Checkup runs. Names
+    /// stored in an older encoding are read with `nameEncoding` (nil: whichever suits each name).
+    init(listing: ArchiveListing, url: URL, name: String? = nil, nameEncoding: NameEncoding? = nil) {
         let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
         let fallbackDate = values?.contentModificationDate ?? .now
         var scan = Checkup.ListingScan(archiveSize: listing.physicalSize ?? Int64(values?.fileSize ?? 0))
         var storedPaths: [String: [String]] = [:]
+        var renamed: [String: String] = [:]
+        var legacyNames: [Data] = []
         var files: [String: ArchiveEntry] = [:]
+        var helpers: [String: ArchiveEntry] = [:]
         var explicitFolders: [String: Date] = [:]
 
         for item in listing.entries {
+            var shown = item.path
+            if let raw = item.rawPath {
+                shown = NameEncoding.decode(raw, as: nameEncoding)
+                if String(data: raw, encoding: .utf8) == nil, legacyNames.count < 200 { legacyNames.append(raw) }
+            }
+            let path = PathContainment.containedPath(for: shown)
+            storedPaths[path, default: []].append(item.path)
+            if item.rawPath != nil {
+                let written = PathContainment.containedPath(for: item.path)
+                if written != path { renamed[written] = path }
+            }
             if MacHelperFiles.matches(item.path) {
-                if !item.isFolder { scan.helperFiles += 1 }
+                if !item.isFolder {
+                    scan.helperFiles += 1
+                    helpers[path] = ArchiveEntry(path: path, isFolder: false, size: item.size,
+                                                 packedSize: item.packedSize ?? 0,
+                                                 modified: item.modified ?? fallbackDate, isHelper: true)
+                }
                 continue
             }
-            let path = PathContainment.containedPath(for: item.path)
-            storedPaths[path, default: []].append(item.path)
-            if PathContainment.escapes(item.path) { scan.escapingPaths.append(item.path) }
+            if PathContainment.escapes(shown) { scan.escapingPaths.append(shown) }
             if item.isSymlink { scan.links.append(item) }
             if item.isEncrypted { scan.encryptedFiles += 1 }
             if item.isFolder {
@@ -145,9 +163,9 @@ nonisolated extension Archive {
         // Explicit folder entries only matter when empty; the rest are synthesized from file paths.
         var ancestors = Set<String>()
         for path in files.keys {
-            var parent = (path as NSString).deletingLastPathComponent
+            var parent = ArchiveEntry.parent(of: path)
             while !parent.isEmpty, ancestors.insert(parent).inserted {
-                parent = (parent as NSString).deletingLastPathComponent
+                parent = ArchiveEntry.parent(of: parent)
             }
         }
         var entries = Array(files.values)
@@ -159,12 +177,17 @@ nonisolated extension Archive {
         scan.caseCollisions = Dictionary(grouping: files.keys) { $0.lowercased() }
             .values.filter { $0.count > 1 }.map { $0.sorted() }.sorted { $0[0] < $1[0] }
 
-        self.init(name: url.lastPathComponent,
-                  format: ArchiveFormat(sevenZipType: listing.type, name: url.lastPathComponent),
+        let name = name ?? url.lastPathComponent
+        self.init(name: name,
+                  format: ArchiveFormat(sevenZipType: listing.type, name: name),
                   isEncrypted: scan.encryptedFiles > 0,
                   files: entries,
+                  helpers: Array(helpers.values),
                   checkup: Checkup.findings(for: scan))
-        source = ArchiveSource(url: url, storedPaths: storedPaths)
+        source = ArchiveSource(url: url, renamed: renamed, legacyNames: legacyNames,
+                               nameEncoding: nameEncoding,
+                               listing: listing.entries.contains { $0.rawPath != nil } ? listing : nil,
+                               storedPaths: storedPaths)
     }
 
     /// The archive's own names for these entries; a folder stands for everything under it.
@@ -175,7 +198,7 @@ nonisolated extension Archive {
             paths += source.storedPaths[entry.path] ?? []
             if entry.isFolder {
                 let prefix = entry.path + "/"
-                for (path, stored) in source.storedPaths where path.hasPrefix(prefix) {
+                for (path, stored) in source.storedPaths where path.hasPrefix(prefix) && !MacHelperFiles.matches(path) {
                     paths += stored
                 }
             }

@@ -3,58 +3,166 @@ import SwiftUI
 
 // MARK: - Grid
 
+/// Fixed-size tiles in computed rows, so every tile's frame is known without measuring: keyboard
+/// Up/Down, the marquee and scroll-into-view are arithmetic, and a lazy stack of rows keeps
+/// 100,000 entries smooth.
+struct GridMetrics {
+    static let minimumTile: CGFloat = 128
+    static let maximumTile: CGFloat = 176
+    static let tileHeight: CGFloat = 158
+    static let spacing = Space.l
+    static let inset = Space.xl
+
+    let columns: Int
+    let tileWidth: CGFloat
+
+    init(width: CGFloat) {
+        let usable = max(width - Self.inset * 2, Self.minimumTile)
+        columns = max(1, Int((usable + Self.spacing) / (Self.minimumTile + Self.spacing)))
+        tileWidth = min(Self.maximumTile, (usable - Self.spacing * CGFloat(columns - 1)) / CGFloat(columns))
+    }
+
+    func rows(for count: Int) -> Int { (count + columns - 1) / columns }
+
+    func frame(of index: Int) -> CGRect {
+        CGRect(x: Self.inset + CGFloat(index % columns) * (tileWidth + Self.spacing),
+               y: Self.inset + CGFloat(index / columns) * (Self.tileHeight + Self.spacing),
+               width: tileWidth, height: Self.tileHeight)
+    }
+
+    /// Tiles the rectangle touches, without visiting the ones it can't.
+    func indices(in rect: CGRect, count: Int) -> [Int] {
+        let rowSpan = Self.tileHeight + Self.spacing
+        let first = max(0, Int((rect.minY - Self.inset) / rowSpan))
+        let last = min(rows(for: count) - 1, Int((rect.maxY - Self.inset) / rowSpan))
+        guard first <= last else { return [] }
+        return (first...last).flatMap { row in
+            (0..<columns).map { row * columns + $0 }.filter { $0 < count && frame(of: $0).intersects(rect) }
+        }
+    }
+}
+
 struct ContentGrid: View {
     @Bindable var model: BrowserModel
-
-    private let columns = [GridItem(.adaptive(minimum: 128, maximum: 164), spacing: Space.l, alignment: .top)]
+    @State private var hover = HoverPreviewModel()
+    @State private var marquee: (start: CGPoint, current: CGPoint, base: Set<ArchiveEntry.ID>, toggling: Bool)?
+    @FocusState private var isFocused: Bool
 
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: Space.l) {
-                ForEach(model.visibleEntries) { entry in
-                    GridTile(entry: entry,
-                             isSelected: model.selection.contains(entry.id),
-                             showsPath: model.isSearching)
-                        .onTapGesture(count: 2) { model.open(entry) }
-                        // Select immediately — don't make single clicks wait for double-click detection.
-                        .simultaneousGesture(TapGesture().onEnded { select(entry) })
-                        .contextMenu { EntryMenu(model: model, entry: entry) }
+        GeometryReader { proxy in
+            let metrics = GridMetrics(width: proxy.size.width)
+            let entries = model.visibleEntries
+            ScrollViewReader { scroller in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: GridMetrics.spacing) {
+                        ForEach(0..<metrics.rows(for: entries.count), id: \.self) { row in
+                            HStack(alignment: .top, spacing: GridMetrics.spacing) {
+                                ForEach(entries[row * metrics.columns..<min(entries.count, (row + 1) * metrics.columns)]) { entry in
+                                    tile(entry)
+                                        .frame(width: metrics.tileWidth, height: GridMetrics.tileHeight, alignment: .top)
+                                }
+                            }
+                            .id(row)
+                        }
+                    }
+                    .padding(GridMetrics.inset)
+                    .padding(.bottom, 64) // room for the Next Steps capsule
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .topLeading)
+                    .background { marqueeSurface(metrics, count: entries.count) }
+                    .overlay(alignment: .topLeading) { marqueeRectangle }
+                    .coordinateSpace(.named("grid"))
+                }
+                .onChange(of: model.scrollTarget) { _, target in
+                    guard let target, let index = model.position(of: target) else { return }
+                    // Keyboard-driven: no animation.
+                    scroller.scrollTo(index / metrics.columns)
+                    model.scrollTarget = nil
                 }
             }
-            .padding(Space.xl)
-            .padding(.bottom, 64) // room for the Next Steps capsule
+            .onAppear { model.gridColumns = metrics.columns }
+            .onChange(of: metrics.columns) { _, columns in model.gridColumns = columns }
         }
-        .background {
-            Color.clear
-                .contentShape(.rect)
-                .onTapGesture { model.selection = [] }
+        .focusable()
+        .focusEffectDisabled()
+        .focused($isFocused)
+        .onAppear { isFocused = true }
+        .browserKeys(model)
+        .onChange(of: model.demoHover, initial: true) { if let id = model.demoHover { hover.present(id) } }
+    }
+
+    private func tile(_ entry: ArchiveEntry) -> some View {
+        GridTile(entry: entry, model: model,
+                 isSelected: model.selection.contains(entry.id),
+                 showsPath: model.isSearching)
+            .onTapGesture(count: 2) { model.open(entry) }
+            // Select immediately — don't make single clicks wait for double-click detection.
+            .simultaneousGesture(TapGesture().onEnded {
+                isFocused = true
+                model.click(entry, modifiers: NSEvent.modifierFlags)
+            })
+            .hoverPreview(for: entry, model: hover, browser: model)
+            .contextMenu { EntryMenu(model: model, entry: entry) }
+    }
+
+    /// Clicking empty space clears the selection; dragging across it draws the marquee.
+    private func marqueeSurface(_ metrics: GridMetrics, count: Int) -> some View {
+        Color.clear
+            .contentShape(.rect)
+            .onTapGesture {
+                isFocused = true
+                model.select([])
+            }
+            .gesture(
+                DragGesture(minimumDistance: 3, coordinateSpace: .named("grid"))
+                    .onChanged { drag in
+                        isFocused = true
+                        if marquee == nil {
+                            let flags = NSEvent.modifierFlags
+                            let toggling = flags.contains(.command) || flags.contains(.shift)
+                            marquee = (drag.startLocation, drag.location, toggling ? model.selection : [], toggling)
+                        }
+                        marquee?.current = drag.location
+                        guard let marquee else { return }
+                        let ids = metrics.indices(in: rectangle(marquee.start, marquee.current), count: count)
+                            .map { model.visibleEntries[$0].id }
+                        model.marquee(Set(ids), base: marquee.base, toggling: marquee.toggling)
+                    }
+                    .onEnded { _ in marquee = nil }
+            )
+    }
+
+    @ViewBuilder
+    private var marqueeRectangle: some View {
+        if let marquee {
+            let rect = rectangle(marquee.start, marquee.current)
+            Rectangle()
+                .fill(Color.accentColor.opacity(0.12))
+                .strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 1)
+                .frame(width: rect.width, height: rect.height)
+                .offset(x: rect.minX, y: rect.minY)
+                .allowsHitTesting(false)
         }
     }
 
-    private func select(_ entry: ArchiveEntry) {
-        let flags = NSEvent.modifierFlags
-        if flags.contains(.command) {
-            if model.selection.contains(entry.id) { model.selection.remove(entry.id) } else { model.selection.insert(entry.id) }
-        } else if flags.contains(.shift) {
-            model.selection.insert(entry.id)
-        } else {
-            model.selection = [entry.id]
-        }
+    private func rectangle(_ a: CGPoint, _ b: CGPoint) -> CGRect {
+        CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
     }
 }
 
 private struct GridTile: View {
     let entry: ArchiveEntry
+    let model: BrowserModel
     let isSelected: Bool
     let showsPath: Bool
 
     var body: some View {
         VStack(spacing: Space.s) {
-            EntryThumbnail(entry: entry, style: .tile)
+            LiveThumbnail(entry: entry, model: model)
                 .frame(height: 84)
                 .frame(maxWidth: .infinity)
                 .padding(Space.s)
                 .background(.primary.opacity(isSelected ? 0.08 : 0), in: .rect(cornerRadius: Radius.card))
+                .opacity(entry.isHelper ? 0.55 : 1)
 
             VStack(spacing: 2) {
                 Text(entry.name)
@@ -80,6 +188,48 @@ private struct GridTile: View {
     }
 }
 
+// MARK: - Keys
+
+extension View {
+    /// The browser's keyboard, shared by the icon grid and column view (the list's table brings
+    /// its own arrows): arrows move (⇧ extends), Space is Quick Look, Return opens, letters jump.
+    func browserKeys(_ model: BrowserModel) -> some View {
+        self
+            .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow]) { press in
+                guard press.modifiers.isDisjoint(with: [.command, .option, .control]) else { return .ignored }
+                let direction: BrowserModel.Direction = switch press.key {
+                case .upArrow: .up
+                case .downArrow: .down
+                case .leftArrow: .left
+                default: .right
+                }
+                model.move(direction, extending: press.modifiers.contains(.shift))
+                return .handled
+            }
+            .quickLookKeys(model)
+            .onKeyPress(characters: .alphanumerics.union(.punctuationCharacters), phases: .down) { press in
+                guard press.modifiers.isDisjoint(with: [.command, .option, .control]) else { return .ignored }
+                model.typeSelect(press.characters)
+                return .handled
+            }
+    }
+
+    /// Space and Return, for every view mode.
+    func quickLookKeys(_ model: BrowserModel) -> some View {
+        self
+            .onKeyPress(.space) {
+                model.toggleQuickLook()
+                return .handled
+            }
+            .onKeyPress(.return) {
+                let selected = model.selectedEntries
+                guard selected.count == 1 else { return .ignored }
+                model.open(selected[0])
+                return .handled
+            }
+    }
+}
+
 // MARK: - List
 
 struct ContentList: View {
@@ -87,58 +237,69 @@ struct ContentList: View {
     @State private var hover = HoverPreviewModel()
 
     var body: some View {
-        Table(model.visibleEntries, selection: $model.selection) {
-            TableColumn("Name") { entry in
-                HStack(spacing: Space.s) {
-                    EntryThumbnail(entry: entry, style: .row)
-                        .frame(width: 18, height: 18)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(entry.name).lineLimit(1)
-                        if model.isSearching {
-                            Text(entry.parent.isEmpty ? "Top level" : entry.parent)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+        ScrollViewReader { scroller in
+            Table(model.visibleEntries, selection: $model.selection) {
+                TableColumn("Name") { entry in
+                    HStack(spacing: Space.s) {
+                        RowIcon(entry: entry, model: model)
+                            .frame(width: 18, height: 18)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(entry.name).lineLimit(1)
+                            if model.isSearching {
+                                Text(entry.parent.isEmpty ? "Top level" : entry.parent)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
+                        Spacer(minLength: 0)
                     }
-                    Spacer(minLength: 0)
+                    .opacity(entry.isHelper ? 0.55 : 1)
+                    .contentShape(.rect)
+                    .hoverPreview(for: entry, model: hover, browser: model)
                 }
-                .contentShape(.rect)
-                .hoverPreview(for: entry, model: hover)
-            }
-            .width(min: 220, ideal: 320)
+                .width(min: 220, ideal: 320)
 
-            TableColumn("Size") { entry in
-                Text(entry.size.bytes)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            .width(min: 70, ideal: 90)
-            .alignment(.trailing)
+                TableColumn("Size") { entry in
+                    Text(entry.size.bytes)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .width(min: 70, ideal: 90)
+                .alignment(.trailing)
 
-            TableColumn("Kind") { entry in
-                Text(entry.kind.label).foregroundStyle(.secondary)
-            }
-            .width(min: 80, ideal: 120)
+                TableColumn("Kind") { entry in
+                    Text(entry.kindDescription).foregroundStyle(.secondary).lineLimit(1)
+                }
+                .width(min: 80, ideal: 120)
 
-            TableColumn("Modified") { entry in
-                Text(entry.modified, format: .dateTime.day().month(.abbreviated).year())
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
+                TableColumn("Modified") { entry in
+                    Text(entry.modified, format: .dateTime.day().month(.abbreviated).year())
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .width(min: 90, ideal: 120)
             }
-            .width(min: 90, ideal: 120)
+            .contextMenu(forSelectionType: ArchiveEntry.ID.self) { ids in
+                if let id = ids.first, let entry = model.archive.entry(at: id) {
+                    EntryMenu(model: model, entry: entry)
+                }
+            } primaryAction: { ids in
+                if ids.count == 1, let id = ids.first, let entry = model.archive.entry(at: id) {
+                    model.open(entry)
+                }
+            }
+            .alternatingRowBackgrounds(.disabled)
+            .safeAreaPadding(.bottom, 56)
+            .quickLookKeys(model)
+            .onChange(of: model.selection) { model.selectionDidChange() }
+            .onChange(of: model.demoHover, initial: true) { if let id = model.demoHover { hover.present(id) } }
+            .onChange(of: model.scrollTarget) { _, target in
+                guard let target else { return }
+                scroller.scrollTo(target)
+                model.scrollTarget = nil
+            }
         }
-        .contextMenu(forSelectionType: ArchiveEntry.ID.self) { ids in
-            if let id = ids.first, let entry = model.archive.entry(at: id) {
-                EntryMenu(model: model, entry: entry)
-            }
-        } primaryAction: { ids in
-            if ids.count == 1, let id = ids.first, let entry = model.archive.entry(at: id) {
-                model.open(entry)
-            }
-        }
-        .alternatingRowBackgrounds(.disabled)
-        .safeAreaPadding(.bottom, 56)
     }
 }
 
@@ -147,7 +308,23 @@ struct EntryMenu: View {
     let entry: ArchiveEntry
 
     var body: some View {
-        let steps = NextStep.suggestions(for: [entry])
+        let real = model.archive.source != nil
+        if real, !entry.isFolder, entry.kind != .archive {
+            Button("Open", systemImage: "arrow.up.forward.app") { model.openWithDefaultApp([entry]) }
+        }
+        if real, entry.isPackage || entry.kind == .archive || Self.zippedDocuments.contains((entry.name as NSString).pathExtension.lowercased()) {
+            Button(entry.kind == .archive ? "Open Inside" : "Show Package Contents", systemImage: "shippingbox") {
+                model.showPackageContents(entry)
+            }
+        }
+        if real {
+            Button("Quick Look", systemImage: "eye") {
+                if !model.selection.contains(entry.id) { model.select([entry.id]) }
+                model.quickLook.show()
+            }
+            Divider()
+        }
+        let steps = NextStep.suggestions(for: [entry]).filter { !real || ($0 != .quickLook && $0 != .openInside) }
         ForEach(steps) { step in
             Button(step.title, systemImage: step.symbol) { model.run(step, on: [entry]) }
         }
@@ -156,5 +333,13 @@ struct EntryMenu: View {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(entry.name, forType: .string)
         }
+        if model.isSearching {
+            Button("Show in Enclosing Folder", systemImage: "folder") {
+                model.navigate(to: entry.parent, selecting: [entry.id])
+            }
+        }
     }
+
+    /// Documents that are ZIP archives inside: their parts can be browsed like any archive.
+    static let zippedDocuments: Set<String> = ["docx", "xlsx", "pptx", "epub", "odt", "ods", "odp", "pages", "key", "numbers"]
 }

@@ -10,6 +10,7 @@ nonisolated enum PathContainment {
     /// dropped (a trailing `..` becomes `_`), leading `/` removed. This mirrors 7-Zip 26.04 exactly —
     /// a test extracts hostile names with the bundled `7zz` and compares.
     static func containedPath(for archivePath: String) -> String {
+        if isPlain(archivePath) { return archivePath }
         let parts = archivePath.split(separator: "/", omittingEmptySubsequences: true)
         var result: [Substring] = []
         for (index, part) in parts.enumerated() {
@@ -24,7 +25,33 @@ nonisolated enum PathContainment {
 
     /// Whether the stored name tries to leave the destination (`..` anywhere, or absolute).
     static func escapes(_ archivePath: String) -> Bool {
-        archivePath.hasPrefix("/") || archivePath.split(separator: "/").contains("..")
+        archivePath.hasPrefix("/") || (hasDoubleDot(archivePath) && archivePath.split(separator: "/").contains(".."))
+    }
+
+    private static func hasDoubleDot(_ path: String) -> Bool {
+        var previous: UInt8 = 0
+        for byte in path.utf8 {
+            if byte == UInt8(ascii: "."), previous == byte { return true }
+            previous = byte
+        }
+        return false
+    }
+
+    /// Already relative and clean — no empty, `.` or `..` components — so containment leaves it
+    /// as it is. One pass over the bytes; most names in most archives take this path.
+    private static func isPlain(_ path: String) -> Bool {
+        var componentLength = 0, dots = 0
+        for byte in path.utf8 {
+            if byte == UInt8(ascii: "/") {
+                if componentLength == 0 || componentLength == dots { return false }
+                componentLength = 0
+                dots = 0
+            } else {
+                componentLength += 1
+                if byte == UInt8(ascii: "."), dots == componentLength - 1 { dots += 1 }
+            }
+        }
+        return componentLength > 0 && componentLength != dots
     }
 
     /// Lexical check for a link stored at `linkPath` (relative to the destination) pointing at

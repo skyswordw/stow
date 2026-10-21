@@ -12,6 +12,12 @@ nonisolated enum ArchiveInput: Sendable {
 /// Runs inside the sandboxed engine; the child process inherits that sandbox.
 nonisolated struct SevenZip: Sendable {
     let executable: URL
+    /// The locale 7-Zip runs under; nil keeps the engine's (UTF-8 for names).
+    var locale: String?
+
+    init(executable: URL) {
+        self.executable = executable
+    }
 
     /// `7zz` sits next to the engine's executable; from the app (tests) it's inside the engine bundle.
     static func bundled(in bundle: Bundle = .main) -> SevenZip? {
@@ -33,8 +39,30 @@ nonisolated struct SevenZip: Sendable {
         defer { input.cleanUp() }
         let result = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor, password: password)
         try Self.check(result)
-        guard let listing = Self.parseListing(result.output) else {
+        let fast = Self.parseListingFast(result.output)
+        guard var listing = fast?.listing ?? Self.parseListing(result.output) else {
             throw EngineError(.notAnArchive)
+        }
+        if Self.isTarball(name: (input.path as NSString).lastPathComponent),
+           let entries = try? await tarballEntries(path: input.path, descriptor: input.descriptor) {
+            listing.entries = entries // still "gzip", "xz"…: the format reads as TAR.GZ, TAR.XZ
+            return listing
+        }
+        let legacy = fast?.legacy ?? []
+        if !legacy.isEmpty {
+            // Under a Latin-1 locale 7-Zip maps each byte of an unflagged name to the character with
+            // the same number, so the bytes come back intact. Only for reading: the file system
+            // rejects those names, so extraction keeps the UTF-8 locale and Stow renames afterwards.
+            var latin1 = self
+            latin1.locale = "en_US.ISO8859-1"
+            let raw = try await latin1.run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor,
+                                           password: password)
+            if raw.status == 0, let rawListing = Self.parseListing(raw.output),
+               rawListing.entries.count == listing.entries.count {
+                for index in legacy {
+                    listing.entries[index].rawPath = rawListing.entries[index].path.data(using: .isoLatin1)
+                }
+            }
         }
         return listing
     }
@@ -49,6 +77,10 @@ nonisolated struct SevenZip: Sendable {
     /// each, which is removed here.
     func extract(_ archive: ArchiveInput, into directory: URL, paths: [String] = [], password: String? = nil,
                  progress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> [RemovedLink] {
+        if Self.isTarball(name: archive.name) {
+            return try await extractTarball(archive, into: directory, paths: paths, progress: progress)
+        }
+
         let input = try Prepared(archive)
         defer { input.cleanUp() }
         var arguments = ["x", "-y", "-aou", "-bso0", "-bsp1", "-sccUTF-8", "-o" + directory.path]
@@ -248,7 +280,8 @@ nonisolated struct SevenZip: Sendable {
         posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_CLOEXEC_DEFAULT))
 
         let argv = ([executable.path] + arguments).map { strdup($0) } + [nil]
-        let environment = ProcessInfo.processInfo.environment.map { strdup("\($0)=\($1)") } + [nil]
+        let environment = ProcessInfo.processInfo.environment.merging(locale.map { ["LC_ALL": $0, "LANG": $0] } ?? [:]) { $1 }
+            .map { strdup("\($0)=\($1)") } + [nil]
         defer { (argv + environment).forEach { free($0) } }
         var pid: pid_t = 0
         let spawned = posix_spawn(&pid, executable.path, &actions, &attributes, argv, environment)

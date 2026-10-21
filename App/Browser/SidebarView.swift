@@ -8,7 +8,7 @@ struct SidebarView: View {
             Section {
                 Label("All Files", systemImage: "square.grid.2x2")
                     .tag("")
-                OutlineGroup(model.archive.folderTree(), children: \.children) { node in
+                OutlineGroup(model.archive.folderTree(includingHelpers: model.showHelperItems), children: \.children) { node in
                     Label(node.name, systemImage: "folder")
                         .tag(node.id)
                 }
@@ -25,10 +25,8 @@ struct SidebarView: View {
         Binding {
             model.isSearching ? nil : model.folder
         } set: { newValue in
-            guard let newValue else { return }
-            model.query = ""
-            model.folder = newValue
-            model.selection = []
+            guard let newValue, newValue != model.folder || model.isSearching else { return }
+            model.navigate(to: newValue)
         }
     }
 }
@@ -48,7 +46,7 @@ struct ArchiveCard: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(.primary)
-                    Text("\(archive.files.count) files · \(archive.totalSize.bytes)")
+                    Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
                         .font(.caption)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)

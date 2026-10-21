@@ -199,6 +199,8 @@ targets:
       - path: Shared
       - path: App/Model/Archive.swift
       - path: App/Model/Checkup.swift
+      - path: App/Model/NameEncoding.swift
+      - path: App/Model/SearchIndex.swift
       - path: App/Engine/ArchiveEngine.swift
     dependencies:
       - target: StowEngine

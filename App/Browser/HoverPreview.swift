@@ -18,7 +18,8 @@ final class HoverPreviewModel {
     func enter(_ entry: ArchiveEntry) {
         closeTask?.cancel()
         openTask?.cancel()
-        guard entry.kind.isPreviewable else {
+        // Not while a button is down: that's a drag or a marquee, not a look.
+        guard entry.kind.isPreviewable, NSEvent.pressedMouseButtons == 0 else {
             close()
             return
         }
@@ -43,6 +44,12 @@ final class HoverPreviewModel {
         }
     }
 
+    /// Opens a preview straight away (design review runs have no pointer).
+    func present(_ id: ArchiveEntry.ID) {
+        openTask?.cancel()
+        presented = id
+    }
+
     func close() {
         if presented != nil { lastClosed = .now }
         presented = nil
@@ -52,14 +59,21 @@ final class HoverPreviewModel {
 private struct HoverPreviewModifier: ViewModifier {
     let entry: ArchiveEntry
     let model: HoverPreviewModel
+    let browser: BrowserModel
 
     func body(content: Content) -> some View {
         content
             .onHover { inside in
                 inside ? model.enter(entry) : model.exit(entry)
+                // Drag-out needs to know which entry a press lands on.
+                if inside {
+                    browser.dragOut.hovered = entry.id
+                } else if browser.dragOut.hovered == entry.id {
+                    browser.dragOut.hovered = nil
+                }
             }
             .popover(isPresented: isPresented, arrowEdge: .trailing) {
-                HoverPreviewCard(entry: entry)
+                HoverPreviewCard(entry: entry, browser: browser)
             }
     }
 
@@ -73,28 +87,45 @@ private struct HoverPreviewModifier: ViewModifier {
 }
 
 extension View {
-    func hoverPreview(for entry: ArchiveEntry, model: HoverPreviewModel) -> some View {
-        modifier(HoverPreviewModifier(entry: entry, model: model))
+    func hoverPreview(for entry: ArchiveEntry, model: HoverPreviewModel, browser: BrowserModel) -> some View {
+        modifier(HoverPreviewModifier(entry: entry, model: model, browser: browser))
     }
 }
 
+/// The real thing, read from the archive: a fixed-size card so the popover never jumps when the
+/// content arrives.
 struct HoverPreviewCard: View {
     let entry: ArchiveEntry
+    let browser: BrowserModel
+
+    var body: some View {
+        HoverPreviewCardBody(entry: entry, browser: browser)
+            // Popovers inherit their anchor's environment; table cells are single-line.
+            .lineLimit(nil)
+    }
+}
+
+struct HoverPreviewCardBody: View {
+    let entry: ArchiveEntry
+    let browser: BrowserModel
+    var preview: RichPreview?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            EntryThumbnail(entry: entry, style: .large)
-                .frame(width: 280)
+            RichPreviewView(entry: entry, model: browser, preview: preview)
+                .frame(width: 300, height: 220)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.name)
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
-                Text("\(entry.kind.label) · \(entry.size.bytes)")
+                    .truncationMode(.middle)
+                Text("\(entry.kindDescription) · \(entry.size.bytes)")
                     .font(.caption)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
         }
         .padding(Space.m)
+        .frame(width: 324)
     }
 }

@@ -8,6 +8,12 @@ struct ZipFixture {
         var data: Data
         /// Unix mode including the file type bits.
         var mode: UInt32
+        /// Stored name bytes in an older encoding, without the UTF-8 flag (overrides `name`).
+        var rawName: Data?
+
+        static func legacy(_ name: String, encoding: String.Encoding, _ text: String) -> Entry {
+            Entry(name: name, data: Data(text.utf8), mode: 0o100644, rawName: name.data(using: encoding))
+        }
 
         static func file(_ name: String, _ text: String) -> Entry {
             Entry(name: name, data: Data(text.utf8), mode: 0o100644)
@@ -28,7 +34,8 @@ struct ZipFixture {
         var body = Data()
         var directory = Data()
         for entry in entries {
-            let name = Data(entry.name.utf8)
+            let name = entry.rawName ?? Data(entry.name.utf8)
+            let flags: UInt16 = entry.rawName == nil ? 0x0800 : 0
             let crc = Self.crc32(entry.data)
             let offset = UInt32(body.count)
             // DOS time 12:00, date 2026-10-20.
@@ -36,7 +43,7 @@ struct ZipFixture {
             let date: UInt16 = UInt16((2026 - 1980) << 9 | 10 << 5 | 20)
 
             body.append(le: UInt32(0x0403_4b50))
-            body.append(le: UInt16(10)); body.append(le: UInt16(0x0800)); body.append(le: UInt16(0))
+            body.append(le: UInt16(10)); body.append(le: flags); body.append(le: UInt16(0))
             body.append(le: time); body.append(le: date)
             body.append(le: crc); body.append(le: UInt32(entry.data.count)); body.append(le: UInt32(entry.data.count))
             body.append(le: UInt16(name.count)); body.append(le: UInt16(0))
@@ -44,7 +51,7 @@ struct ZipFixture {
 
             directory.append(le: UInt32(0x0201_4b50))
             directory.append(le: UInt16(3 << 8 | 20)) // made by Unix, so the mode is honoured
-            directory.append(le: UInt16(10)); directory.append(le: UInt16(0x0800)); directory.append(le: UInt16(0))
+            directory.append(le: UInt16(10)); directory.append(le: flags); directory.append(le: UInt16(0))
             directory.append(le: time); directory.append(le: date)
             directory.append(le: crc); directory.append(le: UInt32(entry.data.count)); directory.append(le: UInt32(entry.data.count))
             directory.append(le: UInt16(name.count)); directory.append(le: UInt16(0)); directory.append(le: UInt16(0))
