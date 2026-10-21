@@ -1,6 +1,66 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Couldn’t read the TAR to compress.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取要压缩的 TAR。"
+          }
+        }
+      }
+    },
+    "Couldn’t write “%@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法写入“%@”。"
+          }
+        }
+      }
+    },
+    "Current Linux and macOS open TAR.ZST with tar. Older systems and Windows need zstd or 7-Zip.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前的 Linux 和 macOS 可用 tar 打开 TAR.ZST。较旧的系统和 Windows 需要 zstd 或 7-Zip。"
+          }
+        }
+      }
+    },
+    "Needs a recent tar to open": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要较新的 tar 才能打开"
+          }
+        }
+      }
+    },
+    "This copy of Stow can’t create TAR.ZST archives.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 Stow 副本无法创建 TAR.ZST 压缩包。"
+          }
+        }
+      }
+    },
+    "Zstandard always compresses; Store uses its fastest level. Remembered for %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zstandard 总会压缩；“仅存储”使用其最快级别。已记住用于%@的设置。"
+          }
+        }
+      }
+    },
     "%@ after the end of the %@ archive aren’t part of it. They’re left out when you extract.": {
       "localizations": {
         "zh-Hans": {

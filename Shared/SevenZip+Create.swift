@@ -17,6 +17,13 @@ extension SevenZip {
         for (index, step) in steps.enumerated() {
             let weight = weights[index]
             let start = done
+            if let zstd = step.zstd {
+                try await Zstd.compress(zstd.source, into: zstd.archive, level: zstd.level, volumeSize: zstd.volumeSize) { fraction in
+                    progress(start + fraction * weight)
+                }
+                done += weight
+                continue
+            }
             let parser = ProgressParser()
             let result = try await run(step.arguments, input: nil, password: step.usesPassword ? request.password : nil,
                                        in: step.directory) { chunk in
@@ -56,6 +63,15 @@ extension SevenZip {
         var usesPassword = false
         /// A file this step leaves for the next one.
         var intermediate: URL?
+        /// Set when this step is Stow's own zstd compression rather than a `7zz` run.
+        var zstd: ZstdStep?
+    }
+
+    struct ZstdStep: Equatable, Sendable {
+        var source: URL
+        var archive: URL
+        var level: Int32
+        var volumeSize: Int64?
     }
 
     /// The `7zz` runs that make `archive`: one, or a TAR then its compression.
@@ -81,6 +97,16 @@ extension SevenZip {
                                usesPassword: request.password != nil)]
         case .tar:
             return [CreateStep(arguments: add("tar", ["-snl"] + volume, to: archive, ["*"]), directory: input)]
+        case .tarZst:
+            // 7zz writes the TAR; zstd isn't among the formats it can write, so Stow compresses it.
+            let tarName = (archive.lastPathComponent as NSString).deletingPathExtension // "Project.tar"
+            let tar = work.appending(path: tarName)
+            return [
+                CreateStep(arguments: add("tar", ["-snl"], to: tar, ["*"]), directory: input, intermediate: tar),
+                CreateStep(arguments: [], directory: work,
+                           zstd: ZstdStep(source: tar, archive: archive, level: Zstd.level(for: request.level),
+                                          volumeSize: request.volumeSize)),
+            ]
         case .tarGz, .tarBz2, .tarXz:
             let tarName = (archive.lastPathComponent as NSString).deletingPathExtension // "Project.tar"
             let tar = work.appending(path: tarName)

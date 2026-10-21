@@ -15,7 +15,7 @@ nonisolated enum EngineContract {
     static let serviceName = "app.stow.Stow.Engine"
     /// 2: `create`.
     /// 3: `edit`, `sendFile`.
-    static let version = 3
+    static let version = 4
 }
 
 @objc(StowEngineProtocol)
@@ -130,7 +130,7 @@ nonisolated struct ExtractReport: Codable, Sendable {
 
 /// What `create` can write. Compressed TARs are a TAR compressed as a second step.
 nonisolated enum PackFormat: String, Codable, CaseIterable, Identifiable, Sendable {
-    case zip, sevenZip, tar, tarGz, tarBz2, tarXz
+    case zip, sevenZip, tar, tarGz, tarBz2, tarXz, tarZst
 
     var id: Self { self }
 
@@ -142,6 +142,7 @@ nonisolated enum PackFormat: String, Codable, CaseIterable, Identifiable, Sendab
         case .tarGz: "tar.gz"
         case .tarBz2: "tar.bz2"
         case .tarXz: "tar.xz"
+        case .tarZst: "tar.zst"
         }
     }
 

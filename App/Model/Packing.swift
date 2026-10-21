@@ -105,7 +105,7 @@ nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
     var formats: [PackFormat] {
         switch self {
         case .windows, .mac: [.zip, .sevenZip]
-        case .linux: [.tarXz, .tarGz, .tarBz2, .tar, .zip, .sevenZip]
+        case .linux: [.tarXz, .tarGz, .tarZst, .tarBz2, .tar, .zip, .sevenZip]
         case .web: [.zip]
         }
     }
@@ -149,6 +149,7 @@ nonisolated extension PackFormat {
         case .tarGz: "TAR.GZ"
         case .tarBz2: "TAR.BZ2"
         case .tarXz: "TAR.XZ"
+        case .tarZst: "TAR.ZST"
         }
     }
 }
@@ -368,6 +369,7 @@ nonisolated enum Compatibility {
         case .sevenZip: 0.9
         case .tarXz: 0.92
         case .tarBz2: 0.96
+        case .tarZst: 0.98
         default: 1.0
         }
         let estimated = Int64(Double(raw) * (options.level == .store ? 1 : factor))
@@ -434,6 +436,13 @@ nonisolated enum Compatibility {
             ))
         default:
             break
+        }
+        if options.format == .tarZst {
+            notes.append(.init(
+                tone: .info,
+                title: String(localized: "Needs a recent tar to open"),
+                detail: String(localized: "Current Linux and macOS open TAR.ZST with tar. Older systems and Windows need zstd or 7-Zip.")
+            ))
         }
         if options.usesPassword {
             if options.format == .zip, !passwordIsPortable(password) {

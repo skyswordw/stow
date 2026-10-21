@@ -84,6 +84,12 @@ enum DemoScene {
             } else {
                 app.packRequest = PackRequest(files: SampleArchive.packCandidates)
             }
+        case "pack-zst":
+            // TAR.ZST for Linux, both disclosures open (registered, so nothing is saved).
+            UserDefaults.standard.register(defaults: ["StowPackDetails": true])
+            var request = PackRequest(files: SampleArchive.packCandidates)
+            request.initialFormat = .tarZst
+            app.packRequest = request
         case "packing":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .running(0.42))
         case "packed":
@@ -287,7 +293,7 @@ enum DemoScene {
     /// Packs for real through the engine and prints where the archive went, then quits:
     ///
     ///     -StowScene packrun -StowPack <folder> -StowPackTo <folder> -PackAudience mac
-    ///         [-StowFormat zip|sevenZip|tar|tarGz|tarBz2|tarXz] [-StowPassword pw] [-StowSplit bytes] [-PackVerify YES]
+    ///         [-StowFormat zip|sevenZip|tar|tarGz|tarBz2|tarXz|tarZst] [-StowPassword pw] [-StowSplit bytes] [-PackVerify YES]
     ///
     /// Paths must be inside Stow's sandbox container.
     private static func runPack(_ defaults: UserDefaults) {
