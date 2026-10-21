@@ -42,6 +42,7 @@ final class AppState {
         }
         // Copies opened in a default app last time.
         TemporaryOpen.removeAll()
+        OtherAppFiles.removeReceived()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
                                                queue: .main) { _ in MainActor.assumeIsolated { PackageHandoff.removeAll() } }
     }
@@ -59,6 +60,13 @@ final class AppState {
                     return
                 }
                 try await waitForCloudDownload(url)
+                // Files in another app's private storage (WeChat, Mail…) that macOS won't let Stow
+                // read get plain words and a way to a readable copy, not "permission denied".
+                guard OtherAppFiles.canRead(url) else {
+                    if scoped { url.stopAccessingSecurityScopedResource() }
+                    openFailure = OpenFailure(failure: OtherAppFiles.unreadable(url), url: url)
+                    return
+                }
                 try await DownloadCheck.waitUntilComplete(url)
                 let listing: ArchiveListing
                 let password: String?
@@ -74,7 +82,8 @@ final class AppState {
                 archive.source?.password = password
                 releaseScope()
                 scopedURL = scoped ? url : nil
-                recents.add(url)
+                // Files received from a drag (Mail, chat apps) live in a folder Stow empties at launch.
+                if !OtherAppFiles.isReceived(url) { recents.add(url) }
                 browser = makeBrowser(archive)
                 browser?.verifyDiskImage()
             } catch {

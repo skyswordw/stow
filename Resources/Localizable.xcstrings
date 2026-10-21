@@ -211,6 +211,126 @@
         }
       }
     },
+    "DingTalk": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钉钉"
+          }
+        }
+      }
+    },
+    "It’s kept in %@’s own storage, which macOS keeps private. In %@, save it to Downloads or drag it to the desktop, then open that copy in Stow.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它保存在 %1$@ 自己的存储空间中，macOS 不允许其他应用读取。请在 %2$@ 中将它存到“下载”文件夹或拖到桌面，然后在 Stow 中打开那个副本。"
+          }
+        }
+      }
+    },
+    "Lark": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飞书"
+          }
+        }
+      }
+    },
+    "Mail": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邮件"
+          }
+        }
+      }
+    },
+    "Messages": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信息"
+          }
+        }
+      }
+    },
+    "Photos": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片"
+          }
+        }
+      }
+    },
+    "QQ": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QQ"
+          }
+        }
+      }
+    },
+    "Stow isn’t allowed to read “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 无权读取“%@”"
+          }
+        }
+      }
+    },
+    "Telegram": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telegram"
+          }
+        }
+      }
+    },
+    "WeChat": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "微信"
+          }
+        }
+      }
+    },
+    "WeCom": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "企业微信"
+          }
+        }
+      }
+    },
+    "macOS didn’t give Stow access to it. Drag it onto Stow from Finder, or choose it with File › Open Archive…, and macOS lets Stow read it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 没有允许 Stow 访问它。请从访达把它拖到 Stow 上，或通过“文件 › 打开压缩包…”选择它，macOS 就会允许 Stow 读取。"
+          }
+        }
+      }
+    },
     "Downloading “%@”": {
       "localizations": {
         "zh-Hans": {
