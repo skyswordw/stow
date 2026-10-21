@@ -101,25 +101,25 @@ enum ArchiveSaver {
         defer { engine.discard(operation: id) }
         let request = EditRequest(operationID: id, format: format, operations: operations,
                                   password: password, encryptNewItems: encryptNewItems)
-        let editing = Mutex<Task<EditReport, any Error>?>(nil)
+        let editing = TaskSlot<EditReport>()
         let editTask = Task {
             try await engine.edit(url, items: items, request: request, onSent: { _ in }, onProgress: { fraction in
                 progress(fraction * 0.8)
-                if case .cancelDuringEngine = faults, fraction > 0 { editing.withLock { $0 }?.cancel() }
+                if case .cancelDuringEngine = faults, fraction > 0 { editing.cancel() }
             })
         }
-        editing.withLock { $0 = editTask }
+        editing.set(editTask)
         let report = try await withTaskCancellationHandler { try await editTask.value } onCancel: { editTask.cancel() }
         if case .cancelDuringEngine = faults { throw EngineError(.cancelled) }
         try Task.checkCancellation()
-        let transferring = Mutex<Task<Void, any Error>?>(nil)
+        let transferring = TaskSlot<Void>()
         let transfer = Task {
             try await engine.sendFile(operation: id, to: handle) { fraction in
                 progress(0.8 + fraction * 0.1)
-                if case .cancelDuringTransfer = faults { transferring.withLock { $0 }?.cancel() }
+                if case .cancelDuringTransfer = faults { transferring.cancel() }
             }
         }
-        transferring.withLock { $0 = transfer }
+        transferring.set(transfer)
         try await withTaskCancellationHandler { try await transfer.value } onCancel: { transfer.cancel() }
         if case .cancelDuringTransfer = faults { throw EngineError(.cancelled) }
         try handle.close()
@@ -150,36 +150,58 @@ enum ArchiveSaver {
     /// utility queue; the main actor and cooperative executor remain free to service XPC replies.
     private static func coordinated(_ url: URL, operation: @escaping @MainActor @Sendable (URL) async throws -> ArchiveListing)
         async throws -> ArchiveListing {
-        let active = Mutex<(cancelled: Bool, task: Task<ArchiveListing, any Error>?)>((false, nil))
+        let state = CoordinationState()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ArchiveListing, any Error>) in
                 DispatchQueue.global(qos: .userInitiated).async {
                     var coordinationError: NSError?
-                    let result = Mutex<Result<ArchiveListing, any Error>?>(nil)
+                    var outcome: Result<ArchiveListing, any Error>?
                     NSFileCoordinator().coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { coordinatedURL in
                         let task = Task { @MainActor in try await operation(coordinatedURL) }
-                        active.withLock { state in
-                            state.task = task
-                            if state.cancelled { task.cancel() }
-                        }
+                        state.start(task)
                         let completed = DispatchSemaphore(value: 0)
-                        let outcome = Mutex<Result<ArchiveListing, any Error>?>(nil)
+                        let box = ResultBox()
                         Task {
-                            let value = await task.result
-                            outcome.withLock { $0 = value }
+                            box.set(await task.result)
                             completed.signal()
                         }
                         completed.wait()
-                        let value = outcome.withLock { $0 }
-                        result.withLock { $0 = value }
+                        outcome = box.get()
                     }
-                    if let value = result.withLock({ $0 }) { continuation.resume(with: value) }
+                    if let outcome { continuation.resume(with: outcome) }
                     else { continuation.resume(throwing: coordinationError ?? EngineError(.failed).nsError) }
                 }
             }
-        } onCancel: { active.withLock { state in
-            state.cancelled = true
-            state.task?.cancel()
-        } }
+        } onCancel: { state.cancel() }
+    }
+
+    private final class CoordinationState: Sendable {
+        private let lock = Mutex<(cancelled: Bool, task: Task<ArchiveListing, any Error>?)>((false, nil))
+        func start(_ task: Task<ArchiveListing, any Error>) {
+            let cancelled = lock.withLock { state in
+                state.task = task
+                return state.cancelled
+            }
+            if cancelled { task.cancel() }
+        }
+        func cancel() {
+            lock.withLock { state in
+                state.cancelled = true
+                return state.task
+            }?.cancel()
+        }
+    }
+
+    private final class ResultBox: Sendable {
+        private let lock = Mutex<Result<ArchiveListing, any Error>?>(nil)
+        func set(_ value: Result<ArchiveListing, any Error>) { lock.withLock { $0 = value } }
+        func get() -> Result<ArchiveListing, any Error>? { lock.withLock { $0 } }
+    }
+
+    /// Lets a progress callback cancel the task it reports for (fault injection).
+    private final class TaskSlot<Success: Sendable>: Sendable {
+        private let lock = Mutex<Task<Success, any Error>?>(nil)
+        func set(_ task: Task<Success, any Error>) { lock.withLock { $0 = task } }
+        func cancel() { lock.withLock { $0 }?.cancel() }
     }
 }
