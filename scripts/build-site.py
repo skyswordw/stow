@@ -89,7 +89,7 @@ TEMPLATE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} · Stow</title>
 <meta name="color-scheme" content="light dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='4' width='28' height='25' rx='7' fill='%23D97B2B'/%3E%3Cpath d='M13 4h6v10l-3-2-3 2z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <style>
 :root {{
   --bg: #fbfaf8; --bg-2: #f3f1ed; --surface: #fff; --ink: #1d1d1f; --ink-2: #5f5f64; --ink-3: #8e8e93;

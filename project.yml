@@ -193,6 +193,8 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Stow
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        # App/Resources/AppIcon.icon, an Icon Composer document built from Design/AppIcon.svg by
+        # scripts/make-icon.py. actool compiles it with the asset catalog (light, dark, tinted, clear).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_HARDENED_RUNTIME: YES
