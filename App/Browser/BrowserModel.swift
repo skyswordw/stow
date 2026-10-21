@@ -196,7 +196,7 @@ final class BrowserModel {
             let options = Extraction.Options.current(resolve: ConflictPolicy().resolver)
             let result = try await Extraction.run(archive, selection: selection, to: destination, options: options,
                                                   onProgress: progress)
-            var finished = Finished(placed: result.placed, findings: Checkup.findings(for: result.report))
+            var finished = Finished(placed: result.placed, findings: result.findings)
             if result.placed.isEmpty { finished.title = "Nothing new — everything was already there" }
             if selection == nil {
                 finished.aftercare = (Preferences.current.afterExtractAll, Preferences.Key.afterExtractAll, "Everything was extracted.")
@@ -286,7 +286,7 @@ final class BrowserModel {
             let options = Extraction.Options.current(resolve: ConflictPolicy().resolver)
             let result = try await Extraction.run(archive, selection: entries, to: grant.url, options: options,
                                                   onProgress: progress)
-            return Finished(placed: result.placed, findings: Checkup.findings(for: result.report))
+            return Finished(placed: result.placed, findings: result.findings)
         }
     }
 

@@ -27,6 +27,12 @@ enum Extraction {
         var placed: [URL]
         var report: ExtractReport
         var placement = Placement.Result()
+        var restoredMetadata = AppleDouble.Restored()
+
+        /// Checkup lines for what the audit removed and what Mac details came back.
+        var findings: [CheckupFinding] {
+            Checkup.findings(for: report) + Checkup.findings(for: restoredMetadata)
+        }
     }
 
     /// `selection` nil extracts everything (see `Options.allFolder` for where it lands). Selected
@@ -39,7 +45,8 @@ enum Extraction {
         let items = staged.items(allFolder: options.allFolder, folderName: folderName(for: archive))
         guard !items.isEmpty else { throw EngineError(.failed, "Nothing was extracted.") }
         let placement = try await Placement.place(items, in: destination, resolve: options.resolve)
-        return Result(placed: placement.placed, report: staged.report, placement: placement)
+        return Result(placed: placement.placed, report: staged.report, placement: placement,
+                      restoredMetadata: staged.restoredMetadata)
     }
 
     /// Extracted and audited, waiting next to `destination` (same volume) to be moved into place.
@@ -49,6 +56,7 @@ enum Extraction {
         let root: URL
         let selection: [ArchiveEntry]?
         let report: ExtractReport
+        var restoredMetadata = AppleDouble.Restored()
 
         /// The selected entries as they landed, or the archive's top-level items.
         func items(allFolder: Preferences.ExtractAllFolder, folderName: String) -> [(URL, String)] {
@@ -77,10 +85,16 @@ enum Extraction {
                       onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Staged {
         guard let source = archive.source else { throw EngineError(.failed, "This archive isn’t on disk.") }
         let selection = selection.map(topmost)
+        // A Mac's AppleDouble files come along so their details can be put back (always: they're
+        // the files' own details, not clutter). The engine reads them; the files themselves can't
+        // cross over, since sandboxed directory listings hide `._` names.
+        let restoreMetadata = !archive.appleDoublePaths.isEmpty
+        var paths = selection.map(archive.storedPaths(for:)) ?? []
+        if restoreMetadata, !paths.isEmpty { paths += appleDoubles(for: paths, in: archive.appleDoublePaths) }
         let engine = ArchiveEngine.shared
         let output = try await engine.extract(
-            source.url, paths: selection.map(archive.storedPaths(for:)) ?? [],
-            excludeMacHelperFiles: skipSystemFiles, onProgress: onProgress)
+            source.url, paths: paths, excludeMacHelperFiles: skipSystemFiles, restoreMacMetadata: restoreMetadata,
+            onProgress: onProgress)
         defer { engine.discard(output) }
         if Task.isCancelled { throw EngineError(.cancelled) }
 
@@ -99,11 +113,13 @@ enum Extraction {
             for extra in archive.installerExtras {
                 try? FileManager.default.removeItem(at: root.appending(path: extra))
             }
+            let restored = AppleDouble.apply(output.report.macMetadata, in: root)
             var report = output.report
+            report.macMetadata = [:]
             let second = try await audit(root)
             report.removedLinks += second.removedLinks.filter { !report.removedLinks.contains($0) }
             report.removedItems += second.removedItems.filter { !report.removedItems.contains($0) }
-            return Staged(folder: folder, root: root, selection: selection, report: report)
+            return Staged(folder: folder, root: root, selection: selection, report: report, restoredMetadata: restored)
         } catch {
             try? FileManager.default.removeItem(at: folder)
             throw EngineError(error)
@@ -154,6 +170,17 @@ enum Extraction {
         }
         let stem = (name as NSString).deletingPathExtension
         return stem.isEmpty ? name : stem
+    }
+
+    /// The AppleDouble companions (`__MACOSX/dir/._name`, `dir/._name`) of the given stored paths.
+    static func appleDoubles(for paths: [String], in available: Set<String>) -> [String] {
+        paths.flatMap { path -> [String] in
+            let trimmed = path.hasSuffix("/") ? String(path.dropLast()) : path
+            let name = (trimmed as NSString).lastPathComponent
+            let parent = (trimmed as NSString).deletingLastPathComponent
+            let inline = parent.isEmpty ? "._\(name)" : "\(parent)/._\(name)"
+            return [inline, "__MACOSX/" + inline].filter(available.contains)
+        }
     }
 
     /// Drops entries already covered by a selected folder.

@@ -79,10 +79,11 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                         client.progress(id, fraction)
                     }
                     try Task.checkCancellation()
+                    let metadata = request.restoreMacMetadata ? AppleDouble.collect(in: output) : [:]
                     if request.excludeMacHelperFiles { MacHelperFiles.remove(in: output) }
                     let audit = try PathContainment.audit(staging: output)
                     let report = ExtractReport(removedLinks: refused + audit.removedLinks,
-                                               removedItems: audit.removedItems)
+                                               removedItems: audit.removedItems, macMetadata: metadata)
                     reply(try JSONEncoder.engine.encode(report), nil)
                 } catch {
                     self.discard(operation: id)

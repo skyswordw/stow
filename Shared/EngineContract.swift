@@ -82,6 +82,8 @@ nonisolated struct ExtractRequest: Codable, Sendable {
     var password: String?
     /// Leaves out `.DS_Store`, `._*` and `__MACOSX` — Checkup tells people they're hidden.
     var excludeMacHelperFiles = true
+    /// Reads Mac AppleDouble companions (`__MACOSX/…/._name`) into `ExtractReport.macMetadata`.
+    var restoreMacMetadata = false
 }
 
 /// A symbolic link that would have pointed outside the destination. It is not created.
@@ -95,6 +97,9 @@ nonisolated struct ExtractReport: Codable, Sendable {
     var removedLinks: [RemovedLink] = []
     /// Anything that escaped the staging folder some other way and was removed.
     var removedItems: [String] = []
+    /// Relative path → extended attributes from the archive's AppleDouble files (Finder tags,
+    /// comments, Finder info, resource forks), for Stow to put back. Quarantine never included.
+    var macMetadata: [String: [String: Data]] = [:]
 }
 
 // MARK: - Errors

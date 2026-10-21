@@ -50,7 +50,7 @@ enum Prompts {
         let choices: [Placement.Resolution]
         if conflict.canMerge {
             alert.messageText = "A folder named “\(conflict.name)” is already in “\(folder)”."
-            alert.informativeText = "Merge adds what’s new to it and asks before replacing any file. Keep Both adds this one as “\(Extraction.numbered(conflict.name, 2))”."
+            alert.informativeText = "Merge puts the extracted contents into it; files already there stay unless you choose to replace them. Keep Both adds this one as “\(Extraction.numbered(conflict.name, 2))”."
             choices = [.merge, .keepBoth]
             alert.addButton(withTitle: "Merge")
             alert.addButton(withTitle: "Keep Both")
@@ -85,9 +85,11 @@ enum Prompts {
     }
 
     static func describe(_ url: URL) -> String {
-        let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey])
-        let kind = values?.isDirectory == true ? "folder" : Int64(values?.fileSize ?? 0).bytes
-        let date = values?.contentModificationDate?.formatted(date: .abbreviated, time: .shortened) ?? "unknown date"
+        guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey]) else {
+            return "no details"
+        }
+        let kind = values.isDirectory == true ? "folder" : Int64(values.fileSize ?? 0).bytes
+        let date = values.contentModificationDate?.formatted(date: .abbreviated, time: .shortened) ?? "unknown date"
         return "\(kind), \(date)"
     }
 

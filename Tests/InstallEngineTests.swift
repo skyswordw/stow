@@ -243,3 +243,99 @@ private final class Questions {
         }
     }
 }
+
+/// Finder tags and other details a Mac packs as AppleDouble come back on extract.
+@Suite("Mac details", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
+@MainActor
+struct AppleDoubleTests {
+    static let tagName = "com.apple.metadata:_kMDItemUserTags"
+    static let commentName = "com.apple.metadata:kMDItemComment"
+
+    /// A ZIP made the way Finder's Compress makes it: `ditto -c -k --sequesterRsrc`.
+    func makeMacZip(in folder: TemporaryFolder) throws -> URL {
+        let source = folder.url.appending(path: "Source/Docs", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        let file = source.appending(path: "a.txt")
+        try Data("tagged".utf8).write(to: file)
+        try Data("plain".utf8).write(to: source.appending(path: "b.txt"))
+        let tags = try PropertyListSerialization.data(fromPropertyList: ["Orange\n7"], format: .binary, options: 0)
+        try set(Self.tagName, tags, on: file)
+        try set(Self.commentName, Data("From the Mac".utf8), on: file)
+        let zip = folder.url.appending(path: "Docs.zip")
+        let ditto = try Process.run(URL(filePath: "/usr/bin/ditto"),
+                                    arguments: ["-c", "-k", "--sequesterRsrc", "--keepParent", source.path, zip.path])
+        ditto.waitUntilExit()
+        try #require(ditto.terminationStatus == 0)
+        return zip
+    }
+
+    func set(_ name: String, _ value: Data, on url: URL) throws {
+        let status = value.withUnsafeBytes { setxattr(url.path, name, $0.baseAddress, value.count, 0, 0) }
+        try #require(status == 0, "setxattr \(name)")
+    }
+
+    func attribute(_ name: String, of url: URL) -> Data? {
+        let length = getxattr(url.path, name, nil, 0, 0, 0)
+        guard length > 0 else { return nil }
+        var buffer = [UInt8](repeating: 0, count: length)
+        return getxattr(url.path, name, &buffer, length, 0, 0) == length ? Data(buffer) : nil
+    }
+
+    @Test func extractAllPutsFinderDetailsBack() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = try makeMacZip(in: folder)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        #expect(!archive.appleDoublePaths.isEmpty)
+        #expect(archive.files.map(\.name).sorted() == ["a.txt", "b.txt"])
+        let out = folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+
+        let result = try await Extraction.run(archive, selection: nil, to: out) { _ in }
+
+        let file = out.appending(path: "Docs/a.txt")
+        #expect(attribute(Self.tagName, of: file) != nil)
+        #expect(attribute(Self.commentName, of: file) == Data("From the Mac".utf8))
+        #expect(result.restoredMetadata.files == 1)
+        #expect(result.findings.contains { $0.title == "Mac details restored" })
+        #expect(TemporaryFolder.contents(of: out) == ["Docs", "Docs/a.txt", "Docs/b.txt"])
+    }
+
+    @Test func selectedFilesBringTheirDetailsToo() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = try makeMacZip(in: folder)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        let entry = try #require(archive.entry(at: "Docs/a.txt"))
+
+        let result = try await Extraction.run(archive, selection: [entry], to: folder.url) { _ in }
+
+        #expect(result.placed.map(\.lastPathComponent) == ["a.txt"])
+        #expect(attribute(Self.commentName, of: result.placed[0]) == Data("From the Mac".utf8))
+    }
+
+    @Test func keepingSystemFilesStillRestoresDetails() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = try makeMacZip(in: folder)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        let out = folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+
+        _ = try await Extraction.run(archive, selection: nil, to: out, options: .init(skipSystemFiles: false)) { _ in }
+
+        // The empty __MACOSX folder stays too, so both land in a folder named after the archive.
+        let file = try #require(TemporaryFolder.contents(of: out).first { $0.hasSuffix("Docs/a.txt") })
+        #expect(attribute(Self.commentName, of: out.appending(path: file)) == Data("From the Mac".utf8))
+        #expect(!TemporaryFolder.contents(of: out).contains { $0.hasSuffix("._a.txt") })
+    }
+
+    @Test func quarantineAndProvenanceAreNeverRestored() {
+        #expect(AppleDouble.skipped.contains("com.apple.quarantine"))
+        #expect(AppleDouble.skipped.contains("com.apple.provenance"))
+        #expect(AppleDouble.attributes(in: Data("not apple double".utf8)) == nil)
+        #expect(Extraction.appleDoubles(for: ["Docs/a.txt", "top.txt"],
+                                         in: ["__MACOSX/Docs/._a.txt", "._top.txt", "__MACOSX/._other"])
+                == ["__MACOSX/Docs/._a.txt", "._top.txt"])
+    }
+}

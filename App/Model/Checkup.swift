@@ -96,6 +96,16 @@ nonisolated enum Checkup {
         return findings
     }
 
+    /// Finder tags, comments and other Mac details put back from AppleDouble files.
+    static func findings(for restored: AppleDouble.Restored) -> [CheckupFinding] {
+        guard restored.files > 0 else { return [] }
+        return [CheckupFinding(
+            severity: .info,
+            title: "Mac details restored",
+            detail: "Finder tags, comments and other details packed by a Mac were put back on \(plural(restored.files, "file", "files"))."
+        )]
+    }
+
     /// What the on-disk audit had to remove during an extraction.
     static func findings(for report: ExtractReport) -> [CheckupFinding] {
         var findings: [CheckupFinding] = []
@@ -131,6 +141,7 @@ nonisolated extension Archive {
         var storedPaths: [String: [String]] = [:]
         var files: [String: ArchiveEntry] = [:]
         var explicitFolders: [String: Date] = [:]
+        var appleDoublePaths = Set<String>()
         let format = ArchiveFormat(sevenZipType: listing.type, name: url.lastPathComponent)
         let layout = format == .dmg || format == .iso
             ? DiskImageLayout.layout(of: listing.entries.map {
@@ -141,6 +152,9 @@ nonisolated extension Archive {
         for item in listing.entries {
             if MacHelperFiles.matches(item.path) {
                 if !item.isFolder { scan.helperFiles += 1 }
+                if !item.isFolder, (item.path as NSString).lastPathComponent.hasPrefix("._") {
+                    appleDoublePaths.insert(item.path)
+                }
                 continue
             }
             let path = PathContainment.containedPath(for: item.path)
@@ -186,6 +200,7 @@ nonisolated extension Archive {
         source = ArchiveSource(url: url, storedPaths: storedPaths)
         volumeRoot = layout.volumeRoot
         installerExtras = layout.extras
+        self.appleDoublePaths = appleDoublePaths
         dropTargets = layout.dropTargets
     }
 

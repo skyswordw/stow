@@ -212,6 +212,8 @@ nonisolated struct Archive: Identifiable, Sendable {
     /// the top), the window dressing left out (see `DiskImageLayout`), and "drag here" shortcuts.
     var volumeRoot = ""
     var installerExtras: [String] = []
+    /// Stored paths of the AppleDouble files a Mac packed (`__MACOSX/…/._name`, `._name`).
+    var appleDoublePaths: Set<String> = []
     var dropTargets: [DiskImageLayout.DropTarget] = []
 
     var isDiskImage: Bool { format == .dmg || format == .iso }
