@@ -3,9 +3,11 @@ import SwiftUI
 /// Floating glass capsule with the right next steps for the current selection.
 /// While a step runs, the summary morphs into a progress capsule in place.
 /// Labels never truncate: in a narrow window suggestions collapse to icons, then the summary goes.
+/// Every other step that applies — including ones hidden in Settings — is in the More menu.
 struct NextStepsBar: View {
     let model: BrowserModel
     @Namespace private var glass
+    @AppStorage(SettingsKeys.nextStepsHidden) private var hidden = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
 
     private enum Density { case full, iconSuggestions, actionsOnly }
 
@@ -23,7 +25,8 @@ struct NextStepsBar: View {
 
     private func row(_ density: Density) -> some View {
         let entries = model.selectedEntries
-        let steps = NextStep.suggestions(for: entries, dropTargets: model.archive.dropTargets)
+        let settings = NextStepsSettings(hidden: NextStepsSettings.decode(hidden))
+        let layout = settings.layout(for: entries, dropTargets: model.archive.dropTargets)
 
         return HStack(spacing: Space.s) {
             if let activity = model.activity {
@@ -45,18 +48,23 @@ struct NextStepsBar: View {
                         .glassEffect(.regular, in: .capsule)
                         .glassEffectID("summary", in: glass)
                 }
-                ForEach(steps.dropLast()) { step in
+                ForEach(layout.suggestions) { step in
                     Button(step.title, systemImage: step.symbol) { model.run(step) }
                         .labelStyle(density == .full ? AnyLabelStyle(.titleAndIcon) : AnyLabelStyle(.iconOnly))
                         .help(step.title)
                         .buttonStyle(.glass)
                         .glassEffectID(step, in: glass)
                 }
-                Button(NextStep.extract.title, systemImage: NextStep.extract.symbol) { model.run(.extract) }
-                    .labelStyle(.titleAndIcon)
-                    .buttonStyle(.glassProminent)
-                    .keyboardShortcut("e", modifiers: [.command])
-                    .glassEffectID(NextStep.extract, in: glass)
+                NextStepsMoreMenu(model: model, alternatives: layout.alternatives)
+                    .glassEffectID("more", in: glass)
+                if let primary = layout.primary {
+                    Button(primary.title, systemImage: primary.symbol) { model.run(primary) }
+                        .labelStyle(.titleAndIcon)
+                        .buttonStyle(.glassProminent)
+                        // ⌘E as in File › Extract; Quick Look and Open keep their menu-bar keys.
+                        .keyboardShortcut(primary == .extract ? primary.menuShortcut : nil)
+                        .glassEffectID(primary, in: glass)
+                }
             }
         }
         .fixedSize()
