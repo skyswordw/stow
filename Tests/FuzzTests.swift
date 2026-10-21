@@ -130,7 +130,7 @@ struct FuzzTests {
             try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
             let archive = Archive(listing: listing, url: input)
             let result = await Self.withDeadline(config.secondsPerRun * 2) { @MainActor () -> EngineError? in
-                do { _ = try await Extraction.run(archive, selection: nil, to: out) { _ in }; return nil } catch { return error }
+                do { _ = try await Extraction.run(archive, selection: nil, to: out) { _ in }; return nil } catch { return EngineError(error) }
             }
             switch result {
             case nil:
@@ -180,7 +180,7 @@ struct FuzzTests {
                 findings.append("7zz \(arguments[0]) \(outcome) on \(name)")
             }
             let result = await Self.withDeadline(config.secondsPerRun) { @MainActor () -> EngineError? in
-                do { _ = try await ArchiveEngine.shared.list(input); return nil } catch { return error }
+                do { _ = try await ArchiveEngine.shared.list(input); return nil } catch { return EngineError(error) }
             }
             switch result {
             case nil: findings.append("engine listing hung on \(name)")
@@ -236,7 +236,7 @@ struct FuzzTests {
     /// The engine's listing (or its error), or nil if it took longer than `seconds`.
     static func listing(_ input: URL, seconds: Double) async -> Result<ArchiveListing, EngineError>? {
         await withDeadline(seconds) { @MainActor () -> Result<ArchiveListing, EngineError> in
-            do { return .success(try await ArchiveEngine.shared.list(input)) } catch { return .failure(error) }
+            do { return .success(try await ArchiveEngine.shared.list(input)) } catch { return .failure(EngineError(error)) }
         }
     }
 
