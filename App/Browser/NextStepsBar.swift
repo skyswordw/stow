@@ -27,28 +27,15 @@ struct NextStepsBar: View {
 
         return HStack(spacing: Space.s) {
             if let activity = model.activity {
-                ActivityCapsule(activity: activity)
-                    .glassEffect(.regular, in: .capsule)
-                    .glassEffectID("summary", in: glass)
-                switch activity.phase {
-                case .done where !activity.placed.isEmpty:
-                    Button("Show in Finder", systemImage: "folder") { model.showInFinder() }
-                        .buttonStyle(.glass)
-                        .glassEffectID("finder", in: glass)
-                case .running where model.archive.source != nil:
-                    Button("Stop", systemImage: "xmark") { model.cancelActivity() }
-                        .labelStyle(.iconOnly)
-                        .help("Stop — nothing is left half-extracted")
-                        .buttonStyle(.glass)
-                        .glassEffectID("stop", in: glass)
-                case .failed:
-                    Button("Dismiss", systemImage: "xmark") { model.dismissActivity() }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.glass)
-                        .glassEffectID("stop", in: glass)
-                case .running, .done:
-                    EmptyView()
-                }
+                ActivityCapsule(phase: activity.phase,
+                                title: activity.phase == .done ? activity.doneTitle
+                                    : String(localized: "\(activity.step.progressTitle) \(activity.itemCount) items"),
+                                glass: glass,
+                                stop: model.archive.source != nil ? { model.cancelActivity() } : nil,
+                                stopHelp: String(localized: "Stop — nothing is left half-extracted"),
+                                showInFinder: activity.placed.isEmpty ? nil : { model.showInFinder() },
+                                perform: { model.follow($0) },
+                                dismiss: { model.dismissActivity() })
             } else {
                 if density != .actionsOnly {
                     SelectionSummary(entries: entries)
@@ -107,57 +94,5 @@ private struct SelectionSummary: View {
         .font(.callout)
         .padding(.horizontal, Space.l)
         .padding(.vertical, 9)
-    }
-}
-
-private struct ActivityCapsule: View {
-    let activity: BrowserModel.Activity
-
-    var body: some View {
-        HStack(spacing: Space.s) {
-            switch activity.phase {
-            case .running(let progress):
-                ProgressRing(progress: progress)
-                Text(String(localized: "\(activity.step.progressTitle) \(activity.itemCount) items"))
-                    .fontWeight(.medium)
-                Text(progress, format: .percent.precision(.fractionLength(0)))
-                    .foregroundStyle(.secondary)
-                    .liveNumber()
-                    .frame(minWidth: 36, alignment: .trailing)
-            case .done:
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
-                Text(activity.doneTitle)
-                    .fontWeight(.medium)
-            case .failed(let message):
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.yellow)
-                Text(message)
-                    .fontWeight(.medium)
-                    .lineLimit(2)
-                    .frame(maxWidth: 360, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .font(.callout)
-        .padding(.horizontal, Space.l)
-        .padding(.vertical, 9)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-struct ProgressRing: View {
-    let progress: Double
-
-    var body: some View {
-        ZStack {
-            Circle().stroke(.quaternary, lineWidth: 2.5)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(.tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-        }
-        .frame(width: 15, height: 15)
     }
 }
