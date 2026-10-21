@@ -56,6 +56,14 @@ struct OnboardingTests {
         }
     }
 
+    @Test func fileTypeSummaryComposesOneList() {
+        #expect(Onboarding.fileTypeSummary(["ZIP"]) == "Opening with Stow now: ZIP")
+        #expect(Onboarding.fileTypeSummary(["ZIP", "RAR", "7Z"]) == "Opening with Stow now: ZIP, RAR, and 7Z")
+        #expect(Onboarding.fileTypeSummary(["ZIP", "RAR", "7Z", "TAR"]) == "Opening with Stow now: ZIP, RAR, 7Z, and 1 more")
+        #expect(Onboarding.fileTypeSummary(["ZIP", "RAR", "7Z", "TAR", "GZIP"]) == "Opening with Stow now: ZIP, RAR, 7Z, and 2 more")
+        #expect(Onboarding.fileTypeSummary([]) == "No everyday file types open with Stow yet.")
+    }
+
     @Test func checklistOrderAndLabels() {
         #expect(OnboardingStep.allCases.map(\.rawValue) == ["archives", "fileTypes", "finder", "tray"])
         #expect(OnboardingStep.allCases.allSatisfy { !$0.title.isEmpty && !$0.detail.isEmpty && !$0.systemImage.isEmpty })

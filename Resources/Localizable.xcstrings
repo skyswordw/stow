@@ -176,6 +176,16 @@
         }
       }
     },
+    "%@ files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 个文件"
+          }
+        }
+      }
+    },
     "%@ files · %@": {
       "localizations": {
         "zh-Hans": {
@@ -646,6 +656,16 @@
         }
       }
     },
+    "%lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另外 %lld 种"
+          }
+        }
+      }
+    },
     "%lld names differ only by capital letters": {
       "localizations": {
         "zh-Hans": {
@@ -967,28 +987,6 @@
           }
         }
       }
-    },
-    ",": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "，"
-          }
-        }
-      },
-      "comment": "Punctuation after an interactive packing sentence token."
-    },
-    ".": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "。"
-          }
-        }
-      },
-      "comment": "Punctuation at the end of the interactive packing sentence."
     },
     "1 archive done": {
       "localizations": {
@@ -4114,16 +4112,6 @@
         }
       }
     },
-    "Opening with Stow now: %@ and %lld more": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "目前用 Stow 打开：%1$@，以及另外 %2$lld 种"
-          }
-        }
-      }
-    },
     "Pack": {
       "localizations": {
         "zh-Hans": {
@@ -6080,17 +6068,6 @@
         }
       }
     },
-    "as a": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "格式为"
-          }
-        }
-      },
-      "comment": "Connector in the interactive packing sentence, before the archive format."
-    },
     "as one file": {
       "localizations": {
         "zh-Hans": {
@@ -6120,17 +6097,6 @@
           }
         }
       }
-    },
-    "for": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "用于"
-          }
-        }
-      },
-      "comment": "Connector in the interactive packing sentence, before its intended audience."
     },
     "in 100 MB parts": {
       "localizations": {
@@ -6251,6 +6217,23 @@
           }
         }
       }
+    },
+    "pack.sentence": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将{subject}压缩为{format}格式，用于{audience}，{password}，{split}。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pack {subject} as a {format} for {audience}, {password}, {split}."
+          }
+        }
+      },
+      "comment": "Pack sheet sentence. Keep the five {…} placeholders (any order); each becomes a menu or the item name."
     },
     "the archive": {
       "localizations": {
