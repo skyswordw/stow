@@ -6,8 +6,8 @@ name: CI
 on:
   push:
     branches: [main]
+  # Any base branch: wave-2 work is stacked on earlier PRs until they merge.
   pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
