@@ -178,13 +178,19 @@ enum Extraction {
     }
 
     /// The AppleDouble companions (`__MACOSX/dir/._name`, `dir/._name`) of the given stored paths.
+    /// A selected folder also brings the `__MACOSX` companions of everything inside it: those live
+    /// outside the folder, so extracting the folder alone would leave its files' details behind
+    /// (inline `dir/._name` companions come with the folder anyway).
     static func appleDoubles(for paths: [String], in available: Set<String>) -> [String] {
-        paths.flatMap { path -> [String] in
+        var seen = Set<String>()
+        return paths.flatMap { path -> [String] in
             let trimmed = path.hasSuffix("/") ? String(path.dropLast()) : path
             let name = (trimmed as NSString).lastPathComponent
             let parent = (trimmed as NSString).deletingLastPathComponent
             let inline = parent.isEmpty ? "._\(name)" : "\(parent)/._\(name)"
-            return [inline, "__MACOSX/" + inline].filter(available.contains)
+            let inside = "__MACOSX/" + trimmed + "/"
+            let nested = available.filter { $0.hasPrefix(inside) }.sorted()
+            return ([inline, "__MACOSX/" + inline].filter(available.contains) + nested).filter { seen.insert($0).inserted }
         }
     }
 
