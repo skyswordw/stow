@@ -18,6 +18,9 @@ nonisolated struct PackRequest: Identifiable, Sendable {
     var roots: [String]
     /// Where the chosen items live; the default place to save the archive.
     var directory: URL?
+    var suggestedNameOverride: String?
+    var cleanupDirectory: URL?
+    var initialFormat: PackFormat?
 
     /// Sample files: roots are their top-level names.
     init(files: [PackFile]) {
@@ -36,6 +39,7 @@ nonisolated struct PackRequest: Identifiable, Sendable {
 
     /// "Project" for one folder, "Report" for one file, "Archive" for several (as Archive Utility does).
     var suggestedName: String {
+        if let suggestedNameOverride { return suggestedNameOverride }
         guard roots.count == 1, let root = roots.first else { return "Archive" }
         let isFolder = files.first { $0.path == root }?.isFolder ?? files.contains { $0.path.hasPrefix(root + "/") }
         let stem = (root as NSString).deletingPathExtension

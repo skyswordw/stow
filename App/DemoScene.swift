@@ -37,6 +37,10 @@ enum DemoScene {
         case "settings":
             SettingsRouter.shared.pane = defaults.string(forKey: "StowSettingsPane").flatMap(SettingsPane.init(rawValue:)) ?? .general
             SettingsRouter.shared.open()
+        case "editing":
+            BrowseDemo.editing(in: app)
+        case "readonly":
+            BrowseDemo.readOnly(in: app)
         case "grid":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Photos"

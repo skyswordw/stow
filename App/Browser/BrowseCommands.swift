@@ -6,6 +6,33 @@ struct BrowseCommands: Commands {
 
     var body: some Commands {
         let browser = app.browser
+        CommandGroup(replacing: .saveItem) {
+            Button("Save") { if let browser { Task { await browser.saveEdits() } } }
+                .keyboardShortcut("s")
+                .disabled(browser?.editSession.isEdited != true || browser?.editSession.isSaving == true)
+            Button("Revert to Saved") { browser?.revertEdits() }
+                .disabled(browser?.editSession.isEdited != true || browser?.editSession.isSaving == true)
+            if browser?.editSession.format == nil, browser != nil {
+                Button("Extract and Repack as ZIP or 7Z…") { if let browser { app.extractAndRepack(browser) } }
+            }
+        }
+        CommandGroup(after: .pasteboard) {
+            // Keep menu invocations available in read-only archives so they explain the refusal;
+            // item context menus disable mutations and expose the same reason as help.
+            Button("Add Files…") { browser?.chooseAddFiles() }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
+                .disabled(browser == nil || browser?.editSession.isSaving == true)
+                .help(browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Add Files…"))
+            Button("Delete") { if let browser { browser.editSession.delete(Array(browser.selection)) } }
+                .keyboardShortcut(.delete, modifiers: .command)
+                .disabled(browser?.selection.isEmpty != false || browser?.editSession.isSaving == true)
+                .help(browser?.editSession.refusal(for: Array(browser?.selection ?? [])) ?? (browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Delete")))
+            // Return already opens the selected item in all three browser modes.
+            Button("Rename") { if let browser, let entry = browser.selectedEntries.first { browser.beginRename(entry) } }
+                .disabled(browser?.selection.count != 1 || browser?.editSession.isSaving == true)
+            Button("Replace…") { if let browser, let entry = browser.selectedEntries.first { browser.chooseReplacement(entry) } }
+                .disabled(browser?.selection.count != 1 || browser?.selectedEntries.first?.isFolder != false || browser?.editSession.isSaving == true)
+        }
         CommandGroup(before: .toolbar) {
             Button("as Icons") { browser?.viewMode = .grid }
                 .keyboardShortcut("1")

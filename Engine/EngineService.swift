@@ -194,7 +194,16 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                     if encryptedHeaders || listing.entries.contains(where: \.isEncrypted) {
                         try await sevenZip.test(.file(work), password: request.password) { _ in }
                     }
-                    let steps = try EditPlan.steps(for: request.operations, listing: listing, format: request.format)
+                    var sourceEntries: [ListedEntry] = []
+                    if let walker = manager.enumerator(at: input, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey]) {
+                        for case let url as URL in walker {
+                            let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey])
+                            let path = String(url.path.dropFirst(input.path.count + 1))
+                            sourceEntries.append(ListedEntry(path: path, isFolder: values.isDirectory == true && values.isSymbolicLink != true,
+                                                            isSymlink: values.isSymbolicLink == true, size: Int64(values.fileSize ?? 0)))
+                        }
+                    }
+                    let steps = try EditPlan.steps(for: request.operations, listing: listing, format: request.format, sources: sourceEntries)
                     for source in steps.flatMap(\.sources) {
                         let from = input.appending(path: source.item)
                         let to = staged.appending(path: source.path)
@@ -209,7 +218,12 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                             throw EngineError(.failed, String(localized: "A staged item points outside the staging tree."))
                         }
                         try manager.createDirectory(at: to.deletingLastPathComponent(), withIntermediateDirectories: true)
-                        try manager.copyItem(at: from, to: to)
+                        let values = try from.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+                        if values.isDirectory == true, values.isSymbolicLink != true {
+                            try manager.createDirectory(at: to, withIntermediateDirectories: true)
+                        } else {
+                            try manager.copyItem(at: from, to: to)
+                        }
                     }
                     let audit = try PathContainment.audit(staging: staged)
                     guard audit.removedItems.isEmpty, audit.removedLinks.isEmpty else {

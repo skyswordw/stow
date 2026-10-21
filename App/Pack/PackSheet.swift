@@ -14,6 +14,7 @@ struct PackSheet: View {
     @State private var showDetails = false
     @State private var showMore = false
     @State private var isChoosing = false
+    @State private var handedOffCleanup = false
 
     private var report: PackReport {
         Compatibility.report(for: request.files, options: options, password: password, overrides: overrides)
@@ -37,6 +38,9 @@ struct PackSheet: View {
         .frame(minWidth: 580)
         .animation(Motion.token, value: options)
         .onAppear(perform: restore)
+        .onDisappear {
+            if !handedOffCleanup, let directory = request.cleanupDirectory { try? FileManager.default.removeItem(at: directory) }
+        }
     }
 
     // MARK: Sentence
@@ -193,6 +197,7 @@ struct PackSheet: View {
     private func restore() {
         name = request.suggestedName
         options.setAudience(PackPreferences.audience)
+        if let format = request.initialFormat { options.format = format }
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
         options.split = SettingsKeys.splitSize()
@@ -229,6 +234,7 @@ struct PackSheet: View {
                 conflict = choice
             }
             let keepsMetadata = options.audience.keepsMacMetadata && format == .zip
+            let cleanupDirectory = self.request.cleanupDirectory
             let request = CreateRequest(
                 operationID: UUID().uuidString,
                 archiveName: archiveName,
@@ -240,8 +246,9 @@ struct PackSheet: View {
                 verify: options.verify,
                 threads: PackPreferences.threads
             )
+            handedOffCleanup = true
             app.packing.start(.init(items: report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,
-                                    request: request, name: archiveName, destination: destination, conflict: conflict))
+                                    request: request, name: archiveName, destination: destination, conflict: conflict, cleanupDirectory: cleanupDirectory))
             dismiss()
         }
     }

@@ -97,11 +97,13 @@ struct ContentGrid: View {
             .onTapGesture(count: 2) { model.open(entry) }
             // Select immediately — don't make single clicks wait for double-click detection.
             .simultaneousGesture(TapGesture().onEnded {
+                guard model.renamingPath == nil else { return }
                 isFocused = true
                 model.click(entry, modifiers: NSEvent.modifierFlags)
             })
             .hoverPreview(for: entry, model: hover, browser: model)
             .contextMenu { EntryMenu(model: model, entry: entry) }
+            .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
     }
 
     /// Clicking empty space clears the selection; dragging across it draws the marquee.
@@ -165,7 +167,7 @@ private struct GridTile: View {
                 .opacity(entry.isHelper ? 0.55 : 1)
 
             VStack(spacing: 2) {
-                Text(entry.name)
+                EditingName(model: model, entry: entry)
                     .font(.callout)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -209,6 +211,7 @@ extension View {
             .quickLookKeys(model)
             .onKeyPress(characters: .alphanumerics.union(.punctuationCharacters), phases: .down) { press in
                 guard press.modifiers.isDisjoint(with: [.command, .option, .control]) else { return .ignored }
+                guard model.renamingPath == nil else { return .ignored }
                 model.typeSelect(press.characters)
                 return .handled
             }
@@ -217,11 +220,18 @@ extension View {
     /// Space and Return, for every view mode.
     func quickLookKeys(_ model: BrowserModel) -> some View {
         self
+            .onKeyPress(keys: [.delete], phases: .down) { press in
+                guard model.renamingPath == nil, press.modifiers.isDisjoint(with: [.control, .option]), !model.selection.isEmpty else { return .ignored }
+                model.editSession.delete(Array(model.selection))
+                return .handled
+            }
             .onKeyPress(.space) {
+                guard model.renamingPath == nil else { return .ignored }
                 model.toggleQuickLook()
                 return .handled
             }
             .onKeyPress(.return) {
+                guard model.renamingPath == nil else { return .ignored }
                 let selected = model.selectedEntries
                 guard selected.count == 1 else { return .ignored }
                 model.open(selected[0])
@@ -244,7 +254,7 @@ struct ContentList: View {
                         RowIcon(entry: entry, model: model)
                             .frame(width: 18, height: 18)
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(entry.name).lineLimit(1)
+                            EditingName(model: model, entry: entry).lineLimit(1)
                             if model.isSearching {
                                 Text(entry.parent.isEmpty ? String(localized: "Top level") : entry.parent)
                                     .font(.caption)
@@ -257,6 +267,7 @@ struct ContentList: View {
                     .opacity(entry.isHelper ? 0.55 : 1)
                     .contentShape(.rect)
                     .hoverPreview(for: entry, model: hover, browser: model)
+                    .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
                 }
                 .width(min: 220, ideal: 320)
 
@@ -308,6 +319,18 @@ struct EntryMenu: View {
     let entry: ArchiveEntry
 
     var body: some View {
+        Button("Add Files…") { model.chooseAddFiles() }
+            .disabled(model.editSession.format == nil || model.editSession.isSaving)
+            .help(model.editSession.format == nil ? model.editSession.readOnlyReason : String(localized: "Add Files…"))
+        Button("Rename") { model.beginRename(entry) }
+            .disabled(model.editSession.format == nil || model.editSession.isSaving || model.editSession.refusal(for: [entry.path]) != nil)
+            .help(model.editSession.refusal(for: [entry.path]) ?? (model.editSession.format == nil ? model.editSession.readOnlyReason : String(localized: "Rename")))
+        Button("Replace…") { model.chooseReplacement(entry) }
+            .disabled(entry.isFolder || model.editSession.format == nil || model.editSession.isSaving)
+        Button("Delete") { model.editSession.delete(model.selection.contains(entry.id) ? Array(model.selection) : [entry.path]) }
+            .disabled(model.editSession.format == nil || model.editSession.isSaving || model.editSession.refusal(for: [entry.path]) != nil)
+            .help(model.editSession.refusal(for: [entry.path]) ?? (model.editSession.format == nil ? model.editSession.readOnlyReason : String(localized: "Delete")))
+        Divider()
         let real = model.archive.source != nil
         if real, !entry.isFolder, entry.kind != .archive {
             Button("Open", systemImage: "arrow.up.forward.app") { model.openWithDefaultApp([entry]) }

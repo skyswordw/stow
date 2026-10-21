@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BrowserView: View {
     @Bindable var model: BrowserModel
+    @State private var editingDelegate = EditingWindowDelegate()
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -14,10 +15,16 @@ struct BrowserView: View {
                 .searchable(text: $model.query, placement: .sidebar, prompt: searchPrompt)
         } detail: {
             content
+                .archiveDrop(model: model, folder: model.folder)
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
                 }
-                .safeAreaInset(edge: .bottom, spacing: 0) { PathBar(model: model) }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    VStack(spacing: 0) {
+                        if model.editSession.isEdited { UnsavedChangesBar(model: model) }
+                        PathBar(model: model)
+                    }
+                }
                 .overlay(alignment: .bottom) { nextSteps }
                 .navigationTitle(model.title)
                 .navigationSubtitle(model.subtitle)
@@ -45,11 +52,23 @@ struct BrowserView: View {
         }
         .onChange(of: model.selection) { model.quickLook.selectionChanged() }
         .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
+        .alert("Archive Editing", isPresented: Binding(get: { model.editSession.message != nil }, set: { if !$0 { model.editSession.message = nil } })) {
+            Button("OK", role: .cancel) { model.editSession.message = nil }
+        } message: { Text(model.editSession.message ?? "") }
+        .alert(model.editSession.readOnlyReason, isPresented: Binding(get: { model.editSession.showsReadOnly }, set: { model.editSession.showsReadOnly = $0 })) {
+            Button("Extract and Repack…") { app.extractAndRepack(model) }
+            Button("OK", role: .cancel) { }
+        }
+        .onChange(of: model.level.id) {
+            if let window = model.editingWindow { editingDelegate.attach(window, model: model) }
+        }
         .background {
             WindowReader { window in
+                editingDelegate.attach(window, model: model)
                 model.quickLook.attach(to: window)
                 model.dragOut.install(in: window)
             }
+            .id(ObjectIdentifier(model))
         }
     }
 
@@ -87,7 +106,7 @@ struct BrowserView: View {
                     .transition(.rise(reduceMotion: reduceMotion))
             }
         }
-        .padding(.bottom, Space.l + PathBar.height)
+        .padding(.bottom, Space.l + PathBar.height + (model.editSession.isEdited ? 48 : 0))
         .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: visible)
     }
 
