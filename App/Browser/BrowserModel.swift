@@ -2,7 +2,7 @@ import SwiftUI
 
 @Observable
 final class BrowserModel {
-    enum ViewMode: String, CaseIterable, Identifiable {
+    nonisolated enum ViewMode: String, CaseIterable, Identifiable, Sendable {
         case grid, list, columns
         var id: Self { self }
     }
@@ -63,7 +63,7 @@ final class BrowserModel {
     private(set) var levels: [Level]
     var folder = "" { didSet { if folder != oldValue { refresh() } } }
     var selection: Set<ArchiveEntry.ID> = []
-    var viewMode: ViewMode = .grid
+    var viewMode: ViewMode = SettingsKeys.browserView()
     var query = "" { didSet { if query != oldValue { runSearch() } } }
     var showInspector = true
     var showHelperItems = false { didSet { if showHelperItems != oldValue { refresh(); runSearch() } } }

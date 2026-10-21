@@ -28,6 +28,26 @@ final class PreviewCache {
 
     private static let parent = FileManager.default.temporaryDirectory.appending(path: "Previews", directoryHint: .isDirectory)
     private static var swept = false
+    private static let live = NSHashTable<PreviewCache>.weakObjects()
+
+    static var directoryBytes: Int64 {
+        guard let walker = FileManager.default.enumerator(at: parent, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey]) else { return 0 }
+        return walker.reduce(Int64(0)) { total, item in
+            guard let url = item as? URL,
+                  let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey]),
+                  values.isRegularFile == true else { return total }
+            return total + Int64(values.fileSize ?? 0)
+        }
+    }
+
+    static func cleanUp() {
+        let caches = live.allObjects
+        caches.forEach { $0.removeAll() }
+        removeTree(parent)
+        for cache in caches {
+            try? FileManager.default.createDirectory(at: cache.root, withIntermediateDirectories: true)
+        }
+    }
 
     init(engine: ArchiveEngine = .shared, budget: Int64 = PreviewCache.defaultBudget) {
         self.engine = engine
@@ -38,6 +58,7 @@ final class PreviewCache {
         }
         root = Self.parent.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        Self.live.add(self)
         let root = root
         quitObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: nil

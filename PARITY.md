@@ -50,7 +50,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | Space → Quick Look of an entry; arrow keys switch target | ✅ | System Quick Look panel; arrow keys move the browser's selection and the panel follows; several selected page with ← →; ⌘Y too |
-| Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | ✅ previews · ⬜ Settings toggle | Real content read from the archive: images (downsampled), PDF/Office/others (Quick Look), Markdown (rendered), CSV (table), code/logs (monospaced, unwrapped), fonts (the real face), audio (artwork, title, length), video (a frame, length). ➕ 450 ms, then neighbours open instantly |
+| Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | ✅ previews · ✅ Settings toggle | Real content read from the archive: images (downsampled), PDF/Office/others (Quick Look), Markdown (rendered), CSV (table), code/logs (monospaced, unwrapped), fonts (the real face), audio (artwork, title, length), video (a frame, length). ➕ 450 ms, then neighbours open instantly |
 | Thumbnails in icon view | ✅ | Quick Look thumbnails, only for tiles on screen, batched into one engine trip; files over 48 MB keep their icon |
 | Quick Look extension for archives in Finder | ✅ | ➕ all 34 types, not just zip/7z/tar; one-line Checkup, encryption, sizes; 3 s timeout with fallbacks; Open in Stow. .tar.xz/.tar.gz show the inner .tar until tarballs are unwrapped |
 | Encrypted entries: preview after unlock | ✅ with the hook | Previews use the password that opened a nested archive; for the outer archive, once the password branch stores it |
@@ -68,7 +68,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | Same-name folder conflicts: Merge / Keep Both; file Replace | ✅ Merge / Keep Both; Replace / Keep Both / Skip; “do the same for the rest” | ➕ replaced items go to the Trash; stopping undoes everything placed so far; apps are never merged |
 | Skip system metadata (__MACOSX, AppleDouble, .DS_Store, Thumbs.db, desktop.ini) while keeping dotfiles like .gitignore | ✅ setting, on by default | ➕ Finder tags, comments and other Mac details in AppleDouble are put back on the files |
 | Unsafe paths, special files (FIFO, sockets, devices), links | ✅ containment | ➕ explained in Checkup |
-| Password archives (incl. RAR), incorrect-password retry, CJK passwords (show-password for IME) | ✅ sheet with retry for opening (encrypted 7z file lists), extracting and nested archives; password kept in memory while the archive is open · ⬜ show-password-by-default setting | ZIP passwords outside ASCII get a warning when packing |
+| Password archives (incl. RAR), incorrect-password retry, CJK passwords (show-password for IME) | ✅ sheet with retry for opening (encrypted 7z file lists), extracting and nested archives; password kept in memory while the archive is open · ✅ show-password-by-default setting | ZIP passwords outside ASCII get a warning when packing |
 | Batch extraction queue, stacked progress windows | ✅ File › Extract Archives… or drop several; compact progress stack | conflicts and keep/trash asked once per batch |
 | Staged writes, cleanup on cancel/failure | ✅ | |
 | Integrity check of disk images before browsing | ✅ in the background (browsing doesn’t wait) | |
@@ -80,12 +80,12 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | Create ZIP / 7Z / TAR (+gz/bz2/xz) | ✅ | Sandboxed engine; files stream in as an Apple Archive, the archive streams back. .tar.zst: the bundled 7zz can only read zstd, so not yet |
 | Purpose presets: General sharing, Windows, Mac-to-Mac (xattrs), Linux & servers (Unix attrs), smaller archive | ✅ Windows/Mac/Linux/Web | ➕ each audience changes the archive itself: Windows/Web get safe names, NFC, no Finder files, no links; Linux keeps links and modes; Mac keeps tags/xattrs as `__MACOSX` AppleDouble (ZIP) |
 | Compression levels: Store, Fastest, Fast, Balanced, Maximum, Smallest (LZMA2 solid block sizes, store incompressible files) | ✅ More Options | -mx 0/1/3/5/7/9 with 7-Zip's solid-block defaults; ZIP stores incompressible files per entry |
-| Each preset remembers its level; default preset & level in Settings | ✅ remembered · ⬜ Settings UI | Last audience is remembered too |
+| Each preset remembers its level; default preset & level in Settings | ✅ remembered · ✅ Settings UI | Last audience is remembered too |
 | Windows filename check with editable suggested names | ✅ | ➕ clashes after renaming (incl. case-only) are numbered; edited names are made safe too |
 | AES encryption (ZIP), header/filename encryption (7Z); ZIP passwords ASCII-only warning | ✅ | Password goes to 7-Zip on stdin, never argv |
-| Split volumes, default volume size | ✅ 100 MB / 700 MB / 4 GB · ⬜ default in Settings | `Name.7z.001…`; Archive Utility can't open split ZIPs |
+| Split volumes, default volume size | ✅ 100 MB / 700 MB / 4 GB · ✅ default in Settings | `Name.7z.001…`; Archive Utility can't open split ZIPs |
 | Verify integrity after creating | ✅ More Options | Failed test keeps nothing |
-| CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · ⬜ Settings UI | |
+| CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · ✅ Settings UI | |
 | Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
 | Create disk image (DMG) | ⬜ | (string present in ArcZip; low priority) |
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
@@ -141,7 +141,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | --- | --- | --- |
 | Finder context menu (Finder Sync) incl. optional external drives; Repair Finder menu (re-register, restart Finder) | ✅ menu, external-drive setting · 🎨 repair (sandbox: LSRegisterURL/pluginkit refused, so it opens the extension switch and explains relaunching Finder) | Extract Here, Extract To…, Open in Stow, Compress with Stow… |
 | Services: Extract Here, Extract To…, Quick Compress, Compress…, Send to app | ✅ (Quick Compress waits on the create engine) | results revealed in Finder; progress on the Dock icon |
-| File associations UI: choose formats, set/restore default app, report result | ✅ model + view (Settings host pending) | ➕ remembers each type's previous app; reports refusals and types macOS kept |
+| File associations UI: choose formats, set/restore default app, report result | ✅ model + view (Settings host available) | ➕ remembers each type's previous app; reports refusals and types macOS kept |
 | Launch at login, Dock icon hides with last window | ✅ (opt-in) | login item shows macOS's real status |
 | URL scheme for extension → app hand-off (one-time requests) | ✅ | ➕ 128-bit one-time tokens, 60 s, no paths in URLs |
 | Reading files dropped from other apps (WeChat etc.), permission guidance | ⬜ | |
@@ -150,13 +150,13 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| General: appearance (light/dark/auto), default view, CPU cores | ⬜ | |
+| General: appearance (light/dark/auto), default view, CPU cores | ✅ | |
 | Compression defaults, Extraction defaults, Flow, Box, Mini panes | ⬜ | |
-| Password field: show by default (for CJK input) | ⬜ | |
-| Advanced: temp-file usage & cleanup, reset all preferences | ⬜ | |
+| Password field: show by default (for CJK input) | ✅ | |
+| Advanced: temp-file usage & cleanup, reset all preferences | ✅ | |
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | ⬜ | |
 | Updates: automatic check, install after tasks finish | ⬜ | |
-| Open-source licence viewer | ⬜ (THIRD_PARTY_NOTICES.md exists) | |
+| Open-source licence viewer | ✅ (THIRD_PARTY_NOTICES.md exists) | |
 | Native dialogs, detailed error codes + request IDs for support | partial | |
 
 ## Deliberately not copied

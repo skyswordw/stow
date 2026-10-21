@@ -14,6 +14,7 @@ import SwiftUI
 /// runs Repair for real).
 /// `-StowScene associations -StowAssociationsCheck <UTI>` makes Stow the real default for one
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
+/// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
 /// password (the sheet after a rejected password), extract-options, install-options, batch, conflict, signature-warning, replace-app.
 /// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
@@ -31,6 +32,9 @@ enum DemoScene {
         }
 
         switch scene {
+        case "settings":
+            SettingsRouter.shared.pane = defaults.string(forKey: "StowSettingsPane").flatMap(SettingsPane.init(rawValue:)) ?? .general
+            SettingsRouter.shared.open()
         case "grid":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Photos"
@@ -146,7 +150,9 @@ enum DemoScene {
            size.count == 2 {
             Task {
                 try? await Task.sleep(for: .milliseconds(300))
-                guard let window = NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible }) else { return }
+                let targetWindow = scene == "settings" ? NSApp.keyWindow
+                    : NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible })
+                guard let window = targetWindow else { return }
                 window.setContentSize(CGSize(width: size[0], height: size[1]))
             }
         }

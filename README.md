@@ -137,7 +137,12 @@ Stow stays sandboxed (user-selected files only) and asks for the narrowest acces
 - **Disk images are never mounted.** The engine reads HFS+, APFS and ISO images directly, so a DMG
   is browsed read-only with nothing attached to detach.
 
-Settings keys (UserDefaults; views in `App/Options` for the Settings window):
+Stow has a Settings window (⌘,) with General, Extraction, Installing, Packing, Previews,
+Passwords, File Types, Integration, Advanced and Licenses panes. Glance and Tray settings
+panes are not available yet. The host lives in `App/Settings` and reuses the extraction and
+installing forms in `App/Options`. Advanced can clean preview caches and reset preferences.
+
+Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKeys`):
 
 | Key | Default | Values |
 | --- | --- | --- |
@@ -148,6 +153,15 @@ Settings keys (UserDefaults; views in `App/Options` for the Settings window):
 | `extract.fileConflict` | `ask` | `ask`, `replace`, `keepBoth`, `skip` |
 | `extract.skipSystemFiles` | `true` | |
 | `install.removeQuarantine` | `false` | |
+| `general.appearance` | `system` | `system`, `light`, `dark` |
+| `browse.defaultView` | `grid` | `grid`, `list`, `columns` |
+| `browse.hoverPreviews` | `true` | |
+| `password.showByDefault` | `false` | |
+| `PackAudience` | `windows` | `windows`, `mac`, `linux`, `web` |
+| `PackLevel.<audience>` | `5` (Balanced) | One compression level per audience |
+| `PackVolumeSize` | `0` | `0`, `100000000`, `700000000`, `4000000000` bytes |
+| `PackVerify` / `PackCPUCores` | `false` / `0` | 0 cores means all |
+| `FinderMenuOnExternalDrives` / `HideDockIconWithoutWindows` | `false` | |
 
 ## Layout
 

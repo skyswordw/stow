@@ -9,12 +9,20 @@ final class IntegrationSettings {
     static let shared = IntegrationSettings()
 
     private let defaults: UserDefaults
+    private var isReloadingPreferences = false
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         showsOnExternalDrives = defaults.bool(forKey: Keys.externalDrives)
         hidesDockIconWithoutWindows = defaults.bool(forKey: Keys.hideDock)
         refresh()
+    }
+
+    func reloadPreferences() {
+        isReloadingPreferences = true
+        defer { isReloadingPreferences = false }
+        showsOnExternalDrives = defaults.bool(forKey: Keys.externalDrives)
+        hidesDockIconWithoutWindows = defaults.bool(forKey: Keys.hideDock)
     }
 
     private enum Keys {
@@ -26,7 +34,7 @@ final class IntegrationSettings {
 
     var showsOnExternalDrives: Bool {
         didSet {
-            defaults.set(showsOnExternalDrives, forKey: Keys.externalDrives)
+            if !isReloadingPreferences { defaults.set(showsOnExternalDrives, forKey: Keys.externalDrives) }
             publishFinderSettings()
         }
     }
@@ -116,7 +124,7 @@ final class IntegrationSettings {
 
     var hidesDockIconWithoutWindows: Bool {
         didSet {
-            defaults.set(hidesDockIconWithoutWindows, forKey: Keys.hideDock)
+            if !isReloadingPreferences { defaults.set(hidesDockIconWithoutWindows, forKey: Keys.hideDock) }
             DockPolicy.shared.update()
         }
     }
