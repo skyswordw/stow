@@ -1,7 +1,7 @@
 import SwiftUI
 
 nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, extraction, installing, packing, previews, passwords, fileTypes, integration, advanced, licenses
+    case general, extraction, installing, packing, nextSteps, previews, passwords, fileTypes, integration, advanced, licenses
     var id: Self { self }
     var title: String {
         switch self {
@@ -9,6 +9,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .extraction: String(localized: "Extraction")
         case .installing: String(localized: "Installing")
         case .packing: String(localized: "Packing")
+        case .nextSteps: String(localized: "Next Steps")
         case .previews: String(localized: "Previews")
         case .passwords: String(localized: "Passwords")
         case .fileTypes: String(localized: "File Types")
@@ -23,6 +24,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .extraction: "archivebox"
         case .installing: "square.and.arrow.down"
         case .packing: "shippingbox"
+        case .nextSteps: "capsule.on.rectangle"
         case .previews: "eye"
         case .passwords: "lock"
         case .fileTypes: "doc.on.doc"
@@ -45,6 +47,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .extraction: ExtractionOptionsView()
         case .installing: InstallOptionsView()
         case .packing: PackingSettingsView()
+        case .nextSteps: NextStepsSettingsView()
         case .previews: PreviewSettingsView()
         case .passwords: PasswordSettingsView()
         case .fileTypes: AssociationsView(model: Associations())

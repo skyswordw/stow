@@ -1,6 +1,216 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Copy to Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝到文件夹"
+          }
+        }
+      }
+    },
+    "Customize Next Steps…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义“下一步”…"
+          }
+        }
+      }
+    },
+    "For any selection: pack it into a new archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何所选项：压缩成新的压缩包"
+          }
+        }
+      }
+    },
+    "For any selection: the main button": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何所选项：主按钮"
+          }
+        }
+      }
+    },
+    "Install Fonts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装字体"
+          }
+        }
+      }
+    },
+    "More actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作"
+          }
+        }
+      }
+    },
+    "More actions for the selection": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项的更多操作"
+          }
+        }
+      }
+    },
+    "Next Steps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一步"
+          }
+        }
+      }
+    },
+    "Next Steps floats above the files you select and offers the right next step. When it’s off, every action is still in the menus.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“下一步”浮在你选择的文件上方，提供合适的下一步操作。关闭后，所有操作仍在菜单中。"
+          }
+        }
+      }
+    },
+    "Next Steps shows up to two suggestions beside Extract, most specific first. Steps you turn off stay in its More menu.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“下一步”在“解压缩”旁最多显示两个建议，最具体的排在前面。关闭的操作仍在它的“更多”菜单中。"
+          }
+        }
+      }
+    },
+    "Preparing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在准备"
+          }
+        }
+      }
+    },
+    "Ready to pack": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可以压缩了"
+          }
+        }
+      }
+    },
+    "Restore Defaults": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原默认设置"
+          }
+        }
+      }
+    },
+    "Show Next Steps when you select something": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择项目时显示“下一步”"
+          }
+        }
+      }
+    },
+    "Suggested Steps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议的操作"
+          }
+        }
+      }
+    },
+    "When a disk image says where an item goes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像指明项目的去处时"
+          }
+        }
+      }
+    },
+    "When an app is selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择 App 时"
+          }
+        }
+      }
+    },
+    "When an archive is selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择压缩包时"
+          }
+        }
+      }
+    },
+    "When an installer package is selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择安装包时"
+          }
+        }
+      }
+    },
+    "When everything selected is a font": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项全部是字体时"
+          }
+        }
+      }
+    },
+    "When something can be previewed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有可预览的项目时"
+          }
+        }
+      }
+    },
     "%lld items inside other archives — open one to act on it": {
       "localizations": {
         "zh-Hans": {

@@ -5,6 +5,7 @@ struct BrowserView: View {
     @State private var editingDelegate = EditingWindowDelegate()
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
 
     var body: some View {
         NavigationSplitView {
@@ -97,7 +98,7 @@ struct BrowserView: View {
 
     @ViewBuilder
     private var nextSteps: some View {
-        let visible = !model.selection.isEmpty || model.activity != nil
+        let visible = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil
         ZStack {
             if visible {
                 NextStepsBar(model: model)
