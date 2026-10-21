@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 /// A byte-level reader for `7zz l -slt`, for the common formats only (ZIP, 7z, RAR, tar). A
 /// 100,000-entry archive lists as well over a million lines; this reads them without making a
@@ -15,7 +16,7 @@ nonisolated extension SevenZip {
         return text.withUTF8 { parseFast($0) }
     }
 
-    private struct Fields {
+    fileprivate struct Fields: Sendable {
         var path: String?
         var folder = false
         var size: Int64?
@@ -28,79 +29,144 @@ nonisolated extension SevenZip {
     }
 
     private static func parseFast(_ bytes: UnsafeBufferPointer<UInt8>) -> (listing: ArchiveListing, legacy: [Int])? {
-        var type: String?
-        var physicalSize: Int64?
-        var archiveFields: [String: String] = [:]
-        var entries: [ListedEntry] = []
-        var legacy: [Int] = []
-        var current = Fields()
-        var hasFields = false
-        var section = 0 // 0: preamble, 1: archive properties ("--"), 2: entries ("----------")
+        var parser = ListingParser()
+        parser.consumeLines(bytes)
+        return parser.finish()
+    }
 
-        func flush() {
+    /// A `ListingParser` that 7-Zip's output handler can feed from its own queue.
+    final class ListingStream: Sendable {
+        private let parser = Mutex(ListingParser())
+
+        func consume(_ chunk: Data) { parser.withLock { $0.consume(chunk) } }
+        func finish() -> (listing: ArchiveListing, legacy: [Int])? { parser.withLock { $0.finish() } }
+    }
+
+    /// Reads `7zz l -slt` as it arrives (issue #22): feed each chunk of output to `consume` while
+    /// 7-Zip is still listing, then `finish`. Parsing overlaps the listing instead of starting
+    /// after it, and a chunk is read once, as bytes. Gives up (nil from `finish`) as soon as the
+    /// header names a format the fast path doesn't know; `parseListing` takes those.
+    struct ListingParser: Sendable {
+        private var type: String?
+        private var physicalSize: Int64?
+        private var archiveFields: [String: String] = [:]
+        private var entries: [ListedEntry] = []
+        private var legacy: [Int] = []
+        private var current = Fields()
+        private var hasFields = false
+        private var section = 0 // 0: preamble, 1: archive properties ("--"), 2: entries ("----------")
+        private var rejected = false
+        /// The end of the last chunk, up to its last newline: a line cut in two.
+        private var carry: [UInt8] = []
+
+        init() {}
+
+        /// Entries read so far.
+        var count: Int { entries.count }
+        /// False once the header named a format only `parseListing` reads.
+        var isUsable: Bool { !rejected }
+
+        /// The next piece of output, cut anywhere.
+        mutating func consume(_ chunk: Data) {
+            guard !rejected, !chunk.isEmpty else { return }
+            chunk.withUnsafeBytes { raw in
+                let bytes = raw.bindMemory(to: UInt8.self)
+                guard let last = bytes.lastIndex(of: 10) else {
+                    carry.append(contentsOf: bytes)
+                    return
+                }
+                let complete = UnsafeBufferPointer(rebasing: bytes[...last])
+                if carry.isEmpty {
+                    consumeLines(complete)
+                } else {
+                    var joined = carry
+                    carry = []
+                    joined.append(contentsOf: complete)
+                    joined.withUnsafeBufferPointer { consumeLines($0) }
+                }
+                carry.append(contentsOf: bytes[(last + 1)...])
+            }
+        }
+
+        /// The listing, once the output has ended.
+        mutating func finish() -> (listing: ArchiveListing, legacy: [Int])? {
+            if !carry.isEmpty {
+                let rest = carry
+                carry = []
+                rest.withUnsafeBufferPointer { consumeLines($0) }
+            }
+            flush()
+            guard !rejected, let type, SevenZip.fastTypes.contains(type), section == 2 else { return nil }
+            return (ArchiveListing(type: type, physicalSize: physicalSize, entries: entries,
+                                   startOffset: SevenZip.startOffset(archiveFields),
+                                   tailSize: archiveFields["Tail Size"].flatMap { Int64($0) }), legacy)
+        }
+
+        private mutating func flush() {
             defer { current = Fields(); hasFields = false }
-            guard section == 2, hasFields, let entry = entry(from: current) else { return }
+            guard section == 2, hasFields, let entry = SevenZip.entry(from: current) else { return }
             if type == "zip", !current.utf8Flag, !entry.path.allSatisfy(\.isASCII) { legacy.append(entries.count) }
             entries.append(entry)
         }
 
-        var start = 0
-        while start < bytes.count {
-            var end = start
-            while end < bytes.count, bytes[end] != 10 { end += 1 }
-            let whole = UnsafeBufferPointer(rebasing: bytes[start..<end])
-            start = end + 1
+        /// Whole lines; a final line without its newline counts as whole too.
+        fileprivate mutating func consumeLines(_ bytes: UnsafeBufferPointer<UInt8>) {
+            var start = 0
+            while start < bytes.count, !rejected {
+                var end = start
+                while end < bytes.count, bytes[end] != 10 { end += 1 }
+                let whole = UnsafeBufferPointer(rebasing: bytes[start..<end])
+                start = end + 1
+                line(whole)
+            }
+        }
+
+        private mutating func line(_ whole: UnsafeBufferPointer<UInt8>) {
             // A stray carriage return goes, except on names: "Icon\r" really ends in one.
             let isPath = whole.starts(with: "Path = ".utf8)
             let line = !isPath && whole.last == 13 ? UnsafeBufferPointer(rebasing: whole.dropLast()) : whole
 
-            if section == 0, matches(line, "--") { section = 1; continue }
-            if section == 1, matches(line, "----------") {
-                guard let type, fastTypes.contains(type) else { return nil }
+            if section == 0, SevenZip.matches(line, "--") { section = 1; return }
+            if section == 1, SevenZip.matches(line, "----------") {
+                guard let type, SevenZip.fastTypes.contains(type) else { rejected = true; return }
                 section = 2
-                continue
+                return
             }
-            guard section > 0 else { continue }
-            if line.isEmpty { flush(); continue }
-            guard let separator = separatorIndex(in: line) else { continue }
+            guard section > 0 else { return }
+            if line.isEmpty { flush(); return }
+            guard let separator = SevenZip.separatorIndex(in: line) else { return }
             let key = UnsafeBufferPointer(rebasing: line[..<separator])
             let value = UnsafeBufferPointer(rebasing: line[min(separator + 3, line.count)...])
             if section == 1 {
-                if type == nil, matches(key, "Type") { type = string(value) }
-                if physicalSize == nil, matches(key, "Physical Size") { physicalSize = number(value) }
-                if matches(key, "Offset") || matches(key, "Embedded Stub Size") || matches(key, "Tail Size") {
-                    archiveFields[string(key)] = archiveFields[string(key)] ?? string(value)
+                if type == nil, SevenZip.matches(key, "Type") { type = SevenZip.string(value) }
+                if physicalSize == nil, SevenZip.matches(key, "Physical Size") { physicalSize = SevenZip.number(value) }
+                if SevenZip.matches(key, "Offset") || SevenZip.matches(key, "Embedded Stub Size") || SevenZip.matches(key, "Tail Size") {
+                    archiveFields[SevenZip.string(key)] = archiveFields[SevenZip.string(key)] ?? SevenZip.string(value)
                 }
-                continue
+                return
             }
-            if matches(key, "Path") {
+            if SevenZip.matches(key, "Path") {
                 flush()
-                current.path = string(value)
-            } else if matches(key, "Folder") {
-                current.folder = matches(value, "+")
-            } else if matches(key, "Size") {
-                current.size = number(value)
-            } else if matches(key, "Packed Size") {
-                current.packedSize = number(value)
-            } else if matches(key, "Modified") {
-                current.modified = parseDate(string(value))
-            } else if matches(key, "Attributes") {
-                current.attributes = string(value)
-            } else if matches(key, "Encrypted") {
-                current.encrypted = matches(value, "+")
-            } else if matches(key, "Symbolic Link") {
-                current.link = value.isEmpty ? nil : string(value)
-            } else if matches(key, "Characteristics") {
-                current.utf8Flag = string(value).contains("UTF8")
+                current.path = SevenZip.string(value)
+            } else if SevenZip.matches(key, "Folder") {
+                current.folder = SevenZip.matches(value, "+")
+            } else if SevenZip.matches(key, "Size") {
+                current.size = SevenZip.number(value)
+            } else if SevenZip.matches(key, "Packed Size") {
+                current.packedSize = SevenZip.number(value)
+            } else if SevenZip.matches(key, "Modified") {
+                current.modified = SevenZip.parseDate(SevenZip.string(value))
+            } else if SevenZip.matches(key, "Attributes") {
+                current.attributes = SevenZip.string(value)
+            } else if SevenZip.matches(key, "Encrypted") {
+                current.encrypted = SevenZip.matches(value, "+")
+            } else if SevenZip.matches(key, "Symbolic Link") {
+                current.link = value.isEmpty ? nil : SevenZip.string(value)
+            } else if SevenZip.matches(key, "Characteristics") {
+                current.utf8Flag = SevenZip.string(value).contains("UTF8")
             }
             hasFields = true
         }
-        flush()
-
-        guard let type, fastTypes.contains(type), section == 2 else { return nil }
-        return (ArchiveListing(type: type, physicalSize: physicalSize, entries: entries,
-                               startOffset: startOffset(archiveFields),
-                               tailSize: archiveFields["Tail Size"].flatMap { Int64($0) }), legacy)
     }
 
     /// Where " = " (or a closing " =") splits a line into key and value.
