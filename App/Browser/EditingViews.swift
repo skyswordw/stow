@@ -98,20 +98,25 @@ struct UnsavedChangesBar: View {
                 }
                 Spacer(minLength: 0)
             } else {
-                Image(systemName: "pencil.circle.fill")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
+                // Longest first; the icon goes before the words are cut.
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: Space.s) {
+                        icon
                         Text(edits.summary).fontWeight(.medium)
                         Text("Nothing changes on disk until you save.").foregroundStyle(.secondary)
                     }
                     .fixedSize()
+                    HStack(spacing: Space.s) {
+                        icon
+                        Text(edits.summary).fontWeight(.medium)
+                    }
+                    .fixedSize()
                     Text(edits.summary).fontWeight(.medium).fixedSize()
-                    Text(edits.summary).fontWeight(.medium).truncationMode(.tail)
+                    Text(edits.summary).fixedSize()
+                    Text(edits.summary).truncationMode(.tail)
                 }
                 .help(edits.summary + " " + String(localized: "Nothing changes on disk until you save."))
-                Spacer(minLength: Space.s)
+                Spacer(minLength: 0)
                 Group {
                     Button("Revert") { model.revertEdits() }
                         .help("Drop every unsaved change")
@@ -129,6 +134,12 @@ struct UnsavedChangesBar: View {
         .frame(minWidth: 0, maxWidth: .infinity)
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
+    }
+
+    private var icon: some View {
+        Image(systemName: "pencil.circle.fill")
+            .foregroundStyle(.secondary)
+            .accessibilityHidden(true)
     }
 }
 
@@ -149,10 +160,12 @@ struct ExternalChangeBar: View {
                 }
                 .fixedSize()
                 Text("“\(model.editSession.name)” changed on disk.").fontWeight(.medium).fixedSize()
-                Text("Changed on disk").fontWeight(.medium).truncationMode(.tail)
+                Text("Changed on disk").fontWeight(.medium).fixedSize()
+                Text("Changed on disk").fixedSize()
+                Text("Changed on disk").truncationMode(.tail)
             }
             .help(String(localized: "“\(model.editSession.name)” changed on disk.") + " " + String(localized: "Save a copy to keep your changes."))
-            Spacer(minLength: Space.s)
+            Spacer(minLength: 0)
             Group {
                 Button("Reload") { Task { await model.reloadArchive() } }
                     .help("Show the archive as it is on disk now — your unsaved changes are dropped")
