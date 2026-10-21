@@ -14,6 +14,9 @@ import SwiftUI
 /// runs Repair for real).
 /// `-StowScene associations -StowAssociationsCheck <UTI>` makes Stow the real default for one
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
+/// extract-options, install-options, batch, conflict, signature-warning, replace-app.
+/// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
+/// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -65,6 +68,46 @@ enum DemoScene {
         case "open":
             // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
+            if let step = defaults.string(forKey: "StowRun") {
+                Task {
+                    while app.browser == nil { try? await Task.sleep(for: .milliseconds(100)) }
+                    try? await Task.sleep(for: .milliseconds(400))
+                    run(step, in: app)
+                }
+            }
+        case "extract-options":
+            showOptions(ExtractionOptionsView(), title: "Extraction")
+        case "install-options":
+            showOptions(InstallOptionsView(), title: "Installing")
+        case "batch":
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.showInspector = false
+            app.batch.preview([
+                ("Field Recordings.7z", .done), ("server-logs.tar.xz", .running(0.62)),
+                ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed("This archive needs a password.")),
+                ("Fonts 2026.zip", .waiting),
+            ])
+        case "conflict", "conflict-folder":
+            app.openArchive(named: SampleArchive.make().name)
+            let base = FileManager.default.temporaryDirectory
+            let isFolder = scene == "conflict-folder"
+            let name = isFolder ? "Harbor Rebrand Handoff" : "Brand Guidelines.pdf"
+            Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                _ = await Prompts.resolve(Placement.Conflict(name: name, existing: base.appending(path: name),
+                                                             incoming: base.appending(path: name), canMerge: isFolder))
+            }
+        case "signature-warning", "replace-app":
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.folder = "Prototype"
+            app.browser?.selection = ["Prototype/Harbor Prototype.app"]
+            let question: Installer.Question = scene == "replace-app"
+                ? .replaceApp(app: "Harbor Prototype.app", installed: "1.2", incoming: "1.3")
+                : .signature(app: "Harbor Prototype.app", verdict: .notNotarized(signer: "Harbor Studio"))
+            Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                _ = await Prompts.ask(question)
+            }
         case "quicklook":
             showQuickLook(defaults)
         case "associations":
@@ -225,11 +268,43 @@ enum DemoScene {
             exit(0)
         }
     }
+    private static func run(_ step: String, in app: AppState) {
+        guard let browser = app.browser else { return }
+        switch step {
+        case "extractAll": browser.extractAll()
+        case "install": browser.run(.moveToApplications)
+        case "fonts": browser.run(.installFonts(count: browser.selectedEntries.count), on: browser.archive.files.filter { $0.kind == .font })
+        case "installer": browser.run(.openInstaller)
+        default: break
+        }
+    }
+
+    /// Option views get a plain window until the Settings window exists.
+    private static func showOptions(_ view: some View, title: String) {
+        let window = NSWindow(contentViewController: NSHostingController(rootView: view.frame(width: 520)))
+        window.title = title
+        window.styleMask = [.titled, .closable]
+        window.setContentSize(window.contentView?.fittingSize ?? CGSize(width: 520, height: 420))
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        retained = window
+    }
+
+    private static var retained: NSWindow?
 
     /// Captures the window as the window server composited it — glass, shadows and all.
     /// `CGWindowListCreateImage` is hidden from the SDK but still exported; an app may
     /// capture its own windows without Screen Recording permission.
     private static func snapshot(_ window: NSWindow, name: String) -> URL? {
+        // A locked screen isn't composited; draw the view tree instead (`-StowSnapshotMode view`).
+        if UserDefaults.standard.string(forKey: "StowSnapshotMode") == "view",
+           let view = window.contentView?.superview ?? window.contentView,
+           let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+            view.cacheDisplay(in: view.bounds, to: rep)
+            guard let data = rep.representation(using: .png, properties: [:]) else { return nil }
+            let url = FileManager.default.temporaryDirectory.appending(path: "\(name).png")
+            return (try? data.write(to: url)) != nil ? url : nil
+        }
         typealias CreateImage = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
         guard let handle = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", RTLD_LAZY),
               let symbol = dlsym(handle, "CGWindowListCreateImage") else { return nil }

@@ -70,6 +70,15 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
             running[id] = Task {
                 defer { _ = self.running.withLock { $0.removeValue(forKey: id) } }
                 do {
+                    if request.testOnly {
+                        let type = name.lowercased().hasSuffix(".dmg") ? "dmg" : nil
+                        try await Self.sevenZip().test(.descriptor(archive.handle, name: name), type: type,
+                                                       password: request.password) {
+                            client.progress(id, $0)
+                        }
+                        reply(try JSONEncoder.engine.encode(ExtractReport()), nil)
+                        return
+                    }
                     try FileManager.default.createDirectory(at: output, withIntermediateDirectories: false)
                     outputs.withLock { $0[id] = output }
                     let refused = try await Self.sevenZip().extract(
@@ -79,10 +88,11 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                         client.progress(id, fraction)
                     }
                     try Task.checkCancellation()
+                    let metadata = request.restoreMacMetadata ? AppleDouble.collect(in: output) : [:]
                     if request.excludeMacHelperFiles { MacHelperFiles.remove(in: output) }
                     let audit = try PathContainment.audit(staging: output)
                     let report = ExtractReport(removedLinks: refused + audit.removedLinks,
-                                               removedItems: audit.removedItems)
+                                               removedItems: audit.removedItems, macMetadata: metadata)
                     reply(try JSONEncoder.engine.encode(report), nil)
                 } catch {
                     self.discard(operation: id)

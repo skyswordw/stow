@@ -106,9 +106,9 @@ nonisolated enum EntryKind: Sendable {
         case "json", "yml", "yaml", "xml", "csv", "tsv", "plist", "strings", "geojson": return .data
         case "otf", "ttf", "ttc", "woff", "woff2": return .font
         case "app": return .app
-        case "pkg", "mpkg", "dmg": return .installer
+        case "pkg", "mpkg": return .installer
         case "zip", "zipx", "7z", "rar", "gz", "tgz", "bz2", "tbz", "tbz2", "xz", "txz", "lz", "lzma", "zst", "tar",
-             "cab", "cpio", "xar", "jar", "apk", "ipa", "cbz", "cbr", "cb7", "lzh", "lha", "arj", "z", "001":
+             "cab", "cpio", "xar", "jar", "apk", "ipa", "cbz", "cbr", "cb7", "lzh", "lha", "arj", "z", "001", "dmg", "iso":
             return .archive
         case "wav", "mp3", "m4a", "aiff", "aif", "flac", "aac", "ogg", "opus", "caf", "m4b", "alac": return .audio
         case "mov", "mp4", "m4v", "avi", "mkv", "webm", "mpg", "mpeg", "3gp", "mts": return .video
@@ -250,6 +250,16 @@ nonisolated struct Archive: Identifiable, Sendable {
     var source: ArchiveSource?
     /// Children, lookups and totals, built once — archives can hold hundreds of thousands of entries.
     let index: ArchiveIndex
+
+    /// Disk images: the folder that stands for the volume ("" when the image lists its contents at
+    /// the top), the window dressing left out (see `DiskImageLayout`), and "drag here" shortcuts.
+    var volumeRoot = ""
+    var installerExtras: [String] = []
+    /// Stored paths of the AppleDouble files a Mac packed (`__MACOSX/…/._name`, `._name`).
+    var appleDoublePaths: Set<String> = []
+    var dropTargets: [DiskImageLayout.DropTarget] = []
+
+    var isDiskImage: Bool { format == .dmg || format == .iso }
 
     /// Builds folder entries (with aggregated sizes) from a flat list of files,
     /// the same shape a real archive listing comes in. `helpers` are macOS helper items.

@@ -50,6 +50,20 @@ private struct EntryDetail: View {
                 ("Modified", entry.modified.formatted(date: .abbreviated, time: .shortened)),
                 ("Where", entry.parent.isEmpty ? "Top level" : entry.parent),
             ])
+
+            if entry.kind == .app, model.archive.source != nil {
+                SignatureSection(entry: entry, model: model)
+            }
+
+            let steps = NextStep.suggestions(for: [entry], dropTargets: model.archive.dropTargets).dropLast()
+            if !steps.isEmpty, model.activity == nil {
+                HStack(spacing: Space.s) {
+                    ForEach(Array(steps)) { step in
+                        Button(step.title, systemImage: step.symbol) { model.run(step, on: [entry]) }
+                    }
+                }
+                .controlSize(.large)
+            }
         }
     }
 
@@ -58,6 +72,43 @@ private struct EntryDetail: View {
         let saved = 1 - Double(entry.packedSize) / Double(entry.size)
         return saved < 0.02 ? "\(entry.packedSize.bytes) · already compressed"
             : "\(entry.packedSize.bytes) · \(Int((saved * 100).rounded()))% smaller"
+    }
+}
+
+/// Who signed an app and whether Apple notarized it — checked on request or when installing.
+private struct SignatureSection: View {
+    let entry: ArchiveEntry
+    let model: BrowserModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            SectionLabel("Signature")
+            if let verdict = model.signatures[entry.path] {
+                let finding = verdict.finding
+                HStack(alignment: .firstTextBaseline, spacing: Space.s) {
+                    Image(systemName: finding.severity.symbol)
+                        .foregroundStyle(finding.severity.color)
+                        .frame(width: 16)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(finding.title).font(.callout.weight(.medium))
+                        Text(finding.detail)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            } else if model.checkingSignature == entry.path {
+                HStack(spacing: Space.s) {
+                    ProgressView().controlSize(.small)
+                    Text("Checking…").font(.callout).foregroundStyle(.secondary)
+                }
+            } else {
+                Button("Check Signature", systemImage: "checkmark.seal") { model.checkSignature(entry) }
+                Text("Also checked before installing.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 

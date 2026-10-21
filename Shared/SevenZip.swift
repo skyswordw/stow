@@ -83,7 +83,9 @@ nonisolated struct SevenZip: Sendable {
 
         let input = try Prepared(archive)
         defer { input.cleanUp() }
-        var arguments = ["x", "-y", "-aou", "-bso0", "-bsp1", "-sccUTF-8", "-o" + directory.path]
+        // `-sns-`: on macOS 7-Zip would write HFS+/APFS extended attributes as extra files named
+        // "file:com.apple.quarantine", which breaks the seal of every signed app in a disk image.
+        var arguments = ["x", "-y", "-aou", "-sns-", "-bso0", "-bsp1", "-sccUTF-8", "-o" + directory.path]
         var listFile: URL?
         if !paths.isEmpty {
             // A list file instead of arguments: selections can exceed ARG_MAX. `-spd` makes `*` and
@@ -121,6 +123,22 @@ nonisolated struct SevenZip: Sendable {
         return refused
     }
 
+    /// Reads every entry and checks it against the archive's checksums. Throws when data is damaged.
+    /// `type` "dmg" checks a disk image's own block checksums (like `hdiutil verify`) rather than
+    /// only the files inside its file system.
+    func test(_ archive: ArchiveInput, type: String? = nil, password: String? = nil,
+              progress: @escaping @Sendable (Double) -> Void) async throws(EngineError) {
+        let input = try Prepared(archive)
+        defer { input.cleanUp() }
+        let parser = ProgressParser()
+        let typeSwitch = type.map { ["-t" + $0] } ?? []
+        let result = try await run(["t", "-bso0", "-bsp1", "-sccUTF-8"] + typeSwitch + [input.path], input: input.descriptor,
+                                   password: password) { chunk in
+            if let fraction = parser.consume(chunk) { progress(fraction) }
+        }
+        try Self.check(result)
+    }
+
     // MARK: - Output parsing
 
     /// Parses `7zz l -slt`. Returns nil when the output has no archive section.
@@ -139,8 +157,11 @@ nonisolated struct SevenZip: Sendable {
             current = [:]
         }
 
-        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
-            let line = line.hasSuffix("\r") ? line.dropLast() : line
+        // Split on the byte: as Characters, "\r\n" is one unit, and names can end in "\r" ("Icon\r",
+        // HFS+'s private folder) — those keep it; other lines lose a stray carriage return.
+        for raw in text.utf8.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: false) {
+            let decoded = Substring(decoding: raw, as: UTF8.self)
+            let line = decoded.hasSuffix("\r") && !decoded.hasPrefix("Path = ") ? decoded.dropLast() : decoded
             if line == "--" && section == 0 {
                 section = 1
                 continue
@@ -189,7 +210,8 @@ nonisolated struct SevenZip: Sendable {
         guard let path = fields["Path"], !path.isEmpty else { return nil }
         let attributes = fields["Attributes"] ?? ""
         // "D drwxr-xr-x", " lrwxr-xr-x", "A -rw-r--r--": DOS flags, then a Unix mode string.
-        let mode = attributes.split(separator: " ").last.map(String.init) ?? ""
+        // HFS+ and APFS images report the mode on its own ("Mode = lrwxr-xr-x") instead.
+        let mode = fields["Mode"] ?? attributes.split(separator: " ").last.map(String.init) ?? ""
         let isFolder = fields["Folder"] == "+" || attributes.hasPrefix("D") || mode.hasPrefix("d")
         let link = fields["Symbolic Link"].flatMap { $0.isEmpty ? nil : $0 }
         return ListedEntry(
@@ -231,6 +253,9 @@ nonisolated struct SevenZip: Sendable {
 
     static func check(_ result: RunResult) throws(EngineError) {
         guard result.status != 0 else { return }
+        if let damaged = result.errors.split(whereSeparator: \.isNewline).first(where: { $0.contains("Data Error") || $0.contains("CRC Failed") }) {
+            throw EngineError(.failed, String(damaged.drop { $0 != ":" }.dropFirst()).trimmingCharacters(in: .whitespaces))
+        }
         let all = result.output + "\n" + result.errors
         if all.contains("Wrong password") { throw EngineError(.wrongPassword) }
         if all.contains("Enter password") || all.contains("Can not open encrypted archive") {

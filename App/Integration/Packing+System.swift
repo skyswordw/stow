@@ -1,8 +1,7 @@
 import Foundation
 
-/// What Finder's Quick Compress and the Services menu need from the create engine. The engine
-/// is being built separately; until it lands, `Packers.current` is a stand-in that says so, and
-/// the create engine only has to conform and be assigned here.
+/// What Finder's Quick Compress and the Services menu need from the create engine
+/// (`EnginePacker`); tests can swap in their own.
 protocol ArchivePacking: Sendable {
     /// Packs `items` into a new archive at `archive` (which doesn't exist yet).
     func pack(_ items: [URL], options: PackOptions, to archive: URL,
@@ -10,14 +9,7 @@ protocol ArchivePacking: Sendable {
 }
 
 enum Packers {
-    static var current: any ArchivePacking = PackingNotBuiltYet()
-}
-
-struct PackingNotBuiltYet: ArchivePacking {
-    func pack(_ items: [URL], options: PackOptions, to archive: URL,
-              onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) {
-        throw EngineError(.failed, "Creating archives isn’t available in this build yet.")
-    }
+    static var current: any ArchivePacking = EnginePacker()
 }
 
 /// Quick Compress: the default Pack sentence (ZIP for Windows PCs, which opens everywhere),

@@ -23,7 +23,7 @@ struct NextStepsBar: View {
 
     private func row(_ density: Density) -> some View {
         let entries = model.selectedEntries
-        let steps = NextStep.suggestions(for: entries)
+        let steps = NextStep.suggestions(for: entries, dropTargets: model.archive.dropTargets)
 
         return HStack(spacing: Space.s) {
             if let activity = model.activity {
@@ -31,7 +31,7 @@ struct NextStepsBar: View {
                     .glassEffect(.regular, in: .capsule)
                     .glassEffectID("summary", in: glass)
                 switch activity.phase {
-                case .done:
+                case .done where !activity.placed.isEmpty:
                     Button("Show in Finder", systemImage: "folder") { model.showInFinder() }
                         .buttonStyle(.glass)
                         .glassEffectID("finder", in: glass)
@@ -46,7 +46,7 @@ struct NextStepsBar: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.glass)
                         .glassEffectID("stop", in: glass)
-                case .running:
+                case .running, .done:
                     EmptyView()
                 }
             } else {

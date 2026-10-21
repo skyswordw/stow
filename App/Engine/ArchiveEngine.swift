@@ -27,10 +27,12 @@ final class ArchiveEngine {
     }
 
     /// Extracts (and audits) inside the engine. Cancelling the task stops 7-Zip.
-    func extract(_ archive: URL, paths: [String], password: String? = nil,
-                 onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Output {
+    func extract(_ archive: URL, paths: [String], password: String? = nil, excludeMacHelperFiles: Bool = true,
+                 restoreMacMetadata: Bool = false, onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Output {
         let id = UUID().uuidString
-        let request = try encode(ExtractRequest(operationID: id, paths: paths, password: password))
+        let request = try encode(ExtractRequest(operationID: id, paths: paths, password: password,
+                                                 excludeMacHelperFiles: excludeMacHelperFiles,
+                                                 restoreMacMetadata: restoreMacMetadata))
         let handle = try Self.open(archive)
         defer { try? handle.close() }
         progress.register(id, onProgress)
@@ -118,6 +120,17 @@ final class ArchiveEngine {
                                           onSent: @Sendable (Int64) -> Void) async throws {
         defer { try? pipe.handle.close() }
         try TreeStream.write(items, to: pipe.handle.fileDescriptor, attributes: attributes, onBytes: onSent)
+    }
+
+    /// Checks every entry against the archive's checksums without extracting anything.
+    func verify(_ archive: URL, password: String? = nil) async throws(EngineError) {
+        let id = UUID().uuidString
+        let request = try encode(ExtractRequest(operationID: id, password: password, testOnly: true))
+        let handle = try Self.open(archive)
+        defer { try? handle.close() }
+        _ = try await call { proxy, reply in
+            proxy.extract(handle, named: archive.lastPathComponent, request: request, reply: reply)
+        }
     }
 
     /// Streams the extracted files into `folder` (which must exist).

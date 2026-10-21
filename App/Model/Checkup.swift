@@ -7,6 +7,7 @@ nonisolated enum Checkup {
         var escapingPaths: [String] = []
         var links: [ListedEntry] = []
         var helperFiles = 0
+        var installerExtras = 0
         var encryptedFiles = 0
         var caseCollisions: [[String]] = []
         var totalSize: Int64 = 0
@@ -77,6 +78,14 @@ nonisolated enum Checkup {
             ))
         }
 
+        if scan.installerExtras > 0 {
+            findings.append(CheckupFinding(
+                severity: .info,
+                title: "Installer layout hidden",
+                detail: "The background picture, volume icon and “drag here” shortcuts only lay out this disk image’s window in Finder. They’re hidden and won’t be extracted."
+            ))
+        }
+
         if !findings.contains(where: { $0.severity == .handled || $0.severity == .caution }) {
             findings.append(CheckupFinding(
                 severity: .fine,
@@ -85,6 +94,26 @@ nonisolated enum Checkup {
             ))
         }
         return findings
+    }
+
+    /// A disk image's checksums, checked in the background after it opens.
+    static func diskImageFinding(damaged message: String?) -> CheckupFinding {
+        guard let message else {
+            return CheckupFinding(severity: .fine, title: "Disk image checks out",
+                                  detail: "Every block matches the checksums the image was made with.")
+        }
+        return CheckupFinding(severity: .caution, title: "Disk image is damaged",
+                              detail: "Some data doesn’t match its checksum (\(message)) — download it again before installing anything from it.")
+    }
+
+    /// Finder tags, comments and other Mac details put back from AppleDouble files.
+    static func findings(for restored: AppleDouble.Restored) -> [CheckupFinding] {
+        guard restored.files > 0 else { return [] }
+        return [CheckupFinding(
+            severity: .info,
+            title: "Mac details restored",
+            detail: "Finder tags, comments and other details packed by a Mac were put back on \(plural(restored.files, "file", "files"))."
+        )]
     }
 
     /// What the on-disk audit had to remove during an extraction.
@@ -126,6 +155,14 @@ nonisolated extension Archive {
         var files: [String: ArchiveEntry] = [:]
         var helpers: [String: ArchiveEntry] = [:]
         var explicitFolders: [String: Date] = [:]
+        var appleDoublePaths = Set<String>()
+        let displayName = name ?? url.lastPathComponent
+        let format = ArchiveFormat(sevenZipType: listing.type, name: displayName)
+        let layout = format == .dmg || format == .iso
+            ? DiskImageLayout.layout(of: listing.entries.map {
+                (PathContainment.containedPath(for: $0.path), $0.isFolder, $0.isSymlink, $0.linkTarget)
+            })
+            : DiskImageLayout.Layout()
 
         for item in listing.entries {
             var shown = item.path
@@ -145,7 +182,14 @@ nonisolated extension Archive {
                     helpers[path] = ArchiveEntry(path: path, isFolder: false, size: item.size,
                                                  packedSize: item.packedSize ?? 0,
                                                  modified: item.modified ?? fallbackDate, isHelper: true)
+                    if (item.path as NSString).lastPathComponent.hasPrefix("._") {
+                        appleDoublePaths.insert(item.path)
+                    }
                 }
+                continue
+            }
+            if layout.hides(path) {
+                if layout.extras.contains(path) { scan.installerExtras += 1 }
                 continue
             }
             if PathContainment.escapes(shown) { scan.escapingPaths.append(shown) }
@@ -177,9 +221,8 @@ nonisolated extension Archive {
         scan.caseCollisions = Dictionary(grouping: files.keys) { $0.lowercased() }
             .values.filter { $0.count > 1 }.map { $0.sorted() }.sorted { $0[0] < $1[0] }
 
-        let name = name ?? url.lastPathComponent
-        self.init(name: name,
-                  format: ArchiveFormat(sevenZipType: listing.type, name: name),
+        self.init(name: displayName,
+                  format: format,
                   isEncrypted: scan.encryptedFiles > 0,
                   files: entries,
                   helpers: Array(helpers.values),
@@ -188,6 +231,10 @@ nonisolated extension Archive {
                                nameEncoding: nameEncoding,
                                listing: listing.entries.contains { $0.rawPath != nil } ? listing : nil,
                                storedPaths: storedPaths)
+        volumeRoot = layout.volumeRoot
+        installerExtras = layout.extras
+        self.appleDoublePaths = appleDoublePaths
+        dropTargets = layout.dropTargets
     }
 
     /// The archive's own names for these entries; a folder stands for everything under it.

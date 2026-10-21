@@ -20,7 +20,7 @@ targets:
     platform: macOS
     sources:
       - path: App
-        excludes: ["Info.plist"]
+        excludes: ["Info.plist", "*.entitlements"]
       - path: Shared
       - path: Preview
       - path: Handoff
@@ -139,6 +139,7 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: YES
         ENABLE_USER_SELECTED_FILES: readwrite
+        CODE_SIGN_ENTITLEMENTS: App/Stow.entitlements
   # Sandboxed XPC service that parses every archive. It has no file access of its own: Stow passes
   # the archive and a staging folder as URLs, and their sandbox extensions travel with them.
   StowEngine:
@@ -201,6 +202,7 @@ targets:
       - path: App/Model/Checkup.swift
       - path: App/Model/NameEncoding.swift
       - path: App/Model/SearchIndex.swift
+      - path: App/Model/DiskImage.swift
       - path: App/Engine/ArchiveEngine.swift
     dependencies:
       - target: StowEngine
@@ -261,6 +263,11 @@ targets:
     platform: macOS
     sources:
       - path: Tests
+        excludes: ["Fixtures"]
+      # Disk images built by scripts/make-fixtures.sh (hdiutil can't run in the sandboxed test host).
+      - path: Tests/Fixtures
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: Stow
     settings:

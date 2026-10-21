@@ -28,7 +28,7 @@ struct WelcomeView: View {
                 Text(isTargeted ? "Let go to open" : "Drop to open or pack")
                     .font(.title2.weight(.semibold))
                     .contentTransition(.opacity)
-                Text("Archives open here. Anything else gets packed.")
+                Text("An archive opens here; several are extracted. Anything else gets packed.")
                     .foregroundStyle(.secondary)
             }
 
@@ -96,8 +96,11 @@ struct WelcomeView: View {
 
     private func handleDrop(_ urls: [URL]) -> Bool {
         guard !urls.isEmpty else { return false }
-        if urls.count == 1, ArchiveFormat.infer(fromName: urls[0].lastPathComponent) != nil {
+        let archives = urls.allSatisfy { ArchiveFormat.infer(fromName: $0.lastPathComponent) != nil }
+        if urls.count == 1, archives {
             app.open(urls[0])
+        } else if archives {
+            app.extractArchives(urls)
         } else {
             app.pack(urls)
         }
