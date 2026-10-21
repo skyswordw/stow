@@ -1,6 +1,106 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ after the end of the %@ archive aren’t part of it. They’re left out when you extract.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$@ 压缩包结尾之后的 %1$@ 数据不属于它，解压时会被忽略。"
+          }
+        }
+      }
+    },
+    "Extra data after the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包后有额外数据"
+          }
+        }
+      }
+    },
+    "Extra data before the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包前有额外数据"
+          }
+        }
+      }
+    },
+    "Named .%@, but it’s really %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展名是 .%1$@，实际上是 %2$@"
+          }
+        }
+      }
+    },
+    "Other apps may refuse to open it until it ends in “.%@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在扩展名改为“.%@”之前，其他应用可能无法打开它。"
+          }
+        }
+      }
+    },
+    "Other apps may refuse to open it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他应用可能无法打开它。"
+          }
+        }
+      }
+    },
+    "Self-extracting %@ archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自解压 %@ 压缩包"
+          }
+        }
+      }
+    },
+    "Stow reads what’s actually inside.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 按实际内容读取。"
+          }
+        }
+      }
+    },
+    "The first %@ are a program that unpacks the archive after it. Stow reads only the archive and never runs the program.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开头的 %@ 是一个程序，用来解开它后面的压缩包。Stow 只读取压缩包，从不运行这个程序。"
+          }
+        }
+      }
+    },
+    "The first %@ aren’t part of the %@ archive. Self-extracting archives are made this way, but it can also hide something. Only the archive is read and extracted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开头的 %1$@ 不属于这个 %2$@ 压缩包。自解压压缩包就是这样制作的，但这也可能藏有别的东西。Stow 只读取和解压压缩包本身。"
+          }
+        }
+      }
+    },
     "Copied": {
       "localizations": {
         "zh-Hans": {

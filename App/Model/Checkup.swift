@@ -12,10 +12,90 @@ nonisolated enum Checkup {
         var caseCollisions: [[String]] = []
         var totalSize: Int64 = 0
         var archiveSize: Int64 = 0
+        /// What the name says and what 7-Zip found inside.
+        var format: FormatScan?
+    }
+
+    /// The file's name against its real format, and any data around the archive.
+    struct FormatScan: Sendable, Equatable {
+        /// The file's name, for its extension.
+        var name: String
+        /// The format the extension promises; nil when the extension isn't an archive's (".exe", ".bin").
+        var named: ArchiveFormat?
+        /// The format 7-Zip found.
+        var real: ArchiveFormat
+        /// 7-Zip's own name for it, for formats Stow has no name for ("Cab", "Arj").
+        var realType: String
+        var startOffset: Int64 = 0
+        var tailSize: Int64 = 0
+
+        init(name: String, real: ArchiveFormat, realType: String, startOffset: Int64? = nil, tailSize: Int64? = nil) {
+            self.name = name
+            named = ArchiveFormat.infer(fromName: name)
+            self.real = real
+            self.realType = realType
+            self.startOffset = max(startOffset ?? 0, 0)
+            self.tailSize = max(tailSize ?? 0, 0)
+        }
+
+        /// How people know the real format: "7Z", "RAR", "CAB".
+        var realName: String { real == .other ? realType.uppercased() : real.displayName }
+
+        /// The extension and the contents disagree. Disk images count as one family: 7-Zip reads a
+        /// .dmg's file system as HFS or APFS and some .iso files as UDF.
+        var isMismatched: Bool {
+            guard let named, named != real else { return false }
+            let images: Set<ArchiveFormat> = [.dmg, .iso]
+            if images.contains(named), images.contains(real) { return false }
+            return true
+        }
+
+        /// Data before the archive behind a program's extension (or none): a self-extracting archive.
+        var isSelfExtracting: Bool {
+            guard startOffset > 0 else { return false }
+            let ext = (name as NSString).pathExtension.lowercased()
+            return named == nil || ["exe", "com", "bin", "run", "sh", "sfx"].contains(ext)
+        }
+
+        var findings: [CheckupFinding] {
+            var findings: [CheckupFinding] = []
+            let ext = (name as NSString).pathExtension
+            if isSelfExtracting {
+                findings.append(CheckupFinding(
+                    severity: .caution,
+                    title: String(localized: "Self-extracting \(realName) archive"),
+                    detail: String(localized: "The first \(startOffset.bytes) are a program that unpacks the archive after it. Stow reads only the archive and never runs the program.")
+                ))
+            } else if startOffset > 0 {
+                findings.append(CheckupFinding(
+                    severity: .caution,
+                    title: String(localized: "Extra data before the archive"),
+                    detail: String(localized: "The first \(startOffset.bytes) aren’t part of the \(realName) archive. Self-extracting archives are made this way, but it can also hide something. Only the archive is read and extracted.")
+                ))
+            }
+            if isMismatched, !isSelfExtracting {
+                let suggestion = real == .other || real.fileExtension.isEmpty
+                    ? String(localized: "Other apps may refuse to open it.")
+                    : String(localized: "Other apps may refuse to open it until it ends in “.\(real.fileExtension)”.")
+                findings.append(CheckupFinding(
+                    severity: .caution,
+                    title: String(localized: "Named .\(ext.lowercased()), but it’s really \(realName)"),
+                    detail: String(localized: "Stow reads what’s actually inside.") + " " + suggestion
+                ))
+            }
+            if tailSize > 0 {
+                findings.append(CheckupFinding(
+                    severity: .caution,
+                    title: String(localized: "Extra data after the archive"),
+                    detail: String(localized: "\(tailSize.bytes) after the end of the \(realName) archive aren’t part of it. They’re left out when you extract.")
+                ))
+            }
+            return findings
+        }
     }
 
     static func findings(for scan: ListingScan) -> [CheckupFinding] {
-        var findings: [CheckupFinding] = []
+        var findings: [CheckupFinding] = scan.format?.findings ?? []
 
         if let first = scan.escapingPaths.first {
             let count = scan.escapingPaths.count
@@ -155,6 +235,8 @@ nonisolated extension Archive {
         var appleDoublePaths = Set<String>()
         let displayName = name ?? url.lastPathComponent
         let format = ArchiveFormat(sevenZipType: listing.type, name: displayName)
+        scan.format = Checkup.FormatScan(name: displayName, real: format, realType: listing.type,
+                                         startOffset: listing.startOffset, tailSize: listing.tailSize)
         let layout = format == .dmg || format == .iso
             ? DiskImageLayout.layout(of: listing.entries.map {
                 (PathContainment.containedPath(for: $0.path), $0.isFolder, $0.isSymlink, $0.linkTarget)
