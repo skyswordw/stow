@@ -14,7 +14,8 @@ import Foundation
 nonisolated enum EngineContract {
     static let serviceName = "app.stow.Stow.Engine"
     /// 2: `create`.
-    static let version = 2
+    /// 3: `edit`, `sendFile`.
+    static let version = 3
 }
 
 @objc(StowEngineProtocol)
@@ -38,6 +39,12 @@ nonisolated protocol EngineXPCProtocol {
     /// to the connection's `EngineClientXPCProtocol`. The archive stays in the engine until `send`
     /// streams it or `discard` drops it.
     func create(from tree: FileHandle, request: Data, reply: @escaping @Sendable (Data?, NSError?) -> Void)
+
+    func edit(_ archive: FileHandle, named name: String, tree: FileHandle?, request: Data,
+              reply: @escaping @Sendable (Data?, NSError?) -> Void)
+
+    /// Writes an edited archive's raw bytes to the app's replacement descriptor, then removes it.
+    func sendFile(operation: String, to destination: FileHandle, reply: @escaping @Sendable (NSError?) -> Void)
 
     /// Writes an extraction's (or creation's) output to `stream` as an uncompressed Apple Archive, closes it, replies.
     func send(operation: String, to stream: FileHandle, reply: @escaping @Sendable (NSError?) -> Void)
@@ -183,6 +190,7 @@ nonisolated enum EngineFailure: Int, Sendable {
     case wrongPassword
     case cancelled
     case failed
+    case changedOnDisk
 }
 
 nonisolated struct EngineError: LocalizedError, Sendable, Equatable {
@@ -227,6 +235,7 @@ nonisolated struct EngineError: LocalizedError, Sendable, Equatable {
         case .passwordRequired: String(localized: "This archive needs a password.")
         case .wrongPassword: String(localized: "The password is incorrect.")
         case .cancelled: String(localized: "Cancelled.")
+        case .changedOnDisk: String(localized: "The archive changed on disk. Reload it before saving.")
         case .failed: String(localized: "Something went wrong reading the archive.")
         }
     }

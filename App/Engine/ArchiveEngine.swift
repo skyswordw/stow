@@ -114,6 +114,89 @@ final class ArchiveEngine {
         }
     }
 
+    func edit(_ archive: URL, items: [TreeStream.Item], request: EditRequest,
+                onSent: @escaping @Sendable (Int64) -> Void,
+                onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> EditReport {
+        let handle = try Self.open(archive)
+        defer { try? handle.close() }
+        let file = SendableHandle(handle)
+        let name = archive.lastPathComponent
+        let id = request.operationID
+        let payload = try encode(request)
+        progress.register(id, onProgress)
+        defer { progress.remove(id) }
+        let connection = XPCConnection(try await verifiedConnection())
+
+        let pipe = Pipe()
+        // If the engine goes away mid-stream, writes fail with EPIPE instead of killing Stow.
+        _ = fcntl(pipe.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+        let reading = SendableHandle(pipe.fileHandleForReading)
+        let writing = SendableHandle(pipe.fileHandleForWriting)
+        let sending = Task { try await Self.write(items, to: writing, attributes: false, onSent: onSent) }
+
+        let reply: Result<Data, EngineError>
+        do {
+            reply = .success(try await withTaskCancellationHandler {
+                try await Self.call(on: connection) { proxy, once in
+                    proxy.edit(file.handle, named: name, tree: reading.handle, request: payload) { data, error in
+                        Self.resume(once, data, error)
+                    }
+                }
+            } onCancel: {
+                sending.cancel()
+                connection.proxy?.cancel(operation: id)
+            })
+        } catch {
+            reply = .failure(EngineError(error))
+        }
+        // With no reader left, a writer still blocked in the pipe wakes up with EPIPE.
+        try? reading.handle.close()
+        let sent = await sending.result
+
+        switch reply {
+        case .success(let data):
+            if Task.isCancelled {
+                discard(operation: id)
+                throw EngineError(.cancelled)
+            }
+            if case .failure(let error) = sent {
+                discard(operation: id)
+                throw EngineError(error)
+            }
+            return try decode(EditReport.self, from: data)
+        case .failure(let error):
+            // A file Stow couldn't read explains more than the engine's view of a cut-off stream.
+            if error.failure != .cancelled, case .failure(let sendError) = sent,
+               EngineError(sendError).failure != .cancelled {
+                throw EngineError(sendError)
+            }
+            throw error
+        }
+    }
+
+    func sendFile(operation id: String, to handle: FileHandle,
+                  onProgress: @escaping @Sendable (Double) -> Void = { _ in }) async throws(EngineError) {
+        progress.register(id, onProgress)
+        defer { progress.remove(id) }
+        let connection = XPCConnection(try await verifiedConnection())
+        let destination = SendableHandle(handle)
+        do {
+            let _: Bool = try await withTaskCancellationHandler {
+                try await Self.call(on: connection) { (proxy, once: ResumeOnce<Bool>) in
+                    proxy.sendFile(operation: id, to: destination.handle) { error in
+                        if let error { once.resume(throwing: EngineError(error)) }
+                        else { once.resume(returning: true) }
+                    }
+                }
+            } onCancel: { connection.proxy?.cancel(operation: id) }
+            if Task.isCancelled { throw EngineError(.cancelled) }
+        } catch { throw EngineError(error) }
+    }
+
+    func cancel(operation id: String) {
+        connection.map(XPCConnection.init)?.proxy?.cancel(operation: id)
+    }
+
     /// Blocking writes into the pipe, off the main actor. Closes it at the end, so the engine sees EOF.
     @concurrent
     private nonisolated static func write(_ items: [TreeStream.Item], to pipe: SendableHandle, attributes: Bool,
