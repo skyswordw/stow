@@ -79,7 +79,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | --- | --- |
 | Next Steps: list of alternative actions, customise which show, restore suggestions | done (#20): a More menu (⋯) on the capsule lists every other step that applies; Settings › Next Steps shows or hides each step (or Next Steps itself) and restores the defaults |
 | Checkup: warn when the extension doesn't match the real format (ZIP with prepended data, SFX) | done (#16): Checkup names the real format, self-extracting stubs, and data before or after the archive |
-| iCloud placeholders: wait for download, cancel | `DownloadCheck` covers browser downloads only |
+| iCloud placeholders: wait for download, cancel | built (#18), pending a real iCloud check: opening a placeholder asks for the download, shows its progress and opens when it's here; Cancel or Escape stops waiting |
 | Open Recent menu with clear history | welcome window "Recent" still shows sample names |
 | Search across nested archives | today search covers the open level |
 | Streaming listings beyond ~100k entries | 100,500 entries open in 2.8 s today |

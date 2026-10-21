@@ -114,6 +114,9 @@ enum DemoScene {
         case "packrun":
             runPack(defaults)
             return
+        case "cloud-download":
+            // An iCloud placeholder on its way down; nothing is downloaded.
+            app.cloudDownload = CloudDownload(name: "Field Recordings.zip", isICloud: true, fraction: 0.42)
         case "password":
             // The question after a rejected password; nothing is checked against an archive.
             Task { _ = await app.passwords.ask(.init(archiveName: "Harbor Handoff.7z", purpose: .extract, isRetry: true)) }

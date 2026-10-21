@@ -38,6 +38,7 @@ struct GlanceRoot: View {
             if closed, glance.pendingName == nil { glance.close() }
         }
         .passwordSheet(app.passwords)
+        .cloudDownloadSheet(app, isActive: glance.isShown)
         // The same failure card as the full window; that window is closed while Glance shows.
         .sheet(item: Binding(get: { glance.isShown ? app.openFailure : nil }, set: { app.openFailure = $0 })) { open in
             FailureCard(failure: open.failure) { action in

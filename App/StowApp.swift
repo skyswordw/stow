@@ -22,6 +22,8 @@ final class AppState {
     var isChoosingBatch = false
     private(set) var isOpening = false
     var openFailure: OpenFailure?
+    /// A cloud placeholder being downloaded before it opens.
+    var cloudDownload: CloudDownload?
 
     /// The open archive's security scope (Open panel URLs need it claimed; dropped URLs don't).
     private var scopedURL: URL?
@@ -56,6 +58,7 @@ final class AppState {
                     if scoped { url.stopAccessingSecurityScopedResource() }
                     return
                 }
+                try await waitForCloudDownload(url)
                 try await DownloadCheck.waitUntilComplete(url)
                 let listing: ArchiveListing
                 let password: String?
@@ -90,6 +93,26 @@ final class AppState {
                 }
             }
         }
+    }
+
+    /// An iCloud (or other cloud) placeholder comes down first, with its progress on screen and
+    /// a Cancel button. Files already on this Mac go straight through, with nothing shown.
+    private func waitForCloudDownload(_ url: URL) async throws(EngineError) {
+        let download = CloudDownload(url: url)
+        defer {
+            if cloudDownload === download { cloudDownload = nil }
+            DownloadPercent.shared.stop()
+        }
+        try await CloudPlaceholder.waitForDownload(url, isCancelled: { download.isCancelled }) { fraction in
+            if cloudDownload !== download { cloudDownload = download }
+            download.fraction = fraction
+        }
+    }
+
+    /// Stops waiting for the download on screen (Cancel, Escape).
+    func cancelCloudDownload() {
+        cloudDownload?.cancel()
+        cloudDownload = nil
     }
 
     /// A failed open's one next step.
@@ -291,6 +314,7 @@ struct RootView: View {
                 if let action, let url = open.url { app.follow(action, opening: url) }
             }
         }
+        .cloudDownloadSheet(app, isActive: !app.glance.isShown)
         .overlay(alignment: .bottomTrailing) { BatchStack(queue: app.batch) }
         .task {
             SettingsRouter.shared.open = { openSettings() }
