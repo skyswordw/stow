@@ -32,12 +32,12 @@ struct BrowserView: View {
         .inspector(isPresented: $model.showInspector) {
             InspectorView(model: model)
                 .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
-                // The toggle lives in the inspector's own toolbar section, pushed to the window's
-                // trailing edge — never straddling the column divider. SwiftUI keeps it in the
+                // The toggle mirrors the sidebar's: at the inspector's leading edge, inside its own
+                // toolbar section — never straddling the column divider. SwiftUI keeps it in the
                 // toolbar while the inspector is collapsed, so it needs no second copy.
                 .toolbar {
-                    ToolbarSpacer(.flexible)
                     ToolbarItem { inspectorToggle }
+                    ToolbarSpacer(.flexible)
                 }
         }
         .toolbar { toolbar }
