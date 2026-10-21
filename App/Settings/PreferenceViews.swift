@@ -22,6 +22,8 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -43,6 +45,8 @@ struct PackingSettingsView: View {
             Toggle("Check archives after packing", isOn: $verify)
         }
         .formStyle(.grouped)
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -65,6 +69,8 @@ struct PreviewSettingsView: View {
     var body: some View {
         Form { Toggle("Show previews when hovering over files", isOn: $hover) }
             .formStyle(.grouped)
+            .scrollDisabled(true)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -79,6 +85,8 @@ struct PasswordSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -110,6 +118,8 @@ struct AdvancedSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
         .onAppear { usedBytes = PreviewCache.directoryBytes }
         .alert("Reset all preferences?", isPresented: $confirmsReset) {
             Button("Cancel", role: .cancel) {}

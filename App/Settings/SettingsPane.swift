@@ -31,6 +31,14 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .licenses: "doc.text"
         }
     }
+    /// `nil` lets short panes size the window to their content.
+    var fixedHeight: CGFloat? {
+        switch self {
+        case .fileTypes: 620
+        case .licenses: 560
+        default: nil
+        }
+    }
     @MainActor @ViewBuilder var content: some View {
         switch self {
         case .general: GeneralSettingsView()

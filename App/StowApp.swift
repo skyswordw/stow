@@ -169,6 +169,7 @@ struct StowApp: App {
         Settings {
             SettingsView().environment(app)
         }
+        .windowResizability(.contentSize)
     }
 }
 

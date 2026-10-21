@@ -11,7 +11,9 @@ struct SettingsView: View {
                     .tag(pane)
             }
         }
-        .frame(width: 720, height: router.pane == .fileTypes ? 620 : router.pane == .integration ? 560 : 460)
+        .frame(width: 720, height: router.pane.fixedHeight)
+        // Switching panes resizes the window without animation (DESIGN.md: view switches don't animate).
+        .animation(nil, value: router.pane)
         .onAppear { SettingsAppearance.apply() }
         .onChange(of: appearance) { SettingsAppearance.apply() }
     }
