@@ -15,7 +15,7 @@ struct BatchStack: View {
             }
         }
         .padding(Space.l)
-        .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: queue.jobs.isEmpty)
+        .animation(Motion.presence(!queue.jobs.isEmpty, reduceMotion: reduceMotion), value: queue.jobs.isEmpty)
     }
 
     private var panel: some View {

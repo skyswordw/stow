@@ -117,6 +117,11 @@ final class GlanceController: NSObject, NSWindowDelegate {
     private func mainWindowAppeared(_ window: NSWindow) {
         guard window.isVisible, Self.mainWindows.contains(window) else { return }
         defer { sawMainWindow = true }
+        if mainWindowAnimation != .default {
+            // It's up; whatever opens it next (the Dock, the Window menu) gets the usual opening.
+            mainWindowAnimation = .default
+            window.animationBehavior = .default
+        }
         guard isShown, presentsWindow else { return }
         guard !sawMainWindow else { return close() }
         // SwiftUI is still presenting it and ignores a close until that's done: hide it now, close it after.
@@ -136,11 +141,24 @@ final class GlanceController: NSObject, NSWindowDelegate {
         show(near: pointer, animated: animated)
     }
 
-    /// Glance → full window, same browser.
-    func expand() {
+    /// Glance → full window, same browser. By keyboard the full window appears without AppKit's
+    /// window zoom (DESIGN.md › Motion); a click keeps the system's usual opening.
+    func expand(byKeyboard: Bool = Motion.byKeyboard) {
         guard isShown else { return }
         close()
+        mainWindowAnimation = byKeyboard ? .none : .default
+        // A full window SwiftUI kept around is ordered in again; a new one gets it in `prepareMainWindow`.
+        for window in Self.mainWindows { window.animationBehavior = mainWindowAnimation }
         (openMainWindow ?? app?.showMainWindow)?()
+    }
+
+    /// How the next full window comes up; `expand` sets it, and it's back to the default once one has.
+    @ObservationIgnored private var mainWindowAnimation = NSWindow.AnimationBehavior.default
+
+    /// The browser hands over its window as soon as it exists, before SwiftUI puts it on screen.
+    func prepareMainWindow(_ window: NSWindow) {
+        guard Self.mainWindows.contains(window) else { return }
+        window.animationBehavior = mainWindowAnimation
     }
 
     /// Opens an archive from Finder or Quick Look straight into Glance: the window appears at the
@@ -213,6 +231,9 @@ final class GlanceController: NSObject, NSWindowDelegate {
         window.contentMinSize = GlancePlacement.minimumSize
         window.collectionBehavior.insert(.fullScreenAuxiliary)
         window.tabbingMode = .disallowed
+        // Glance has its own entrance (springing out of the pointer) and none by keyboard; AppKit's
+        // window zoom would play on top of both. Closing is instant.
+        window.animationBehavior = .none
         window.delegate = self
         let host = NSHostingController(rootView: GlanceRoot(glance: self).environment(app ?? AppState()))
         // SwiftUI's toolbar and title become the window's own.

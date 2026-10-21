@@ -3083,16 +3083,6 @@
         }
       }
     },
-    "Empty Folder": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "空文件夹"
-          }
-        }
-      }
-    },
     "Enclosing Folder": {
       "localizations": {
         "zh-Hans": {
@@ -8261,16 +8251,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已替换"
-          }
-        }
-      }
-    },
-    "Add Files…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加文件…"
           }
         }
       }
