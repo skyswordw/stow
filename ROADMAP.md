@@ -106,7 +106,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Item | Why |
 | --- | --- |
 | Developer ID signing and notarization | Gatekeeper; also unlocks App Group containers (the Finder hand-off uses a private pasteboard because ad-hoc builds can't) |
-| Universal 2 build (arm64 + x86_64) | only Apple-silicon builds have been made |
+| Universal 2 build (arm64 + x86_64) | done (#33): Release builds `$(ARCHS_STANDARD)` for every target; CI's `universal` job builds Release and `scripts/check-universal.sh` fails unless the app, StowEngine.xpc, its 7zz and both extensions carry arm64 and x86_64, then runs the x86_64 7zz under Rosetta. A full x86_64 test run is a manual `workflow_dispatch` option |
 | Signed DMG + GitHub Releases + Sparkle appcast | first public download |
 | Homebrew cask | template and tooling done (#36): `packaging/homebrew/stow.rb`, `scripts/render-cask.sh` and the `Homebrew cask` workflow fill in version + DMG checksum per release, audit, and install/uninstall once. Still to do: the first signed release DMG (#32, #34), then publish to a tap (or homebrew/cask under a non-conflicting token — `stow` is a homebrew/core formula) |
 | CI | `.github/workflows/ci.yml` builds and tests every push and PR to main on GitHub's `xcode-27` runner (preview image: macOS 27, Xcode 27). Fails if 7zz is missing or any test is skipped. Still to do: release builds, signing, and moving off the preview image once it is GA. |
@@ -153,7 +153,7 @@ have **not** been done and must be before a 1.0:
 | 13 | SMB/NAS and iCloud Drive locations (open, extract, pack, rename) | not tested |
 | 14 | Real-world corpus: multi-part RAR5, self-extracting EXE, ZIPs from Windows/Linux tools, legacy encodings beyond the fixtures | fixtures are synthetic |
 | 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | not audited |
-| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | no hardware run |
+| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | the universal Release build is checked in CI and its x86_64 7zz runs under Rosetta; the app itself has not run on real Intel hardware or on macOS 26.0 |
 | 17 | Signed/notarized build behaviour (Gatekeeper on extracted apps, extensions, App Group hand-off) | only ad-hoc builds exist |
 | 18 | Fuzzing malformed archives | not started |
 | 19 | Website in Safari, Firefox and on real phones | checked in one desktop browser engine and a 375 px emulation |
