@@ -19,7 +19,7 @@ struct SettingsTests {
                 "install.afterInstall", "install.removeQuarantine", "PackAudience", "PackVerify",
                 "PackCPUCores", "FinderMenuOnExternalDrives", "HideDockIconWithoutWindows",
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
-                "browse.hoverPreviews", "password.showByDefault",
+                "browse.hoverPreviews", "password.showByDefault", "glance.openFromFinder", "glance.pinned",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]
             let keys = SettingsKeys.resettable.map(\.key)
