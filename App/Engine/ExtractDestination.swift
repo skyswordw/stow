@@ -4,6 +4,8 @@ import AppKit
 /// staging folder next to it) may write.
 enum ExtractDestination {
     static func choose(for archive: Archive) async -> URL? {
+        // Design review and verification runs pick the folder up front (`-StowExtractFolder <path>`).
+        if let path = UserDefaults.standard.string(forKey: "StowExtractFolder") { return URL(filePath: path, directoryHint: .isDirectory) }
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true

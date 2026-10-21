@@ -42,6 +42,16 @@ final class BatchQueue {
         }
     }
 
+    /// Design review only: shows rows without running anything.
+    func preview(_ rows: [(String, Job.Phase)]) {
+        let folder = URL(filePath: "/Users/Shared/Downloads", directoryHint: .isDirectory)
+        jobs = rows.map { name, phase in
+            var job = Job(url: folder.appending(path: name), destination: folder, phase: phase)
+            if phase == .done { job.placed = [folder] }
+            return job
+        }
+    }
+
     func cancel(_ id: Job.ID) {
         guard let index = jobs.firstIndex(where: { $0.id == id }) else { return }
         if jobs[index].phase == .waiting {

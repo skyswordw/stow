@@ -35,6 +35,20 @@ nonisolated enum CodeSignature {
             }
         }
 
+        /// One line naming the app: "“Harbor” isn’t notarized by Apple".
+        func headline(app name: String) -> String {
+            switch self {
+            case .apple: "“\(name)” is made by Apple"
+            case .appStore: "“\(name)” is from the Mac App Store"
+            case .notarized: "“\(name)” is signed and notarized"
+            case .notNotarized: "“\(name)” isn’t notarized by Apple"
+            case .adHoc: "“\(name)” isn’t signed by a known developer"
+            case .unsigned: "“\(name)” isn’t signed"
+            case .broken: "“\(name)” has a broken signature"
+            case .untrusted: "“\(name)” is signed with an unknown certificate"
+            }
+        }
+
         var finding: CheckupFinding {
             switch self {
             case .apple:

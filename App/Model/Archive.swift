@@ -170,8 +170,8 @@ nonisolated struct ArchiveEntry: Identifiable, Hashable, Sendable {
     }
 
     var contentType: UTType {
-        if isFolder { return .folder }
         if kind == .app { return .applicationBundle }
+        if isFolder { return .folder }
         return UTType(filenameExtension: (name as NSString).pathExtension) ?? .data
     }
 }

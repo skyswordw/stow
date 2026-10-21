@@ -9,8 +9,8 @@ enum Prompts {
         case .signature(let app, let verdict):
             let finding = verdict.finding
             alert.alertStyle = verdict == .broken ? .critical : .warning
-            alert.messageText = "\(finding.title): install “\(Installer.displayName(app))” anyway?"
-            alert.informativeText = finding.detail
+            alert.messageText = verdict.headline(app: Installer.displayName(app))
+            alert.informativeText = finding.detail + " Install it anyway?"
             alert.addButton(withTitle: "Cancel")
             alert.addButton(withTitle: "Install Anyway")
             return await run(alert) == .alertSecondButtonReturn ? .proceed : .cancel
@@ -93,7 +93,11 @@ enum Prompts {
 
     @discardableResult
     static func run(_ alert: NSAlert) async -> NSApplication.ModalResponse {
-        if let window = NSApp.keyWindow ?? NSApp.mainWindow, window.attachedSheet == nil {
+        // A sheet on Stow's window even when Stow is in the background — an app-modal alert would
+        // stop everything else (progress, the batch queue) until it's answered.
+        let window = [NSApp.keyWindow, NSApp.mainWindow].compactMap(\.self).first { !($0 is NSPanel) }
+            ?? NSApp.windows.first { $0.isVisible && !($0 is NSPanel) && $0.sheetParent == nil }
+        if let window, window.attachedSheet == nil {
             return await alert.beginSheetModal(for: window)
         }
         return alert.runModal()
