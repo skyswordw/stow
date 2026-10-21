@@ -80,7 +80,8 @@ targets:
             LSHandlerRank: Alternate
             LSItemContentTypes: [com.apple.disk-image-udif, public.iso-image, app.stow.wim-image, app.stow.vhd-image, com.apple.xar-archive, com.apple.installer-package-archive, com.redhat.rpm-archive, app.stow.deb-archive, app.stow.msi-installer, com.sun.java-archive, public.archive.apk]
         UTImportedTypeDeclarations:
-          # macOS itself doesn't declare RAR; without this the type only resolves when some other
+          # macOS itself doesn't declare RAR (or the types below, up to split-archive; see
+          # Tests/SystemTypesTests.swift); without this the type only resolves when some other
           # app happens to import it, so on a clean Mac Stow can't become RAR's default app.
           - UTTypeIdentifier: com.rarlab.rar-archive
             UTTypeDescription: RAR archive
@@ -88,6 +89,41 @@ targets:
             UTTypeTagSpecification:
               public.filename-extension: [rar]
               public.mime-type: [application/vnd.rar, application/x-rar-compressed, application/x-rar]
+          - UTTypeIdentifier: com.winzip.zipx-archive
+            UTTypeDescription: ZIPX archive
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [zipx]
+          - UTTypeIdentifier: org.tukaani.lzma-archive
+            UTTypeDescription: LZMA file
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [lzma]
+              public.mime-type: [application/x-lzma]
+          - UTTypeIdentifier: public.lzip-archive
+            UTTypeDescription: LZIP file
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [lz]
+              public.mime-type: [application/x-lzip]
+          - UTTypeIdentifier: cx.c3.lha-archive
+            UTTypeDescription: LHA archive
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [lha, lzh]
+              public.mime-type: [application/x-lzh-compressed, application/x-lha]
+          - UTTypeIdentifier: com.redhat.rpm-archive
+            UTTypeDescription: RPM package
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [rpm]
+              public.mime-type: [application/x-rpm]
+          - UTTypeIdentifier: public.archive.apk
+            UTTypeDescription: Android package
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [apk]
+              public.mime-type: [application/vnd.android.package-archive]
           - UTTypeIdentifier: app.stow.split-archive
             UTTypeDescription: Split archive part
             UTTypeConformsTo: [public.archive, public.data]
