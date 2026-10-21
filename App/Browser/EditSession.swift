@@ -104,6 +104,12 @@ final class EditSession {
         onChange?()
     }
 
+    /// Snapshot scenes: show Save part-way through, as the progress the engine reports would.
+    func showSavingForDemo(progress: Double) {
+        isSaving = true
+        self.progress = progress
+    }
+
     /// Sample / snapshot scenes have no real file to watch; flip the same flag the watcher would.
     func revealExternalChangeForDemo() {
         markChangedOnDisk()

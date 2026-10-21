@@ -1,24 +1,43 @@
 import AppKit
 import SwiftUI
 
-/// A native field so the initial selection excludes the extension, just like Finder.
+/// A native field so the initial selection excludes the extension, just like Finder. Staged
+/// entries carry a quiet tag ("New" in the accent, "Renamed", "Replaced"); the grid shows it on
+/// the size line instead (`showsState: false`), so it doesn't take the name's room.
 struct EditingName: View {
     @Bindable var model: BrowserModel
     let entry: ArchiveEntry
+    var showsState = true
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Space.xs) {
             if model.renamingPath == entry.path {
                 RenameField(text: $model.renameText, commit: { model.commitRename() }, cancel: { model.renamingPath = nil })
                     .frame(height: 22)
             } else {
-                Text(entry.name).lineLimit(1).truncationMode(.middle)
+                Text(entry.name).truncationMode(.middle)
             }
-            if let state = model.editSession.state(for: entry.path) {
-                Text(state).font(.caption).fixedSize().foregroundStyle(state == String(localized: "New") ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+            if showsState, let state = model.editSession.state(for: entry.path) {
+                EditingTag(state: state)
             }
         }
         .help(model.editSession.refusal(for: [entry.path]) ?? entry.name)
+    }
+}
+
+/// "New" in the accent (something you added); "Renamed" and "Replaced" stay secondary.
+struct EditingTag: View {
+    let state: String
+
+    var body: some View {
+        Text(state)
+            .font(.caption)
+            .fixedSize()
+            .foregroundStyle(Self.style(for: state))
+    }
+
+    static func style(for state: String) -> AnyShapeStyle {
+        state == String(localized: "New") ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary)
     }
 }
 
@@ -57,39 +76,148 @@ private struct RenameField: NSViewRepresentable {
     }
 }
 
+/// The bars that sit over the path bar while an archive has staged edits. A plain solid bar,
+/// like the legacy-names banner: it's part of the window, not a floating control.
+enum EditingBar {
+    static let height: CGFloat = 44
+}
+
+/// "3 unsaved changes" with Revert and Save, the one prominent button. While saving, the bar
+/// shows the shared activity label instead, and nothing else can be pressed.
 struct UnsavedChangesBar: View {
     let model: BrowserModel
+
     var body: some View {
-        HStack {
-            if model.editSession.isSaving { ProgressView(value: model.editSession.progress).frame(width: 80) }
-            Text(model.editSession.summary).font(.callout).monospacedDigit()
-            Spacer()
-            Button("Revert") { model.revertEdits() }
-            Button("Save") { Task { await model.saveEdits() } }.buttonStyle(.borderedProminent)
+        let edits = model.editSession
+        HStack(spacing: Space.s) {
+            if edits.isSaving {
+                // The shared label sizes to its words; a narrow window gets the short ones.
+                ViewThatFits(in: .horizontal) {
+                    ActivityLabel(phase: .running(edits.progress), title: String(localized: "Saving “\(edits.name)”"))
+                    ActivityLabel(phase: .running(edits.progress), title: String(localized: "Saving…"))
+                }
+                Spacer(minLength: 0)
+            } else {
+                Image(systemName: "pencil.circle.fill")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Space.s) {
+                        Text(edits.summary).fontWeight(.medium)
+                        Text("Nothing changes on disk until you save.").foregroundStyle(.secondary)
+                    }
+                    .fixedSize()
+                    Text(edits.summary).fontWeight(.medium).fixedSize()
+                    Text(edits.summary).fontWeight(.medium).truncationMode(.tail)
+                }
+                .help(edits.summary + " " + String(localized: "Nothing changes on disk until you save."))
+                Spacer(minLength: Space.s)
+                Group {
+                    Button("Revert") { model.revertEdits() }
+                        .help("Drop every unsaved change")
+                    Button("Save") { Task { await model.saveEdits() } }
+                        .buttonStyle(.borderedProminent)
+                        .help("Write the changes into “\(edits.name)”")
+                }
+                .fixedSize()
+            }
         }
-        .disabled(model.editSession.isSaving)
-        .padding(.horizontal, Space.m).padding(.vertical, Space.s)
+        .font(.callout)
+        .lineLimit(1)
+        .padding(.horizontal, Space.m)
+        .frame(height: EditingBar.height)
+        .frame(minWidth: 0, maxWidth: .infinity)
         .background(.bar)
+        .overlay(alignment: .top) { Divider() }
     }
 }
 
-
+/// The file changed under Stow while edits were staged. Saving a copy keeps the edits and leaves
+/// the changed original alone, so it's the prominent choice; Reload drops the edits.
 struct ExternalChangeBar: View {
     let model: BrowserModel
+
     var body: some View {
-        HStack {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.yellow)
-            Text(EditSession.changedOnDiskSummary)
-                .font(.callout)
-            Spacer()
-            Button("Reload") { Task { await model.reloadArchive() } }
-            Button("Save a Copy…") { Task { await model.saveCopyOfArchive() } }
-                .buttonStyle(.borderedProminent)
+        HStack(spacing: Space.s) {
+            Image(systemName: CheckupFinding.Severity.caution.symbol)
+                .foregroundStyle(CheckupFinding.Severity.caution.color)
+                .accessibilityHidden(true)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Space.s) {
+                    Text("“\(model.editSession.name)” changed on disk.").fontWeight(.medium)
+                    Text("Save a copy to keep your changes.").foregroundStyle(.secondary)
+                }
+                .fixedSize()
+                Text("“\(model.editSession.name)” changed on disk.").fontWeight(.medium).fixedSize()
+                Text("Changed on disk").fontWeight(.medium).truncationMode(.tail)
+            }
+            .help(String(localized: "“\(model.editSession.name)” changed on disk.") + " " + String(localized: "Save a copy to keep your changes."))
+            Spacer(minLength: Space.s)
+            Group {
+                Button("Reload") { Task { await model.reloadArchive() } }
+                    .help("Show the archive as it is on disk now — your unsaved changes are dropped")
+                Button("Save a Copy…") { Task { await model.saveCopyOfArchive() } }
+                    .buttonStyle(.borderedProminent)
+                    .help("Save the archive with your changes as a new file")
+            }
+            .fixedSize()
         }
+        .font(.callout)
+        .lineLimit(1)
         .disabled(model.editSession.isSaving)
-        .padding(.horizontal, Space.m).padding(.vertical, Space.s)
+        .padding(.horizontal, Space.m)
+        .frame(height: EditingBar.height)
+        .frame(minWidth: 0, maxWidth: .infinity)
         .background(.bar)
+        .overlay(alignment: .top) { Divider() }
+    }
+}
+
+/// What editing stops to tell: an edit Stow can't make, or that this archive can't be changed.
+/// Shown with the shared prompt card, like every other question.
+enum EditingNotice: Identifiable {
+    case refused(String)
+    case readOnly(reason: String)
+
+    var id: String {
+        switch self {
+        case .refused(let message): "refused-" + message
+        case .readOnly(let reason): "readOnly-" + reason
+        }
+    }
+
+    var prompt: Prompt {
+        switch self {
+        case .refused(let message):
+            Prompt(symbol: CheckupFinding.Severity.caution.symbol, tint: CheckupFinding.Severity.caution.color,
+                   title: message, message: "",
+                   choices: [Prompt.Choice(title: String(localized: "OK"), role: .primary)])
+        case .readOnly(let reason):
+            Prompt(symbol: "lock.fill", tint: .secondary, title: reason,
+                   message: String(localized: "Extract and Repack makes a new ZIP or 7Z with the same files, which you can change. This archive stays as it is."),
+                   choices: [Prompt.Choice(title: String(localized: "OK"), role: .cancel),
+                             Prompt.Choice(title: String(localized: "Extract and Repack…"), role: .primary)])
+        }
+    }
+
+    /// The next step the answer asks for: only Extract and Repack has one.
+    func wantsRepack(_ answer: Prompt.Answer) -> Bool {
+        if case .readOnly = self { answer.choice == 1 } else { false }
+    }
+}
+
+extension EditSession {
+    /// The notice to show now, if any; setting nil clears it.
+    var notice: EditingNotice? {
+        get {
+            if showsReadOnly { return .readOnly(reason: readOnlyReason) }
+            return message.map(EditingNotice.refused)
+        }
+        set {
+            guard newValue == nil else { return }
+            showsReadOnly = false
+            message = nil
+        }
     }
 }
 

@@ -53,12 +53,11 @@ struct BrowserView: View {
         }
         .onChange(of: model.selection) { model.quickLook.selectionChanged() }
         .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
-        .alert("Archive Editing", isPresented: Binding(get: { model.editSession.message != nil }, set: { if !$0 { model.editSession.message = nil } })) {
-            Button("OK", role: .cancel) { model.editSession.message = nil }
-        } message: { Text(model.editSession.message ?? "") }
-        .alert(model.editSession.readOnlyReason, isPresented: Binding(get: { model.editSession.showsReadOnly }, set: { model.editSession.showsReadOnly = $0 })) {
-            Button("Extract and Repack…") { app.extractAndRepack(model) }
-            Button("OK", role: .cancel) { }
+        .sheet(item: Binding(get: { model.editSession.notice }, set: { model.editSession.notice = $0 })) { notice in
+            PromptView(prompt: notice.prompt) { answer in
+                model.editSession.notice = nil
+                if notice.wantsRepack(answer) { app.extractAndRepack(model) }
+            }
         }
         .onChange(of: model.level.id) {
             if let window = model.editingWindow { editingDelegate.attach(window, model: model) }
@@ -132,7 +131,7 @@ struct BrowserView: View {
                     .transition(.rise(reduceMotion: reduceMotion))
             }
         }
-        .padding(.bottom, Space.l + PathBar.height + (model.editSession.isEdited ? 48 : 0))
+        .padding(.bottom, Space.l + PathBar.height + (model.editSession.isEdited ? EditingBar.height : 0))
         .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: visible)
     }
 
