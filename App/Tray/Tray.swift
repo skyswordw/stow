@@ -1,5 +1,6 @@
 import AppKit
 import Quartz
+import QuickLookThumbnailing
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -289,7 +290,8 @@ final class TrayController {
         alert.addButton(withTitle: String(localized: "Collect"))
         alert.addButton(withTitle: String(localized: "Cancel"))
         NSApp.activate()
-        let response = if let panel { await alert.beginSheetModal(for: panel) } else { alert.runModal() }
+        let response: NSApplication.ModalResponse
+        if let panel { response = await alert.beginSheetModal(for: panel) } else { response = alert.runModal() }
         guard response == .alertFirstButtonReturn else { return }
         let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, !name.contains("/") else { message = String(localized: "Enter a name without a slash."); return }
@@ -373,7 +375,7 @@ final class TrayController {
     }
 
     /// Dragging any selected row drags every selected item out (files are real, so plain URLs).
-    private func installRowDrag(in panel: NSPanel) {
+    private func installRowDrag(in panel: TrayPanel) {
         rowMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self, weak panel] event in
             let box = TrayEventBox(event: event)
             return MainActor.assumeIsolated {
@@ -382,7 +384,7 @@ final class TrayController {
         }
     }
 
-    private func handleRow(_ event: NSEvent?, in panel: NSPanel?) -> NSEvent? {
+    private func handleRow(_ event: NSEvent?, in panel: TrayPanel?) -> NSEvent? {
         guard let event, let panel, event.window === panel else { return event }
         switch event.type {
         case .leftMouseDown:

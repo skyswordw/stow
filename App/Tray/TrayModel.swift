@@ -3,7 +3,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// One thing on the Tray: a real file or folder, or a sample row for design review.
-struct TrayItem: Identifiable, Hashable {
+nonisolated struct TrayItem: Identifiable, Hashable, Sendable {
     let id = UUID()
     var name: String
     var size: Int64
@@ -18,9 +18,9 @@ struct TrayItem: Identifiable, Hashable {
     }
 
     init(url: URL) {
-        let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+        let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey, .fileSizeKey])
         let folder = values?.isDirectory == true && values?.isPackage != true
-        self.init(name: url.lastPathComponent, size: url.fileSize, url: url, isFolder: folder)
+        self.init(name: url.lastPathComponent, size: Int64(values?.fileSize ?? 0), url: url, isFolder: folder)
     }
 
     var contentType: UTType {
