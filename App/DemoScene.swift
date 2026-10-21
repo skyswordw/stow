@@ -39,6 +39,8 @@ enum DemoScene {
             SettingsRouter.shared.open()
         case "editing":
             BrowseDemo.editing(in: app)
+        case "external":
+            BrowseDemo.externalChange(in: app)
         case "readonly":
             BrowseDemo.readOnly(in: app)
         case "grid":

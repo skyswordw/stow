@@ -28,6 +28,16 @@ enum BrowseDemo {
         app.browser?.editSession.showsReadOnly = true
     }
 
+    static func externalChange(in app: AppState) {
+        app.openArchive(named: SampleArchive.make().name)
+        guard let model = app.browser else { return }
+        model.folder = "Photos"
+        model.editSession.rename("Photos/Lighthouse.jpg", to: "Harbor Lighthouse.jpg")
+        model.editSession.delete(["Photos/Pier at Dawn.jpg"])
+        model.editSession.revealExternalChangeForDemo()
+        model.selection = ["Photos/Harbor Lighthouse.jpg"]
+    }
+
     static func apply(to app: AppState) {
         let defaults = UserDefaults.standard
         Task {

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @Observable
@@ -141,6 +142,10 @@ final class BrowserModel {
         for (shown, stored) in target.archive.source?.storedPaths ?? [:] {
             for path in stored { target.edits.displayedPaths[path] = shown }
         }
+        target.edits.onURLChange = { [weak self, weak target] url in
+            guard let self, let target else { return }
+            self.adoptArchiveURL(url, on: target)
+        }
         target.edits.onChange = { [weak self, weak target] in
             guard let self, let target else { return }
             let old = target.archive
@@ -250,6 +255,113 @@ final class BrowserModel {
     func revertEdits() {
         renamingPath = nil
         editSession.revert()
+    }
+
+    /// Reloads the open archive from disk and discards staged edits (external-change banner).
+    @discardableResult func reloadArchive() async -> Bool {
+        renamingPath = nil
+        let target = level
+        let folderBefore = folder, selectionBefore = selection, historyBefore = history
+        guard await target.edits.reload(password: target.password) else { return false }
+        guard let url = target.edits.url ?? target.archive.source?.url else { return false }
+        var archive = Archive(listing: target.edits.base, url: url,
+                              name: target.edits.name, nameEncoding: target.archive.source?.nameEncoding)
+        archive.source?.password = target.password
+        target.archive = archive
+        target.savedArchive = archive
+        target.search = SearchIndex(total: archive.index.visible.count + archive.index.helpers.count)
+        target.indexed = 0
+        startIndexing(target)
+        folder = EditSession.nearestExistingParent(folderBefore, in: target.edits.base)
+        selection = Set(selectionBefore.filter { target.archive.entry(at: $0) != nil })
+        history = historyBefore.map { location in
+            Location(levels: location.levels,
+                     folder: location.levels.last === target
+                        ? EditSession.nearestExistingParent(location.folder, in: target.edits.base)
+                        : location.folder)
+        }
+        refresh()
+        runSearch()
+        editingWindow?.isDocumentEdited = levels.contains { $0.edits.isEdited }
+        return true
+    }
+
+    /// Saves pending edits to a new file chosen by the user; the original stays byte-identical.
+    @discardableResult func saveCopyOfArchive() async -> Bool {
+        guard editSession.isEdited, let source = archive.source?.url else { return false }
+        if renamingPath != nil {
+            commitRename()
+            guard renamingPath == nil else { return false }
+        }
+        let target = level
+        if target.savedArchive.isEncrypted, target.password == nil {
+            guard let password = await passwords.ask(archive.name, .extract, false) else { return false }
+            target.password = password
+        }
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        let ext = source.pathExtension
+        let stem = source.deletingPathExtension().lastPathComponent
+        panel.nameFieldStringValue = ext.isEmpty ? stem + " copy" : stem + " copy." + ext
+        panel.directoryURL = source.deletingLastPathComponent()
+        panel.title = String(localized: "Save a Copy")
+        let response = if let window = editingWindow { await panel.beginSheetModal(for: window) } else { panel.runModal() }
+        guard response == .OK, let destination = panel.url else { return false }
+        let oldFolder = folder, oldSelection = selection, oldHistory = history
+        guard await target.edits.saveCopy(to: destination, password: target.password) else { return false }
+        adoptArchiveURL(destination, on: target)
+        folder = EditSession.nearestExistingParent(oldFolder, in: target.edits.base)
+        selection = Set(oldSelection.filter { target.archive.entry(at: $0) != nil })
+        history = oldHistory.map { location in
+            Location(levels: location.levels,
+                     folder: location.levels.last === target
+                        ? EditSession.nearestExistingParent(location.folder, in: target.edits.base)
+                        : location.folder)
+        }
+        refresh()
+        return true
+    }
+
+    /// Renames the archive file on disk (File › Rename Archive…), including SMB/NAS after a folder grant.
+    @discardableResult func renameArchive() async -> Bool {
+        guard levels.count == 1, archive.source?.url != nil else { return false }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Rename Archive")
+        alert.informativeText = String(localized: "Choose a new name for “\(archive.name)”. The browsing position is kept.")
+        let field = NSTextField(string: archive.name)
+        field.frame = NSRect(x: 0, y: 0, width: 280, height: 24)
+        alert.accessoryView = field
+        alert.addButton(withTitle: String(localized: "Rename"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        let response = if let window = editingWindow { await alert.beginSheetModal(for: window) } else { alert.runModal() }
+        guard response == .alertFirstButtonReturn else { return false }
+        let newName = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newName.isEmpty, newName != archive.name else { return false }
+        let folderBefore = folder, selectionBefore = selection
+        guard await editSession.renameArchive(to: newName) else { return false }
+        guard let url = editSession.url else { return false }
+        adoptArchiveURL(url, on: level)
+        folder = folderBefore
+        selection = selectionBefore
+        refresh()
+        return true
+    }
+
+    private func adoptArchiveURL(_ url: URL, on target: Level) {
+        let encoding = target.archive.source?.nameEncoding
+        let listing = target.edits.isEdited ? target.edits.pending : target.edits.base
+        var archive = Archive(listing: listing, url: url, name: url.lastPathComponent, nameEncoding: encoding)
+        archive.source?.password = target.password
+        target.archive = archive
+        if !target.edits.isEdited {
+            target.savedArchive = archive
+        } else {
+            var saved = Archive(listing: target.edits.base, url: url, name: url.lastPathComponent, nameEncoding: encoding)
+            saved.source?.password = target.password
+            target.savedArchive = saved
+        }
+        editingWindow?.representedURL = url
+        editingWindow?.title = url.lastPathComponent
     }
 
     func confirmDiscardingEdits() async -> Bool {

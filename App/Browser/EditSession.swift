@@ -7,22 +7,30 @@ final class EditSession {
     static var rawPathReason: String {
         String(localized: "This name uses an unknown text encoding, so Stow can’t rename or delete it safely.")
     }
+    static var changedOnDiskSummary: String {
+        String(localized: "This archive changed on disk.")
+    }
     private(set) var base: ArchiveListing
     private(set) var identity: FileIdentity?
     private(set) var operations: [EditOperation] = []
     private(set) var staged: [String: URL] = [:]
-    let url: URL?
-    let name: String
+    private(set) var url: URL?
+    private(set) var name: String
     let format: EditableFormat?
+    /// True once the file on disk no longer matches `identity` (watcher or a failed Save).
+    private(set) var changedOnDisk = false
     var displayedPaths: [String: String] = [:]
     var undoManager: UndoManager?
     var onChange: (() -> Void)?
+    /// Notified after the archive URL changes (rename or Save a Copy) so AppState can refresh scopes.
+    var onURLChange: ((URL) -> Void)?
     var message: String?
     var showsReadOnly = false
     private(set) var isSaving = false
     private(set) var progress = 0.0
     private let rawPaths: [String]
     @ObservationIgnored private var cachedPending: ArchiveListing?
+    @ObservationIgnored private var watcher = ArchiveWatcher()
     private var scoped: [URL] = []
     private var sourceFiles: [String: [PackFile]] = [:]
 
@@ -33,13 +41,19 @@ final class EditSession {
         self.name = name ?? url?.lastPathComponent ?? "Archive"
         format = nested ? nil : EditableFormat(listingType: base.type, fileName: self.name)
         identity = url.flatMap { try? FileIdentity(of: $0) }
+        if let url { startWatching(url) }
     }
 
-    isolated deinit { for url in scoped { url.stopAccessingSecurityScopedResource() } }
+    isolated deinit {
+        for url in scoped { url.stopAccessingSecurityScopedResource() }
+        watcher.stop()
+    }
 
     var isEdited: Bool { !operations.isEmpty }
     var changeCount: Int { operations.count }
     var summary: String { String(localized: "\(changeCount) unsaved changes") }
+    /// Banner: edits pending and the file on disk no longer matches what Stow opened.
+    var showsExternalChange: Bool { changedOnDisk && isEdited && !isSaving }
 
     private var sourceEntries: [ListedEntry] {
         sourceFiles.values.flatMap { $0 }.map {
@@ -66,6 +80,32 @@ final class EditSession {
             return String(localized: "“\(name)” is a RAR archive, which Stow can open but not change.")
         }
         return String(localized: "“\(name)” is read-only in Stow. Extract and repack it to make changes.")
+    }
+
+    private func startWatching(_ url: URL) {
+        watcher.onChange = { [weak self] in
+            guard let self, !self.isSaving else { return }
+            guard let current = self.url, current.standardizedFileURL == url.standardizedFileURL else { return }
+            guard let identity = self.identity else {
+                self.markChangedOnDisk()
+                return
+            }
+            if (try? FileIdentity(of: current)) != identity {
+                self.markChangedOnDisk()
+            }
+        }
+        watcher.watch(url)
+    }
+
+    private func markChangedOnDisk() {
+        guard !changedOnDisk else { return }
+        changedOnDisk = true
+        onChange?()
+    }
+
+    /// Sample / snapshot scenes have no real file to watch; flip the same flag the watcher would.
+    func revealExternalChangeForDemo() {
+        markChangedOnDisk()
     }
 
     @discardableResult func requireEditable() -> Bool {
@@ -130,7 +170,6 @@ final class EditSession {
             file.path = name + file.path.dropFirst(url.lastPathComponent.count)
             return file
         }
-        // Sample scenes deliberately have no disk sources and never create files.
         if files.isEmpty {
             if self.url == nil { sourceFiles[name] = [PackFile(path: name, size: 0)] }
             else { message = String(localized: "“\(url.lastPathComponent)” couldn’t be read. Choose the file again."); return false }
@@ -184,42 +223,141 @@ final class EditSession {
         onChange?()
     }
 
+    private func packItems() -> [TreeStream.Item] {
+        let referenced = Set(operations.flatMap { operation -> [String] in
+            switch operation {
+            case let .add(_, items): items
+            case let .replace(_, item): [item]
+            default: []
+            }
+        })
+        return sourceFiles.filter { referenced.contains($0.key) }.values.flatMap { $0 }.compactMap { file in
+            file.source.map { TreeStream.Item(source: $0, path: file.path) }
+        }
+    }
+
+    private func clearAfterSuccessfulWrite(listing: ArchiveListing, at url: URL) {
+        base = listing
+        self.url = url
+        name = url.lastPathComponent
+        identity = try? FileIdentity(of: url)
+        changedOnDisk = false
+        cachedPending = nil
+        operations = []
+        undoManager?.removeAllActions(withTarget: self)
+        staged = [:]; sourceFiles = [:]
+        for scopedURL in scoped { scopedURL.stopAccessingSecurityScopedResource() }
+        scoped = []
+        startWatching(url)
+        onChange?()
+        onURLChange?(url)
+    }
+
     func save(password: String?) async -> Bool {
         guard requireEditable(), isEdited, let url else { return false }
+        if changedOnDisk {
+            message = String(localized: "The archive changed on disk. Reload it or save a copy.")
+            return false
+        }
         guard identity != nil else {
-            message = String(localized: "The archive changed on disk. Close and reopen it before saving."); return false
+            message = String(localized: "The archive changed on disk. Reload it or save a copy.")
+            changedOnDisk = true
+            onChange?()
+            return false
+        }
+        if ArchiveSaver.needsSiblingStaging(for: url) {
+            let parent = url.deletingLastPathComponent()
+            guard await FolderAccess.shared.writableFolder(
+                parent,
+                for: .explained(String(localized: "Stow needs to write a temporary file next to the archive to save your changes."))
+            ) != nil else { return false }
         }
         progress = 0
         isSaving = true
         defer { isSaving = false }
         do {
-            let referenced = Set(operations.flatMap { operation -> [String] in
-                switch operation {
-                case let .add(_, items): items
-                case let .replace(_, item): [item]
-                default: []
-                }
-            })
-            let items = sourceFiles.filter { referenced.contains($0.key) }.values.flatMap { $0 }.compactMap { file in
-                file.source.map { TreeStream.Item(source: $0, path: file.path) }
-            }
-            let listing = try await ArchiveSaver.save(archive: url, operations: operations, items: items,
+            let listing = try await ArchiveSaver.save(archive: url, operations: operations, items: packItems(),
                 password: password, encryptNewItems: true, identity: identity) { [weak self] fraction in
                     Task { @MainActor in self?.progress = fraction }
                 }
+            clearAfterSuccessfulWrite(listing: listing, at: url)
+            return true
+        } catch {
+            if error.failure == .changedOnDisk {
+                changedOnDisk = true
+                message = String(localized: "The archive changed on disk. Reload it or save a copy.")
+                onChange?()
+            } else {
+                message = error.message
+            }
+            return false
+        }
+    }
+
+    /// Discards staged edits and reloads the archive from disk.
+    @discardableResult func reload(password: String?) async -> Bool {
+        guard !isSaving, let url else { return false }
+        do {
+            let listing = try await ArchiveEngine.shared.list(url, password: password)
             base = listing
             identity = try? FileIdentity(of: url)
+            changedOnDisk = false
             cachedPending = nil
             operations = []
             undoManager?.removeAllActions(withTarget: self)
             staged = [:]; sourceFiles = [:]
-            for url in scoped { url.stopAccessingSecurityScopedResource() }
+            for scopedURL in scoped { scopedURL.stopAccessingSecurityScopedResource() }
             scoped = []
+            startWatching(url)
             onChange?()
             return true
         } catch {
-            message = error.failure == .changedOnDisk
-                ? String(localized: "The archive changed on disk. Close and reopen it before saving.") : error.message
+            message = EngineError(error).message
+            return false
+        }
+    }
+
+    /// Writes the pending edits to a new file; the original is left byte-identical.
+    @discardableResult func saveCopy(to destination: URL, password: String?) async -> Bool {
+        guard requireEditable(), isEdited, let url else { return false }
+        progress = 0
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let listing = try await ArchiveSaver.saveCopy(
+                from: url, to: destination, operations: operations, items: packItems(),
+                password: password, encryptNewItems: true, identity: identity,
+                ignoreIdentity: changedOnDisk
+            ) { [weak self] fraction in
+                Task { @MainActor in self?.progress = fraction }
+            }
+            clearAfterSuccessfulWrite(listing: listing, at: destination)
+            return true
+        } catch {
+            message = error.message
+            return false
+        }
+    }
+
+    /// Renames the archive file itself (including on SMB/NAS once the parent folder is writable).
+    @discardableResult func renameArchive(to newName: String) async -> Bool {
+        guard !isSaving, let url else { return false }
+        let parent = url.deletingLastPathComponent()
+        guard await FolderAccess.shared.writableFolder(
+            parent,
+            for: .explained(String(localized: "Stow needs access to this folder to rename the archive."))
+        ) != nil else { return false }
+        do {
+            let destination = try ArchiveSaver.renameArchive(at: url, to: newName)
+            self.url = destination
+            name = destination.lastPathComponent
+            identity = try? FileIdentity(of: destination)
+            startWatching(destination)
+            onChange?()
+            onURLChange?(destination)
+            return true
+        } catch {
+            message = EngineError(error).message
             return false
         }
     }

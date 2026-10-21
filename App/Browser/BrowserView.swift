@@ -21,7 +21,8 @@ struct BrowserView: View {
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
-                        if model.editSession.isEdited { UnsavedChangesBar(model: model) }
+                        if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
+                        else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
                         PathBar(model: model)
                     }
                 }
