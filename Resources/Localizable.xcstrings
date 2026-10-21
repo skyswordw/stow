@@ -11,6 +11,16 @@
         }
       }
     },
+    "As last saved. This updates when you save your changes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这是上次存储时的数据，存储更改后会更新。"
+          }
+        }
+      }
+    },
     "Extra data after the archive": {
       "localizations": {
         "zh-Hans": {
@@ -7104,6 +7114,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "项目已存在时"
+          }
+        }
+      }
+    },
+    "When you save": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储时压缩"
           }
         }
       }
