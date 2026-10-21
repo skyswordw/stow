@@ -158,7 +158,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |
 | Updates: automatic check, install after tasks finish | ⬜ | |
 | Open-source licence viewer | 🧪 pending verification | |
-| Native dialogs, detailed error codes + request IDs for support | partial | |
+| Native dialogs, detailed error codes + request IDs for support | ✅ codes + Copy Details | Stable `AREA-NNN` codes ([ERROR-CODES.md](ERROR-CODES.md)) on every failure card, failed capsule and batch row (right-click); Copy Details copies code, what people saw, the error's own words and domain/code chain, Stow and macOS versions and the time. No request IDs: Stow has no server to correlate them with |
 
 ## Deliberately not copied
 

@@ -11,6 +11,8 @@ struct PromptCard<Content: View, Buttons: View>: View {
     let title: String
     let message: String
     var footnote: String?
+    /// A failure's code and the text "Copy Details" puts on the clipboard.
+    var report: ErrorReport.Copyable?
     @ViewBuilder var content: Content
     @ViewBuilder var buttons: Buttons
 
@@ -36,6 +38,9 @@ struct PromptCard<Content: View, Buttons: View>: View {
             }
             content
             HStack(spacing: Space.s) {
+                if let report {
+                    CopyErrorDetails(report: report)
+                }
                 if let footnote {
                     Text(footnote)
                         .font(.caption)
@@ -73,6 +78,8 @@ struct Prompt {
     var choices: [Choice]
     /// "Do the same for other files"; nil hides the checkbox.
     var suppression: String?
+    /// A failure's code and copyable details; nil for questions.
+    var report: ErrorReport.Copyable?
 
     struct Answer {
         /// Index into `choices`.
@@ -87,7 +94,7 @@ struct PromptView: View {
     @State private var suppress = false
 
     var body: some View {
-        PromptCard(symbol: prompt.symbol, tint: prompt.tint, title: prompt.title, message: prompt.message) {
+        PromptCard(symbol: prompt.symbol, tint: prompt.tint, title: prompt.title, message: prompt.message, report: prompt.report) {
             if !prompt.details.isEmpty || prompt.suppression != nil {
                 VStack(alignment: .leading, spacing: Space.m) {
                     if !prompt.details.isEmpty { details }
@@ -170,7 +177,8 @@ extension Prompt {
         self.init(symbol: CheckupFinding.Severity.caution.symbol, tint: CheckupFinding.Severity.caution.color, title: failure.title, message: failure.advice,
                   choices: failure.action.map { [Choice(title: String(localized: "OK"), role: .cancel),
                                                  Choice(title: $0.title, role: .primary)] }
-                      ?? [Choice(title: String(localized: "OK"), role: .primary)])
+                      ?? [Choice(title: String(localized: "OK"), role: .primary)],
+                  report: ErrorReport.Copyable(failure))
     }
 }
 

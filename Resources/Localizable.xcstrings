@@ -101,6 +101,56 @@
         }
       }
     },
+    "Copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已拷贝"
+          }
+        }
+      }
+    },
+    "Copy Details": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝详细信息"
+          }
+        }
+      }
+    },
+    "Copy Error Details (%@)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝错误详细信息（%@）"
+          }
+        }
+      }
+    },
+    "Copy the error code and details for a bug report": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝错误代码和详细信息，用于报告问题"
+          }
+        }
+      }
+    },
+    "Error code %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "错误代码 %@"
+          }
+        }
+      }
+    },
     "%lld selected": {
       "localizations": {
         "zh-Hans": {
