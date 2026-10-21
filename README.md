@@ -3,6 +3,8 @@
 A native macOS archive tool: browse, preview and extract 30+ formats, and pack files that work on the
 recipient's computer. *Stow* is a working name.
 
+**Website:** https://skyswordw.github.io/stow/ · **Roadmap:** [ROADMAP.md](ROADMAP.md) · **Feature parity:** [PARITY.md](PARITY.md)
+
 **Status:** prototype. Real archives open, browse, preview and extract through a sandboxed 7-Zip
 engine; packing creates real archives; the install Next Steps (apps, fonts, installer packages) and
 Finder integration (Quick Look, context menu, Services, file types) are real. "Try the Sample", the
