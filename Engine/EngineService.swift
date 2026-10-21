@@ -226,7 +226,11 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                                 (encryptedHeaders ? ["-p", "-mhe=on"] : ["-p"]), at: 1)
                         }
                         let parser = ProgressParser()
-                        let result = try await sevenZip.run(arguments, input: nil, password: request.password, in: staged) { chunk in
+                        // Adding to a 7z with encrypted headers reads the password twice: once to open the archive, once
+                        // for the new items' `-p`. Answer both; an unread second line is harmless.
+                        let answer = arguments.first == "a" && encryptedHeaders
+                            ? request.password.map { $0 + "\n" + $0 } : request.password
+                        let result = try await sevenZip.run(arguments, input: nil, password: answer, in: staged) { chunk in
                             if let fraction = parser.consume(chunk) { client.progress(id, (Double(index) + fraction) / Double(count)) }
                         }
                         do { try SevenZip.check(result) }
