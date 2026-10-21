@@ -156,6 +156,10 @@ struct TrayView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            Button("Add Files…") { chooseFiles() }
+                .buttonStyle(.glass)
+                .controlSize(.large)
+                .padding(.top, Space.s)
         }
         .padding(Space.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -164,6 +168,16 @@ struct TrayView: View {
                 .strokeBorder(.separator, style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
                 .padding(Space.m)
         }
+    }
+
+    private func chooseFiles() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = String(localized: "Add to Tray")
+        NSApp.activate()
+        if panel.runModal() == .OK { tray.add(panel.urls) }
     }
 
     private var list: some View {

@@ -5,7 +5,7 @@ import SwiftUI
 @Observable
 final class PackController {
     struct Activity: Equatable {
-        enum Phase: Equatable { case running(Double), done, failed(String) }
+        typealias Phase = ActivityPhase
         /// "Project.zip"
         let name: String
         var phase: Phase
@@ -36,6 +36,8 @@ final class PackController {
 
     private(set) var activity: Activity?
     private var task: Task<Void, Never>?
+    /// The last real pack, for a failure's Try Again / Choose Another Folder.
+    private var lastJob: Job?
 
     var isRunning: Bool {
         if case .running = activity?.phase { true } else { false }
@@ -43,7 +45,9 @@ final class PackController {
 
     func start(_ job: Job) {
         task?.cancel()
-        activity = Activity(name: job.name + "." + job.request.format.fileExtension, phase: .running(0))
+        lastJob = job
+        let fileName = job.name + "." + job.request.format.fileExtension
+        activity = Activity(name: fileName, phase: .running(0))
         task = Task { [weak self] in
             defer { if let directory = job.cleanupDirectory { try? FileManager.default.removeItem(at: directory) } }
             do {
@@ -58,12 +62,12 @@ final class PackController {
                 activity?.verified = result.report.verified
                 withAnimation(Motion.appear) { activity?.phase = .done }
             } catch {
-                let error = EngineError(error)
+                let failure = Failure(error, .pack, name: fileName, destination: job.destination, needs: job.totalBytes)
                 withAnimation(Motion.appear) {
-                    if error.failure == .cancelled {
+                    if EngineError(error).failure == .cancelled {
                         self?.activity = nil
                     } else {
-                        self?.activity?.phase = .failed(error.message)
+                        self?.activity?.phase = .failed(failure)
                     }
                 }
                 return
@@ -100,6 +104,24 @@ final class PackController {
     func dismiss() {
         task?.cancel()
         withAnimation(Motion.appear) { activity = nil }
+    }
+
+    /// A failed pack's one next step: the same pack again, here or in a folder people choose.
+    func follow(_ action: Failure.Action) {
+        guard let job = lastJob else { return dismiss() }
+        switch action {
+        case .tryAgain:
+            start(job)
+        case .chooseFolder:
+            Task {
+                guard let folder = await PackDestination.choose(for: activity?.name ?? job.name, startingAt: nil) else { return }
+                var moved = job
+                moved.destination = folder
+                start(moved)
+            }
+        case .showInFinder, .openInStow, .openInFinder:
+            dismiss()
+        }
     }
 
     func showInFinder() {
@@ -172,21 +194,16 @@ enum PackDestination {
 
     /// Nil when people cancel.
     static func resolveConflict(fileName: String, keepBothName: String, in folder: URL) async -> ArchiveCreation.Conflict? {
-        let alert = NSAlert()
-        alert.messageText = String(localized: "“\(fileName)” already exists in “\(FileManager.default.displayName(atPath: folder.path))”.")
-        alert.informativeText = String(localized: "Keep both and the new one is named “\(keepBothName)”. Replace moves the old one to the Trash.")
-        alert.addButton(withTitle: String(localized: "Keep Both"))
-        alert.addButton(withTitle: String(localized: "Replace"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        let response = if let window = NSApp.keyWindow {
-            await alert.beginSheetModal(for: window)
-        } else {
-            alert.runModal()
-        }
-        switch response {
-        case .alertFirstButtonReturn: return .keepBoth
-        case .alertSecondButtonReturn: return .replace
-        default: return nil
+        let prompt = Prompt(symbol: "doc.on.doc.fill",
+                            title: String(localized: "“\(fileName)” already exists in “\(FileManager.default.displayName(atPath: folder.path))”."),
+                            message: String(localized: "Keep both and the new one is named “\(keepBothName)”. Replace moves the old one to the Trash."),
+                            choices: [.init(title: String(localized: "Cancel"), role: .cancel),
+                                      .init(title: String(localized: "Replace")),
+                                      .init(title: String(localized: "Keep Both"), role: .primary)])
+        return switch await Prompts.present(prompt).choice {
+        case 2: .keepBoth
+        case 1: .replace
+        default: nil
         }
     }
 

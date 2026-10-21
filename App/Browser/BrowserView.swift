@@ -67,6 +67,7 @@ struct BrowserView: View {
                 editingDelegate.attach(window, model: model)
                 model.quickLook.attach(to: window)
                 model.dragOut.install(in: window)
+                ToolbarPriority.install(in: window)
             }
             .id(ObjectIdentifier(model))
         }
@@ -82,11 +83,35 @@ struct BrowserView: View {
             if let progress = model.indexingProgress {
                 ContentUnavailableView(progress, systemImage: "magnifyingglass",
                                        description: Text("You can keep browsing while Stow finishes reading the names."))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ContentUnavailableView.search(text: model.query)
+                ContentUnavailableView {
+                    Label("No files match “\(model.query)”", systemImage: "magnifyingglass")
+                } description: {
+                    Text("Stow looked in every folder of this archive. Check the spelling, or search for part of a name.")
+                } actions: {
+                    Button("Clear Search") { model.query = "" }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        } else if model.visibleEntries.isEmpty, model.folder.isEmpty {
+            ContentUnavailableView {
+                Label("“\(model.archive.name)” is empty", systemImage: "archivebox")
+            } description: {
+                Text("There’s nothing inside to extract. It may have been packed before its files were added — ask the sender for a fresh copy.")
+            } actions: {
+                Button("Open Another Archive…") { app.isChoosingArchive = true }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if model.visibleEntries.isEmpty, model.viewMode != .columns {
-            ContentUnavailableView("Empty Folder", systemImage: "folder")
+            ContentUnavailableView {
+                Label("“\((model.folder as NSString).lastPathComponent)” is empty", systemImage: "folder")
+            } description: {
+                Text("Nothing was packed inside this folder.")
+            } actions: {
+                Button("Enclosing Folder") { model.goUp() }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             // View-mode switches are keyboard-speed actions: no animation.
             switch model.isSearching && model.viewMode == .columns ? .list : model.viewMode {

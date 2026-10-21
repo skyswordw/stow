@@ -85,7 +85,7 @@ final class SystemActions {
                     return try await Extraction.run(archive, selection: nil, to: folder, onProgress: report).placed
                 }
             } catch {
-                await explain(EngineError(error), archive: url)
+                await explain(EngineError(error), archive: url, destination: folder)
             }
         }
         Self.log.info("Extracted \(archives.count) archives into \(placed.count) items")
@@ -105,7 +105,7 @@ final class SystemActions {
             }
             NSWorkspace.shared.activateFileViewerSelecting([target])
         } catch {
-            await explain(EngineError(error), archive: nil)
+            await explain(EngineError(error), archive: nil, destination: target.deletingLastPathComponent())
         }
     }
 
@@ -130,24 +130,26 @@ final class SystemActions {
 
     // MARK: - Feedback
 
-    private func explain(_ error: EngineError, archive: URL?) async {
+    private func explain(_ error: EngineError, archive: URL?, destination: URL? = nil) async {
         guard error.failure != .cancelled else { return }
-        let alert = NSAlert()
-        if let archive {
-            alert.messageText = String(localized: "Couldn’t extract “\(archive.lastPathComponent)”")
+        let failure = if let archive {
+            Failure(error, .extract, name: archive.lastPathComponent, destination: destination ?? archive.deletingLastPathComponent())
         } else {
-            alert.messageText = String(localized: "Couldn’t compress")
+            Failure(error, .pack, name: String(localized: "the selection"), destination: destination)
         }
-        alert.informativeText = error.message
-        let needsPassword = error.failure == .passwordRequired || error.failure == .wrongPassword
-        if needsPassword, archive != nil {
-            alert.addButton(withTitle: String(localized: "Open in Stow"))
-            alert.addButton(withTitle: String(localized: "Cancel"))
-        }
-        NSApp.activate()
-        if alert.runModal() == .alertFirstButtonReturn, needsPassword, let archive {
+        guard let action = await Prompts.explain(failure), let archive else { return }
+        switch action {
+        case .openInStow:
             app?.showMainWindow()
             app?.open(archive)
+        case .showInFinder:
+            NSWorkspace.shared.activateFileViewerSelecting([archive])
+        case .openInFinder:
+            NSWorkspace.shared.open(archive)
+        case .chooseFolder:
+            perform(.extractTo, on: [archive])
+        case .tryAgain:
+            await extract([archive], to: destination)
         }
     }
 
