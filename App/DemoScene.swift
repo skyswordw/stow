@@ -83,15 +83,15 @@ enum DemoScene {
                 }
             }
         case "extract-options":
-            showOptions(ExtractionOptionsView(), title: "Extraction")
+            showOptions(ExtractionOptionsView(), title: String(localized: "Extraction"))
         case "install-options":
-            showOptions(InstallOptionsView(), title: "Installing")
+            showOptions(InstallOptionsView(), title: String(localized: "Installing"))
         case "batch":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.showInspector = false
             app.batch.preview([
                 ("Field Recordings.7z", .done), ("server-logs.tar.xz", .running(0.62)),
-                ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed("This archive needs a password.")),
+                ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed(String(localized: "This archive needs a password."))),
                 ("Fonts 2026.zip", .waiting),
             ])
         case "conflict", "conflict-folder":
@@ -124,9 +124,9 @@ enum DemoScene {
                 return
             }
             model.selection = ["public.zip-archive", "org.7-zip.7-zip-archive", "com.rarlab.rar-archive"]
-            showSettingsPane(AssociationsView(model: model), title: "File Types", size: CGSize(width: 560, height: 640))
+            showSettingsPane(AssociationsView(model: model), title: String(localized: "File Types"), size: CGSize(width: 560, height: 640))
         case "integration":
-            showSettingsPane(IntegrationView(), title: "Integration", size: CGSize(width: 560, height: 640))
+            showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
         case "tray":
             app.tray.items = [
@@ -226,7 +226,7 @@ enum DemoScene {
         }
         let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 640, height: 480),
                               styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.title = "Quick Look"
+        window.title = String(localized: "Quick Look")
         window.isReleasedWhenClosed = false
         func show(_ content: ArchivePreviewContent) {
             window.contentView = NSHostingView(rootView: ArchivePreview(content: content, openInStow: {}))

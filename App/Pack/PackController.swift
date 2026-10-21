@@ -17,8 +17,8 @@ final class PackController {
 
         var doneTitle: String {
             let file = placed.first?.lastPathComponent ?? name
-            let parts = placed.count > 1 ? " in \(placed.count) parts" : ""
-            return "Packed “\(file)”\(parts)"
+            let parts = placed.count > 1 ? String(localized: " in \(placed.count) parts") : ""
+            return String(localized: "Packed “\(file)”\(parts)")
         }
     }
 
@@ -157,8 +157,8 @@ enum PackDestination {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
-        panel.prompt = "Save Here"
-        panel.message = "Choose where to save “\(fileName)”."
+        panel.prompt = String(localized: "Save Here")
+        panel.message = String(localized: "Choose where to save “\(fileName)”.")
         panel.directoryURL = directory
         let response = if let window = NSApp.keyWindow {
             await panel.beginSheetModal(for: window)
@@ -171,11 +171,11 @@ enum PackDestination {
     /// Nil when people cancel.
     static func resolveConflict(fileName: String, keepBothName: String, in folder: URL) async -> ArchiveCreation.Conflict? {
         let alert = NSAlert()
-        alert.messageText = "“\(fileName)” already exists in “\(FileManager.default.displayName(atPath: folder.path))”."
-        alert.informativeText = "Keep both and the new one is named “\(keepBothName)”. Replace moves the old one to the Trash."
-        alert.addButton(withTitle: "Keep Both")
-        alert.addButton(withTitle: "Replace")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = String(localized: "“\(fileName)” already exists in “\(FileManager.default.displayName(atPath: folder.path))”.")
+        alert.informativeText = String(localized: "Keep both and the new one is named “\(keepBothName)”. Replace moves the old one to the Trash.")
+        alert.addButton(withTitle: String(localized: "Keep Both"))
+        alert.addButton(withTitle: String(localized: "Replace"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
         let response = if let window = NSApp.keyWindow {
             await alert.beginSheetModal(for: window)
         } else {
@@ -194,8 +194,8 @@ enum PackDestination {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "Choose"
-        panel.message = "Choose files and folders to pack."
+        panel.prompt = String(localized: "Choose")
+        panel.message = String(localized: "Choose files and folders to pack.")
         let response = if let window = NSApp.keyWindow {
             await panel.beginSheetModal(for: window)
         } else {

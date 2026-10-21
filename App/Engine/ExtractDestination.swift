@@ -10,8 +10,8 @@ enum ExtractDestination {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
-        panel.prompt = "Extract"
-        panel.message = "Choose where to extract “\(archive.name)”."
+        panel.prompt = String(localized: "Extract")
+        panel.message = String(localized: "Choose where to extract “\(archive.name)”.")
         panel.directoryURL = archive.source?.url.deletingLastPathComponent()
         let response = if let window = NSApp.keyWindow {
             await panel.beginSheetModal(for: window)
@@ -27,8 +27,8 @@ enum ExtractDestination {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
-        panel.prompt = "Extract"
-        panel.message = "Choose where to extract \(count == 1 ? "the archive" : "\(count) archives"). Each gets its own folder."
+        panel.prompt = String(localized: "Extract")
+        panel.message = String(localized: "Choose where to extract \(count == 1 ? String(localized: "the archive") : String(localized: "\(count) archives")). Each gets its own folder.")
         panel.directoryURL = first?.deletingLastPathComponent()
         let response = if let window = NSApp.keyWindow {
             await panel.beginSheetModal(for: window)

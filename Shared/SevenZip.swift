@@ -273,7 +273,7 @@ nonisolated struct SevenZip: Sendable {
         let detail = result.errors.split(whereSeparator: \.isNewline)
             .first { $0.hasPrefix("ERROR:") }
             .map { String($0.dropFirst("ERROR:".count)).trimmingCharacters(in: .whitespaces) }
-        throw EngineError(.failed, detail.map { "7-Zip couldn’t finish: \($0)" })
+        throw EngineError(.failed, detail.map { String(localized: "7-Zip couldn’t finish: \($0)") })
     }
 
     // MARK: - Process

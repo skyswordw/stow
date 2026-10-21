@@ -34,7 +34,7 @@ struct PackSheet: View {
             }
         }
         .padding(Space.xxl)
-        .frame(width: 580)
+        .frame(minWidth: 580)
         .animation(Motion.token, value: options)
         .onAppear(perform: restore)
     }
@@ -43,29 +43,29 @@ struct PackSheet: View {
 
     private var sentence: some View {
         FlowLayout(spacing: 7, lineSpacing: 8) {
-            words("Pack")
+            words(String(localized: "Pack"))
             subject
-            words("as a")
+            words(String(localized: "as a"))
             Token(title: options.format.displayName) {
                 ForEach(options.audience.formats) { format in
                     Button(format.displayName) { options.setFormat(format) }
                 }
             }
-            words("for")
-            Token(title: options.audience.phrase, suffix: ",") {
+            words(String(localized: "for"))
+            Token(title: options.audience.phrase, suffix: String(localized: ",")) {
                 ForEach(Audience.allCases) { audience in
                     Button(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) {
                         setAudience(audience)
                     }
                 }
             }
-            Token(title: options.usesPassword ? "with a password" : "without a password",
-                  suffix: ",", isEnabled: options.format.supportsPassword,
-                  disabledHelp: "\(options.format.displayName) can’t be password-protected") {
+            Token(title: options.usesPassword ? String(localized: "with a password") : String(localized: "without a password"),
+                  suffix: String(localized: ","), isEnabled: options.format.supportsPassword,
+                  disabledHelp: String(localized: "\(options.format.displayName) can’t be password-protected")) {
                 Button("Without a password") { options.usesPassword = false }
                 Button("With a password") { options.usesPassword = true }
             }
-            Token(title: options.split.phrase, suffix: ".") {
+            Token(title: options.split.phrase, suffix: String(localized: ".")) {
                 ForEach(SplitSize.allCases) { split in
                     Button(split.phrase.prefix(1).uppercased() + split.phrase.dropFirst()) { options.split = split }
                 }
@@ -122,8 +122,8 @@ struct PackSheet: View {
                         .fixedSize()
                         .disabled(!options.format.isCompressed)
                         Text(options.format.isCompressed
-                             ? "\(options.level.detail) Remembered for \(options.audience.phrase)."
-                             : "A TAR collects files without compressing them.")
+                             ? String(localized: "\(options.level.detail) Remembered for \(options.audience.phrase).")
+                             : String(localized: "A TAR collects files without compressing them."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -172,7 +172,7 @@ struct PackSheet: View {
 
     private func footer(_ report: PackReport) -> some View {
         HStack {
-            Text("≈ \(report.estimatedSize.bytes)\(report.parts > 1 ? " in \(report.parts) parts" : "")")
+            Text("≈ \(report.estimatedSize.bytes)\(report.parts > 1 ? String(localized: " in \(report.parts) parts") : "")")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .liveNumber()
@@ -287,7 +287,7 @@ private struct Token<Items: View>: View {
         .background(.tint.opacity(isHovering && isEnabled ? 0.16 : 0.08), in: .rect(cornerRadius: 6))
         .onHover { isHovering = $0 }
         .disabled(!isEnabled)
-        .help(isEnabled ? "Click to change" : disabledHelp)
+        .help(isEnabled ? String(localized: "Click to change") : disabledHelp)
     }
 }
 
@@ -300,23 +300,23 @@ private struct ReportView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             if report.renames.isEmpty {
-                row(.fine, "All names work there", "No characters or names that the other system rejects.")
+                row(.fine, String(localized: "All names work there"), String(localized: "No characters or names that the other system rejects."))
             } else {
                 row(.info,
-                    "\(report.renames.count) \(report.renames.count == 1 ? "name" : "names") will be adjusted",
+                    String(localized: "\(report.renames.count) names will be adjusted"),
                     audience.normalizesNames
-                        ? "Characters Windows doesn’t allow are replaced. Your originals stay as they are."
-                        : "Names that would clash are numbered. Your originals stay as they are.")
+                        ? String(localized: "Characters Windows doesn’t allow are replaced. Your originals stay as they are.")
+                        : String(localized: "Names that would clash are numbered. Your originals stay as they are."))
             }
             if !report.excluded.isEmpty {
                 row(.info,
-                    "\(report.excluded.count) Mac-only \(report.excluded.count == 1 ? "file" : "files") left out",
-                    "“.DS_Store”, “._” and other Finder files mean nothing on other systems.")
+                    String(localized: "\(report.excluded.count) Mac-only files left out"),
+                    String(localized: "“.DS_Store”, “._” and other Finder files mean nothing on other systems."))
             }
             if !report.leftOutLinks.isEmpty {
                 row(.info,
-                    "\(report.leftOutLinks.count) \(report.leftOutLinks.count == 1 ? "link" : "links") left out",
-                    "\(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) can’t recreate symbolic links. Choose Macs or Linux to keep them.")
+                    String(localized: "\(report.leftOutLinks.count) links left out"),
+                    String(localized: "\(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) can’t recreate symbolic links. Choose Macs or Linux to keep them."))
             }
             ForEach(report.notes, id: \.title) { note in
                 row(note.tone, note.title, note.detail)

@@ -40,7 +40,7 @@ final class ServicesProvider: NSObject {
     private func files(on pasteboard: NSPasteboard, _ error: AutoreleasingUnsafeMutablePointer<NSString?>) -> [URL]? {
         let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
         guard !urls.isEmpty else {
-            error.pointee = "Stow didn’t receive any files." as NSString
+            error.pointee = String(localized: "Stow didn’t receive any files.") as NSString
             return nil
         }
         return urls

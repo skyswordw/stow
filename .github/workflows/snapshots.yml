@@ -20,12 +20,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  settings:
+  snapshots:
     runs-on: xcode-27
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       XCODE_APP: /Applications/Xcode_27.app
       PANES: general extraction installing packing previews passwords fileTypes integration advanced licenses
+      # Other demo scenes (App/DemoScene.swift), for the layout check in every language.
+      SCENES: grid list search activity pack password batch conflict conflict-folder signature-warning replace-app tray
+      LANGS: en zh-Hans
     steps:
       - uses: actions/checkout@v7
 
@@ -64,23 +67,29 @@ jobs:
             -destination 'platform=macOS' -derivedDataPath build \
             CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= | tail -20
 
-      - name: Snapshot every Settings pane, light and dark
+      - name: Snapshot Settings panes and scenes, light and dark, every language
         run: |
-          for look in light dark; do
-            for pane in ${=PANES}; do
-              rm -f snapshots/settings-*.png
-              zsh scripts/snapshot.sh settings "$look" "" -StowSettingsPane "$pane" || echo "::warning::$pane $look failed"
-              for file in snapshots/settings-*.png(N); do
-                mv "$file" "shots/settings-$pane-$look-${${file:t}#settings-$look-}"
-              done
+          shoot() { # <out-name> <scene> <look> <lang> [args…]
+            local out=$1 scene=$2 look=$3 lang=$4; shift 4
+            rm -f snapshots/$scene-*.png
+            zsh scripts/snapshot.sh "$scene" "$look" "" -AppleLanguages "($lang)" "$@" || echo "::warning::$out $look $lang failed"
+            for file in snapshots/$scene-*.png(N); do
+              mv "$file" "shots/$lang/$out-$look-${${file:t}#$scene-$look-}"
+            done
+          }
+          for lang in ${=LANGS}; do
+            mkdir -p shots/$lang
+            for look in light dark; do
+              for pane in ${=PANES}; do shoot "settings-$pane" settings $look $lang -StowSettingsPane $pane; done
+              for scene in ${=SCENES}; do shoot "$scene" $scene $look $lang; done
             done
           done
-          ls -la shots
+          find shots -name '*.png' | wc -l
         shell: zsh {0}
 
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: settings-snapshots
+          name: snapshots
           path: shots
           retention-days: 14

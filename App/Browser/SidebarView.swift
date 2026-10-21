@@ -140,8 +140,8 @@ struct CheckupBadge: View {
         HStack(spacing: 6) {
             Image(systemName: caution ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
                 .foregroundStyle(caution ? .yellow : .green)
-            Text(caution ? "Checkup: \(cautions) \(cautions == 1 ? "thing" : "things") to know"
-                 : handled > 0 ? "Checkup: safe, \(handled) handled" : "Checkup: looks safe")
+            Text(caution ? String(localized: "Checkup: \(cautions) things to know")
+                 : handled > 0 ? String(localized: "Checkup: safe, \(handled) handled") : String(localized: "Checkup: looks safe"))
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)

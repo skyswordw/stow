@@ -144,7 +144,7 @@ private struct PackedBar: View {
                 }
             }
             .frame(height: 4)
-            Text(packed > 0 ? "\(packed.bytes) packed · \(Int(((1 - fraction) * 100).rounded()))% smaller" : "Size after packing unknown")
+            Text(packed > 0 ? String(localized: "\(packed.bytes) packed · \(Int(((1 - fraction) * 100).rounded()))% smaller") : String(localized: "Size after packing unknown"))
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)

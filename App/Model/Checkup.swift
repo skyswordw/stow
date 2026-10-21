@@ -21,10 +21,10 @@ nonisolated enum Checkup {
             let count = scan.escapingPaths.count
             findings.append(CheckupFinding(
                 severity: .handled,
-                title: count == 1 ? "1 path tried to leave the folder" : "\(count) paths tried to leave the folder",
+                title: count == 1 ? String(localized: "1 path tried to leave the folder") : String(localized: "\(count) paths tried to leave the folder"),
                 detail: count == 1
-                    ? "“\(first)” will be kept inside the destination folder instead."
-                    : "“\(first)” and \(count - 1) more will be kept inside the destination folder instead."
+                    ? String(localized: "“\(first)” will be kept inside the destination folder instead.")
+                    : String(localized: "“\(first)” and \(count - 1) more will be kept inside the destination folder instead.")
             ))
         }
 
@@ -34,22 +34,22 @@ nonisolated enum Checkup {
         if !outsideLinks.isEmpty {
             findings.append(CheckupFinding(
                 severity: .handled,
-                title: plural(outsideLinks.count, "link points", "links point") + " outside the folder",
-                detail: "“\(outsideLinks[0].path)” → “\(outsideLinks[0].linkTarget ?? "")”. Links like this aren’t created when you extract."
+                title: String(localized: "\(outsideLinks.count) links point outside the folder"),
+                detail: String(localized: "“\(outsideLinks[0].path)” → “\(outsideLinks[0].linkTarget ?? "")”. Links like this aren’t created when you extract.")
             ))
         } else if !scan.links.isEmpty {
             findings.append(CheckupFinding(
                 severity: .info,
-                title: plural(scan.links.count, "symbolic link", "symbolic links") + " inside",
-                detail: "Any that point outside the destination folder are left out when you extract."
+                title: String(localized: "\(scan.links.count) symbolic links inside"),
+                detail: String(localized: "Any that point outside the destination folder are left out when you extract.")
             ))
         }
 
         if let collision = scan.caseCollisions.first, collision.count > 1 {
             findings.append(CheckupFinding(
                 severity: .caution,
-                title: plural(scan.caseCollisions.count, "name differs", "names differ") + " only by capital letters",
-                detail: "“\(collision[0])” and “\(collision[1])” can’t sit side by side on this Mac. Both are kept; the second gets a number added."
+                title: String(localized: "\(scan.caseCollisions.count) names differ only by capital letters"),
+                detail: String(localized: "“\(collision[0])” and “\(collision[1])” can’t sit side by side on this Mac. Both are kept; the second gets a number added.")
             ))
         }
 
@@ -57,40 +57,40 @@ nonisolated enum Checkup {
         if scan.totalSize > 1_000_000_000, ratio > 100 {
             findings.append(CheckupFinding(
                 severity: .caution,
-                title: "Expands to \(scan.totalSize.bytes)",
-                detail: "That’s \(Int(ratio))× the size of the archive. Make sure there’s room before extracting."
+                title: String(localized: "Expands to \(scan.totalSize.bytes)"),
+                detail: String(localized: "That’s \(Int(ratio))× the size of the archive. Make sure there’s room before extracting.")
             ))
         }
 
         if scan.encryptedFiles > 0 {
             findings.append(CheckupFinding(
                 severity: .info,
-                title: "Contents are encrypted",
-                detail: "You’ll need the password to extract \(scan.encryptedFiles == 1 ? "the file" : "these files")."
+                title: String(localized: "Contents are encrypted"),
+                detail: String(localized: "You’ll need the password to extract \(scan.encryptedFiles == 1 ? String(localized: "the file") : String(localized: "these files")).")
             ))
         }
 
         if scan.helperFiles > 0 {
             findings.append(CheckupFinding(
                 severity: .info,
-                title: plural(scan.helperFiles, "macOS helper file", "macOS helper files") + " hidden",
-                detail: "“.DS_Store” and “._” files are hidden here and won’t be extracted."
+                title: String(localized: "\(scan.helperFiles) macOS helper files hidden"),
+                detail: String(localized: "“.DS_Store” and “._” files are hidden here and won’t be extracted.")
             ))
         }
 
         if scan.installerExtras > 0 {
             findings.append(CheckupFinding(
                 severity: .info,
-                title: "Installer layout hidden",
-                detail: "The background picture, volume icon and “drag here” shortcuts only lay out this disk image’s window in Finder. They’re hidden and won’t be extracted."
+                title: String(localized: "Installer layout hidden"),
+                detail: String(localized: "The background picture, volume icon and “drag here” shortcuts only lay out this disk image’s window in Finder. They’re hidden and won’t be extracted.")
             ))
         }
 
         if !findings.contains(where: { $0.severity == .handled || $0.severity == .caution }) {
             findings.append(CheckupFinding(
                 severity: .fine,
-                title: "Names and sizes look normal",
-                detail: "Nothing tries to leave the folder, nothing expands unusually and no names collide."
+                title: String(localized: "Names and sizes look normal"),
+                detail: String(localized: "Nothing tries to leave the folder, nothing expands unusually and no names collide.")
             ))
         }
         return findings
@@ -99,11 +99,11 @@ nonisolated enum Checkup {
     /// A disk image's checksums, checked in the background after it opens.
     static func diskImageFinding(damaged message: String?) -> CheckupFinding {
         guard let message else {
-            return CheckupFinding(severity: .fine, title: "Disk image checks out",
-                                  detail: "Every block matches the checksums the image was made with.")
+            return CheckupFinding(severity: .fine, title: String(localized: "Disk image checks out"),
+                                  detail: String(localized: "Every block matches the checksums the image was made with."))
         }
-        return CheckupFinding(severity: .caution, title: "Disk image is damaged",
-                              detail: "Some data doesn’t match its checksum (\(message)) — download it again before installing anything from it.")
+        return CheckupFinding(severity: .caution, title: String(localized: "Disk image is damaged"),
+                              detail: String(localized: "Some data doesn’t match its checksum (\(message)) — download it again before installing anything from it."))
     }
 
     /// Finder tags, comments and other Mac details put back from AppleDouble files.
@@ -111,8 +111,8 @@ nonisolated enum Checkup {
         guard restored.files > 0 else { return [] }
         return [CheckupFinding(
             severity: .info,
-            title: "Mac details restored",
-            detail: "Finder tags, comments and other details packed by a Mac were put back on \(plural(restored.files, "file", "files"))."
+            title: String(localized: "Mac details restored"),
+            detail: String(localized: "Finder tags, comments and other details packed by a Mac were put back on \(restored.files) files.")
         )]
     }
 
@@ -122,23 +122,20 @@ nonisolated enum Checkup {
         if let first = report.removedLinks.first {
             findings.append(CheckupFinding(
                 severity: .handled,
-                title: plural(report.removedLinks.count, "link pointed", "links pointed") + " outside the folder",
-                detail: "“\(first.path)” → “\(first.target)” was left out so nothing outside the folder can be reached."
+                title: String(localized: "\(report.removedLinks.count) links pointed outside the folder"),
+                detail: String(localized: "“\(first.path)” → “\(first.target)” was left out so nothing outside the folder can be reached.")
             ))
         }
         if let first = report.removedItems.first {
             findings.append(CheckupFinding(
                 severity: .handled,
-                title: plural(report.removedItems.count, "special file", "special files") + " left out",
-                detail: "“\(first)” is a device file or pipe, which can’t be extracted safely."
+                title: String(localized: "\(report.removedItems.count) special files left out"),
+                detail: String(localized: "“\(first)” is a device file or pipe, which can’t be extracted safely.")
             ))
         }
         return findings
     }
 
-    private static func plural(_ count: Int, _ one: String, _ many: String) -> String {
-        "\(count) \(count == 1 ? one : many)"
-    }
 }
 
 nonisolated extension Archive {

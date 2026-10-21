@@ -105,7 +105,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         let path = provider.userInfo as? String ?? ""
         Task { @MainActor [weak self] in
             guard let model = self?.model, let entry = model.archive.entry(at: path) else {
-                completionHandler(EngineError(.failed, "That item is no longer in the archive."))
+                completionHandler(EngineError(.failed, String(localized: "That item is no longer in the archive.")))
                 return
             }
             do {

@@ -170,8 +170,8 @@ private struct PreviewColumn: View {
                         .monospacedDigit()
                 }
                 MetadataGrid(rows: [
-                    ("Modified", entry.modified.formatted(date: .abbreviated, time: .shortened)),
-                    ("Packed", entry.packedSize.bytes),
+                    (String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened)),
+                    (String(localized: "Packed"), entry.packedSize.bytes),
                 ])
             }
             .padding(Space.l)
@@ -213,7 +213,7 @@ struct PathBar: View {
                         .contentShape(.rect)
                     }
                     .buttonStyle(PathButtonStyle())
-                    .help(segment.isArchive ? "Go to the top of “\(segment.title)”" : "Go to “\(segment.title)”")
+                    .help(segment.isArchive ? String(localized: "Go to the top of “\(segment.title)”") : String(localized: "Go to “\(segment.title)”"))
                 }
             }
             .padding(.horizontal, Space.m)

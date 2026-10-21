@@ -53,8 +53,8 @@ struct BatchStack: View {
     private var header: String {
         let total = queue.jobs.count
         return queue.isActive
-            ? "Extracting \(min(queue.finishedCount + 1, total)) of \(total)"
-            : total == 1 ? "1 archive done" : "\(total) archives done"
+            ? String(localized: "Extracting \(min(queue.finishedCount + 1, total)) of \(total)")
+            : total == 1 ? String(localized: "1 archive done") : String(localized: "\(total) archives done")
     }
 }
 
@@ -113,13 +113,13 @@ private struct BatchRow: View {
 
     private var detail: String {
         switch job.phase {
-        case .waiting: "Waiting"
+        case .waiting: String(localized: "Waiting")
         case .running(let progress): progress.formatted(.percent.precision(.fractionLength(0)))
         case .done:
-            job.placed.isEmpty ? "Nothing new to extract"
-                : "Extracted to \(FileManager.default.displayName(atPath: job.destination.path))"
+            job.placed.isEmpty ? String(localized: "Nothing new to extract")
+                : String(localized: "Extracted to \(FileManager.default.displayName(atPath: job.destination.path))")
         case .failed(let message): message
-        case .cancelled: "Stopped"
+        case .cancelled: String(localized: "Stopped")
         }
     }
 }

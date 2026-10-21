@@ -13,7 +13,7 @@ nonisolated enum TreeStream {
         guard let keys = ArchiveHeader.FieldKeySet(fields),
               let bytes = ArchiveByteStream.fileStream(fd: FileDescriptor(rawValue: descriptor), automaticClose: false),
               let encoder = ArchiveStream.encodeStream(writingTo: bytes) else {
-            throw EngineError(.failed, "Couldn’t start handing the files over.")
+            throw EngineError(.failed, String(localized: "Couldn’t start handing the files over."))
         }
         do {
             try encoder.writeDirectoryContents(archiveFrom: FilePath(folder.path), keySet: keys)
@@ -22,7 +22,7 @@ nonisolated enum TreeStream {
         } catch {
             try? encoder.close()
             try? bytes.close()
-            throw EngineError(.failed, "Couldn’t hand the files over: \(error.localizedDescription)")
+            throw EngineError(.failed, String(localized: "Couldn’t hand the files over: \(error.localizedDescription)"))
         }
     }
 
@@ -32,7 +32,7 @@ nonisolated enum TreeStream {
         guard let bytes = ArchiveByteStream.fileStream(fd: FileDescriptor(rawValue: descriptor), automaticClose: false),
               let decoder = ArchiveStream.decodeStream(readingFrom: bytes),
               let extractor = ArchiveStream.extractStream(extractingTo: FilePath(folder.path), flags: flags) else {
-            throw EngineError(.failed, "Couldn’t start receiving the files.")
+            throw EngineError(.failed, String(localized: "Couldn’t start receiving the files."))
         }
         do {
             _ = try ArchiveStream.process(readingFrom: decoder, writingTo: extractor)
@@ -43,7 +43,7 @@ nonisolated enum TreeStream {
             try? extractor.close()
             try? decoder.close()
             try? bytes.close()
-            throw EngineError(.failed, "Couldn’t receive the files: \(error.localizedDescription)")
+            throw EngineError(.failed, String(localized: "Couldn’t receive the files: \(error.localizedDescription)"))
         }
     }
 
@@ -63,7 +63,7 @@ nonisolated enum TreeStream {
                       onBytes: (Int64) -> Void = { _ in }) throws(EngineError) {
         guard let bytes = ArchiveByteStream.fileStream(fd: FileDescriptor(rawValue: descriptor), automaticClose: false),
               let encoder = ArchiveStream.encodeStream(writingTo: bytes) else {
-            throw EngineError(.failed, "Couldn’t start handing the files over.")
+            throw EngineError(.failed, String(localized: "Couldn’t start handing the files over."))
         }
         do {
             for item in items {
@@ -77,7 +77,7 @@ nonisolated enum TreeStream {
             try? encoder.close()
             try? bytes.close()
             if let error = error as? EngineError { throw error }
-            throw EngineError(.failed, "Couldn’t hand the files over: \(error.localizedDescription)")
+            throw EngineError(.failed, String(localized: "Couldn’t hand the files over: \(error.localizedDescription)"))
         }
     }
 
@@ -89,7 +89,7 @@ nonisolated enum TreeStream {
         let name = item.source.lastPathComponent
         var info = stat()
         guard lstat(path, &info) == 0 else {
-            throw EngineError(.failed, "Couldn’t read “\(name)”: \(String(cString: strerror(errno))).")
+            throw EngineError(.failed, String(localized: "Couldn’t read “\(name)”: \(String(cString: strerror(errno)))."))
         }
         let header = ArchiveHeader()
         let kind = info.st_mode & S_IFMT
@@ -113,7 +113,7 @@ nonisolated enum TreeStream {
             do {
                 file = try FileHandle(forReadingFrom: item.source)
             } catch {
-                throw EngineError(.failed, "Couldn’t read “\(name)”: \(error.localizedDescription)")
+                throw EngineError(.failed, String(localized: "Couldn’t read “\(name)”: \(error.localizedDescription)"))
             }
             var opened = stat()
             fstat(file!.fileDescriptor, &opened)
@@ -140,7 +140,7 @@ nonisolated enum TreeStream {
                 if Task.isCancelled { throw EngineError(.cancelled) }
                 let chunk = try file.read(upToCount: Int(min(Int64(chunkSize), remaining))) ?? Data()
                 guard !chunk.isEmpty else {
-                    throw EngineError(.failed, "“\(name)” changed while it was being packed.")
+                    throw EngineError(.failed, String(localized: "“\(name)” changed while it was being packed."))
                 }
                 try chunk.withUnsafeBytes { try encoder.writeBlob(key: .init("DAT"), from: $0) }
                 remaining -= Int64(chunk.count)

@@ -52,23 +52,23 @@ enum SampleArchive {
             checkup: [
                 CheckupFinding(
                     severity: .caution,
-                    title: "Harbor Prototype.app isn’t notarized",
-                    detail: "macOS will ask before opening it. Only run it if you trust whoever sent this."
+                    title: String(localized: "Harbor Prototype.app isn’t notarized"),
+                    detail: String(localized: "macOS will ask before opening it. Only run it if you trust whoever sent this.")
                 ),
                 CheckupFinding(
                     severity: .handled,
-                    title: "1 path tried to leave the folder",
-                    detail: "“../../.zshrc” will be kept inside the destination folder instead."
+                    title: String(localized: "1 path tried to leave the folder"),
+                    detail: String(localized: "“../../.zshrc” will be kept inside the destination folder instead.")
                 ),
                 CheckupFinding(
                     severity: .info,
-                    title: "14 macOS helper files hidden",
-                    detail: "“.DS_Store” and “._” files are hidden here and won’t be extracted."
+                    title: String(localized: "14 macOS helper files hidden"),
+                    detail: String(localized: "“.DS_Store” and “._” files are hidden here and won’t be extracted.")
                 ),
                 CheckupFinding(
                     severity: .fine,
-                    title: "Names and sizes look normal",
-                    detail: "Nothing expands unusually and no names collide."
+                    title: String(localized: "Names and sizes look normal"),
+                    detail: String(localized: "Nothing expands unusually and no names collide.")
                 ),
             ]
         )

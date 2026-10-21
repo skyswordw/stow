@@ -73,8 +73,8 @@ struct InstallOptionsView: View {
                     .foregroundStyle(.secondary)
             }
             Section {
-                grantRow("Applications", granted: $applicationsGranted, folder: FolderAccess.applications)
-                grantRow("Your font library", granted: $fontsGranted, folder: FolderAccess.userFonts)
+                grantRow(String(localized: "Applications"), granted: $applicationsGranted, folder: FolderAccess.applications)
+                grantRow(String(localized: "Your font library"), granted: $fontsGranted, folder: FolderAccess.userFonts)
             } header: {
                 Text("Folders Stow may install into")
             } footer: {

@@ -91,10 +91,10 @@ nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
 
     var phrase: String {
         switch self {
-        case .windows: "Windows PCs"
-        case .mac: "Macs"
-        case .linux: "Linux & servers"
-        case .web: "uploading to the web"
+        case .windows: String(localized: "Windows PCs")
+        case .mac: String(localized: "Macs")
+        case .linux: String(localized: "Linux & servers")
+        case .web: String(localized: "uploading to the web")
         }
     }
 
@@ -128,10 +128,10 @@ nonisolated enum SplitSize: Int64, CaseIterable, Identifiable, Sendable {
 
     var phrase: String {
         switch self {
-        case .none: "as one file"
-        case .mb100: "in 100 MB parts"
-        case .mb700: "in 700 MB parts"
-        case .fat32: "in 4 GB parts"
+        case .none: String(localized: "as one file")
+        case .mb100: String(localized: "in 100 MB parts")
+        case .mb700: String(localized: "in 700 MB parts")
+        case .fat32: String(localized: "in 4 GB parts")
         }
     }
 }
@@ -152,23 +152,23 @@ nonisolated extension PackFormat {
 nonisolated extension CompressionLevel {
     var title: String {
         switch self {
-        case .store: "Store"
-        case .fastest: "Fastest"
-        case .fast: "Fast"
-        case .balanced: "Balanced"
-        case .maximum: "Maximum"
-        case .smallest: "Smallest"
+        case .store: String(localized: "Store")
+        case .fastest: String(localized: "Fastest")
+        case .fast: String(localized: "Fast")
+        case .balanced: String(localized: "Balanced")
+        case .maximum: String(localized: "Maximum")
+        case .smallest: String(localized: "Smallest")
         }
     }
 
     var detail: String {
         switch self {
-        case .store: "No compression — quickest, largest."
-        case .fastest: "Light compression, very quick."
-        case .fast: "Good compression, quick."
-        case .balanced: "Smaller files at a good speed."
-        case .maximum: "Smaller still, noticeably slower."
-        case .smallest: "Smallest files, slowest."
+        case .store: String(localized: "No compression — quickest, largest.")
+        case .fastest: String(localized: "Light compression, very quick.")
+        case .fast: String(localized: "Good compression, quick.")
+        case .balanced: String(localized: "Smaller files at a good speed.")
+        case .maximum: String(localized: "Smaller still, noticeably slower.")
+        case .smallest: String(localized: "Smallest files, slowest.")
         }
     }
 
@@ -401,32 +401,32 @@ nonisolated enum Compatibility {
         case (.windows, .zip) where options.usesPassword:
             notes.append(.init(
                 tone: .caution,
-                title: "File Explorer may not open it",
-                detail: "Windows’ built-in ZIP support can’t always read AES-encrypted ZIPs. Suggest 7-Zip to the recipient."
+                title: String(localized: "File Explorer may not open it"),
+                detail: String(localized: "Windows’ built-in ZIP support can’t always read AES-encrypted ZIPs. Suggest 7-Zip to the recipient.")
             ))
         case (.windows, .sevenZip):
             notes.append(.init(
                 tone: .info,
-                title: "Recent Windows 11 opens 7Z",
-                detail: "Older versions need 7-Zip. Choose ZIP if you’re not sure."
+                title: String(localized: "Recent Windows 11 opens 7Z"),
+                detail: String(localized: "Older versions need 7-Zip. Choose ZIP if you’re not sure.")
             ))
         case (.mac, .zip):
             notes.append(.init(
                 tone: .fine,
-                title: "Keeps everything a Mac cares about",
-                detail: "Finder tags, extended attributes, permissions and links stay intact."
+                title: String(localized: "Keeps everything a Mac cares about"),
+                detail: String(localized: "Finder tags, extended attributes, permissions and links stay intact.")
             ))
         case (.mac, _):
             notes.append(.init(
                 tone: .info,
-                title: "Keeps permissions and links",
-                detail: "Finder tags and other extended attributes only travel in a ZIP."
+                title: String(localized: "Keeps permissions and links"),
+                detail: String(localized: "Finder tags and other extended attributes only travel in a ZIP.")
             ))
         case (.linux, _):
             notes.append(.init(
                 tone: .fine,
-                title: "Keeps permissions and symlinks",
-                detail: "Executable bits and links survive, so scripts still run after extracting."
+                title: String(localized: "Keeps permissions and symlinks"),
+                detail: String(localized: "Executable bits and links survive, so scripts still run after extracting.")
             ))
         default:
             break
@@ -435,16 +435,16 @@ nonisolated enum Compatibility {
             if options.format == .zip, !passwordIsPortable(password) {
                 notes.append(.init(
                     tone: .caution,
-                    title: "Use plain letters and numbers for a ZIP password",
-                    detail: "Apps disagree on accented and non-Latin characters in ZIP passwords. Choose 7Z to keep this one."
+                    title: String(localized: "Use plain letters and numbers for a ZIP password"),
+                    detail: String(localized: "Apps disagree on accented and non-Latin characters in ZIP passwords. Choose 7Z to keep this one.")
                 ))
             }
             notes.append(.init(
                 tone: .fine,
-                title: options.format == .sevenZip ? "Contents and file names are encrypted" : "Contents are encrypted with AES-256",
+                title: options.format == .sevenZip ? String(localized: "Contents and file names are encrypted") : String(localized: "Contents are encrypted with AES-256"),
                 detail: options.format == .sevenZip
-                    ? "Without the password, nobody can see what’s inside."
-                    : "File names stay visible. Choose 7Z to hide them too."
+                    ? String(localized: "Without the password, nobody can see what’s inside.")
+                    : String(localized: "File names stay visible. Choose 7Z to hide them too.")
             ))
         }
         return notes

@@ -1,0 +1,205 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "ARJ archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ARJ 压缩包"
+          }
+        }
+      }
+    },
+    "Android package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android 软件包"
+          }
+        }
+      }
+    },
+    "Archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包"
+          }
+        }
+      }
+    },
+    "CFBundleDisplayName": {
+      "shouldTranslate": false
+    },
+    "CFBundleName": {
+      "shouldTranslate": false
+    },
+    "Comic book (7Z)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "漫画（7Z）"
+          }
+        }
+      }
+    },
+    "Comic book (RAR)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "漫画（RAR）"
+          }
+        }
+      }
+    },
+    "Comic book (ZIP)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "漫画（ZIP）"
+          }
+        }
+      }
+    },
+    "Debian package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debian 软件包"
+          }
+        }
+      }
+    },
+    "Disk image or package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像或软件包"
+          }
+        }
+      }
+    },
+    "LHA archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LHA 压缩包"
+          }
+        }
+      }
+    },
+    "LZIP file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LZIP 文件"
+          }
+        }
+      }
+    },
+    "LZMA file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LZMA 文件"
+          }
+        }
+      }
+    },
+    "NSHumanReadableCopyright": {
+      "shouldTranslate": false
+    },
+    "RAR archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RAR 压缩包"
+          }
+        }
+      }
+    },
+    "RPM package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RPM 软件包"
+          }
+        }
+      }
+    },
+    "Split archive part": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分卷压缩包文件"
+          }
+        }
+      }
+    },
+    "Virtual hard disk": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "虚拟硬盘"
+          }
+        }
+      }
+    },
+    "Windows image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Windows 映像"
+          }
+        }
+      }
+    },
+    "Windows installer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Windows 安装器"
+          }
+        }
+      }
+    },
+    "ZIPX archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIPX 压缩包"
+          }
+        }
+      }
+    },
+    "Zstandard file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zstandard 文件"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

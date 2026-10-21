@@ -26,7 +26,7 @@ struct AssociationsView: View {
                             AssociationRow(row: row, appName: model.name(of: row.app), isSelected: selectionBinding(row.id))
                         }
                     } header: {
-                        Label(group.rawValue, systemImage: group.symbol)
+                        Label(group.title, systemImage: group.symbol)
                     }
                 }
             }

@@ -54,7 +54,7 @@ struct BrowserView: View {
     }
 
     private var searchPrompt: String {
-        model.indexingProgress ?? "Search \(model.archive.files.count.formatted()) files"
+        model.indexingProgress ?? String(localized: "Search \(model.archive.files.count.formatted()) files")
     }
 
     @ViewBuilder
@@ -145,7 +145,7 @@ struct BrowserView: View {
     }
 
     private var inspectorToggle: some View {
-        Button(model.showInspector ? "Hide Inspector" : "Show Inspector", systemImage: "sidebar.right") {
+        Button(model.showInspector ? String(localized: "Hide Inspector") : String(localized: "Show Inspector"), systemImage: "sidebar.right") {
             model.showInspector.toggle()
         }
         .keyboardShortcut("i", modifiers: [.command, .option])

@@ -116,6 +116,10 @@ jobs:
           MIN_TESTS: "156"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
+      - name: Every string has a Simplified Chinese translation
+        if: ${{ !cancelled() }}
+        run: scripts/check-localizations.sh zh-Hans
+
       - name: Committed plists match project.yml
         if: ${{ !cancelled() }}
         run: |
@@ -131,5 +135,6 @@ jobs:
           path: |
             build/Stow.xcresult
             build/*.log
+            build/loc/missing-*.txt
             build/generated-plists.diff
           retention-days: 14

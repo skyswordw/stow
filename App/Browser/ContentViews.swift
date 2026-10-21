@@ -174,7 +174,7 @@ private struct GridTile: View {
                     .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                     .background(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.clear),
                                 in: .rect(cornerRadius: 5))
-                Text(showsPath ? entry.parent.isEmpty ? "Top level" : entry.parent : entry.size.bytes)
+                Text(showsPath ? entry.parent.isEmpty ? String(localized: "Top level") : entry.parent : entry.size.bytes)
                     .font(.caption)
                     .monospacedDigit()
                     .lineLimit(1)
@@ -239,14 +239,14 @@ struct ContentList: View {
     var body: some View {
         ScrollViewReader { scroller in
             Table(model.visibleEntries, selection: $model.selection) {
-                TableColumn("Name") { entry in
+                TableColumn(String(localized: "Name")) { entry in
                     HStack(spacing: Space.s) {
                         RowIcon(entry: entry, model: model)
                             .frame(width: 18, height: 18)
                         VStack(alignment: .leading, spacing: 0) {
                             Text(entry.name).lineLimit(1)
                             if model.isSearching {
-                                Text(entry.parent.isEmpty ? "Top level" : entry.parent)
+                                Text(entry.parent.isEmpty ? String(localized: "Top level") : entry.parent)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
@@ -260,7 +260,7 @@ struct ContentList: View {
                 }
                 .width(min: 220, ideal: 320)
 
-                TableColumn("Size") { entry in
+                TableColumn(String(localized: "Size")) { entry in
                     Text(entry.size.bytes)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
@@ -268,12 +268,12 @@ struct ContentList: View {
                 .width(min: 70, ideal: 90)
                 .alignment(.trailing)
 
-                TableColumn("Kind") { entry in
+                TableColumn(String(localized: "Kind")) { entry in
                     Text(entry.kindDescription).foregroundStyle(.secondary).lineLimit(1)
                 }
                 .width(min: 80, ideal: 120)
 
-                TableColumn("Modified") { entry in
+                TableColumn(String(localized: "Modified")) { entry in
                     Text(entry.modified, format: .dateTime.day().month(.abbreviated).year())
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
@@ -313,7 +313,7 @@ struct EntryMenu: View {
             Button("Open", systemImage: "arrow.up.forward.app") { model.openWithDefaultApp([entry]) }
         }
         if real, entry.isPackage || entry.kind == .archive || Self.zippedDocuments.contains((entry.name as NSString).pathExtension.lowercased()) {
-            Button(entry.kind == .archive ? "Open Inside" : "Show Package Contents", systemImage: "shippingbox") {
+            Button(entry.kind == .archive ? String(localized: "Open Inside") : String(localized: "Show Package Contents"), systemImage: "shippingbox") {
                 model.showPackageContents(entry)
             }
         }

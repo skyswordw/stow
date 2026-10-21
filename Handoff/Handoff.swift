@@ -186,11 +186,11 @@ nonisolated enum FinderMenu {
 
     static func title(for action: HandoffAction) -> String {
         switch action {
-        case .extractHere: "Extract Here"
-        case .extractTo: "Extract To…"
-        case .open: "Open in Stow"
-        case .compress: "Compress with Stow…"
-        case .quickCompress: "Quick Compress"
+        case .extractHere: String(localized: "Extract Here")
+        case .extractTo: String(localized: "Extract To…")
+        case .open: String(localized: "Open in Stow")
+        case .compress: String(localized: "Compress with Stow…")
+        case .quickCompress: String(localized: "Quick Compress")
         }
     }
 

@@ -1,0 +1,56 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "Stow: Extract Here": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow：在此解压缩"
+          }
+        }
+      }
+    },
+    "Stow: Extract To…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow：解压缩到…"
+          }
+        }
+      }
+    },
+    "Stow: Quick Compress": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow：快速压缩"
+          }
+        }
+      }
+    },
+    "Stow: Compress…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow：压缩…"
+          }
+        }
+      }
+    },
+    "Send to Stow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送到 Stow"
+          }
+        }
+      }
+    }
+  }
+}

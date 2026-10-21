@@ -22,10 +22,10 @@ final class FolderAccess {
 
         func message(for folder: URL) -> String {
             switch self {
-            case .extract(let name): "Stow can only write in folders you allow. Choose Allow to let Stow extract “\(name)” here — and next time, extract anything in this folder without asking."
-            case .compress: "Stow can only write in folders you allow. Choose Allow to let Stow save the archive here — and next time, compress anything in this folder without asking."
-            case .open(let name): "Choose Allow to let Stow open “\(name)” and other archives in this folder."
-            case .explained(let reason): "\(reason) Stow asks once for “\(FileManager.default.displayName(atPath: folder.path))” and remembers it."
+            case .extract(let name): String(localized: "Stow can only write in folders you allow. Choose Allow to let Stow extract “\(name)” here — and next time, extract anything in this folder without asking.")
+            case .compress: String(localized: "Stow can only write in folders you allow. Choose Allow to let Stow save the archive here — and next time, compress anything in this folder without asking.")
+            case .open(let name): String(localized: "Choose Allow to let Stow open “\(name)” and other archives in this folder.")
+            case .explained(let reason): String(localized: "\(reason) Stow asks once for “\(FileManager.default.displayName(atPath: folder.path))” and remembers it.")
             }
         }
     }
@@ -100,8 +100,8 @@ final class FolderAccess {
         panel.canCreateDirectories = false
         panel.allowsMultipleSelection = false
         panel.directoryURL = folder
-        panel.prompt = "Allow"
-        panel.title = "Allow Access to “\(FileManager.default.displayName(atPath: folder.path))”"
+        panel.prompt = String(localized: "Allow")
+        panel.title = String(localized: "Allow Access to “\(FileManager.default.displayName(atPath: folder.path))”")
         panel.message = purpose.message(for: folder)
         NSApp.activate()
         let response = if let window = NSApp.keyWindow {
@@ -190,7 +190,7 @@ extension FolderAccess {
             if scoped { url.stopAccessingSecurityScopedResource() }
             shared.revoke(folder)
             let name = FileManager.default.displayName(atPath: url.path)
-            throw EngineError(.failed, "This account can’t add things to “\(name)”. Ask an administrator, or install somewhere else.")
+            throw EngineError(.failed, String(localized: "This account can’t add things to “\(name)”. Ask an administrator, or install somewhere else."))
         }
         return Grant(url: url, scoped: scoped)
     }

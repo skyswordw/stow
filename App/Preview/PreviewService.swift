@@ -121,15 +121,15 @@ final class PreviewService {
     // MARK: - Rich previews
 
     func richPreview(for entry: ArchiveEntry, in archive: Archive) async -> RichPreview {
-        guard archive.source != nil else { return .unavailable("Sample content") }
-        guard entry.size <= Self.hoverLimit else { return .unavailable("Too large to preview here — press Space") }
-        guard entry.size > 0 else { return .unavailable("Empty file") }
+        guard archive.source != nil else { return .unavailable(String(localized: "Sample content")) }
+        guard entry.size <= Self.hoverLimit else { return .unavailable(String(localized: "Too large to preview here — press Space")) }
+        guard entry.size > 0 else { return .unavailable(String(localized: "Empty file")) }
         let url: URL
         do {
             url = try await file(for: entry, in: archive)
         } catch {
             return .unavailable(error.failure == .passwordRequired || error.failure == .wrongPassword
-                                ? "Locked — needs the archive’s password" : error.message)
+                                ? String(localized: "Locked — needs the archive’s password") : error.message)
         }
         guard !Task.isCancelled else { return .unavailable("") }
         return await Self.read(url, kind: entry.kind)
@@ -154,7 +154,7 @@ final class PreviewService {
             break
         }
         if let image = await quickLookThumbnail(of: url, side: 420) { return .thumbnail(image) }
-        return .unavailable("No preview for this kind of file")
+        return .unavailable(String(localized: "No preview for this kind of file"))
     }
 
     nonisolated private static func downsampled(_ url: URL, maxPixels: Int) -> NSImage? {

@@ -5,16 +5,16 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
     var id: Self { self }
     var title: String {
         switch self {
-        case .general: "General"
-        case .extraction: "Extraction"
-        case .installing: "Installing"
-        case .packing: "Packing"
-        case .previews: "Previews"
-        case .passwords: "Passwords"
-        case .fileTypes: "File Types"
-        case .integration: "Integration"
-        case .advanced: "Advanced"
-        case .licenses: "Licenses"
+        case .general: String(localized: "General")
+        case .extraction: String(localized: "Extraction")
+        case .installing: String(localized: "Installing")
+        case .packing: String(localized: "Packing")
+        case .previews: String(localized: "Previews")
+        case .passwords: String(localized: "Passwords")
+        case .fileTypes: String(localized: "File Types")
+        case .integration: String(localized: "Integration")
+        case .advanced: String(localized: "Advanced")
+        case .licenses: String(localized: "Licenses")
         }
     }
     var systemImage: String {
