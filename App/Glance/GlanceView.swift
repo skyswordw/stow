@@ -38,15 +38,26 @@ struct GlanceRoot: View {
             if closed, glance.pendingName == nil { glance.close() }
         }
         .passwordSheet(app.passwords)
-        .alert("Couldn’t open “\(app.openFailure?.name ?? "")”", isPresented: Binding(
-            get: { glance.isShown && app.openFailure != nil }, set: { if !$0 { app.openFailure = nil } }
-        ), presenting: app.openFailure) { failure in
-            if failure.canOpenInFinder, let url = failure.url {
-                Button("Open in Finder") { NSWorkspace.shared.open(url) }
+        // The same failure card as the full window; that window is closed while Glance shows.
+        .sheet(item: Binding(get: { glance.isShown ? app.openFailure : nil }, set: { app.openFailure = $0 })) { open in
+            FailureCard(failure: open.failure) { action in
+                app.openFailure = nil
+                guard let action, let url = open.url else {
+                    if app.browser == nil { glance.close() }
+                    return
+                }
+                switch action {
+                case .tryAgain: glance.open(url)
+                case .openInStow:
+                    // Where its password can be entered: the full window.
+                    glance.close()
+                    app.showMainWindow()
+                    app.open(url)
+                default:
+                    app.follow(action, opening: url)
+                    if app.browser == nil { glance.close() }
+                }
             }
-            Button("OK") { if app.browser == nil { glance.close() } }
-        } message: { failure in
-            Text(failure.message)
         }
     }
 

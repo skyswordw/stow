@@ -115,7 +115,7 @@ struct GlanceTests {
 
         let deadline = ContinuousClock.now + .seconds(10)
         while app.isOpening, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
-        #expect(app.openFailure?.name == missing.lastPathComponent)
+        #expect(app.openFailure?.url?.lastPathComponent == missing.lastPathComponent)
     }
 
     @Test func settingDefaultsToTheFullWindow() throws {
