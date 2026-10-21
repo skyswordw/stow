@@ -83,6 +83,16 @@ enum OtherAppFiles {
 
     static func removeReceived() { try? FileManager.default.removeItem(at: receivedFolder) }
 
+    static func isReceived(_ url: URL) -> Bool {
+        url.standardizedFileURL.path.hasPrefix(receivedFolder.standardizedFileURL.path + "/")
+    }
+
+    /// Where an Open panel for `file` starts: its folder, except for a received copy (a temporary
+    /// folder nobody should extract into), where macOS picks (the last folder used).
+    static func startFolder(near file: URL) -> URL? {
+        isReceived(file) ? nil : file.deletingLastPathComponent()
+    }
+
     /// Moves a file an app handed over (it disappears once the handler returns) into a folder of
     /// its own under `receivedFolder`, keeping its name. Synchronous on purpose: it must finish
     /// before the provider's handler returns.

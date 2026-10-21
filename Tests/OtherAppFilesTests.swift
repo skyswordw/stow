@@ -94,4 +94,13 @@ struct OtherAppFilesTests {
         #expect(try Data(contentsOf: received[0]) == Data(contentsOf: zip))
         #expect(received[0].path.hasPrefix(parent.path))
     }
+
+    @Test func receivedCopiesNeverSuggestTheirFolder() {
+        let received = OtherAppFiles.receivedFolder.appending(path: "1234/From Mail.zip")
+        #expect(OtherAppFiles.isReceived(received))
+        #expect(OtherAppFiles.startFolder(near: received) == nil)
+        let downloads = URL(filePath: "/Users/me/Downloads/a.zip")
+        #expect(!OtherAppFiles.isReceived(downloads))
+        #expect(OtherAppFiles.startFolder(near: downloads)?.path == "/Users/me/Downloads")
+    }
 }

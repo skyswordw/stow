@@ -80,9 +80,7 @@ final class AppState {
                 releaseScope()
                 scopedURL = scoped ? url : nil
                 // Files received from a drag (Mail, chat apps) live in a folder Stow empties at launch.
-                if !url.standardizedFileURL.path.hasPrefix(OtherAppFiles.receivedFolder.standardizedFileURL.path) {
-                    recents.add(url)
-                }
+                if !OtherAppFiles.isReceived(url) { recents.add(url) }
                 browser = makeBrowser(archive)
                 browser?.verifyDiskImage()
             } catch {
