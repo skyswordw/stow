@@ -194,15 +194,7 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                     if encryptedHeaders || listing.entries.contains(where: \.isEncrypted) {
                         try await sevenZip.test(.file(work), password: request.password) { _ in }
                     }
-                    var sourceEntries: [ListedEntry] = []
-                    if let walker = manager.enumerator(at: input, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey]) {
-                        for case let url as URL in walker {
-                            let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey])
-                            let path = String(url.path.dropFirst(input.path.count + 1))
-                            sourceEntries.append(ListedEntry(path: path, isFolder: values.isDirectory == true && values.isSymbolicLink != true,
-                                                            isSymlink: values.isSymbolicLink == true, size: Int64(values.fileSize ?? 0)))
-                        }
-                    }
+                    let sourceEntries = try Self.stagedEntries(in: input)
                     let steps = try EditPlan.steps(for: request.operations, listing: listing, format: request.format, sources: sourceEntries)
                     for source in steps.flatMap(\.sources) {
                         let from = input.appending(path: source.item)
@@ -269,6 +261,17 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                     reply(nil, (Task.isCancelled ? EngineError(.cancelled) : EngineError(error)).nsError)
                 }
             }
+        }
+    }
+
+    /// What Stow staged, as relative entries (symlinks not followed), for EditPlan's checks.
+    private nonisolated static func stagedEntries(in input: URL) throws -> [ListedEntry] {
+        try FileManager.default.subpathsOfDirectory(atPath: input.path).sorted().map { path in
+            var info = stat()
+            guard lstat(input.appending(path: path).path, &info) == 0 else { throw EngineError(.failed) }
+            let type = info.st_mode & S_IFMT
+            return ListedEntry(path: path, isFolder: type == S_IFDIR, isSymlink: type == S_IFLNK,
+                               size: type == S_IFREG ? Int64(info.st_size) : 0)
         }
     }
 
