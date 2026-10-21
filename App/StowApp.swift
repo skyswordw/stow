@@ -179,6 +179,11 @@ final class AppState {
         model.passwords = PasswordHook(prompt: passwords)
         model.onArchiveGone = { [weak self] in self?.closeArchive() }
         model.onCloseWindow = { [weak self] in self?.closeWindow() }
+        // The Pack sentence is a sheet on the full window, so Glance hands over to it first.
+        model.onPack = { [weak self] request in
+            self?.glance.expand(byKeyboard: false)
+            self?.packRequest = request
+        }
         return model
     }
 

@@ -75,6 +75,7 @@ struct GlanceRoot: View {
 struct GlanceView: View {
     @Bindable var model: BrowserModel
     let glance: GlanceController
+    @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
 
     var body: some View {
         content
@@ -124,7 +125,7 @@ struct GlanceView: View {
     @ViewBuilder
     private var nextSteps: some View {
         Group {
-            if !model.selection.isEmpty || model.activity != nil {
+            if (!model.selection.isEmpty && showsNextSteps) || model.activity != nil {
                 NextStepsBar(model: model)
             } else {
                 Button {

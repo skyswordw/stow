@@ -14,6 +14,8 @@ nonisolated enum SettingsKeys {
     static let trayIdleSeconds = "tray.idleSeconds"
     static let trayBorder = "tray.border"
     static let trayPinned = "tray.pinned"
+    static let nextStepsShown = "nextSteps.shown"
+    static let nextStepsHidden = "nextSteps.hidden"
 
     enum Appearance: String, CaseIterable, Sendable { case system, light, dark }
     enum DefaultValue: Equatable, Sendable {
@@ -59,7 +61,9 @@ nonisolated enum SettingsKeys {
         .init(key: trayShowWhileDragging, defaultValue: .bool(true)),
         .init(key: trayIdleSeconds, defaultValue: .integer(30)),
         .init(key: trayBorder, defaultValue: .string(TrayBorder.accent.rawValue)),
-        .init(key: trayPinned, defaultValue: .bool(false))
+        .init(key: trayPinned, defaultValue: .bool(false)),
+        .init(key: nextStepsShown, defaultValue: .bool(true)),
+        .init(key: nextStepsHidden, defaultValue: .string(NextStepsSettings.encode(NextStepsSettings.defaultHidden)))
     ] + Audience.allCases.map {
         Entry(key: "PackLevel.\($0.rawValue)", defaultValue: .integer(Int64(CompressionLevel.balanced.rawValue)))
     }
