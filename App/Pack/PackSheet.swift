@@ -7,6 +7,7 @@ struct PackSheet: View {
     let request: PackRequest
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var options = PackOptions()
     @State private var password = ""
     @State private var name = ""
@@ -120,7 +121,9 @@ struct PackSheet: View {
             Button("Suggest") { password = Self.suggestedPassword() }
                 .controlSize(.large)
         }
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        // Slides down from the sentence that asked for it; goes faster than it came.
+        .transition(AnyTransition.asymmetric(insertion: reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)),
+                                removal: .opacity.animation(Motion.resolved(Motion.exit, reduceMotion: reduceMotion))))
     }
 
     // MARK: More options
@@ -294,6 +297,7 @@ private struct Token<Items: View>: View {
     var disabledHelp = ""
     @ViewBuilder let items: () -> Items
     @State private var isHovering = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 1) {
@@ -310,7 +314,8 @@ private struct Token<Items: View>: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(isEnabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
                 .id(title)
-                .transition(.blurReplace)
+                // Blur-replace scales a little, so Reduce Motion gets the cross-fade alone.
+                .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
         }
         .menuStyle(.button)
         .buttonStyle(.plain)

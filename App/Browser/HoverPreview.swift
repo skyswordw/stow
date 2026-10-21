@@ -23,9 +23,8 @@ final class HoverPreviewModel {
             close()
             return
         }
-        let isWarm = presented != nil || Date.now.timeIntervalSince(lastClosed) < warmWindow
         if isWarm {
-            presented = entry.id
+            showQuietly(entry.id)
             return
         }
         openTask = Task { [weak self, openDelay] in
@@ -47,12 +46,30 @@ final class HoverPreviewModel {
     /// Opens a preview straight away (design review runs have no pointer).
     func present(_ id: ArchiveEntry.ID) {
         openTask?.cancel()
-        presented = id
+        if isWarm { showQuietly(id) } else { presented = id }
     }
 
+    /// One is open or just closed: the pointer is scanning the list.
+    private var isWarm: Bool {
+        presented != nil || Date.now.timeIntervalSince(lastClosed) < warmWindow
+    }
+
+    /// Neighbours open instantly and unanimated while one is open (DESIGN.md › Motion); only the
+    /// first preview fades in. SwiftUI turns the transaction into the popover's `animates`.
+    private func showQuietly(_ id: ArchiveEntry.ID) {
+        withTransaction(Self.unanimated) { presented = id }
+    }
+
+    private static var unanimated: Transaction {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        return transaction
+    }
+
+    /// Closing is instant: an exit never takes longer than the entrance.
     func close() {
         if presented != nil { lastClosed = .now }
-        presented = nil
+        withTransaction(Self.unanimated) { presented = nil }
     }
 }
 

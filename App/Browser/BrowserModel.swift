@@ -784,7 +784,7 @@ final class BrowserModel {
                 }
                 guard !Task.isCancelled else { return }
                 for url in urls { NSWorkspace.shared.open(url) }
-                if large { withAnimation(Motion.appear) { activity = nil } }
+                if large { withAnimation(Motion.current(Motion.exit)) { activity = nil } }
             } catch {
                 report(error, step: .quickLook, count: files.count)
             }
@@ -834,7 +834,7 @@ final class BrowserModel {
 
     private func report(_ error: any Error, step: NextStep, count: Int, name: String? = nil) {
         let error = EngineError(error)
-        withAnimation(Motion.appear) {
+        withAnimation(Motion.current(Motion.status)) {
             if error.failure == .cancelled {
                 activity = nil
             } else {
@@ -931,7 +931,7 @@ final class BrowserModel {
             } catch {
                 let failure = Failure(error, step.failureOperation, name: name ?? archive.name,
                                       destination: destination(), needs: bytes)
-                withAnimation(Motion.appear) {
+                withAnimation(Motion.current(Motion.status)) {
                     if EngineError(error).failure == .cancelled {
                         activity = nil
                     } else {
@@ -946,7 +946,7 @@ final class BrowserModel {
             archive.record(finished.findings)
             activity?.placed = finished.placed
             activity?.title = finished.title
-            withAnimation(Motion.appear) { activity?.phase = .done }
+            withAnimation(Motion.current(Motion.status)) { activity?.phase = .done }
 
             if let aftercare = finished.aftercare, let source = archive.source?.url {
                 let trashed = await ArchiveAftercare.apply(aftercare.setting, key: aftercare.key, to: [source],
@@ -964,7 +964,7 @@ final class BrowserModel {
             }
             try? await Task.sleep(for: .seconds(4))
             guard !Task.isCancelled else { return }
-            withAnimation(Motion.appear) { activity = nil }
+            withAnimation(Motion.current(Motion.exit)) { activity = nil }
         }
     }
 
@@ -1009,7 +1009,7 @@ final class BrowserModel {
             }
             archive.record(result.findings)
             activity?.placed = result.placed
-            withAnimation(Motion.appear) { activity?.phase = .done }
+            withAnimation(Motion.current(Motion.status)) { activity?.phase = .done }
             dismissLater()
             return result.placed
         } catch {
@@ -1023,7 +1023,7 @@ final class BrowserModel {
         activityTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(4))
             guard !Task.isCancelled else { return }
-            withAnimation(Motion.appear) { self?.activity = nil }
+            withAnimation(Motion.current(Motion.exit)) { self?.activity = nil }
         }
     }
 
@@ -1173,17 +1173,17 @@ final class BrowserModel {
                     self?.activity?.phase = .running(Double(tick) / 20)
                 }
             }
-            withAnimation(Motion.appear) { self?.activity?.phase = .done }
+            withAnimation(Motion.current(Motion.status)) { self?.activity?.phase = .done }
             try? await Task.sleep(for: .seconds(2.4))
             guard !Task.isCancelled else { return }
-            withAnimation(Motion.appear) { self?.activity = nil }
+            withAnimation(Motion.current(Motion.exit)) { self?.activity = nil }
         }
     }
 
     /// Stops a running step; a cancelled extraction leaves nothing behind.
     func cancelActivity() {
         activityTask?.cancel()
-        withAnimation(Motion.appear) { activity = nil }
+        withAnimation(Motion.current(Motion.exit)) { activity = nil }
     }
 
     func showInFinder() {

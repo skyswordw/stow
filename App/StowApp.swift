@@ -312,7 +312,7 @@ struct RootView: View {
             }
         }
         .padding(.bottom, app.packing.activity == nil ? 0 : nextSteps ? 76 : Space.l)
-        .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: app.packing.activity == nil)
+        .animation(Motion.presence(app.packing.activity != nil, reduceMotion: reduceMotion), value: app.packing.activity == nil)
     }
 }
 
