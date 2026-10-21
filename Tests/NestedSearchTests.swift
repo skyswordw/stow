@@ -31,9 +31,11 @@ struct NestedSearchTests {
         let many = (0..<60).map { entry(String(format: "a%02d.zip", $0)) }
         #expect(NestedSearch.within(many).count == NestedSearch.maxArchives)
         let big = entry("big.zip", size: NestedSearch.maxArchiveSize + 1)
-        let half = NestedSearch.maxTotalSize / 2
-        let picked = NestedSearch.within([big, entry("b.zip", size: half), entry("c.zip", size: half), entry("d.zip", size: 10)])
-        #expect(picked.map(\.path) == ["b.zip", "c.zip"])
+        // Four of 500 MB fill most of the 2 GB budget; a fifth doesn't fit, a small one still does.
+        let size: Int64 = 500 * 1_024 * 1_024
+        let rounds = (1...5).map { entry("r\($0).zip", size: size) }
+        let picked = NestedSearch.within([big] + rounds + [entry("small.zip", size: 10)])
+        #expect(picked.map(\.path) == ["r1.zip", "r2.zip", "r3.zip", "r4.zip", "small.zip"])
         #expect(!picked.contains(big))
     }
 
