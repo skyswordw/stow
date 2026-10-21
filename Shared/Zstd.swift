@@ -50,7 +50,7 @@ nonisolated enum Zstd {
                                         cancelled: { flag.isSet }, progress: progress)
                         continuation.resume(returning: .success(()))
                     } catch {
-                        continuation.resume(returning: .failure(error))
+                        continuation.resume(returning: .failure(EngineError(error)))
                     }
                 }
             }
@@ -109,7 +109,7 @@ nonisolated enum Zstd {
                     do {
                         try writer.write(UnsafeRawBufferPointer(rebasing: out[..<outView.pos]))
                     } catch {
-                        return error
+                        return EngineError(error) // closures infer `any Error` here
                     }
                     // Mid-stream: until the chunk is consumed. At the end: until the frame is flushed.
                     if last ? remaining == 0 : inBuffer.pos == inBuffer.size { return nil }
