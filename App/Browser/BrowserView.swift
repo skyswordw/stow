@@ -69,6 +69,7 @@ struct BrowserView: View {
                 model.quickLook.attach(to: window)
                 model.dragOut.install(in: window)
                 ToolbarPriority.install(in: window)
+                app.glance.prepareMainWindow(window)
             }
             .id(ObjectIdentifier(model))
         }
