@@ -24,7 +24,7 @@ final class BrowserModel {
             guard step == .extract, let folder = placed.first?.deletingLastPathComponent() else {
                 return step.doneTitle
             }
-            return "Extracted to \(FileManager.default.displayName(atPath: folder.path))"
+            return String(localized: "Extracted to \(FileManager.default.displayName(atPath: folder.path))")
         }
     }
 
@@ -158,21 +158,22 @@ final class BrowserModel {
     }
 
     var title: String {
-        if isSearching { return "Search" }
+        if isSearching { return String(localized: "Search") }
         return folder.isEmpty ? archive.name : (folder as NSString).lastPathComponent
     }
 
     var subtitle: String {
         let count = visibleEntries.count
-        let items = "\(count.formatted()) \(count == 1 ? "item" : "items")"
-        return isSearching ? "\(count.formatted()) results in \(archive.name)" : items
+        let items = count == 1 ? String(localized: "1 item")
+            : String(localized: "\(count.formatted()) items")
+        return isSearching ? String(localized: "\(count.formatted()) results in \(archive.name)") : items
     }
 
     /// "Indexing… 12,000 of 40,000" while a big archive's search index builds.
     var indexingProgress: String? {
         let search = level.search
         guard level.indexed < search.total, search.total > 2_000 else { return nil }
-        return "Indexing… \(level.indexed.formatted()) of \(search.total.formatted())"
+        return String(localized: "Indexing… \(level.indexed.formatted()) of \(search.total.formatted())")
     }
 
     // MARK: - Contents
@@ -529,7 +530,7 @@ final class BrowserModel {
         guard archive.source != nil else { return run(.openInside, on: [entry]) }
         guard levels.count < Self.maxDepth else {
             activity = Activity(step: .openInside, itemCount: 1,
-                                phase: .failed("Stow opens archives up to \(Self.maxDepth) levels deep."))
+                                phase: .failed(String(localized: "Stow opens archives up to \(Self.maxDepth) levels deep.")))
             return
         }
         let archive = archive, parentLevels = levels
@@ -703,9 +704,9 @@ final class BrowserModel {
             }
             if let password { self?.rememberPassword(password) }
             var finished = Finished(placed: result.placed, findings: result.findings)
-            if result.placed.isEmpty { finished.title = "Nothing new — everything was already there" }
+            if result.placed.isEmpty { finished.title = String(localized: "Nothing new — everything was already there") }
             if selection == nil {
-                finished.aftercare = (Preferences.current.afterExtractAll, Preferences.Key.afterExtractAll, "Everything was extracted.")
+                finished.aftercare = (Preferences.current.afterExtractAll, Preferences.Key.afterExtractAll, String(localized: "Everything was extracted."))
             }
             return finished
         }
@@ -759,7 +760,7 @@ final class BrowserModel {
         var grant: FolderAccess.Grant?
         perform(.moveToApplications, itemCount: 1, prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(
-                target, purpose: "To install “\(Installer.displayName(entry.name))”, Stow needs permission to add apps to this folder.")
+                target, purpose: String(localized: "To install “\(Installer.displayName(entry.name))”, Stow needs permission to add apps to this folder."))
         }) { [weak self] progress throws(EngineError) in
             guard let grant else { throw EngineError(.cancelled) }
             defer { grant.release() }
@@ -769,14 +770,14 @@ final class BrowserModel {
             self?.signatures[entry.path] = outcome.verdict
             var findings = [Self.finding(outcome.verdict, app: entry.name)]
             if outcome.quarantineRemoved == false {
-                findings.append(CheckupFinding(severity: .info, title: "Quarantine flag kept",
-                                               detail: "macOS doesn’t let a sandboxed app remove it, so Gatekeeper checks “\(Installer.displayName(entry.name))” the first time it opens."))
+                findings.append(CheckupFinding(severity: .info, title: String(localized: "Quarantine flag kept"),
+                                               detail: String(localized: "macOS doesn’t let a sandboxed app remove it, so Gatekeeper checks “\(Installer.displayName(entry.name))” the first time it opens.")))
             }
             let folder = FileManager.default.displayName(atPath: grant.url.path)
             return Finished(placed: [outcome.app],
-                            title: outcome.replaced ? "Updated in \(folder)" : "Installed in \(folder)",
+                            title: outcome.replaced ? String(localized: "Updated in \(folder)") : String(localized: "Installed in \(folder)"),
                             findings: findings,
-                            aftercare: (Preferences.current.afterInstall, Preferences.Key.afterInstall, "“\(Installer.displayName(entry.name))” is installed."))
+                            aftercare: (Preferences.current.afterInstall, Preferences.Key.afterInstall, String(localized: "“\(Installer.displayName(entry.name))” is installed.")))
         }
     }
 
@@ -785,17 +786,17 @@ final class BrowserModel {
         let target = FolderAccess.override ?? FolderAccess.userFonts
         var grant: FolderAccess.Grant?
         perform(.installFonts(count: entries.count), itemCount: entries.count, prepare: { () async throws(EngineError) in
-            grant = try await FolderAccess.request(target, purpose: "To install fonts, Stow needs permission to add them to your font library.")
+            grant = try await FolderAccess.request(target, purpose: String(localized: "To install fonts, Stow needs permission to add them to your font library."))
         }) { progress throws(EngineError) in
             guard let grant else { throw EngineError(.cancelled) }
             defer { grant.release() }
             let outcome = try await Installer.installFonts(entries, from: archive, into: grant.url, ask: Prompts.ask,
                                                            onProgress: progress)
-            var title = outcome.installed.count == 1 ? "Font installed" : "\(outcome.installed.count) fonts installed"
-            if !outcome.skipped.isEmpty { title += " · \(outcome.skipped.count) already there" }
-            if !outcome.unusable.isEmpty { title += " · \(outcome.unusable.count) not installable" }
+            var title = outcome.installed.count == 1 ? String(localized: "Font installed") : String(localized: "\(outcome.installed.count) fonts installed")
+            if !outcome.skipped.isEmpty { title += String(localized: " · \(outcome.skipped.count) already there") }
+            if !outcome.unusable.isEmpty { title += String(localized: " · \(outcome.unusable.count) not installable") }
             return Finished(placed: outcome.installed, title: title,
-                            aftercare: (Preferences.current.afterInstall, Preferences.Key.afterInstall, "The fonts are installed."))
+                            aftercare: (Preferences.current.afterInstall, Preferences.Key.afterInstall, String(localized: "The fonts are installed.")))
         }
     }
 
@@ -805,7 +806,7 @@ final class BrowserModel {
         var grant: FolderAccess.Grant?
         perform(.openInstaller, itemCount: 1, prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(
-                beside, purpose: "To open “\(entry.name)” in Installer, Stow unpacks it next to the archive for a moment.")
+                beside, purpose: String(localized: "To open “\(entry.name)” in Installer, Stow unpacks it next to the archive for a moment."))
         }) { progress throws(EngineError) in
             guard let grant else { throw EngineError(.cancelled) }
             defer { grant.release() }
@@ -820,7 +821,7 @@ final class BrowserModel {
         var grant: FolderAccess.Grant?
         perform(step, itemCount: entries.count, prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(FolderAccess.override ?? folder,
-                                                   purpose: "The disk image asks for this to be copied here.")
+                                                   purpose: String(localized: "The disk image asks for this to be copied here."))
         }) { progress throws(EngineError) in
             guard let grant else { throw EngineError(.cancelled) }
             defer { grant.release() }

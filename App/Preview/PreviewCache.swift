@@ -101,7 +101,7 @@ final class PreviewCache {
     func file(for entry: ArchiveEntry, in archive: Archive, password: String? = nil,
               onProgress: (@Sendable (Double) -> Void)? = nil) async throws(EngineError) -> URL {
         let files = try await files(for: [entry], in: archive, password: password, onProgress: onProgress)
-        guard let url = files[entry.path] else { throw EngineError(.failed, "“\(entry.name)” couldn’t be read from the archive.") }
+        guard let url = files[entry.path] else { throw EngineError(.failed, String(localized: "“\(entry.name)” couldn’t be read from the archive.")) }
         return url
     }
 
@@ -160,7 +160,7 @@ final class PreviewCache {
 
     private func extract(_ wanted: [(entry: ArchiveEntry, key: String)], from archive: Archive, password: String?,
                          onProgress: (@Sendable (Double) -> Void)?) async throws(EngineError) -> [String: URL] {
-        guard let source = archive.source else { throw EngineError(.failed, "This archive isn’t on disk.") }
+        guard let source = archive.source else { throw EngineError(.failed, String(localized: "This archive isn’t on disk.")) }
         // The first stored name is enough to show a file; a package needs everything inside it.
         let paths = wanted.flatMap { item in
             item.entry.isFolder ? archive.storedPaths(for: [item.entry])

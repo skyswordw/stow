@@ -220,14 +220,14 @@ nonisolated struct EngineError: LocalizedError, Sendable, Equatable {
 
     private static func defaultMessage(for failure: EngineFailure) -> String {
         switch failure {
-        case .incompatibleVersion: "Stow’s archive engine is out of date. Reinstall Stow."
-        case .engineMissing: "Stow’s archive engine is missing. Reinstall Stow."
-        case .connectionLost: "Stow’s archive engine stopped unexpectedly."
-        case .notAnArchive: "This file isn’t an archive Stow can open."
-        case .passwordRequired: "This archive needs a password."
-        case .wrongPassword: "The password is incorrect."
-        case .cancelled: "Cancelled."
-        case .failed: "Something went wrong reading the archive."
+        case .incompatibleVersion: String(localized: "Stow’s archive engine is out of date. Reinstall Stow.")
+        case .engineMissing: String(localized: "Stow’s archive engine is missing. Reinstall Stow.")
+        case .connectionLost: String(localized: "Stow’s archive engine stopped unexpectedly.")
+        case .notAnArchive: String(localized: "This file isn’t an archive Stow can open.")
+        case .passwordRequired: String(localized: "This archive needs a password.")
+        case .wrongPassword: String(localized: "The password is incorrect.")
+        case .cancelled: String(localized: "Cancelled.")
+        case .failed: String(localized: "Something went wrong reading the archive.")
         }
     }
 }

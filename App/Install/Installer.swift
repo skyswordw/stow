@@ -41,7 +41,7 @@ enum Installer {
         let staged = try await Extraction.stage(archive, selection: [entry], near: folder, onProgress: onProgress)
         defer { staged.discard() }
         let bundle = staged.url(for: entry)
-        guard Extraction.exists(bundle) else { throw EngineError(.failed, "“\(entry.name)” wasn’t extracted.") }
+        guard Extraction.exists(bundle) else { throw EngineError(.failed, String(localized: "“\(entry.name)” wasn’t extracted.")) }
 
         let verdict = await assess(bundle)
         if verdict.needsConfirmation {
@@ -52,7 +52,7 @@ enum Installer {
         let replacing = Extraction.exists(target)
         if replacing {
             if isRunning(target) {
-                throw EngineError(.failed, "“\(displayName(entry.name))” is open. Quit it, then install again.")
+                throw EngineError(.failed, String(localized: "“\(displayName(entry.name))” is open. Quit it, then install again."))
             }
             let answer = await ask(.replaceApp(app: entry.name, installed: version(of: target), incoming: version(of: bundle)))
             if answer == .cancel { throw EngineError(.cancelled) }
@@ -65,7 +65,7 @@ enum Installer {
             }
         }
         let placement = try await Placement.place([(bundle, entry.name)], in: folder) { _ in .replace }
-        guard let app = placement.placed.first else { throw EngineError(.failed, "Nothing was installed.") }
+        guard let app = placement.placed.first else { throw EngineError(.failed, String(localized: "Nothing was installed.")) }
         // After the move: renaming into place drops a flag set in staging.
         if !removeQuarantine, let source = archive.source?.url { Quarantine.inherit(from: source, to: app) }
         return AppOutcome(app: app, verdict: verdict, replaced: replacing,
@@ -106,8 +106,8 @@ enum Installer {
         }
         guard !fonts.isEmpty else {
             throw EngineError(.failed, outcome.unusable.count == 1
-                ? "“\(outcome.unusable[0])” isn’t a font macOS can install."
-                : "None of these are fonts macOS can install.")
+                ? String(localized: "“\(outcome.unusable[0])” isn’t a font macOS can install.")
+                : String(localized: "None of these are fonts macOS can install."))
         }
 
         let taken = fonts.map(\.1).filter { Extraction.exists(folder.appending(path: $0)) }
@@ -142,7 +142,7 @@ enum Installer {
         let folder = try PackageHandoff.makeFolder(in: location)
         do {
             let result = try await Extraction.run(archive, selection: [entry], to: folder, onProgress: onProgress)
-            guard let package = result.placed.first else { throw EngineError(.failed, "“\(entry.name)” wasn’t extracted.") }
+            guard let package = result.placed.first else { throw EngineError(.failed, String(localized: "“\(entry.name)” wasn’t extracted.")) }
             try await PackageHandoff.open(package)
             return package
         } catch {
@@ -225,7 +225,7 @@ enum PackageHandoff {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
         } catch {
-            throw EngineError(.failed, "Couldn’t prepare the installer: \(error.localizedDescription)")
+            throw EngineError(.failed, String(localized: "Couldn’t prepare the installer: \(error.localizedDescription)"))
         }
         waiting.append((folder, location, location.startAccessingSecurityScopedResource()))
         return folder
@@ -233,14 +233,14 @@ enum PackageHandoff {
 
     static func open(_ package: URL) async throws(EngineError) {
         guard let installer = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.installer") else {
-            throw EngineError(.failed, "Installer isn’t available on this Mac.")
+            throw EngineError(.failed, String(localized: "Installer isn’t available on this Mac."))
         }
         watchInstaller()
         do {
             _ = try await NSWorkspace.shared.open([package], withApplicationAt: installer,
                                                   configuration: NSWorkspace.OpenConfiguration())
         } catch {
-            throw EngineError(.failed, "Installer couldn’t open “\(package.lastPathComponent)”: \(error.localizedDescription)")
+            throw EngineError(.failed, String(localized: "Installer couldn’t open “\(package.lastPathComponent)”: \(error.localizedDescription)"))
         }
     }
 

@@ -64,19 +64,19 @@ final class IntegrationSettings {
         var steps: [RepairStep] = []
 
         if LSRegisterURL(Bundle.main.bundleURL as CFURL, true) == noErr {
-            steps.append(RepairStep(outcome: .done, text: "Registered Stow and its extensions with macOS again."))
+            steps.append(RepairStep(outcome: .done, text: String(localized: "Registered Stow and its extensions with macOS again.")))
         } else {
-            steps.append(RepairStep(outcome: .todo, text: "Quit Stow and open it again from Applications — macOS registers its extensions when it starts."))
+            steps.append(RepairStep(outcome: .todo, text: String(localized: "Quit Stow and open it again from Applications — macOS registers its extensions when it starts.")))
         }
 
         refresh()
         if finderExtensionEnabled {
-            steps.append(RepairStep(outcome: .done, text: "The Finder extension is on."))
+            steps.append(RepairStep(outcome: .done, text: String(localized: "The Finder extension is on.")))
         } else {
             FIFinderSyncController.showExtensionManagementInterface()
-            steps.append(RepairStep(outcome: .todo, text: "Turn on Stow in the settings window that just opened."))
+            steps.append(RepairStep(outcome: .todo, text: String(localized: "Turn on Stow in the settings window that just opened.")))
         }
-        steps.append(RepairStep(outcome: .todo, text: "Finder picks up changes when it restarts. To restart it now, hold Option, Control-click Finder in the Dock and choose Relaunch."))
+        steps.append(RepairStep(outcome: .todo, text: String(localized: "Finder picks up changes when it restarts. To restart it now, hold Option, Control-click Finder in the Dock and choose Relaunch.")))
         publishFinderSettings()
         repairSteps = steps
     }
@@ -109,10 +109,10 @@ final class IntegrationSettings {
     var loginItemSummary: String {
         if let loginItemError { return loginItemError }
         return switch loginItemStatus {
-        case .enabled: "Stow opens quietly when you log in, so Finder actions start instantly."
-        case .requiresApproval: "macOS needs your OK in Login Items settings."
-        case .notFound: "macOS can’t find this copy of Stow. Move it to Applications and try again."
-        default: "Stow opens when you use it."
+        case .enabled: String(localized: "Stow opens quietly when you log in, so Finder actions start instantly.")
+        case .requiresApproval: String(localized: "macOS needs your OK in Login Items settings.")
+        case .notFound: String(localized: "macOS can’t find this copy of Stow. Move it to Applications and try again.")
+        default: String(localized: "Stow opens when you use it.")
         }
     }
 

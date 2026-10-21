@@ -25,7 +25,7 @@ struct WelcomeView: View {
                 .frame(height: 64)
 
             VStack(spacing: Space.xs) {
-                Text(isTargeted ? "Let go to open" : "Drop to open or pack")
+                Text(isTargeted ? String(localized: "Let go to open") : String(localized: "Drop to open or pack"))
                     .font(.title2.weight(.semibold))
                     .contentTransition(.opacity)
                 Text("An archive opens here; several are extracted. Anything else gets packed.")
@@ -71,7 +71,7 @@ struct WelcomeView: View {
 
     private var recents: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            SectionLabel("Recent")
+            SectionLabel(String(localized: "Recent"))
             HStack(spacing: Space.m) {
                 ForEach(Self.recentNames, id: \.self) { name in
                     Button { app.openArchive(named: name) } label: {

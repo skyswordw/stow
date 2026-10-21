@@ -20,26 +20,26 @@ nonisolated struct NameEncoding: Hashable, Sendable, Identifiable {
         self.encoding = encoding
     }
 
-    static let utf8 = NameEncoding("utf8", "Unicode (UTF-8)", .utf8)
+    static let utf8 = NameEncoding("utf8", String(localized: "Unicode (UTF-8)"), .utf8)
 
     /// Most likely first: these cover nearly every legacy ZIP in the wild.
     static let candidates: [NameEncoding] = [
-        NameEncoding("gbk", "Chinese, Simplified (GBK)", .GB_18030_2000),
-        NameEncoding("big5", "Chinese, Traditional (Big5)", .big5_HKSCS_1999),
-        NameEncoding("sjis", "Japanese (Shift JIS)", .dosJapanese),
-        NameEncoding("cp949", "Korean (CP949)", .dosKorean),
-        NameEncoding("cp1251", "Cyrillic (Windows-1251)", .windowsCyrillic),
-        NameEncoding("cp866", "Cyrillic (DOS 866)", .dosRussian),
-        NameEncoding("cp437", "Western (DOS 437)", .dosLatinUS),
-        NameEncoding("cp850", "Western (DOS 850)", .dosLatin1),
-        NameEncoding("cp1252", "Western (Windows-1252)", String.Encoding.windowsCP1252),
-        NameEncoding("cp1250", "Central European (Windows-1250)", .windowsLatin2),
-        NameEncoding("cp1253", "Greek (Windows-1253)", .windowsGreek),
-        NameEncoding("cp1254", "Turkish (Windows-1254)", .windowsLatin5),
-        NameEncoding("cp1255", "Hebrew (Windows-1255)", .windowsHebrew),
-        NameEncoding("cp1256", "Arabic (Windows-1256)", .windowsArabic),
-        NameEncoding("cp874", "Thai (Windows-874)", .dosThai),
-        NameEncoding("macroman", "Mac OS Roman", String.Encoding.macOSRoman),
+        NameEncoding("gbk", String(localized: "Chinese, Simplified (GBK)"), .GB_18030_2000),
+        NameEncoding("big5", String(localized: "Chinese, Traditional (Big5)"), .big5_HKSCS_1999),
+        NameEncoding("sjis", String(localized: "Japanese (Shift JIS)"), .dosJapanese),
+        NameEncoding("cp949", String(localized: "Korean (CP949)"), .dosKorean),
+        NameEncoding("cp1251", String(localized: "Cyrillic (Windows-1251)"), .windowsCyrillic),
+        NameEncoding("cp866", String(localized: "Cyrillic (DOS 866)"), .dosRussian),
+        NameEncoding("cp437", String(localized: "Western (DOS 437)"), .dosLatinUS),
+        NameEncoding("cp850", String(localized: "Western (DOS 850)"), .dosLatin1),
+        NameEncoding("cp1252", String(localized: "Western (Windows-1252)"), String.Encoding.windowsCP1252),
+        NameEncoding("cp1250", String(localized: "Central European (Windows-1250)"), .windowsLatin2),
+        NameEncoding("cp1253", String(localized: "Greek (Windows-1253)"), .windowsGreek),
+        NameEncoding("cp1254", String(localized: "Turkish (Windows-1254)"), .windowsLatin5),
+        NameEncoding("cp1255", String(localized: "Hebrew (Windows-1255)"), .windowsHebrew),
+        NameEncoding("cp1256", String(localized: "Arabic (Windows-1256)"), .windowsArabic),
+        NameEncoding("cp874", String(localized: "Thai (Windows-874)"), .dosThai),
+        NameEncoding("macroman", String(localized: "Mac OS Roman"), String.Encoding.macOSRoman),
     ]
 
     static func named(_ id: String) -> NameEncoding? {

@@ -4,6 +4,13 @@ struct LicensesView: View {
     private enum Document: String, CaseIterable, Identifiable {
         case stow = "Stow (GPL-3.0)", sevenZip = "7-Zip", notices = "Third-party notices"
         var id: Self { self }
+        var title: String {
+            switch self {
+            case .stow: "Stow (GPL-3.0)"
+            case .sevenZip: "7-Zip"
+            case .notices: String(localized: "Third-party notices")
+            }
+        }
         var url: URL? {
             switch self {
             case .stow: Bundle.main.url(forResource: "LICENSE", withExtension: nil)
@@ -14,7 +21,7 @@ struct LicensesView: View {
         }
         var text: String {
             guard let url, let contents = try? String(contentsOf: url, encoding: .utf8) else {
-                return "The license text is unavailable in this build. 7-Zip’s license is included with the embedded Stow Engine service in distributed builds."
+                return String(localized: "The license text is unavailable in this build. 7-Zip’s license is included with the embedded Stow Engine service in distributed builds.")
             }
             return contents
         }
@@ -23,7 +30,7 @@ struct LicensesView: View {
     var body: some View {
         Form {
             Picker("License", selection: $document) {
-                ForEach(Document.allCases) { item in Text(item.rawValue).tag(item) }
+                ForEach(Document.allCases) { item in Text(item.title).tag(item) }
             }
             ScrollView([.horizontal, .vertical]) {
                 Text(document.text)

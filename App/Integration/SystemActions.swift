@@ -119,10 +119,10 @@ final class SystemActions {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
-        panel.prompt = "Extract"
+        panel.prompt = String(localized: "Extract")
         panel.message = archives.count == 1
-            ? "Choose where to extract “\(archives[0].lastPathComponent)”."
-            : "Choose where to extract \(archives.count) archives."
+            ? String(localized: "Choose where to extract “\(archives[0].lastPathComponent)”.")
+            : String(localized: "Choose where to extract \(archives.count) archives.")
         panel.directoryURL = archives[0].deletingLastPathComponent()
         NSApp.activate()
         return panel.runModal() == .OK ? panel.url : nil
@@ -134,15 +134,15 @@ final class SystemActions {
         guard error.failure != .cancelled else { return }
         let alert = NSAlert()
         if let archive {
-            alert.messageText = "Couldn’t extract “\(archive.lastPathComponent)”"
+            alert.messageText = String(localized: "Couldn’t extract “\(archive.lastPathComponent)”")
         } else {
-            alert.messageText = "Couldn’t compress"
+            alert.messageText = String(localized: "Couldn’t compress")
         }
         alert.informativeText = error.message
         let needsPassword = error.failure == .passwordRequired || error.failure == .wrongPassword
         if needsPassword, archive != nil {
-            alert.addButton(withTitle: "Open in Stow")
-            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: String(localized: "Open in Stow"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
         }
         NSApp.activate()
         if alert.runModal() == .alertFirstButtonReturn, needsPassword, let archive {

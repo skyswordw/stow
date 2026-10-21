@@ -1,0 +1,6534 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    " Install it anyway?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " 仍要安装吗？"
+          }
+        }
+      }
+    },
+    " in %lld parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "，共 %lld 个分卷"
+          }
+        }
+      }
+    },
+    " · %lld already there": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " · %lld 种已存在"
+          }
+        }
+      }
+    },
+    " · %lld not installable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " · %lld 种无法安装"
+          }
+        }
+      }
+    },
+    "%1$@ %2$lld items": {
+      "comment": "Progress verb followed by the number of selected items.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%lld items"
+                    }
+                  },
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%lld item"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%lld 个项目"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%1$@ (%2$lld of %3$lld)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@（%2$lld/%3$lld）"
+          }
+        }
+      }
+    },
+    "%1$@ Remembered for %2$@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 已记住用于%2$@的设置。"
+          }
+        }
+      }
+    },
+    "%1$@ Stow asks once for “%2$@” and remembers it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ Stow 只会询问一次，并记住对“%2$@”的访问权限。"
+          }
+        }
+      }
+    },
+    "%1$@ You can put %2$@ back from the Trash.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 你可以从废纸篓中将%2$@放回原处。"
+          }
+        }
+      }
+    },
+    "%1$@ files · %2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 个文件 · %2$@"
+          }
+        }
+      }
+    },
+    "%1$@ packed · %2$lld%% smaller": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后 %1$@ · 减小 %2$lld%%"
+          }
+        }
+      }
+    },
+    "%1$@ results in %2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$@中有 %1$@ 个结果"
+          }
+        }
+      }
+    },
+    "%1$@ · %2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%1$@ · %2$lld%% smaller": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · 减小 %2$lld%%"
+          }
+        }
+      }
+    },
+    "%1$@, %2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@，%2$@"
+          }
+        }
+      }
+    },
+    "%1$@: %2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@：%2$@"
+          }
+        }
+      }
+    },
+    "%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@"
+          }
+        }
+      }
+    },
+    "%@ archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 压缩包"
+          }
+        }
+      }
+    },
+    "%@ can’t be password-protected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 不支持密码保护"
+          }
+        }
+      }
+    },
+    "%@ can’t recreate symbolic links. Choose Macs or Linux to keep them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@无法重新创建符号链接。要保留链接，请选择 Mac 或 Linux。"
+          }
+        }
+      }
+    },
+    "%@ items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 个项目"
+          }
+        }
+      }
+    },
+    "%@ packed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后 %@"
+          }
+        }
+      }
+    },
+    "%@ · already compressed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · 已压缩"
+          }
+        }
+      }
+    },
+    "%@, automatically": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（自动）"
+          }
+        }
+      }
+    },
+    "%lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        }
+      }
+    },
+    "%lld Mac-only files left out": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "忽略 %lld 个 Mac 专用文件"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Mac-only file left out"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Mac-only files left out"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld archives": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个压缩包"
+          }
+        }
+      }
+    },
+    "%lld archives done": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已完成 %lld 个压缩包"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld archive done"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld archives done"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld files": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个文件"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld file"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld files"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld folders": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个文件夹"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld folder"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld folders"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld fonts installed": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已安装 %lld 种字体"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Font installed"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fonts installed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个项目"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld links left out": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "忽略 %lld 个链接"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld link left out"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld links left out"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld links point outside the folder": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个链接指向文件夹外部"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld link points outside the folder"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld links point outside the folder"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld links pointed outside the folder": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个链接曾指向文件夹外部"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld link pointed outside the folder"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld links pointed outside the folder"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld macOS helper files hidden": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已隐藏 %lld 个 macOS 辅助文件"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld macOS helper file hidden"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld macOS helper files hidden"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld names differ only by capital letters": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个名称仅大小写不同"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld name differs only by capital letters"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld names differ only by capital letters"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld names will be adjusted": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "将调整 %lld 个名称"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld name will be adjusted"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld names will be adjusted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld of these fonts are already installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其中 %lld 种字体已安装。"
+          }
+        }
+      }
+    },
+    "%lld paths tried to leave the folder": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个路径试图越出文件夹"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld path tried to leave the folder"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld paths tried to leave the folder"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld special files left out": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已忽略 %lld 个特殊文件"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld special file left out"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld special files left out"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld symbolic links inside": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "内含 %lld 个符号链接"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld symbolic link inside"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld symbolic links inside"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld types not changed": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 种文件类型未更改"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld type not changed"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld types not changed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld types now open with Stow": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 种文件类型现使用 Stow 打开"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld type now open with Stow"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld types now open with Stow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld types switched back": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已恢复 %lld 种文件类型的打开方式"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld type switched back"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld types switched back"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld%% smaller": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "减小 %lld%%"
+          }
+        }
+      }
+    },
+    "+ %lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另有 %lld 项"
+          }
+        }
+      }
+    },
+    "+ 25 more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另有 25 种"
+          }
+        }
+      }
+    },
+    "+%lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另有 %lld 项"
+          }
+        }
+      }
+    },
+    ",": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "，"
+          }
+        }
+      },
+      "comment": "Punctuation after an interactive packing sentence token."
+    },
+    ".": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "。"
+          }
+        }
+      },
+      "comment": "Punctuation at the end of the interactive packing sentence."
+    },
+    "1 archive done": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已完成 1 个压缩包"
+          }
+        }
+      }
+    },
+    "1 item": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 个项目"
+          }
+        }
+      }
+    },
+    "1 path tried to leave the folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 个路径试图越出文件夹"
+          }
+        }
+      }
+    },
+    "14 macOS helper files hidden": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已隐藏 14 个 macOS 辅助文件"
+          }
+        }
+      }
+    },
+    "7-Zip archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7-Zip 压缩包"
+          }
+        }
+      }
+    },
+    "7-Zip couldn’t finish: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7-Zip 无法完成操作：%@"
+          }
+        }
+      }
+    },
+    "7-Zip didn’t write an archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7-Zip 未生成压缩包。"
+          }
+        }
+      }
+    },
+    "A TAR collects files without compressing them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAR 仅打包文件，不进行压缩。"
+          }
+        }
+      }
+    },
+    "A folder named “%1$@” is already in “%2$@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%2$@”中已有名为“%1$@”的文件夹。"
+          }
+        }
+      }
+    },
+    "ARJ archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ARJ 压缩包"
+          }
+        }
+      }
+    },
+    "Aa": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字样"
+          }
+        }
+      }
+    },
+    "Advanced": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "高级"
+          }
+        }
+      }
+    },
+    "After installing, the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装后，压缩包"
+          }
+        }
+      }
+    },
+    "Afterwards, the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩后，压缩包"
+          }
+        }
+      }
+    },
+    "All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部"
+          }
+        }
+      }
+    },
+    "All %lld were extracted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已全部解压缩，共 %lld 个。"
+          }
+        }
+      }
+    },
+    "All Files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有文件"
+          }
+        }
+      }
+    },
+    "All names work there": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有名称均兼容"
+          }
+        }
+      }
+    },
+    "Allow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许"
+          }
+        }
+      }
+    },
+    "Allow Access to “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许访问“%@”"
+          }
+        }
+      }
+    },
+    "Already opening with Stow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已使用 Stow 打开"
+          }
+        }
+      }
+    },
+    "Also checked before installing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装前也会检查。"
+          }
+        }
+      }
+    },
+    "Always in a folder named after the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "始终放入以压缩包命名的文件夹"
+          }
+        }
+      }
+    },
+    "An archive opens here; several are extracted. Anything else gets packed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖入单个压缩包以打开，多个则解压缩；其他项目将被压缩。"
+          }
+        }
+      }
+    },
+    "Android package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android 软件包"
+          }
+        }
+      }
+    },
+    "Any that point outside the destination folder are left out when you extract.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩时会忽略指向目标文件夹外部的链接。"
+          }
+        }
+      }
+    },
+    "Appearance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观"
+          }
+        }
+      }
+    },
+    "Application": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用程序"
+          }
+        }
+      }
+    },
+    "Applications": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用程序"
+          }
+        }
+      }
+    },
+    "Apps disagree on accented and non-Latin characters in ZIP passwords. Choose 7Z to keep this one.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不同 App 对 ZIP 密码中的重音字符和非拉丁字符处理不一。要保留此密码，请选择 7Z。"
+          }
+        }
+      }
+    },
+    "Arabic (Windows-1256)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阿拉伯文（Windows-1256）"
+          }
+        }
+      }
+    },
+    "Archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包"
+          }
+        }
+      }
+    },
+    "Ask": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "询问"
+          }
+        }
+      }
+    },
+    "Ask each time": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次询问"
+          }
+        }
+      }
+    },
+    "Asked on first install": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首次安装时询问"
+          }
+        }
+      }
+    },
+    "Audio": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音频"
+          }
+        }
+      }
+    },
+    "Automatic": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动"
+          }
+        }
+      }
+    },
+    "BZIP2 file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BZIP2 文件"
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "后退"
+          }
+        }
+      }
+    },
+    "Balanced": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "均衡"
+          }
+        }
+      }
+    },
+    "Both are version %@. The installed one moves to the Trash.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两者的版本均为 %@。已安装的版本将移到废纸篓。"
+          }
+        }
+      }
+    },
+    "CPIO archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPIO 压缩包"
+          }
+        }
+      }
+    },
+    "CPU cores for packing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩使用的 CPU 核心数"
+          }
+        }
+      }
+    },
+    "Cabinet archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cabinet 压缩包"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "Cancelled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消。"
+          }
+        }
+      }
+    },
+    "Can’t list this archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法列出此压缩包的内容"
+          }
+        }
+      }
+    },
+    "Central European (Windows-1250)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中欧语言（Windows-1250）"
+          }
+        }
+      }
+    },
+    "Change…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更改…"
+          }
+        }
+      }
+    },
+    "Characters %@ don’t allow are replaced.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将替换%@不允许的字符。"
+          }
+        }
+      }
+    },
+    "Characters Windows doesn’t allow are replaced. Your originals stay as they are.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "替换 Windows 不允许的字符。原始文件保持不变。"
+          }
+        }
+      }
+    },
+    "Check Signature": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查签名"
+          }
+        }
+      }
+    },
+    "Check archives after packing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后检查压缩包"
+          }
+        }
+      }
+    },
+    "Checking…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在检查…"
+          }
+        }
+      }
+    },
+    "Checkup": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全检查"
+          }
+        }
+      },
+      "comment": "Stow’s archive safety report."
+    },
+    "Checkup: ": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全检查："
+          }
+        }
+      }
+    },
+    "Checkup: %lld things to know": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "安全检查：%lld 项注意事项"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Checkup: %lld thing to know"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Checkup: %lld things to know"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Checkup: looks safe": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全检查：看起来安全"
+          }
+        }
+      }
+    },
+    "Checkup: safe, %lld handled": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全检查：安全，已处理 %lld 项"
+          }
+        }
+      }
+    },
+    "Chinese, Simplified (GBK)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "简体中文（GBK）"
+          }
+        }
+      }
+    },
+    "Chinese, Traditional (Big5)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繁体中文（Big5）"
+          }
+        }
+      }
+    },
+    "Choose": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择"
+          }
+        }
+      }
+    },
+    "Choose Allow to let Stow open “%@” and other archives in this folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择“允许”，让 Stow 打开“%@”及此文件夹中的其他压缩包。"
+          }
+        }
+      }
+    },
+    "Choose files and folders to pack.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择要压缩的文件和文件夹。"
+          }
+        }
+      }
+    },
+    "Choose where to extract %@. Each gets its own folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择%@的解压缩位置。每个压缩包都会存入单独的文件夹。"
+          }
+        }
+      }
+    },
+    "Choose where to extract %lld archives.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择 %lld 个压缩包的解压缩位置。"
+          }
+        }
+      }
+    },
+    "Choose where to extract “%@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择“%@”的解压缩位置。"
+          }
+        }
+      }
+    },
+    "Choose where to save “%@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择“%@”的存储位置。"
+          }
+        }
+      }
+    },
+    "Choose which files open in Stow when you double-click them. Stow remembers the app each type used before, so you can always switch back.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择连按时使用 Stow 打开的文件类型。Stow 会记住各类型之前使用的 App，方便你随时恢复。"
+          }
+        }
+      }
+    },
+    "Clean Up": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清理"
+          }
+        }
+      }
+    },
+    "Clear": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除"
+          }
+        }
+      }
+    },
+    "Click to change": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按以更改"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
+    "Close Archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭压缩包"
+          }
+        }
+      }
+    },
+    "Close the window after Extract All or an install": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部解压缩或安装后关闭窗口"
+          }
+        }
+      }
+    },
+    "Collect from different folders, then pack or drag them out together.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从不同文件夹收集文件，然后一起压缩或拖出。"
+          }
+        }
+      }
+    },
+    "Columns": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分栏"
+          }
+        }
+      }
+    },
+    "Comic book (7Z)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "漫画（7Z）"
+          }
+        }
+      }
+    },
+    "Comic book (RAR)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "漫画（RAR）"
+          }
+        }
+      }
+    },
+    "Comic book (ZIP)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "漫画（ZIP）"
+          }
+        }
+      }
+    },
+    "Comic books": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "漫画"
+          }
+        }
+      }
+    },
+    "Compress with Stow…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Stow 压缩…"
+          }
+        }
+      }
+    },
+    "Compressed files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩文件"
+          }
+        }
+      }
+    },
+    "Compression": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩级别"
+          }
+        }
+      }
+    },
+    "Compression level for each destination": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各用途的压缩级别"
+          }
+        }
+      }
+    },
+    "Confirm in the macOS dialog: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在 macOS 对话框中确认：%@"
+          }
+        }
+      }
+    },
+    "Contents and file names are encrypted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容和文件名均已加密"
+          }
+        }
+      }
+    },
+    "Contents are encrypted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容已加密"
+          }
+        }
+      }
+    },
+    "Contents are encrypted with AES-256": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容使用 AES-256 加密"
+          }
+        }
+      }
+    },
+    "Copied to %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已拷贝到%@"
+          }
+        }
+      }
+    },
+    "Copy Name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝名称"
+          }
+        }
+      }
+    },
+    "Copy to “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝到“%@”"
+          }
+        }
+      }
+    },
+    "Copying": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在拷贝"
+          }
+        }
+      }
+    },
+    "Couldn’t compress": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法压缩"
+          }
+        }
+      }
+    },
+    "Couldn’t create the archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建压缩包。"
+          }
+        }
+      }
+    },
+    "Couldn’t create the archive: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建压缩包：%@"
+          }
+        }
+      }
+    },
+    "Couldn’t extract “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法解压缩“%@”"
+          }
+        }
+      }
+    },
+    "Couldn’t find a free name for “%@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法为“%@”找到可用的名称。"
+          }
+        }
+      }
+    },
+    "Couldn’t hand the files over: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法发送文件：%@"
+          }
+        }
+      }
+    },
+    "Couldn’t keep the Finder details of “%@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保留“%@”的访达信息。"
+          }
+        }
+      }
+    },
+    "Couldn’t move the old “%@” to the Trash.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将旧的“%@”移到废纸篓。"
+          }
+        }
+      }
+    },
+    "Couldn’t move “%1$@” into place: %2$@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将“%1$@”移到目标位置：%2$@。"
+          }
+        }
+      }
+    },
+    "Couldn’t open “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开“%@”"
+          }
+        }
+      }
+    },
+    "Couldn’t prepare the installer: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法准备安装器：%@"
+          }
+        }
+      }
+    },
+    "Couldn’t read “%1$@”: %2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取“%1$@”：%2$@"
+          }
+        }
+      }
+    },
+    "Couldn’t read “%1$@”: %2$@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取“%1$@”：%2$@。"
+          }
+        }
+      }
+    },
+    "Couldn’t receive the files: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法接收文件：%@"
+          }
+        }
+      }
+    },
+    "Couldn’t replace “%1$@”: %2$@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法替换“%1$@”：%2$@。"
+          }
+        }
+      }
+    },
+    "Couldn’t save “%1$@”: %2$@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法存储“%1$@”：%2$@。"
+          }
+        }
+      }
+    },
+    "Couldn’t start handing the files over.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法开始发送文件。"
+          }
+        }
+      }
+    },
+    "Couldn’t start receiving the files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法开始接收文件。"
+          }
+        }
+      }
+    },
+    "Cyrillic (DOS 866)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "西里尔文（DOS 866）"
+          }
+        }
+      }
+    },
+    "Cyrillic (Windows-1251)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "西里尔文（Windows-1251）"
+          }
+        }
+      }
+    },
+    "Dark": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色"
+          }
+        }
+      }
+    },
+    "Data": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据"
+          }
+        }
+      }
+    },
+    "Debian package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debian 软件包"
+          }
+        }
+      }
+    },
+    "Disk Image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像"
+          }
+        }
+      }
+    },
+    "Disk image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像"
+          }
+        }
+      }
+    },
+    "Disk image checks out": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像检查通过"
+          }
+        }
+      }
+    },
+    "Disk image is damaged": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像已损坏"
+          }
+        }
+      }
+    },
+    "Disk images": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像"
+          }
+        }
+      }
+    },
+    "Dismiss": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
+    "Do the same for other files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对其他文件执行相同操作"
+          }
+        }
+      }
+    },
+    "Do the same for other folders": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对其他文件夹执行相同操作"
+          }
+        }
+      }
+    },
+    "Document": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文稿"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
+        }
+      }
+    },
+    "Don’t ask again": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不再询问"
+          }
+        }
+      }
+    },
+    "Drop files here to gather them": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将文件拖到此处收集"
+          }
+        }
+      }
+    },
+    "Drop to open or pack": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖入以打开或压缩"
+          }
+        }
+      }
+    },
+    "Empty Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空文件夹"
+          }
+        }
+      }
+    },
+    "Empty file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空文件"
+          }
+        }
+      }
+    },
+    "Enclosing Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上层文件夹"
+          }
+        }
+      }
+    },
+    "Encodings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编码"
+          }
+        }
+      }
+    },
+    "Encrypted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已加密"
+          }
+        }
+      }
+    },
+    "Encrypted archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加密的压缩包"
+          }
+        }
+      }
+    },
+    "Encryption": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加密"
+          }
+        }
+      }
+    },
+    "Even the file names are protected. Open it in Stow and enter the password to see what’s inside.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件名也已加密。请在 Stow 中打开并输入密码以查看内容。"
+          }
+        }
+      }
+    },
+    "Every block matches the checksums the image was made with.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个数据块均与创建映像时的校验和一致。"
+          }
+        }
+      }
+    },
+    "Everyday archives": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用压缩包"
+          }
+        }
+      }
+    },
+    "Everything was extracted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已全部解压缩。"
+          }
+        }
+      }
+    },
+    "Executable bits and links survive, so scripts still run after extracting.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留可执行权限和链接，解压缩后脚本仍可运行。"
+          }
+        }
+      }
+    },
+    "Existing: %1$@. Extracted: %2$@. Replacing moves the existing one to the Trash.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现有项目：%1$@。解压缩的项目：%2$@。替换会将现有项目移到废纸篓。"
+          }
+        }
+      }
+    },
+    "Expands to %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩后为 %@"
+          }
+        }
+      }
+    },
+    "Extension Settings…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展设置…"
+          }
+        }
+      }
+    },
+    "Extract": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩"
+          }
+        }
+      }
+    },
+    "Extract All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部解压缩"
+          }
+        }
+      }
+    },
+    "Extract All puts things": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部解压缩时，将内容放入"
+          }
+        }
+      }
+    },
+    "Extract Archives…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩多个压缩包…"
+          }
+        }
+      }
+    },
+    "Extract Here": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此解压缩"
+          }
+        }
+      }
+    },
+    "Extract Here, Extract To…, Open in Stow and Compress in Finder’s context menu.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达快捷菜单中使用“在此解压缩”“解压缩到…”“在 Stow 中打开”和“压缩”。"
+          }
+        }
+      }
+    },
+    "Extract To…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩到…"
+          }
+        }
+      }
+    },
+    "Extract everything to a folder you choose": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将所有内容解压缩到所选文件夹"
+          }
+        }
+      }
+    },
+    "Extracted to %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已解压缩到%@"
+          }
+        }
+      }
+    },
+    "Extracted to Downloads": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已解压缩到“下载”"
+          }
+        }
+      }
+    },
+    "Extracting": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在解压缩"
+          }
+        }
+      }
+    },
+    "Extracting %1$lld of %2$lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在解压缩第 %1$lld 个，共 %2$lld 个"
+          }
+        }
+      }
+    },
+    "Extraction": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩"
+          }
+        }
+      }
+    },
+    "Fast": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速"
+          }
+        }
+      }
+    },
+    "Fastest": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最快"
+          }
+        }
+      }
+    },
+    "File": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件"
+          }
+        }
+      }
+    },
+    "File Explorer may not open it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件资源管理器可能无法打开"
+          }
+        }
+      }
+    },
+    "File Types": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件类型"
+          }
+        }
+      }
+    },
+    "File names stay visible. Choose 7Z to hide them too.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件名仍可见。要同时隐藏文件名，请选择 7Z。"
+          }
+        }
+      }
+    },
+    "File types keep their previous apps so you can still switch back. Folder permissions and login items are managed separately.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件类型仍会记住之前使用的 App，以便恢复。文件夹权限和登录项单独管理。"
+          }
+        }
+      }
+    },
+    "Files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件"
+          }
+        }
+      }
+    },
+    "Files inside changed after the developer signed it. It may be damaged or tampered with — get a fresh copy from the developer.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开发者签名后，内部文件被更改，可能已损坏或被篡改。请从开发者处重新获取副本。"
+          }
+        }
+      }
+    },
+    "Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访达"
+          }
+        }
+      }
+    },
+    "Finder menu is off": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访达菜单已关闭"
+          }
+        }
+      }
+    },
+    "Finder menu is on": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访达菜单已开启"
+          }
+        }
+      }
+    },
+    "Finder picks up changes when it restarts. To restart it now, hold Option, Control-click Finder in the Dock and choose Relaunch.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访达重新启动后才会应用更改。要立即重新启动，请按住 Option 键，按住 Control 键点按程序坞中的“访达”，然后选择“重新开启”。"
+          }
+        }
+      }
+    },
+    "Finder tags and other extended attributes only travel in a ZIP.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有 ZIP 能保留访达标签等扩展属性。"
+          }
+        }
+      }
+    },
+    "Finder tags, comments and other details packed by a Mac were put back on %lld files.": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已为 %lld 个文件恢复 Mac 压缩时保留的访达标签、注释等信息。"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Finder tags, comments and other details packed by a Mac were put back on %lld file."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Finder tags, comments and other details packed by a Mac were put back on %lld files."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Finder tags, extended attributes, permissions and links stay intact.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整保留访达标签、扩展属性、权限和链接。"
+          }
+        }
+      }
+    },
+    "Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹"
+          }
+        }
+      }
+    },
+    "Folders Stow may install into": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许 Stow 安装到的文件夹"
+          }
+        }
+      }
+    },
+    "Folders Stow may write in": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许 Stow 写入的文件夹"
+          }
+        }
+      }
+    },
+    "Font": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字体"
+          }
+        }
+      }
+    },
+    "Font installed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字体已安装"
+          }
+        }
+      }
+    },
+    "Forget": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忘记"
+          }
+        }
+      }
+    },
+    "Forward": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前进"
+          }
+        }
+      }
+    },
+    "From the Mac App Store": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来自 Mac App Store"
+          }
+        }
+      }
+    },
+    "GZIP file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GZIP 文件"
+          }
+        }
+      }
+    },
+    "General": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用"
+          }
+        }
+      }
+    },
+    "Give the selected types back to the app they used before Stow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "让所选类型重新使用之前的 App 打开"
+          }
+        }
+      }
+    },
+    "Go": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往"
+          }
+        }
+      }
+    },
+    "Go to the top of “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往“%@”的顶层"
+          }
+        }
+      }
+    },
+    "Go to “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往“%@”"
+          }
+        }
+      }
+    },
+    "Good compression, quick.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩效果良好，速度快。"
+          }
+        }
+      }
+    },
+    "Greek (Windows-1253)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "希腊文（Windows-1253）"
+          }
+        }
+      }
+    },
+    "Grid": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网格"
+          }
+        }
+      }
+    },
+    "Harbor Prototype.app isn’t notarized": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Harbor Prototype.app 未经公证"
+          }
+        }
+      }
+    },
+    "Hebrew (Windows-1255)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "希伯来文（Windows-1255）"
+          }
+        }
+      }
+    },
+    "Hide Dock icon when no windows are open": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有打开的窗口时隐藏程序坞图标"
+          }
+        }
+      }
+    },
+    "Hide Inspector": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏检查器"
+          }
+        }
+      }
+    },
+    "Hide Tray": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏托盘"
+          }
+        }
+      }
+    },
+    "ISO Image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ISO 映像"
+          }
+        }
+      }
+    },
+    "ISO image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ISO 映像"
+          }
+        }
+      }
+    },
+    "Icons": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图标"
+          }
+        }
+      }
+    },
+    "Image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图像"
+          }
+        }
+      }
+    },
+    "In a folder when there’s more than one item": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多个项目时放入文件夹"
+          }
+        }
+      }
+    },
+    "Indexing… %1$@ of %2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在建立索引…%1$@/%2$@"
+          }
+        }
+      }
+    },
+    "Install %lld Fonts": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "安装 %lld 种字体"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Install Font"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Install %lld Fonts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Install Anyway": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仍要安装"
+          }
+        }
+      }
+    },
+    "Install App": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装 App"
+          }
+        }
+      }
+    },
+    "Install Font": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装字体"
+          }
+        }
+      }
+    },
+    "Installed in %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安装到%@"
+          }
+        }
+      }
+    },
+    "Installed in Applications": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安装到“应用程序”"
+          }
+        }
+      }
+    },
+    "Installer Package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装器软件包"
+          }
+        }
+      }
+    },
+    "Installer couldn’t open “%1$@”: %2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装器无法打开“%1$@”：%2$@"
+          }
+        }
+      }
+    },
+    "Installer isn’t available on this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 上没有可用的安装器。"
+          }
+        }
+      }
+    },
+    "Installer layout hidden": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已隐藏安装器布局文件"
+          }
+        }
+      }
+    },
+    "Installer package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装器软件包"
+          }
+        }
+      }
+    },
+    "Installers & packages": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装器与软件包"
+          }
+        }
+      }
+    },
+    "Installing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装"
+          }
+        }
+      },
+      "comment": "Installation settings pane title and the installation progress verb."
+    },
+    "Integration": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "集成"
+          }
+        }
+      }
+    },
+    "It carries only a local signature, so nobody vouches for who made it. macOS will block it the first time it opens.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 App 仅有本地签名，无法确认制作者。macOS 会阻止其首次打开。"
+          }
+        }
+      }
+    },
+    "It was extracted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已解压缩。"
+          }
+        }
+      }
+    },
+    "Its files are encrypted. Enter the password to extract them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件已加密。输入密码以解压缩。"
+          }
+        }
+      }
+    },
+    "Its list of files is encrypted. Enter the password to see what’s inside.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件列表已加密。输入密码以查看内部内容。"
+          }
+        }
+      }
+    },
+    "Japanese (Shift JIS)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日文（Shift JIS）"
+          }
+        }
+      }
+    },
+    "Java archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Java 压缩包"
+          }
+        }
+      }
+    },
+    "Keep": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留"
+          }
+        }
+      }
+    },
+    "Keep Both": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留两者"
+          }
+        }
+      }
+    },
+    "Keep both": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留两者"
+          }
+        }
+      }
+    },
+    "Keep both and the new one is named “%@”. Replace moves the old one to the Trash.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留两者会将新文件命名为“%@”。替换会将旧文件移到废纸篓。"
+          }
+        }
+      }
+    },
+    "Keeps everything a Mac cares about": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整保留 Mac 文件信息"
+          }
+        }
+      }
+    },
+    "Keeps permissions and links": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留权限和链接"
+          }
+        }
+      }
+    },
+    "Keeps permissions and symlinks": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留权限和符号链接"
+          }
+        }
+      }
+    },
+    "Kind": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "种类"
+          }
+        }
+      }
+    },
+    "Korean (CP949)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "韩文（CP949）"
+          }
+        }
+      }
+    },
+    "LHA archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LHA 压缩包"
+          }
+        }
+      }
+    },
+    "LZIP file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LZIP 文件"
+          }
+        }
+      }
+    },
+    "LZMA file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LZMA 文件"
+          }
+        }
+      }
+    },
+    "Leave out system files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忽略系统文件"
+          }
+        }
+      }
+    },
+    "Let go to open": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松开以打开"
+          }
+        }
+      }
+    },
+    "License": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "许可证"
+          }
+        }
+      }
+    },
+    "Licenses": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "许可证"
+          }
+        }
+      }
+    },
+    "Light": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浅色"
+          }
+        }
+      }
+    },
+    "Light compression, very quick.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻度压缩，速度很快。"
+          }
+        }
+      }
+    },
+    "Linux & servers": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linux 和服务器"
+          }
+        }
+      }
+    },
+    "List": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "列表"
+          }
+        }
+      }
+    },
+    "Locked — needs the archive’s password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已锁定，需要压缩包密码"
+          }
+        }
+      }
+    },
+    "Mac OS Roman": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac OS 罗马字"
+          }
+        }
+      }
+    },
+    "Mac details restored": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已恢复 Mac 文件信息"
+          }
+        }
+      }
+    },
+    "Macs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac"
+          }
+        }
+      }
+    },
+    "Made by Apple": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由 Apple 制作"
+          }
+        }
+      }
+    },
+    "Maximum": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大压缩"
+          }
+        }
+      }
+    },
+    "Merge": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "合并"
+          }
+        }
+      }
+    },
+    "Merge puts the extracted contents into it; files already there stay unless you choose to replace them. Keep Both adds this one as “%@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "合并会将解压缩的内容放入该文件夹，保留现有文件，除非你选择替换。保留两者会将新文件夹命名为“%@”。"
+          }
+        }
+      }
+    },
+    "Modified": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修改日期"
+          }
+        }
+      }
+    },
+    "More Options": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多选项"
+          }
+        }
+      }
+    },
+    "Move %lld archives to the Trash?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将 %lld 个压缩包移到废纸篓？"
+          }
+        }
+      }
+    },
+    "Move to Trash": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移到废纸篓"
+          }
+        }
+      }
+    },
+    "Move “%@” to the Trash?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将“%@”移到废纸篓？"
+          }
+        }
+      }
+    },
+    "Moves to the Trash": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移到废纸篓"
+          }
+        }
+      }
+    },
+    "Movie": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称"
+          }
+        }
+      }
+    },
+    "Names and sizes look normal": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称和大小正常"
+          }
+        }
+      }
+    },
+    "Names that would clash are numbered. Your originals stay as they are.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为冲突的名称添加编号。原始文件保持不变。"
+          }
+        }
+      }
+    },
+    "New Archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建压缩包"
+          }
+        }
+      }
+    },
+    "New Archive…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建压缩包…"
+          }
+        }
+      }
+    },
+    "No app": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无 App"
+          }
+        }
+      }
+    },
+    "No characters or names that the other system rejects.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有目标系统不支持的字符或名称。"
+          }
+        }
+      }
+    },
+    "No compression — quickest, largest.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不压缩，速度最快，体积最大。"
+          }
+        }
+      }
+    },
+    "No preview for this kind of file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此类文件不支持预览"
+          }
+        }
+      }
+    },
+    "None": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无"
+          }
+        }
+      }
+    },
+    "None of these are fonts macOS can install.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些文件都不是 macOS 可安装的字体。"
+          }
+        }
+      }
+    },
+    "None yet. The first time you extract or compress somewhere new from Finder, Stow asks once for that folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无。从访达首次在新位置解压缩或压缩时，Stow 会询问一次该文件夹的访问权限。"
+          }
+        }
+      }
+    },
+    "Not notarized by Apple": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未经 Apple 公证"
+          }
+        }
+      }
+    },
+    "Not signed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未签名"
+          }
+        }
+      }
+    },
+    "Not signed by a known developer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未由已知开发者签名"
+          }
+        }
+      }
+    },
+    "Nothing expands unusually and no names collide.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未发现异常膨胀或名称冲突。"
+          }
+        }
+      }
+    },
+    "Nothing new to extract": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要解压缩的新内容"
+          }
+        }
+      }
+    },
+    "Nothing new — everything was already there": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有新内容，所有项目均已存在"
+          }
+        }
+      }
+    },
+    "Nothing to switch back": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要恢复的文件类型"
+          }
+        }
+      }
+    },
+    "Nothing tries to leave the folder, nothing expands unusually and no names collide.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未发现越出文件夹的路径、异常膨胀或名称冲突。"
+          }
+        }
+      }
+    },
+    "Nothing was extracted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未解压缩任何内容。"
+          }
+        }
+      }
+    },
+    "Nothing was installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未安装任何内容。"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
+          }
+        }
+      }
+    },
+    "Older versions need 7-Zip. Choose ZIP if you’re not sure.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "旧版本需要 7-Zip。不确定时请选择 ZIP。"
+          }
+        }
+      }
+    },
+    "Open": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开"
+          }
+        }
+      }
+    },
+    "Open Archive…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开压缩包…"
+          }
+        }
+      }
+    },
+    "Open Browser in": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浏览器默认视图"
+          }
+        }
+      }
+    },
+    "Open Inside": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开内部内容"
+          }
+        }
+      }
+    },
+    "Open Installer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开安装器"
+          }
+        }
+      }
+    },
+    "Open Login Items Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开登录项设置"
+          }
+        }
+      }
+    },
+    "Open Sample Archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开示例压缩包"
+          }
+        }
+      }
+    },
+    "Open Stow at login": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时打开 Stow"
+          }
+        }
+      }
+    },
+    "Open in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中打开"
+          }
+        }
+      }
+    },
+    "Open in Stow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Stow 中打开"
+          }
+        }
+      }
+    },
+    "Open with Stow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Stow 打开"
+          }
+        }
+      }
+    },
+    "Opened": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已打开"
+          }
+        }
+      }
+    },
+    "Opened in Installer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在安装器中打开"
+          }
+        }
+      }
+    },
+    "Opening": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在打开"
+          }
+        }
+      }
+    },
+    "Pack": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩"
+          }
+        }
+      },
+      "comment": "Create an archive; not an installation package."
+    },
+    "Pack files into a new archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将文件压缩为新的压缩包"
+          }
+        }
+      }
+    },
+    "Pack for": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩用途"
+          }
+        }
+      }
+    },
+    "Pack my box with five dozen jugs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "天地玄黄，宇宙洪荒。日月盈昃，辰宿列张。"
+          }
+        }
+      }
+    },
+    "Pack my box with five dozen liquor jugs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "天地玄黄，宇宙洪荒。日月盈昃，辰宿列张。"
+          }
+        }
+      }
+    },
+    "Packed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后"
+          }
+        }
+      }
+    },
+    "Packed “%1$@”%2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已压缩“%1$@”%2$@"
+          }
+        }
+      }
+    },
+    "Packing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩"
+          }
+        }
+      }
+    },
+    "Packing “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在压缩“%@”"
+          }
+        }
+      }
+    },
+    "Pack…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩…"
+          }
+        }
+      }
+    },
+    "Password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码"
+          }
+        }
+      }
+    },
+    "Passwords": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码"
+          }
+        }
+      }
+    },
+    "Path": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路径"
+          }
+        }
+      }
+    },
+    "Preview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预览"
+          }
+        }
+      }
+    },
+    "Preview cache": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预览缓存"
+          }
+        }
+      }
+    },
+    "Previews": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预览"
+          }
+        }
+      }
+    },
+    "Quarantine flag kept": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保留隔离标记"
+          }
+        }
+      }
+    },
+    "Quick Compress": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速压缩"
+          }
+        }
+      }
+    },
+    "Quick Look": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速查看"
+          }
+        }
+      }
+    },
+    "Quit Stow and open it again from Applications — macOS registers its extensions when it starts.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请退出 Stow，再从“应用程序”重新打开。macOS 会在启动时注册其扩展。"
+          }
+        }
+      }
+    },
+    "RAR archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RAR 压缩包"
+          }
+        }
+      }
+    },
+    "RPM package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RPM 软件包"
+          }
+        }
+      }
+    },
+    "Read Names As": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件名编码"
+          }
+        }
+      }
+    },
+    "Read Names As…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择文件名编码…"
+          }
+        }
+      }
+    },
+    "Reading the whole archive would take a while. Open it in Stow to browse while it loads.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取整个压缩包需要一些时间。请在 Stow 中打开，以便在载入时浏览。"
+          }
+        }
+      }
+    },
+    "Recent": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用"
+          }
+        }
+      }
+    },
+    "Recent Windows 11 opens 7Z": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "较新的 Windows 11 可打开 7Z"
+          }
+        }
+      }
+    },
+    "Registered Stow and its extensions with macOS again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已向 macOS 重新注册 Stow 及其扩展。"
+          }
+        }
+      }
+    },
+    "Remove": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        }
+      }
+    },
+    "Remove the quarantine flag from installed apps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除已安装 App 的隔离标记"
+          }
+        }
+      }
+    },
+    "Repair…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修复…"
+          }
+        }
+      }
+    },
+    "Replace": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "替换"
+          }
+        }
+      }
+    },
+    "Replace the installed “%@”?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "替换已安装的“%@”？"
+          }
+        }
+      }
+    },
+    "Replaced files go to the Trash, so nothing is lost.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "被替换的文件会移到废纸篓，以便恢复。"
+          }
+        }
+      }
+    },
+    "Replacing moves the installed copies to the Trash. Skip installs only the new ones.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "替换会将已安装的副本移到废纸篓。选择“跳过”则仅安装新字体。"
+          }
+        }
+      }
+    },
+    "Reset": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原"
+          }
+        }
+      }
+    },
+    "Reset All Preferences…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原所有设置…"
+          }
+        }
+      }
+    },
+    "Reset all preferences?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原所有设置？"
+          }
+        }
+      }
+    },
+    "Restore Stow’s settings to their defaults. Your archives and remembered previous apps are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将 Stow 的设置还原为默认值。你的压缩包和已记住的原有 App 会保留。"
+          }
+        }
+      }
+    },
+    "Review names": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查名称"
+          }
+        }
+      }
+    },
+    "Same-name file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同名文件"
+          }
+        }
+      }
+    },
+    "Same-name folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同名文件夹"
+          }
+        }
+      }
+    },
+    "Sample content": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "示例内容"
+          }
+        }
+      }
+    },
+    "Save Here": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储到此处"
+          }
+        }
+      }
+    },
+    "Save as": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储为"
+          }
+        }
+      }
+    },
+    "Search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索"
+          }
+        }
+      }
+    },
+    "Search %@ files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索 %@ 个文件"
+          }
+        }
+      }
+    },
+    "See the next place": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看下一个位置"
+          }
+        }
+      }
+    },
+    "See the previous place": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看上一个位置"
+          }
+        }
+      }
+    },
+    "Select Suggested": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择建议类型"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Show Inspector": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示检查器"
+          }
+        }
+      }
+    },
+    "Show Package Contents": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示包内容"
+          }
+        }
+      }
+    },
+    "Show Tray": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示托盘"
+          }
+        }
+      }
+    },
+    "Show in Enclosing Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在上层文件夹中显示"
+          }
+        }
+      }
+    },
+    "Show in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示"
+          }
+        }
+      }
+    },
+    "Show macOS Helper Items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示 macOS 辅助项目"
+          }
+        }
+      }
+    },
+    "Show on external drives": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在外置驱动器上显示"
+          }
+        }
+      }
+    },
+    "Show password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示密码"
+          }
+        }
+      }
+    },
+    "Show passwords by default": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认显示密码"
+          }
+        }
+      }
+    },
+    "Show previews when hovering over files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指针悬停在文件上时显示预览"
+          }
+        }
+      }
+    },
+    "Show the Tray — gather files from anywhere": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示托盘，收集各处的文件"
+          }
+        }
+      }
+    },
+    "Signature": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "签名"
+          }
+        }
+      }
+    },
+    "Signature is broken": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "签名已损坏"
+          }
+        }
+      }
+    },
+    "Signed and notarized": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已签名并已公证"
+          }
+        }
+      }
+    },
+    "Signed by %@ and checked by Apple for malware.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由%@签名，并已通过 Apple 的恶意软件检查。"
+          }
+        }
+      }
+    },
+    "Signed by %@, but Apple hasn’t checked it for malware. macOS will block it the first time unless you allow it in System Settings › Privacy & Security.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由%@签名，但未经 Apple 的恶意软件检查。除非你在“系统设置”›“隐私与安全性”中允许，否则 macOS 会阻止其首次打开。"
+          }
+        }
+      }
+    },
+    "Signed by Apple and unchanged.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由 Apple 签名，且未被更改。"
+          }
+        }
+      }
+    },
+    "Signed by Apple for the App Store and unchanged.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由 Apple 为 App Store 签名，且未被更改。"
+          }
+        }
+      }
+    },
+    "Signed by an unknown certificate": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用未知证书签名"
+          }
+        }
+      }
+    },
+    "Size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大小"
+          }
+        }
+      }
+    },
+    "Size after packing unknown": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后大小未知"
+          }
+        }
+      }
+    },
+    "Skip": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过"
+          }
+        }
+      }
+    },
+    "Smaller files at a good speed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在速度与体积之间取得平衡。"
+          }
+        }
+      }
+    },
+    "Smaller still, noticeably slower.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "体积更小，但速度明显更慢。"
+          }
+        }
+      }
+    },
+    "Smallest": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最小体积"
+          }
+        }
+      }
+    },
+    "Smallest files, slowest.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "体积最小，速度最慢。"
+          }
+        }
+      }
+    },
+    "Some data doesn’t match its checksum (%@) — download it again before installing anything from it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分数据与校验和不符（%@）。安装其中的内容前，请重新下载。"
+          }
+        }
+      }
+    },
+    "Some names were stored in an older encoding. Reading them as %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分文件名使用了旧编码，当前读取方式：%@。"
+          }
+        }
+      }
+    },
+    "Something went wrong reading the archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取压缩包时出错。"
+          }
+        }
+      }
+    },
+    "Split archive part": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分卷压缩包文件"
+          }
+        }
+      }
+    },
+    "Split archives": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分卷压缩"
+          }
+        }
+      }
+    },
+    "Startup": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动"
+          }
+        }
+      }
+    },
+    "Stays where it is": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留在原处"
+          }
+        }
+      }
+    },
+    "Stop": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止"
+          }
+        }
+      }
+    },
+    "Stop All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部停止"
+          }
+        }
+      }
+    },
+    "Stop extracting “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止解压缩“%@”"
+          }
+        }
+      }
+    },
+    "Stop — nothing is left half-extracted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止，不留下未完成的解压缩文件"
+          }
+        }
+      }
+    },
+    "Stop — nothing is left half-written": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止，不留下未完成的文件"
+          }
+        }
+      }
+    },
+    "Stopped": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已停止"
+          }
+        }
+      }
+    },
+    "Store": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅存储"
+          }
+        }
+      },
+      "comment": "Compression level: save data without compression."
+    },
+    "Stow can only write in folders you allow. Choose Allow to let Stow extract “%@” here — and next time, extract anything in this folder without asking.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 只能写入你允许的文件夹。选择“允许”以在此解压缩“%@”，之后在此文件夹中解压缩时无需再次询问。"
+          }
+        }
+      }
+    },
+    "Stow can only write in folders you allow. Choose Allow to let Stow save the archive here — and next time, compress anything in this folder without asking.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 只能写入你允许的文件夹。选择“允许”以在此存储压缩包，之后在此文件夹中压缩时无需再次询问。"
+          }
+        }
+      }
+    },
+    "Stow can’t read this disk image’s format. Finder may still be able to open it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 无法读取此磁盘映像格式。你可以尝试在访达中打开。"
+          }
+        }
+      }
+    },
+    "Stow didn’t receive any files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 未收到任何文件。"
+          }
+        }
+      }
+    },
+    "Stow inspects every archive before anything touches your disk.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在写入磁盘之前，Stow 会先检查每个压缩包。"
+          }
+        }
+      }
+    },
+    "Stow is sandboxed. It asks once before the first install into a folder and remembers only that folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 在沙盒中运行。首次安装到文件夹前会询问一次，并仅记住该文件夹的权限。"
+          }
+        }
+      }
+    },
+    "Stow is sandboxed: it only reads and writes where you allow it. No Full Disk Access needed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 在沙盒中运行，只会读写你允许的位置，无需完全磁盘访问权限。"
+          }
+        }
+      }
+    },
+    "Stow keeps it only while this archive is open.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 仅在此压缩包打开期间保留密码。"
+          }
+        }
+      }
+    },
+    "Stow keeps running for Finder and Services actions. Open Stow from Finder or Spotlight to bring it back.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 会继续运行，以响应访达和服务操作。可从访达或聚焦打开 Stow，再次显示窗口。"
+          }
+        }
+      }
+    },
+    "Stow opened the new archive and checked every file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 已打开新压缩包并检查所有文件"
+          }
+        }
+      }
+    },
+    "Stow opens archives up to %lld levels deep.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 最多可打开 %lld 层嵌套的压缩包。"
+          }
+        }
+      }
+    },
+    "Stow opens quietly when you log in, so Finder actions start instantly.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 会在你登录时于后台打开，以便立即响应访达操作。"
+          }
+        }
+      }
+    },
+    "Stow opens when you use it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 会在你使用时打开。"
+          }
+        }
+      }
+    },
+    "Stow’s archive engine is missing. Reinstall Stow.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 的压缩引擎缺失。请重新安装 Stow。"
+          }
+        }
+      }
+    },
+    "Stow’s archive engine is out of date. Reinstall Stow.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 的压缩引擎版本过旧。请重新安装 Stow。"
+          }
+        }
+      }
+    },
+    "Stow’s archive engine stopped unexpectedly.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 的压缩引擎意外停止。"
+          }
+        }
+      }
+    },
+    "Suggest": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成建议密码"
+          }
+        }
+      }
+    },
+    "Suggested": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议"
+          }
+        }
+      }
+    },
+    "Switch Back": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复之前的 App"
+          }
+        }
+      }
+    },
+    "System": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        }
+      }
+    },
+    "TAR archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAR 压缩包"
+          }
+        }
+      }
+    },
+    "TAR.BZ2 archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAR.BZ2 压缩包"
+          }
+        }
+      }
+    },
+    "TAR.GZ archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAR.GZ 压缩包"
+          }
+        }
+      }
+    },
+    "TAR.XZ archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAR.XZ 压缩包"
+          }
+        }
+      }
+    },
+    "Temporary files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "临时文件"
+          }
+        }
+      }
+    },
+    "Test every file once it’s packed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后检查每个文件"
+          }
+        }
+      }
+    },
+    "Text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文本"
+          }
+        }
+      }
+    },
+    "Thai (Windows-874)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "泰文（Windows-874）"
+          }
+        }
+      }
+    },
+    "That extraction is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此次解压缩的结果已不可用。"
+          }
+        }
+      }
+    },
+    "That item is no longer in the archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此项目已不在压缩包中。"
+          }
+        }
+      }
+    },
+    "That password didn’t work. Check it and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码不正确。请检查后重试。"
+          }
+        }
+      }
+    },
+    "That’s %lld× the size of the archive. Make sure there’s room before extracting.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这是压缩包大小的 %lld 倍。解压缩前请确认空间充足。"
+          }
+        }
+      }
+    },
+    "The Finder extension is on.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访达扩展已开启。"
+          }
+        }
+      }
+    },
+    "The app it used before (%@) isn’t installed any more.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之前使用的 App（%@）已不再安装。"
+          }
+        }
+      }
+    },
+    "The background picture, volume icon and “drag here” shortcuts only lay out this disk image’s window in Finder. They’re hidden and won’t be extracted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "背景图片、宗卷图标和“拖到这里”快捷方式仅用于布置访达中的磁盘映像窗口。它们已隐藏，解压缩时也会忽略。"
+          }
+        }
+      }
+    },
+    "The certificate isn’t one macOS trusts for apps, so the signature says nothing about who made it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 不信任此 App 证书，因此无法通过签名确认制作者。"
+          }
+        }
+      }
+    },
+    "The disk image asks for this to be copied here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像要求将此项目拷贝到这里。"
+          }
+        }
+      }
+    },
+    "The fonts are installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字体已安装。"
+          }
+        }
+      }
+    },
+    "The installed one moves to the Trash, so you can put it back.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安装的版本将移到废纸篓，之后可以放回原处。"
+          }
+        }
+      }
+    },
+    "The license text is unavailable in this build. 7-Zip’s license is included with the embedded Stow Engine service in distributed builds.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此构建版本中无法显示许可证文本。发行版本的内嵌 Stow 引擎服务中包含 7-Zip 许可证。"
+          }
+        }
+      }
+    },
+    "The new archive didn’t arrive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未收到新压缩包。"
+          }
+        }
+      }
+    },
+    "The new archive didn’t pass its check, so it wasn’t kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新压缩包未通过检查，因此未予保留。"
+          }
+        }
+      }
+    },
+    "The password is incorrect.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码不正确。"
+          }
+        }
+      }
+    },
+    "There’s no signature, so there’s no way to tell who made it or whether it was changed. macOS will block it the first time it opens.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 App 没有签名，无法确认制作者或是否被更改。macOS 会阻止其首次打开。"
+          }
+        }
+      }
+    },
+    "There’s nothing here to compress.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这里没有可压缩的内容。"
+          }
+        }
+      }
+    },
+    "Third-party notices": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第三方声明"
+          }
+        }
+      }
+    },
+    "This account can’t add things to “%@”. Ask an administrator, or install somewhere else.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账户无法向“%@”添加项目。请联系管理员，或安装到其他位置。"
+          }
+        }
+      }
+    },
+    "This archive doesn’t say how its names are encoded. Pick the one where the names read right.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此压缩包未注明文件名编码。请选择能正确显示名称的编码。"
+          }
+        }
+      }
+    },
+    "This archive isn’t on disk.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此压缩包不在磁盘上。"
+          }
+        }
+      }
+    },
+    "This archive needs a password.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此压缩包需要密码。"
+          }
+        }
+      }
+    },
+    "This disk image is encrypted. Stow can’t look inside encrypted images yet — open it in Finder to enter its password.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此磁盘映像已加密。Stow 暂不支持查看加密映像，请在访达中打开并输入密码。"
+          }
+        }
+      }
+    },
+    "This file isn’t an archive Stow can open.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 无法将此文件作为压缩包打开。"
+          }
+        }
+      }
+    },
+    "To install fonts, Stow needs permission to add them to your font library.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要安装字体，请允许 Stow 将字体添加到你的字体库。"
+          }
+        }
+      }
+    },
+    "To install “%@”, Stow needs permission to add apps to this folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要安装“%@”，请允许 Stow 将 App 添加到此文件夹。"
+          }
+        }
+      }
+    },
+    "To open “%@” in Installer, Stow unpacks it next to the archive for a moment.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要在安装器中打开“%@”，Stow 会暂时将其解压缩到压缩包所在的文件夹。"
+          }
+        }
+      }
+    },
+    "Too large to list here": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容过多，无法在此列出"
+          }
+        }
+      }
+    },
+    "Too large to preview here — press Space": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件过大，无法在此预览，请按空格键"
+          }
+        }
+      }
+    },
+    "Top level": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顶层"
+          }
+        }
+      }
+    },
+    "Tray": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "托盘"
+          }
+        }
+      },
+      "comment": "Floating shelf that collects files before packing."
+    },
+    "Try the Sample": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "试用示例"
+          }
+        }
+      }
+    },
+    "Turkish (Windows-1254)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "土耳其文（Windows-1254）"
+          }
+        }
+      }
+    },
+    "Turn on Stow in the settings window that just opened.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在刚打开的设置窗口中开启 Stow。"
+          }
+        }
+      }
+    },
+    "Unicode (UTF-8)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unicode（UTF-8）"
+          }
+        }
+      }
+    },
+    "Unix compress file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unix compress 文件"
+          }
+        }
+      }
+    },
+    "Unpacked": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩后"
+          }
+        }
+      }
+    },
+    "Updated in %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在%@中更新"
+          }
+        }
+      }
+    },
+    "Use": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用"
+          }
+        }
+      }
+    },
+    "Use plain letters and numbers for a ZIP password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 密码请使用英文字母和数字"
+          }
+        }
+      }
+    },
+    "Vector Image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "矢量图像"
+          }
+        }
+      }
+    },
+    "Verify": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "验证"
+          }
+        }
+      }
+    },
+    "Version %1$@ moves to the Trash and version %2$@ takes its place.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %1$@ 将移到废纸篓，并由版本 %2$@ 替换。"
+          }
+        }
+      }
+    },
+    "View": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示"
+          }
+        }
+      }
+    },
+    "Virtual hard disk": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "虚拟硬盘"
+          }
+        }
+      }
+    },
+    "Visible passwords support Chinese and Japanese input methods. You can hide a password in the password sheet.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示密码时可使用中文和日文输入法。你可以在密码窗口中隐藏密码。"
+          }
+        }
+      }
+    },
+    "Waiting": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待中"
+          }
+        }
+      }
+    },
+    "Western (DOS 437)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "西欧语言（DOS 437）"
+          }
+        }
+      }
+    },
+    "Western (DOS 850)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "西欧语言（DOS 850）"
+          }
+        }
+      }
+    },
+    "Western (Windows-1252)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "西欧语言（Windows-1252）"
+          }
+        }
+      }
+    },
+    "When something is already there": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目已存在时"
+          }
+        }
+      }
+    },
+    "Where": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位置"
+          }
+        }
+      }
+    },
+    "Windows PCs": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Windows 电脑"
+          }
+        }
+      }
+    },
+    "Windows image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Windows 映像"
+          }
+        }
+      }
+    },
+    "Windows installer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Windows 安装器"
+          }
+        }
+      }
+    },
+    "Windows’ built-in ZIP support can’t always read AES-encrypted ZIPs. Suggest 7-Zip to the recipient.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Windows 内置的 ZIP 功能不一定能读取 AES 加密的 ZIP。建议收件人使用 7-Zip。"
+          }
+        }
+      }
+    },
+    "With a password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用密码"
+          }
+        }
+      }
+    },
+    "Without a password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不使用密码"
+          }
+        }
+      }
+    },
+    "Without the password, nobody can see what’s inside.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有密码就无法查看内部内容。"
+          }
+        }
+      }
+    },
+    "XAR archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XAR 压缩包"
+          }
+        }
+      }
+    },
+    "XZ file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XZ 文件"
+          }
+        }
+      }
+    },
+    "You can keep browsing while Stow finishes reading the names.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 正在读取文件名，你可以继续浏览。"
+          }
+        }
+      }
+    },
+    "Your font library": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的字体库"
+          }
+        }
+      }
+    },
+    "You’ll need the password to extract %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩%@需要密码。"
+          }
+        }
+      }
+    },
+    "ZIP archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 压缩包"
+          }
+        }
+      }
+    },
+    "ZIPX archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIPX 压缩包"
+          }
+        }
+      }
+    },
+    "Zstandard file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zstandard 文件"
+          }
+        }
+      }
+    },
+    "a registered developer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注册开发者"
+          }
+        }
+      }
+    },
+    "and %@ more — open in Stow to see everything": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另有 %@ 项，在 Stow 中打开以查看全部内容"
+          }
+        }
+      }
+    },
+    "as Columns": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以分栏显示"
+          }
+        }
+      }
+    },
+    "as Icons": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以图标显示"
+          }
+        }
+      }
+    },
+    "as List": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以列表显示"
+          }
+        }
+      }
+    },
+    "as a": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "格式为"
+          }
+        }
+      },
+      "comment": "Connector in the interactive packing sentence, before the archive format."
+    },
+    "as one file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存为单个文件"
+          }
+        }
+      }
+    },
+    "automatically": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动"
+          }
+        }
+      }
+    },
+    "folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹"
+          }
+        }
+      }
+    },
+    "for": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用于"
+          }
+        }
+      },
+      "comment": "Connector in the interactive packing sentence, before its intended audience."
+    },
+    "in 100 MB parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分为 100 MB 的分卷"
+          }
+        }
+      }
+    },
+    "in 4 GB parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分为 4 GB 的分卷"
+          }
+        }
+      }
+    },
+    "in 700 MB parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分为 700 MB 的分卷"
+          }
+        }
+      }
+    },
+    "it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它"
+          }
+        }
+      }
+    },
+    "macOS can’t find this copy of Stow. Move it to Applications and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 找不到此 Stow 副本。请将其移到“应用程序”后重试。"
+          }
+        }
+      }
+    },
+    "macOS doesn’t let a sandboxed app remove it, so Gatekeeper checks “%@” the first time it opens.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 不允许沙盒中的 App 移除此标记，因此“%@”首次打开时仍会接受安全检查。"
+          }
+        }
+      }
+    },
+    "macOS kept %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 保留了%@。"
+          }
+        }
+      }
+    },
+    "macOS marks apps that came from the internet so Gatekeeper can check them the first time they open. Removing the mark skips that check — only turn this on if you trust everything you install. Unsigned or unnotarized apps still get a warning from Stow first.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 会标记来自互联网的 App，以便在首次打开时执行安全检查。移除标记会跳过此检查，请仅在信任所有安装内容时开启。对于未签名或未经公证的 App，Stow 仍会先显示警告。"
+          }
+        }
+      }
+    },
+    "macOS needs your OK in Login Items settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在“登录项”设置中允许 Stow。"
+          }
+        }
+      }
+    },
+    "macOS will ask before opening it. Only run it if you trust whoever sent this.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 会在打开前询问。请仅在信任发送者时运行。"
+          }
+        }
+      }
+    },
+    "no app": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无 App"
+          }
+        }
+      }
+    },
+    "no details": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无详细信息"
+          }
+        }
+      }
+    },
+    "the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此压缩包"
+          }
+        }
+      }
+    },
+    "the file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此文件"
+          }
+        }
+      }
+    },
+    "them": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它们"
+          }
+        }
+      }
+    },
+    "these files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些文件"
+          }
+        }
+      }
+    },
+    "unknown date": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日期未知"
+          }
+        }
+      }
+    },
+    "uploading to the web": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上传到网页"
+          }
+        }
+      }
+    },
+    "with a password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用密码"
+          }
+        }
+      }
+    },
+    "without a password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不使用密码"
+          }
+        }
+      }
+    },
+    "· tested": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· 已验证"
+          }
+        }
+      }
+    },
+    "— can’t be read this way —": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— 无法使用此编码读取 —"
+          }
+        }
+      }
+    },
+    "“%1$@” already exists in “%2$@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%2$@”中已有“%1$@”。"
+          }
+        }
+      }
+    },
+    "“%1$@” and %2$lld more will be kept inside the destination folder instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@”及另外 %2$lld 个项目将保留在目标文件夹内。"
+          }
+        }
+      }
+    },
+    "“%1$@” and “%2$@” can’t sit side by side on this Mac. Both are kept; the second gets a number added.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 无法在同一位置存放“%1$@”和“%2$@”。两者都会保留，第二个名称会添加编号。"
+          }
+        }
+      }
+    },
+    "“%1$@” is already in “%2$@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%2$@”中已有“%1$@”。"
+          }
+        }
+      }
+    },
+    "“%1$@” → “%2$@” was left out so nothing outside the folder can be reached.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已忽略“%1$@”→“%2$@”，防止访问文件夹外部的内容。"
+          }
+        }
+      }
+    },
+    "“%1$@” → “%2$@”. Links like this aren’t created when you extract.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@”→“%2$@”。解压缩时不会创建此类链接。"
+          }
+        }
+      }
+    },
+    "“%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        }
+      }
+    },
+    "“%@” changed while it was being packed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩过程中“%@”发生了更改。"
+          }
+        }
+      }
+    },
+    "“%@” couldn’t be read from the archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法从压缩包中读取“%@”。"
+          }
+        }
+      }
+    },
+    "“%@” has a broken signature": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”的签名已损坏"
+          }
+        }
+      }
+    },
+    "“%@” is a device file or pipe, which can’t be extracted safely.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”是设备文件或管道，无法安全解压缩。"
+          }
+        }
+      }
+    },
+    "“%@” is already installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”已安装。"
+          }
+        }
+      }
+    },
+    "“%@” is from the Mac App Store": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”来自 Mac App Store"
+          }
+        }
+      }
+    },
+    "“%@” is installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”已安装。"
+          }
+        }
+      }
+    },
+    "“%@” is locked": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”已锁定"
+          }
+        }
+      }
+    },
+    "“%@” is made by Apple": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”由 Apple 制作"
+          }
+        }
+      }
+    },
+    "“%@” is open. Quit it, then install again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”正在运行。请退出后重新安装。"
+          }
+        }
+      }
+    },
+    "“%@” is signed and notarized": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”已签名并已公证"
+          }
+        }
+      }
+    },
+    "“%@” is signed with an unknown certificate": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”使用未知证书签名"
+          }
+        }
+      }
+    },
+    "“%@” is still being written. Open it again once it’s complete.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”仍在写入。请在写入完成后重新打开。"
+          }
+        }
+      }
+    },
+    "“%@” is still downloading. Open it again once the download has finished.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”仍在下载。请在下载完成后重新打开。"
+          }
+        }
+      }
+    },
+    "“%@” isn’t a font macOS can install.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”不是 macOS 可安装的字体。"
+          }
+        }
+      }
+    },
+    "“%@” isn’t notarized by Apple": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”未经 Apple 公证"
+          }
+        }
+      }
+    },
+    "“%@” isn’t signed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”未签名"
+          }
+        }
+      }
+    },
+    "“%@” isn’t signed by a known developer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”未由已知开发者签名"
+          }
+        }
+      }
+    },
+    "“%@” reappeared while it was being replaced.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "替换过程中，“%@”再次出现。"
+          }
+        }
+      }
+    },
+    "“%@” wasn’t extracted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能解压缩“%@”。"
+          }
+        }
+      }
+    },
+    "“%@” will be kept inside the destination folder instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”将保留在目标文件夹内。"
+          }
+        }
+      }
+    },
+    "“../../.zshrc” will be kept inside the destination folder instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“../../.zshrc”将保留在目标文件夹内。"
+          }
+        }
+      }
+    },
+    "“.DS_Store” and “._” files are hidden here and won’t be extracted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此处已隐藏“.DS_Store”和“._”文件，解压缩时也会忽略它们。"
+          }
+        }
+      }
+    },
+    "“.DS_Store”, “._” and other Finder files mean nothing on other systems.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“.DS_Store”、“._”等访达文件在其他系统上没有用途。"
+          }
+        }
+      }
+    },
+    "“__MACOSX”, “.DS_Store”, “._” files, “Thumbs.db” and “desktop.ini”. Dotfiles like “.gitignore” are always kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包括“__MACOSX”、“.DS_Store”、“._”文件、“Thumbs.db”和“desktop.ini”。始终保留“.gitignore”等点号文件。"
+          }
+        }
+      }
+    },
+    "→ %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "→ %@"
+          }
+        }
+      }
+    },
+    "≈ %1$@%2$@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ %1$@%2$@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

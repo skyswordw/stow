@@ -52,7 +52,7 @@ nonisolated enum MacMetadata {
                 throw EngineError(.failed, error.localizedDescription)
             }
             guard pack(root.appending(path: path).path, into: double.path) else {
-                throw EngineError(.failed, "Couldn’t keep the Finder details of “\((path as NSString).lastPathComponent)”.")
+                throw EngineError(.failed, String(localized: "Couldn’t keep the Finder details of “\((path as NSString).lastPathComponent)”."))
             }
         }
     }

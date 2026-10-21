@@ -45,10 +45,10 @@ private struct EntryDetail: View {
             }
 
             MetadataGrid(rows: [
-                ("Size", entry.size.bytes),
-                ("Packed", packedDescription),
-                ("Modified", entry.modified.formatted(date: .abbreviated, time: .shortened)),
-                ("Where", entry.parent.isEmpty ? "Top level" : entry.parent),
+                (String(localized: "Size"), entry.size.bytes),
+                (String(localized: "Packed"), packedDescription),
+                (String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened)),
+                (String(localized: "Where"), entry.parent.isEmpty ? String(localized: "Top level") : entry.parent),
             ])
 
             if entry.kind == .app, model.archive.source != nil {
@@ -70,8 +70,8 @@ private struct EntryDetail: View {
     private var packedDescription: String {
         guard entry.size > 0 else { return entry.packedSize.bytes }
         let saved = 1 - Double(entry.packedSize) / Double(entry.size)
-        return saved < 0.02 ? "\(entry.packedSize.bytes) · already compressed"
-            : "\(entry.packedSize.bytes) · \(Int((saved * 100).rounded()))% smaller"
+        return saved < 0.02 ? String(localized: "\(entry.packedSize.bytes) · already compressed")
+            : String(localized: "\(entry.packedSize.bytes) · \(Int((saved * 100).rounded()))% smaller")
     }
 }
 
@@ -82,7 +82,7 @@ private struct SignatureSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            SectionLabel("Signature")
+            SectionLabel(String(localized: "Signature"))
             if let verdict = model.signatures[entry.path] {
                 let finding = verdict.finding
                 HStack(alignment: .firstTextBaseline, spacing: Space.s) {
@@ -163,14 +163,14 @@ private struct ArchiveSummary: View {
             }
 
             MetadataGrid(rows: [
-                ("Files", archive.files.count.formatted()),
-                ("Unpacked", archive.totalSize.bytes),
-                ("Packed", archive.packedSize.bytes),
-                ("Encryption", archive.isEncrypted ? "AES-256" : "None"),
+                (String(localized: "Files"), archive.files.count.formatted()),
+                (String(localized: "Unpacked"), archive.totalSize.bytes),
+                (String(localized: "Packed"), archive.packedSize.bytes),
+                (String(localized: "Encryption"), archive.isEncrypted ? "AES-256" : String(localized: "None")),
             ])
 
             VStack(alignment: .leading, spacing: Space.m) {
-                SectionLabel("Checkup")
+                SectionLabel(String(localized: "Checkup"))
                 ForEach(archive.checkup) { finding in
                     HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                         Image(systemName: finding.severity.symbol)

@@ -52,19 +52,21 @@ final class Associations {
         var failed: [String: String] = [:]
 
         var summary: String {
-            let verb = kind == .madeDefault ? "now open with Stow" : "switched back"
             var parts: [String] = []
-            if !changed.isEmpty { parts.append("\(Self.count(changed.count)) \(verb)") }
-            if !unchanged.isEmpty, changed.isEmpty, failed.isEmpty {
-                parts.append(kind == .madeDefault ? "Already opening with Stow" : "Nothing to switch back")
+            if !changed.isEmpty {
+                parts.append(kind == .madeDefault
+                    ? String(localized: "\(changed.count) types now open with Stow")
+                    : String(localized: "\(changed.count) types switched back"))
             }
-            if !failed.isEmpty { parts.append("\(Self.count(failed.count)) not changed") }
+            if !unchanged.isEmpty, changed.isEmpty, failed.isEmpty {
+                parts.append(kind == .madeDefault ? String(localized: "Already opening with Stow") : String(localized: "Nothing to switch back"))
+            }
+            if !failed.isEmpty { parts.append(String(localized: "\(failed.count) types not changed")) }
             return parts.joined(separator: " · ")
         }
 
         var isSuccess: Bool { failed.isEmpty }
 
-        private static func count(_ n: Int) -> String { n == 1 ? "1 type" : "\(n) types" }
     }
 
     private(set) var rows: [Row] = []
@@ -128,7 +130,7 @@ final class Associations {
             guard row.opensWithStow else { return .unchanged }
             let identifier = row.previous ?? Self.archiveUtility
             guard let app = registry.app(withBundleIdentifier: identifier) else {
-                return .fail("The app it used before (\(identifier)) isn’t installed any more.")
+                return .fail(String(localized: "The app it used before (\(identifier)) isn’t installed any more."))
             }
             return .set(app)
         }
@@ -148,7 +150,7 @@ final class Associations {
         let chosen = rows.filter { selection.contains($0.id) }
         for (index, row) in chosen.enumerated() {
             guard let type = UTType(row.id) else { continue }
-            waitingFor = "\(row.type.name) (\(index + 1) of \(chosen.count))"
+            waitingFor = String(localized: "\(row.type.name) (\(index + 1) of \(chosen.count))")
             switch plan(row) {
             case .unchanged:
                 report.unchanged.append(row.type.name)
@@ -163,7 +165,7 @@ final class Associations {
                         report.changed.append(row.type.name)
                         if kind == .restored { forgetPrevious(row.id) }
                     } else {
-                        report.failed[row.type.name] = "macOS kept \(name(of: now))."
+                        report.failed[row.type.name] = String(localized: "macOS kept \(name(of: now)).")
                     }
                 } catch {
                     report.failed[row.type.name] = (error as NSError).localizedDescription
@@ -187,7 +189,7 @@ final class Associations {
     }
 
     func name(of app: URL?) -> String {
-        guard let app else { return "no app" }
+        guard let app else { return String(localized: "no app") }
         return FileManager.default.displayName(atPath: app.path).replacingOccurrences(of: ".app", with: "")
     }
 }

@@ -15,7 +15,7 @@ struct IntegrationView: View {
                 } label: {
                     Label {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(settings.finderExtensionEnabled ? "Finder menu is on" : "Finder menu is off")
+                            Text(settings.finderExtensionEnabled ? String(localized: "Finder menu is on") : String(localized: "Finder menu is off"))
                             Text("Extract Here, Extract To…, Open in Stow and Compress in Finder’s context menu.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

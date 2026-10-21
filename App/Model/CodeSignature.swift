@@ -38,41 +38,41 @@ nonisolated enum CodeSignature {
         /// One line naming the app: "“Harbor” isn’t notarized by Apple".
         func headline(app name: String) -> String {
             switch self {
-            case .apple: "“\(name)” is made by Apple"
-            case .appStore: "“\(name)” is from the Mac App Store"
-            case .notarized: "“\(name)” is signed and notarized"
-            case .notNotarized: "“\(name)” isn’t notarized by Apple"
-            case .adHoc: "“\(name)” isn’t signed by a known developer"
-            case .unsigned: "“\(name)” isn’t signed"
-            case .broken: "“\(name)” has a broken signature"
-            case .untrusted: "“\(name)” is signed with an unknown certificate"
+            case .apple: String(localized: "“\(name)” is made by Apple")
+            case .appStore: String(localized: "“\(name)” is from the Mac App Store")
+            case .notarized: String(localized: "“\(name)” is signed and notarized")
+            case .notNotarized: String(localized: "“\(name)” isn’t notarized by Apple")
+            case .adHoc: String(localized: "“\(name)” isn’t signed by a known developer")
+            case .unsigned: String(localized: "“\(name)” isn’t signed")
+            case .broken: String(localized: "“\(name)” has a broken signature")
+            case .untrusted: String(localized: "“\(name)” is signed with an unknown certificate")
             }
         }
 
         var finding: CheckupFinding {
             switch self {
             case .apple:
-                CheckupFinding(severity: .fine, title: "Made by Apple", detail: "Signed by Apple and unchanged.")
+                CheckupFinding(severity: .fine, title: String(localized: "Made by Apple"), detail: String(localized: "Signed by Apple and unchanged."))
             case .appStore:
-                CheckupFinding(severity: .fine, title: "From the Mac App Store", detail: "Signed by Apple for the App Store and unchanged.")
+                CheckupFinding(severity: .fine, title: String(localized: "From the Mac App Store"), detail: String(localized: "Signed by Apple for the App Store and unchanged."))
             case .notarized(let signer):
-                CheckupFinding(severity: .fine, title: "Signed and notarized",
-                               detail: "Signed by \(signer ?? "a registered developer") and checked by Apple for malware.")
+                CheckupFinding(severity: .fine, title: String(localized: "Signed and notarized"),
+                               detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")) and checked by Apple for malware."))
             case .notNotarized(let signer):
-                CheckupFinding(severity: .caution, title: "Not notarized by Apple",
-                               detail: "Signed by \(signer ?? "a registered developer"), but Apple hasn’t checked it for malware. macOS will block it the first time unless you allow it in System Settings › Privacy & Security.")
+                CheckupFinding(severity: .caution, title: String(localized: "Not notarized by Apple"),
+                               detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")), but Apple hasn’t checked it for malware. macOS will block it the first time unless you allow it in System Settings › Privacy & Security."))
             case .adHoc:
-                CheckupFinding(severity: .caution, title: "Not signed by a known developer",
-                               detail: "It carries only a local signature, so nobody vouches for who made it. macOS will block it the first time it opens.")
+                CheckupFinding(severity: .caution, title: String(localized: "Not signed by a known developer"),
+                               detail: String(localized: "It carries only a local signature, so nobody vouches for who made it. macOS will block it the first time it opens."))
             case .unsigned:
-                CheckupFinding(severity: .caution, title: "Not signed",
-                               detail: "There’s no signature, so there’s no way to tell who made it or whether it was changed. macOS will block it the first time it opens.")
+                CheckupFinding(severity: .caution, title: String(localized: "Not signed"),
+                               detail: String(localized: "There’s no signature, so there’s no way to tell who made it or whether it was changed. macOS will block it the first time it opens."))
             case .broken:
-                CheckupFinding(severity: .caution, title: "Signature is broken",
-                               detail: "Files inside changed after the developer signed it. It may be damaged or tampered with — get a fresh copy from the developer.")
+                CheckupFinding(severity: .caution, title: String(localized: "Signature is broken"),
+                               detail: String(localized: "Files inside changed after the developer signed it. It may be damaged or tampered with — get a fresh copy from the developer."))
             case .untrusted:
-                CheckupFinding(severity: .caution, title: "Signed by an unknown certificate",
-                               detail: "The certificate isn’t one macOS trusts for apps, so the signature says nothing about who made it.")
+                CheckupFinding(severity: .caution, title: String(localized: "Signed by an unknown certificate"),
+                               detail: String(localized: "The certificate isn’t one macOS trusts for apps, so the signature says nothing about who made it."))
             }
         }
     }

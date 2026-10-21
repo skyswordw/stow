@@ -1,11 +1,14 @@
 name: Stow
 options:
+  developmentLanguage: en
   bundleIdPrefix: app.stow
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true
 settings:
   base:
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
     SWIFT_VERSION: "6.0"
     SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     SWIFT_APPROACHABLE_CONCURRENCY: YES
@@ -19,8 +22,15 @@ targets:
     type: application
     platform: macOS
     sources:
+      - path: Resources/Localizable.xcstrings
+        buildPhase: resources
+      - path: App/InfoPlist.xcstrings
+        buildPhase: resources
+      # Services menu titles are localized through ServicesMenu.strings, not the Info.plist dict.
+      - path: App/ServicesMenu.xcstrings
+        buildPhase: resources
       - path: App
-        excludes: ["Info.plist", "*.entitlements"]
+        excludes: ["InfoPlist.xcstrings", "ServicesMenu.xcstrings", "Info.plist", "*.entitlements"]
       - path: Shared
       - path: Preview
       - path: Handoff
@@ -38,6 +48,7 @@ targets:
     info:
       path: App/Info.plist
       properties:
+        CFBundleLocalizations: [en, zh-Hans]
         # Only ever carries a one-time token from the Finder extension — see Handoff/Handoff.swift.
         CFBundleURLTypes:
           - CFBundleURLName: app.stow.handoff
@@ -158,12 +169,17 @@ targets:
     type: xpc-service
     platform: macOS
     sources:
+      - path: Resources/Localizable.xcstrings
+        buildPhase: resources
+      - path: Engine/InfoPlist.xcstrings
+        buildPhase: resources
       - path: Engine
-        excludes: ["*.entitlements", "Info.plist"]
+        excludes: ["InfoPlist.xcstrings", "*.entitlements", "Info.plist"]
       - path: Shared
     info:
       path: Engine/Info.plist
       properties:
+        CFBundleLocalizations: [en, zh-Hans]
         CFBundleDisplayName: Stow Engine
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -206,8 +222,12 @@ targets:
     type: app-extension
     platform: macOS
     sources:
+      - path: Resources/Localizable.xcstrings
+        buildPhase: resources
+      - path: QuickLook/InfoPlist.xcstrings
+        buildPhase: resources
       - path: QuickLook
-        excludes: ["Info.plist"]
+        excludes: ["InfoPlist.xcstrings", "Info.plist"]
       - path: Preview
       - path: Shared
       - path: App/Model/Archive.swift
@@ -225,6 +245,7 @@ targets:
     info:
       path: QuickLook/Info.plist
       properties:
+        CFBundleLocalizations: [en, zh-Hans]
         CFBundleDisplayName: Stow Quick Look
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -248,13 +269,18 @@ targets:
     type: app-extension
     platform: macOS
     sources:
+      - path: Resources/Localizable.xcstrings
+        buildPhase: resources
+      - path: FinderSync/InfoPlist.xcstrings
+        buildPhase: resources
       - path: FinderSync
-        excludes: ["Info.plist"]
+        excludes: ["InfoPlist.xcstrings", "Info.plist"]
       - path: Handoff
       - path: Shared/ArchiveTypes.swift
     info:
       path: FinderSync/Info.plist
       properties:
+        CFBundleLocalizations: [en, zh-Hans]
         CFBundleDisplayName: Stow Finder Extension
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)

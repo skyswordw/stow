@@ -15,13 +15,13 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .installFonts(let count): count == 1 ? "Install Font" : "Install \(count) Fonts"
-        case .moveToApplications: "Install App"
-        case .openInstaller: "Open Installer"
-        case .copyTo(let folder): "Copy to “\((folder as NSString).lastPathComponent)”"
-        case .openInside: "Open Inside"
-        case .quickLook: "Quick Look"
-        case .extract: "Extract"
+        case .installFonts(let count): count == 1 ? String(localized: "Install Font") : String(localized: "Install \(count) Fonts")
+        case .moveToApplications: String(localized: "Install App")
+        case .openInstaller: String(localized: "Open Installer")
+        case .copyTo(let folder): String(localized: "Copy to “\((folder as NSString).lastPathComponent)”")
+        case .openInside: String(localized: "Open Inside")
+        case .quickLook: String(localized: "Quick Look")
+        case .extract: String(localized: "Extract")
         }
     }
 
@@ -40,22 +40,22 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
     /// Verb used in the progress capsule while the step runs.
     var progressTitle: String {
         switch self {
-        case .installFonts: "Installing"
-        case .moveToApplications: "Installing"
-        case .copyTo: "Copying"
-        case .openInstaller, .openInside, .quickLook: "Opening"
-        case .extract: "Extracting"
+        case .installFonts: String(localized: "Installing")
+        case .moveToApplications: String(localized: "Installing")
+        case .copyTo: String(localized: "Copying")
+        case .openInstaller, .openInside, .quickLook: String(localized: "Opening")
+        case .extract: String(localized: "Extracting")
         }
     }
 
     var doneTitle: String {
         switch self {
-        case .installFonts(let count): count == 1 ? "Font installed" : "\(count) fonts installed"
-        case .moveToApplications: "Installed in Applications"
-        case .copyTo(let folder): "Copied to \(FileManager.default.displayName(atPath: folder))"
-        case .openInstaller: "Opened in Installer"
-        case .openInside, .quickLook: "Opened"
-        case .extract: "Extracted to Downloads"
+        case .installFonts(let count): count == 1 ? String(localized: "Font installed") : String(localized: "\(count) fonts installed")
+        case .moveToApplications: String(localized: "Installed in Applications")
+        case .copyTo(let folder): String(localized: "Copied to \(FileManager.default.displayName(atPath: folder))")
+        case .openInstaller: String(localized: "Opened in Installer")
+        case .openInside, .quickLook: String(localized: "Opened")
+        case .extract: String(localized: "Extracted to Downloads")
         }
     }
 

@@ -31,13 +31,13 @@ nonisolated enum ArchiveFormat: String, CaseIterable, Identifiable, Sendable {
         case .tarGz: "TAR.GZ"
         case .tarXz: "TAR.XZ"
         case .rar: "RAR"
-        case .dmg: "Disk Image"
-        case .iso: "ISO Image"
+        case .dmg: String(localized: "Disk Image")
+        case .iso: String(localized: "ISO Image")
         case .tar: "TAR"
         case .gzip: "GZIP"
         case .bzip2: "BZIP2"
         case .xz: "XZ"
-        case .other: "Archive"
+        case .other: String(localized: "Archive")
         }
     }
 
@@ -118,19 +118,19 @@ nonisolated enum EntryKind: Sendable {
 
     var label: String {
         switch self {
-        case .folder: "Folder"
-        case .image: "Image"
-        case .vector: "Vector Image"
-        case .document: "Document"
-        case .text: "Text"
-        case .data: "Data"
-        case .font: "Font"
-        case .app: "Application"
-        case .installer: "Installer Package"
-        case .archive: "Archive"
-        case .audio: "Audio"
-        case .video: "Movie"
-        case .other: "File"
+        case .folder: String(localized: "Folder")
+        case .image: String(localized: "Image")
+        case .vector: String(localized: "Vector Image")
+        case .document: String(localized: "Document")
+        case .text: String(localized: "Text")
+        case .data: String(localized: "Data")
+        case .font: String(localized: "Font")
+        case .app: String(localized: "Application")
+        case .installer: String(localized: "Installer Package")
+        case .archive: String(localized: "Archive")
+        case .audio: String(localized: "Audio")
+        case .video: String(localized: "Movie")
+        case .other: String(localized: "File")
         }
     }
 

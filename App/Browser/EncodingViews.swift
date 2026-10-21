@@ -7,7 +7,7 @@ struct LegacyNamesBanner: View {
     var body: some View {
         let source = model.archive.source
         let reading = source?.nameEncoding?.title
-            ?? NameEncoding.bestGuess(for: model.legacyNames).map { "\($0.title), automatically" } ?? "automatically"
+            ?? NameEncoding.bestGuess(for: model.legacyNames).map { String(localized: "\($0.title), automatically") } ?? String(localized: "automatically")
         HStack(spacing: Space.s) {
             Image(systemName: "character.book.closed")
                 .foregroundStyle(.tint)
@@ -75,7 +75,7 @@ struct EncodingSheet: View {
                 .frame(width: 270, height: 300)
 
                 VStack(alignment: .leading, spacing: Space.s) {
-                    SectionLabel("Preview")
+                    SectionLabel(String(localized: "Preview"))
                     ScrollView {
                         VStack(alignment: .leading, spacing: 5) {
                             ForEach(samples.indices, id: \.self) { index in
@@ -118,6 +118,6 @@ struct EncodingSheet: View {
 
     private func preview(_ bytes: Data) -> String {
         guard let encoding else { return NameEncoding.decode(bytes, as: nil) }
-        return encoding.decode(bytes) ?? "— can’t be read this way —"
+        return encoding.decode(bytes) ?? String(localized: "— can’t be read this way —")
     }
 }

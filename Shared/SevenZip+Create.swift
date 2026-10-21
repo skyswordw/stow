@@ -28,7 +28,7 @@ extension SevenZip {
         if let intermediate = steps.first?.intermediate { try? FileManager.default.removeItem(at: intermediate) }
 
         let files = ((try? FileManager.default.contentsOfDirectory(atPath: output.path)) ?? []).sorted()
-        guard let first = files.first else { throw EngineError(.failed, "7-Zip didn’t write an archive.") }
+        guard let first = files.first else { throw EngineError(.failed, String(localized: "7-Zip didn’t write an archive.")) }
         let size = files.reduce(Int64(0)) { total, file in
             total + Int64((try? output.appending(path: file).resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
         }
@@ -42,7 +42,7 @@ extension SevenZip {
                 if let fraction = parser.consume(chunk) { progress(start + fraction * (1 - start)) }
             }
             guard result.status == 0 else {
-                throw EngineError(.failed, "The new archive didn’t pass its check, so it wasn’t kept.")
+                throw EngineError(.failed, String(localized: "The new archive didn’t pass its check, so it wasn’t kept."))
             }
             report.verified = true
         }
@@ -117,6 +117,7 @@ extension SevenZip {
             .map { line in
                 line.drop { $0 != ":" }.dropFirst().trimmingCharacters(in: .whitespaces)
             }
-        throw EngineError(.failed, "Couldn’t create the archive\(detail.map { ": \($0)" } ?? ".")")
+        throw EngineError(.failed, detail.map { String(localized: "Couldn’t create the archive: \($0)") }
+            ?? String(localized: "Couldn’t create the archive."))
     }
 }

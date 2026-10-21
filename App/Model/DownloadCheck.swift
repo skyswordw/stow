@@ -12,7 +12,7 @@ enum DownloadCheck {
     /// Throws for an unfinished browser download; waits (up to `limit`) while the size keeps changing.
     static func waitUntilComplete(_ url: URL, limit: Duration = .seconds(30)) async throws(EngineError) {
         if isPartial(url) {
-            throw EngineError(.failed, "“\(url.lastPathComponent)” is still downloading. Open it again once the download has finished.")
+            throw EngineError(.failed, String(localized: "“\(url.lastPathComponent)” is still downloading. Open it again once the download has finished."))
         }
         let values = try? url.resourceValues(forKeys: [.contentModificationDateKey])
         guard let modified = values?.contentModificationDate, modified.timeIntervalSinceNow > -3 else { return }
@@ -25,7 +25,7 @@ enum DownloadCheck {
             if now == size { return }
             size = now
         }
-        throw EngineError(.failed, "“\(url.lastPathComponent)” is still being written. Open it again once it’s complete.")
+        throw EngineError(.failed, String(localized: "“\(url.lastPathComponent)” is still being written. Open it again once it’s complete."))
     }
 }
 
@@ -48,8 +48,8 @@ enum DiskImageCheck {
     static func explain(_ error: EngineError, for url: URL) -> EngineError {
         guard isDiskImage(url), error.failure == .notAnArchive || error.failure == .failed else { return error }
         if isEncrypted(url) {
-            return EngineError(.failed, "This disk image is encrypted. Stow can’t look inside encrypted images yet — open it in Finder to enter its password.")
+            return EngineError(.failed, String(localized: "This disk image is encrypted. Stow can’t look inside encrypted images yet — open it in Finder to enter its password."))
         }
-        return EngineError(error.failure, "Stow can’t read this disk image’s format. Finder may still be able to open it.")
+        return EngineError(error.failure, String(localized: "Stow can’t read this disk image’s format. Finder may still be able to open it."))
     }
 }

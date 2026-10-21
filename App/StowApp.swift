@@ -255,7 +255,7 @@ struct StowCommands: Commands {
                 .disabled(app.browser == nil)
         }
         CommandGroup(after: .windowArrangement) {
-            Button(app.tray.isShown ? "Hide Tray" : "Show Tray") { app.tray.toggle() }
+            Button(app.tray.isShown ? String(localized: "Hide Tray") : String(localized: "Show Tray")) { app.tray.toggle() }
                 .keyboardShortcut("t", modifiers: [.command, .option])
         }
     }

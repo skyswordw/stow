@@ -165,7 +165,7 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
     func send(operation: String, to stream: FileHandle, reply: @escaping @Sendable (NSError?) -> Void) {
         guard let output = outputs.withLock({ $0[operation] }) else {
             try? stream.close()
-            reply(EngineError(.failed, "That extraction is no longer available.").nsError)
+            reply(EngineError(.failed, String(localized: "That extraction is no longer available.")).nsError)
             return
         }
         let stream = SendableHandle(stream)

@@ -82,7 +82,7 @@ final class BatchQueue {
         }
         let count = extracted.count
         _ = await ArchiveAftercare.apply(Preferences.current.afterExtractAll, key: Preferences.Key.afterExtractAll,
-                                         to: extracted, action: count == 1 ? "It was extracted." : "All \(count) were extracted.")
+                                         to: extracted, action: count == 1 ? String(localized: "It was extracted.") : String(localized: "All \(count) were extracted."))
         for url in scoped { url.stopAccessingSecurityScopedResource() }
         scoped.removeAll()
         // Leave the results up for a moment, then tidy away if nothing failed.

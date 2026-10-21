@@ -50,7 +50,7 @@ enum ArchiveCreation {
             (staging.appending(path: file), String(file.dropFirst(produced.count)))
         }
         guard !parts.isEmpty, parts.allSatisfy({ FileManager.default.fileExists(atPath: $0.0.path) }) else {
-            throw EngineError(.failed, "The new archive didn’t arrive.")
+            throw EngineError(.failed, String(localized: "The new archive didn’t arrive."))
         }
         let placed = try place(parts, named: name, format: request.format, in: destination, conflict: conflict)
         onProgress(1)
@@ -81,7 +81,7 @@ enum ArchiveCreation {
                 do {
                     try FileManager.default.trashItem(at: old, resultingItemURL: nil)
                 } catch {
-                    throw EngineError(.failed, "Couldn’t move the old “\(old.lastPathComponent)” to the Trash.")
+                    throw EngineError(.failed, String(localized: "Couldn’t move the old “\(old.lastPathComponent)” to the Trash."))
                 }
             }
         }
@@ -106,11 +106,11 @@ enum ArchiveCreation {
             guard let code = failure else { return targets }
             for move in moved.reversed() { _ = renamex_np(move.to.path, move.from.path, UInt32(RENAME_EXCL)) }
             guard code == EEXIST else {
-                throw EngineError(.failed, "Couldn’t save “\(stem + parts[0].1)”: \(String(cString: strerror(code))).")
+                throw EngineError(.failed, String(localized: "Couldn’t save “\(stem + parts[0].1)”: \(String(cString: strerror(code)))."))
             }
             attempt += 1
         }
-        throw EngineError(.failed, "Couldn’t find a free name for “\(name)”.")
+        throw EngineError(.failed, String(localized: "Couldn’t find a free name for “\(name)”."))
     }
 
     private static func exists(_ url: URL) -> Bool {

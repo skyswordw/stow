@@ -43,7 +43,7 @@ enum Extraction {
                                      skipSystemFiles: options.skipSystemFiles, onProgress: onProgress)
         defer { staged.discard() }
         let items = staged.items(allFolder: options.allFolder, folderName: folderName(for: archive))
-        guard !items.isEmpty else { throw EngineError(.failed, "Nothing was extracted.") }
+        guard !items.isEmpty else { throw EngineError(.failed, String(localized: "Nothing was extracted.")) }
         let placement = try await Placement.place(items, in: destination, resolve: options.resolve)
         // Downloaded archive → downloaded contents, so Gatekeeper checks apps and scripts from it.
         if let source = archive.source?.url { Quarantine.propagate(from: source, to: placement.added) }
@@ -85,7 +85,7 @@ enum Extraction {
     /// Extracts into a staging folder on `destination`'s volume and audits it there.
     static func stage(_ archive: Archive, selection: [ArchiveEntry]?, near destination: URL, skipSystemFiles: Bool = true,
                       onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Staged {
-        guard let source = archive.source else { throw EngineError(.failed, "This archive isn’t on disk.") }
+        guard let source = archive.source else { throw EngineError(.failed, String(localized: "This archive isn’t on disk.")) }
         let selection = selection.map(topmost)
         // A Mac's AppleDouble files come along so their details can be put back (always: they're
         // the files' own details, not clutter). The engine reads them; the files themselves can't

@@ -10,31 +10,31 @@ enum Prompts {
             let finding = verdict.finding
             alert.alertStyle = verdict == .broken ? .critical : .warning
             alert.messageText = verdict.headline(app: Installer.displayName(app))
-            alert.informativeText = finding.detail + " Install it anyway?"
-            alert.addButton(withTitle: "Cancel")
-            alert.addButton(withTitle: "Install Anyway")
+            alert.informativeText = finding.detail + String(localized: " Install it anyway?")
+            alert.addButton(withTitle: String(localized: "Cancel"))
+            alert.addButton(withTitle: String(localized: "Install Anyway"))
             return await run(alert) == .alertSecondButtonReturn ? .proceed : .cancel
         case .replaceApp(let app, let installed, let incoming):
             let name = Installer.displayName(app)
-            alert.messageText = "Replace the installed “\(name)”?"
+            alert.messageText = String(localized: "Replace the installed “\(name)”?")
             alert.informativeText = switch (installed, incoming) {
             case let (old?, new?) where old == new:
-                "Both are version \(old). The installed one moves to the Trash."
+                String(localized: "Both are version \(old). The installed one moves to the Trash.")
             case let (old?, new?):
-                "Version \(old) moves to the Trash and version \(new) takes its place."
+                String(localized: "Version \(old) moves to the Trash and version \(new) takes its place.")
             default:
-                "The installed one moves to the Trash, so you can put it back."
+                String(localized: "The installed one moves to the Trash, so you can put it back.")
             }
-            alert.addButton(withTitle: "Replace")
-            alert.addButton(withTitle: "Keep Both")
-            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: String(localized: "Replace"))
+            alert.addButton(withTitle: String(localized: "Keep Both"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
         case .replaceFonts(let names):
-            alert.messageText = names.count == 1 ? "“\(names[0])” is already installed."
-                : "\(names.count) of these fonts are already installed."
-            alert.informativeText = "Replacing moves the installed copies to the Trash. Skip installs only the new ones."
-            alert.addButton(withTitle: "Replace")
-            alert.addButton(withTitle: "Skip")
-            alert.addButton(withTitle: "Cancel")
+            alert.messageText = names.count == 1 ? String(localized: "“\(names[0])” is already installed.")
+                : String(localized: "\(names.count) of these fonts are already installed.")
+            alert.informativeText = String(localized: "Replacing moves the installed copies to the Trash. Skip installs only the new ones.")
+            alert.addButton(withTitle: String(localized: "Replace"))
+            alert.addButton(withTitle: String(localized: "Skip"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
         }
         return switch await run(alert) {
         case .alertFirstButtonReturn: .proceed
@@ -49,22 +49,22 @@ enum Prompts {
         let folder = FileManager.default.displayName(atPath: conflict.existing.deletingLastPathComponent().path)
         let choices: [Placement.Resolution]
         if conflict.canMerge {
-            alert.messageText = "A folder named “\(conflict.name)” is already in “\(folder)”."
-            alert.informativeText = "Merge puts the extracted contents into it; files already there stay unless you choose to replace them. Keep Both adds this one as “\(Extraction.numbered(conflict.name, 2))”."
+            alert.messageText = String(localized: "A folder named “\(conflict.name)” is already in “\(folder)”.")
+            alert.informativeText = String(localized: "Merge puts the extracted contents into it; files already there stay unless you choose to replace them. Keep Both adds this one as “\(Extraction.numbered(conflict.name, 2))”.")
             choices = [.merge, .keepBoth]
-            alert.addButton(withTitle: "Merge")
-            alert.addButton(withTitle: "Keep Both")
+            alert.addButton(withTitle: String(localized: "Merge"))
+            alert.addButton(withTitle: String(localized: "Keep Both"))
         } else {
-            alert.messageText = "“\(conflict.name)” is already in “\(folder)”."
-            alert.informativeText = "Existing: \(describe(conflict.existing)). Extracted: \(describe(conflict.incoming)). Replacing moves the existing one to the Trash."
+            alert.messageText = String(localized: "“\(conflict.name)” is already in “\(folder)”.")
+            alert.informativeText = String(localized: "Existing: \(describe(conflict.existing)). Extracted: \(describe(conflict.incoming)). Replacing moves the existing one to the Trash.")
             choices = [.replace, .keepBoth, .skip]
-            alert.addButton(withTitle: "Replace")
-            alert.addButton(withTitle: "Keep Both")
-            alert.addButton(withTitle: "Skip")
+            alert.addButton(withTitle: String(localized: "Replace"))
+            alert.addButton(withTitle: String(localized: "Keep Both"))
+            alert.addButton(withTitle: String(localized: "Skip"))
         }
-        alert.addButton(withTitle: "Stop")
+        alert.addButton(withTitle: String(localized: "Stop"))
         alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = conflict.canMerge ? "Do the same for other folders" : "Do the same for other files"
+        alert.suppressionButton?.title = conflict.canMerge ? String(localized: "Do the same for other folders") : String(localized: "Do the same for other files")
         let response = await run(alert)
         let index = response.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
         guard choices.indices.contains(index) else { return nil }
@@ -74,23 +74,23 @@ enum Prompts {
     /// Whether to move the archive(s) to the Trash, and whether to stop asking.
     static func trashArchives(_ names: [String], after action: String) async -> (trash: Bool, remember: Bool) {
         let alert = NSAlert()
-        alert.messageText = names.count == 1 ? "Move “\(names[0])” to the Trash?" : "Move \(names.count) archives to the Trash?"
-        alert.informativeText = "\(action) You can put \(names.count == 1 ? "it" : "them") back from the Trash."
-        alert.addButton(withTitle: "Keep")
-        alert.addButton(withTitle: "Move to Trash")
+        alert.messageText = names.count == 1 ? String(localized: "Move “\(names[0])” to the Trash?") : String(localized: "Move \(names.count) archives to the Trash?")
+        alert.informativeText = String(localized: "\(action) You can put \(names.count == 1 ? String(localized: "it") : String(localized: "them")) back from the Trash.")
+        alert.addButton(withTitle: String(localized: "Keep"))
+        alert.addButton(withTitle: String(localized: "Move to Trash"))
         alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = "Don’t ask again"
+        alert.suppressionButton?.title = String(localized: "Don’t ask again")
         let trash = await run(alert) == .alertSecondButtonReturn
         return (trash, alert.suppressionButton?.state == .on)
     }
 
     static func describe(_ url: URL) -> String {
         guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey]) else {
-            return "no details"
+            return String(localized: "no details")
         }
-        let kind = values.isDirectory == true ? "folder" : Int64(values.fileSize ?? 0).bytes
-        let date = values.contentModificationDate?.formatted(date: .abbreviated, time: .shortened) ?? "unknown date"
-        return "\(kind), \(date)"
+        let kind = values.isDirectory == true ? String(localized: "folder") : Int64(values.fileSize ?? 0).bytes
+        let date = values.contentModificationDate?.formatted(date: .abbreviated, time: .shortened) ?? String(localized: "unknown date")
+        return String(localized: "\(kind), \(date)")
     }
 
     @discardableResult

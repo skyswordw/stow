@@ -71,7 +71,7 @@ enum Placement {
                 let numbered = folder.appending(path: Extraction.numbered(name, attempt))
                 if try run.move(item, to: numbered) { return numbered }
             }
-            throw EngineError(.failed, "Couldn’t find a free name for “\(name)”.")
+            throw EngineError(.failed, String(localized: "Couldn’t find a free name for “\(name)”."))
         case .replace:
             try run.replace(target, with: item)
             run.result.replaced += 1
@@ -109,7 +109,7 @@ enum Placement {
             }
             let code = errno
             if code == EEXIST { return false }
-            throw EngineError(.failed, "Couldn’t move “\(target.lastPathComponent)” into place: \(String(cString: strerror(code))).")
+            throw EngineError(.failed, String(localized: "Couldn’t move “\(target.lastPathComponent)” into place: \(String(cString: strerror(code)))."))
         }
 
         /// The existing item goes to the Trash so a wrong choice can be undone in Finder. Volumes
@@ -119,12 +119,12 @@ enum Placement {
             if (try? FileManager.default.trashItem(at: target, resultingItemURL: &trashed)) != nil, let trashed {
                 steps.append(.trashed(original: target, inTrash: trashed as URL))
                 guard try move(item, to: target) else {
-                    throw EngineError(.failed, "“\(target.lastPathComponent)” reappeared while it was being replaced.")
+                    throw EngineError(.failed, String(localized: "“\(target.lastPathComponent)” reappeared while it was being replaced."))
                 }
                 return
             }
             guard renamex_np(item.path, target.path, UInt32(RENAME_SWAP)) == 0 else {
-                throw EngineError(.failed, "Couldn’t replace “\(target.lastPathComponent)”: \(String(cString: strerror(errno))).")
+                throw EngineError(.failed, String(localized: "Couldn’t replace “\(target.lastPathComponent)”: \(String(cString: strerror(errno)))."))
             }
             steps.append(.swapped(item, target))
         }

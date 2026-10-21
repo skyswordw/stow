@@ -7,7 +7,7 @@ struct EnginePacker: ArchivePacking {
     func pack(_ items: [URL], options: PackOptions, to archive: URL,
               onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) {
         let request = await PackRequest.gather(items)
-        guard !request.files.isEmpty else { throw EngineError(.failed, "There’s nothing here to compress.") }
+        guard !request.files.isEmpty else { throw EngineError(.failed, String(localized: "There’s nothing here to compress.")) }
         var options = options
         options.level = PackPreferences.level(for: options.audience)
         let report = Compatibility.report(for: request.files, options: options, password: "")

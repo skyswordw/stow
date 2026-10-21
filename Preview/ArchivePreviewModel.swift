@@ -72,12 +72,12 @@ nonisolated struct ArchivePreviewModel: Sendable {
         for severity in order {
             if let finding = findings.first(where: { $0.severity == severity }) { return finding }
         }
-        return CheckupFinding(severity: .fine, title: "Names and sizes look normal", detail: "")
+        return CheckupFinding(severity: .fine, title: String(localized: "Names and sizes look normal"), detail: "")
     }
 
     var summary: String {
-        var parts = ["\(fileCount) \(fileCount == 1 ? "file" : "files")"]
-        if folderCount > 0 { parts.append("\(folderCount) \(folderCount == 1 ? "folder" : "folders")") }
+        var parts = [String(localized: "\(fileCount) files")]
+        if folderCount > 0 { parts.append(String(localized: "\(folderCount) folders")) }
         parts.append(totalSize.bytes)
         return parts.joined(separator: " · ")
     }
@@ -100,16 +100,16 @@ nonisolated struct ArchivePreviewFallback: Sendable {
 
     var title: String {
         switch reason {
-        case .encrypted: "Encrypted archive"
-        case .tooSlow: "Too large to list here"
-        case .unreadable: "Can’t list this archive"
+        case .encrypted: String(localized: "Encrypted archive")
+        case .tooSlow: String(localized: "Too large to list here")
+        case .unreadable: String(localized: "Can’t list this archive")
         }
     }
 
     var message: String {
         switch reason {
-        case .encrypted: "Even the file names are protected. Open it in Stow and enter the password to see what’s inside."
-        case .tooSlow: "Reading the whole archive would take a while. Open it in Stow to browse while it loads."
+        case .encrypted: String(localized: "Even the file names are protected. Open it in Stow and enter the password to see what’s inside.")
+        case .tooSlow: String(localized: "Reading the whole archive would take a while. Open it in Stow to browse while it loads.")
         case .unreadable(let message): message
         }
     }

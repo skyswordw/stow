@@ -92,7 +92,7 @@ private struct SelectionSummary: View {
     var body: some View {
         let size = entries.reduce(Int64(0)) { $0 + $1.size }
         HStack(spacing: 6) {
-            Text(entries.count == 1 ? entries[0].name : "\(entries.count) items")
+            Text(entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items"))
                 .fontWeight(.medium)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -118,7 +118,7 @@ private struct ActivityCapsule: View {
             switch activity.phase {
             case .running(let progress):
                 ProgressRing(progress: progress)
-                Text("\(activity.step.progressTitle) \(activity.itemCount) \(activity.itemCount == 1 ? "item" : "items")")
+                Text(String(localized: "\(activity.step.progressTitle) \(activity.itemCount) items"))
                     .fontWeight(.medium)
                 Text(progress, format: .percent.precision(.fractionLength(0)))
                     .foregroundStyle(.secondary)
