@@ -11,6 +11,16 @@
         }
       }
     },
+    "Android package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android 软件包"
+          }
+        }
+      }
+    },
     "Archive": {
       "localizations": {
         "zh-Hans": {
@@ -77,6 +87,36 @@
         }
       }
     },
+    "LHA archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LHA 压缩包"
+          }
+        }
+      }
+    },
+    "LZIP file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LZIP 文件"
+          }
+        }
+      }
+    },
+    "LZMA file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LZMA 文件"
+          }
+        }
+      }
+    },
     "NSHumanReadableCopyright": {
       "shouldTranslate": false
     },
@@ -86,6 +126,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "RAR 压缩包"
+          }
+        }
+      }
+    },
+    "RPM package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RPM 软件包"
           }
         }
       }
@@ -126,6 +176,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Windows 安装器"
+          }
+        }
+      }
+    },
+    "ZIPX archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIPX 压缩包"
           }
         }
       }
