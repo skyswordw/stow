@@ -214,9 +214,9 @@ private struct TreeRow: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(nsImage: Self.icon(for: row))
-                .accessibilityHidden(true)
                 .resizable()
                 .frame(width: 16, height: 16)
+                .accessibilityHidden(true)
             Text(row.name)
                 .lineLimit(1)
                 .truncationMode(.middle)
