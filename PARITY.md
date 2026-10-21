@@ -33,7 +33,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Icon, list, **column** views | ✅ icons, list, columns (⌘1 ⌘2 ⌘3) | Column view has a preview column with the file's real content |
 | Folder navigation, back/forward history, Up One Level, path bar | ✅ | ⌘[ ⌘] ⌘↑ ⌘↓; going back selects where you came from; the path bar spans nested archives |
 | Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ✅ | Grid: arrows by row/column, ⇧ extends, ⌘/⇧ click, marquee (⇧/⌘ adds), type-to-select, Return opens, Space Quick Look. No animation on keyboard moves |
-| Archive search by name **or path**, background full-file index with progress | ✅ | Terms match anywhere in the path (“docs/ handoff”), case/accent/width-insensitive, name matches first. Index builds in the background in chunks; the search field reads “Indexing… 12,000 of 40,000” and results grow while you keep browsing. ⬜ search across nested archives |
+| Archive search by name **or path**, background full-file index with progress | ✅ | Terms match anywhere in the path (“docs/ handoff”), case/accent/width-insensitive, name matches first. Index builds in the background in chunks; the search field reads “Indexing… 12,000 of 40,000” and results grow while you keep browsing. ✅ search across nested archives: one level in, read once into the preview cache, matches listed as “Inner.7z/path”, Show opens the inner archive with the match selected; password-protected inner archives are skipped |
 | Nested archives opened in place, depth limit, encrypted nested containers | ✅ | Depth limit 8. Passwords through an injectable `PasswordHook` (wire to the password sheet when that branch merges); without it, “needs a password” is reported |
 | Archive details / inspector, archive overview | ✅ | ➕ Checkup; inspector shows real previews, several selected stack real thumbnails |
 | Show/hide macOS auxiliary items (__MACOSX, .DS_Store) | ✅ View › Show macOS Helper Items (⌘⇧.) | Hidden by default, dimmed when shown, never extracted |
@@ -87,7 +87,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Verify integrity after creating | ✅ More Options | Failed test keeps nothing |
 | CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · 🧪 Settings UI (pending verification) | |
 | Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
-| Create disk image (DMG) | ⬜ | (string present in ArcZip; low priority) |
+| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | HFS+ via `hdiutil makehybrid` (no mounting, so it works in the sandbox), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); no password or split yet |
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.
