@@ -1310,6 +1310,16 @@
         }
       }
     },
+    "Archive actions in Finder’s context menu.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达右键菜单中处理压缩包。"
+          }
+        }
+      }
+    },
     "Ask": {
       "localizations": {
         "zh-Hans": {
@@ -1645,6 +1655,16 @@
         }
       }
     },
+    "Choose File Types…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择文件类型…"
+          }
+        }
+      }
+    },
     "Choose files and folders to pack.": {
       "localizations": {
         "zh-Hans": {
@@ -1691,6 +1711,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "选择“%@”的存储位置。"
+          }
+        }
+      }
+    },
+    "Choose which everyday archives open with Stow.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择用 Stow 打开的常用压缩包类型。"
           }
         }
       }
@@ -1761,6 +1791,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "全部解压缩或安装后关闭窗口"
+          }
+        }
+      }
+    },
+    "Collect files from anywhere, then pack them — ⌥⌘T.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从各处收集文件，再一起压缩 — ⌥⌘T。"
           }
         }
       }
@@ -2535,6 +2575,16 @@
         }
       }
     },
+    "Extract safely": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全解压缩"
+          }
+        }
+      }
+    },
     "Extracted to %@": {
       "localizations": {
         "zh-Hans": {
@@ -2681,6 +2731,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "访达"
+          }
+        }
+      }
+    },
+    "Finder extension": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访达扩展"
           }
         }
       }
@@ -2865,6 +2925,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "通用"
+          }
+        }
+      }
+    },
+    "Get Started": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始使用"
           }
         }
       }
@@ -3210,6 +3280,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "集成"
+          }
+        }
+      }
+    },
+    "Integration Settings…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "集成设置…"
           }
         }
       }
@@ -3704,6 +3784,16 @@
         }
       }
     },
+    "No everyday file types open with Stow yet.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前还没有用 Stow 打开的常用文件类型。"
+          }
+        }
+      }
+    },
     "No preview for this kind of file": {
       "localizations": {
         "zh-Hans": {
@@ -3974,6 +4064,16 @@
         }
       }
     },
+    "Open, explore and share archives with confidence.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻松打开、浏览和分享压缩包。"
+          }
+        }
+      }
+    },
     "Opened": {
       "localizations": {
         "zh-Hans": {
@@ -4000,6 +4100,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在打开"
+          }
+        }
+      }
+    },
+    "Opening with Stow now: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前用 Stow 打开：%@"
+          }
+        }
+      }
+    },
+    "Opening with Stow now: %@ and %lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前用 Stow 打开：%1$@，以及另外 %2$lld 种"
           }
         }
       }
@@ -4031,6 +4151,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "压缩用途"
+          }
+        }
+      }
+    },
+    "Pack for Windows, Mac, Linux and the web": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩为适合 Windows、Mac、Linux 或网页的格式"
           }
         }
       }
@@ -4151,6 +4281,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "预览缓存"
+          }
+        }
+      }
+    },
+    "Preview without extracting": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无需解压缩即可预览"
           }
         }
       }
@@ -5670,6 +5810,16 @@
         }
       }
     },
+    "Welcome to Stow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎使用 Stow"
+          }
+        }
+      }
+    },
     "Western (DOS 437)": {
       "localizations": {
         "zh-Hans": {
@@ -5696,6 +5846,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "西欧语言（Windows-1252）"
+          }
+        }
+      }
+    },
+    "What Stow does": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 能做什么"
           }
         }
       }
