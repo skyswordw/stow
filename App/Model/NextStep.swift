@@ -102,7 +102,14 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
     /// Every step that fits the selection, most specific first, Extract left out. `dropTargets`
     /// are a disk image's "drag here" shortcuts (`DiskImageLayout`).
     static func available(for entries: [ArchiveEntry], dropTargets: [DiskImageLayout.DropTarget] = []) -> [NextStep] {
-        guard !entries.isEmpty else { return [] }
+        let (primary, extra) = steps(for: entries, dropTargets: dropTargets)
+        return primary + extra
+    }
+
+    /// `primary` can go on the bar; `extra` (the other "drag here" folders) only in More.
+    private static func steps(for entries: [ArchiveEntry], dropTargets: [DiskImageLayout.DropTarget])
+        -> (primary: [NextStep], extra: [NextStep]) {
+        guard !entries.isEmpty else { return ([], []) }
         let kinds = entries.map(\.kind)
         var steps: [NextStep] = []
         // Applications is left out: apps have Install App for that.
@@ -123,12 +130,13 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
             steps.append(.quickLook)
         }
         // The rest only show in More: the other "drag here" folders.
+        var extra: [NextStep] = []
         if entries.count == 1, kinds[0] != .app, kinds[0] != .installer, kinds[0] != .font {
             for target in targets where !steps.contains(.copyTo(folder: target.folder)) {
-                steps.append(.copyTo(folder: target.folder))
+                extra.append(.copyTo(folder: target.folder))
             }
         }
-        return steps
+        return (steps, extra)
     }
 
     /// At most two suggestions, then Extract. Specific beats generic; kinds in `hidden` are left
@@ -136,7 +144,7 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
     static func suggestions(for entries: [ArchiveEntry], dropTargets: [DiskImageLayout.DropTarget] = [],
                             hidden: Set<Kind> = []) -> [NextStep] {
         guard !entries.isEmpty else { return [] }
-        let shown = available(for: entries, dropTargets: dropTargets).filter { step in step.kind.map { !hidden.contains($0) } ?? true }
+        let shown = steps(for: entries, dropTargets: dropTargets).primary.filter { step in step.kind.map { !hidden.contains($0) } ?? true }
         return Array(shown.prefix(2)) + [.extract]
     }
 

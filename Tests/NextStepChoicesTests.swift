@@ -33,11 +33,10 @@ struct NextStepChoicesTests {
         ]
         let plugIn = [entry("Echo.component")]
         let shown = NextStep.suggestions(for: plugIn, dropTargets: targets)
-        // Two on the bar (the first two folders), the third waits in More.
-        #expect(shown == [.copyTo(folder: "/Library/Audio/Plug-Ins/Components"),
-                          .copyTo(folder: "/Library/Audio/Plug-Ins/VST3"), .extract])
+        // The bar is as before: the first folder. The others wait in More.
+        #expect(shown == [.copyTo(folder: "/Library/Audio/Plug-Ins/Components"), .extract])
         let more = NextStep.alternatives(for: plugIn, dropTargets: targets)
-        #expect(more == [.copyTo(folder: "/Library/Audio/Plug-Ins/HAL")])
+        #expect(more == [.copyTo(folder: "/Library/Audio/Plug-Ins/VST3"), .copyTo(folder: "/Library/Audio/Plug-Ins/HAL")])
         #expect(!more.contains(.copyTo(folder: "/Applications")))
         #expect(Set(more).isDisjoint(with: shown))
         // Turning Copy off moves every drop folder to More; nothing is lost.
