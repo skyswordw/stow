@@ -73,9 +73,12 @@ Stow stays sandboxed (user-selected files only) and asks for the narrowest acces
   into place. Installer packages are unpacked the same way beside the archive.
 - **Gatekeeper still runs.** Before installing, Stow checks the app's code signature and
   notarization (`App/Model/CodeSignature.swift`) and asks before installing anything unsigned,
-  ad-hoc signed, not notarized, broken or signed with an unknown certificate. Installed apps keep
-  the archive's quarantine flag, so macOS checks them on first launch. Removing the flag is an
-  opt-in setting; if macOS refuses, Checkup says so.
+  ad-hoc signed, not notarized, broken or signed with an unknown certificate. Files written into a
+  folder you chose aren't quarantined by the sandbox, so — like Archive Utility — Stow carries a
+  downloaded archive's quarantine over to what it installs or extracts (through Launch Services'
+  quarantine properties; a raw `setxattr` is refused, and the flag is applied after the final move,
+  which would drop it). macOS then checks those apps on first launch. Not carrying it over is an
+  opt-in setting ("Remove the quarantine flag").
 - **Disk images are never mounted.** The engine reads HFS+, APFS and ISO images directly, so a DMG
   is browsed read-only with nothing attached to detach.
 

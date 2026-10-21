@@ -58,15 +58,16 @@ enum Installer {
             if answer == .cancel { throw EngineError(.cancelled) }
             if answer == .alternate {
                 // Keep Both: the new copy gets a number, the installed one stays as it is.
-                if !removeQuarantine, let source = archive.source?.url { Quarantine.inherit(from: source, to: bundle) }
                 let placement = try await Placement.place([(bundle, entry.name)], in: folder)
+                if !removeQuarantine, let source = archive.source?.url { Quarantine.inherit(from: source, to: placement.placed[0]) }
                 return AppOutcome(app: placement.placed[0], verdict: verdict, replaced: false,
                                   quarantineRemoved: removeQuarantine ? Quarantine.remove(under: placement.placed[0]) : nil)
             }
         }
-        if !removeQuarantine, let source = archive.source?.url { Quarantine.inherit(from: source, to: bundle) }
         let placement = try await Placement.place([(bundle, entry.name)], in: folder) { _ in .replace }
         guard let app = placement.placed.first else { throw EngineError(.failed, "Nothing was installed.") }
+        // After the move: renaming into place drops a flag set in staging.
+        if !removeQuarantine, let source = archive.source?.url { Quarantine.inherit(from: source, to: app) }
         return AppOutcome(app: app, verdict: verdict, replaced: replacing,
                           quarantineRemoved: removeQuarantine ? Quarantine.remove(under: app) : nil)
     }
@@ -160,12 +161,42 @@ enum Quarantine {
     }
 
     /// Like Archive Utility: an app from a downloaded archive stays "downloaded", so Gatekeeper
-    /// checks it the first time it opens. Best effort — the sandbox may refuse, or have set it already.
-    static func inherit(from archive: URL, to root: URL) {
-        var buffer = [UInt8](repeating: 0, count: 1024)
-        let length = getxattr(archive.path, attribute, &buffer, buffer.count, 0, 0)
-        guard length > 0, !isQuarantined(root) else { return }
-        _ = setxattr(root.path, attribute, buffer, length, 0, XATTR_NOFOLLOW)
+    /// checks it the first time it opens. Goes through Launch Services' quarantine properties —
+    /// the sandbox refuses a raw `setxattr` of the flag. Returns whether the app is quarantined.
+    @discardableResult
+    static func inherit(from archive: URL, to root: URL) -> Bool {
+        guard let properties = try? archive.resourceValues(forKeys: [.quarantinePropertiesKey]).quarantineProperties,
+              !properties.isEmpty else { return isQuarantined(root) }
+        if !isQuarantined(root) {
+            var values = URLResourceValues()
+            values.quarantineProperties = properties
+            var target = root
+            try? target.setResourceValues(values)
+        }
+        return isQuarantined(root)
+    }
+
+    /// Archive Utility's rule for downloads: everything that came out of a quarantined archive is
+    /// quarantined too — files and bundles, not the folders around them. Only `added` items, never
+    /// files that were already in a merged folder.
+    static func propagate(from archive: URL, to added: [URL]) {
+        guard isQuarantined(archive) else { return }
+        for item in added {
+            guard Placement.isPlainFolder(item) else {
+                inherit(from: archive, to: item)
+                continue
+            }
+            guard let walker = FileManager.default.enumerator(at: item, includingPropertiesForKeys: [.isPackageKey, .isRegularFileKey]) else { continue }
+            for case let url as URL in walker {
+                let values = try? url.resourceValues(forKeys: [.isPackageKey, .isRegularFileKey])
+                if values?.isPackage == true {
+                    inherit(from: archive, to: url)
+                    walker.skipDescendants()
+                } else if values?.isRegularFile == true {
+                    inherit(from: archive, to: url)
+                }
+            }
+        }
     }
 
     /// Removes the flag from `root` and everything inside it. False if macOS refused for any item —

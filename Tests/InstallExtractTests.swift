@@ -46,6 +46,9 @@ struct PlacementTests {
         #expect(scene.read("Docs/b.txt") == "new b")
         #expect(scene.read("Docs/Sub/c.txt") == "new c")
         #expect(scene.read("Docs/keep.txt") == "mine")
+        // Only what moved in counts as new (it inherits a download's quarantine), not the merged folder.
+        #expect(Set(result.added.map { String($0.path.dropFirst(scene.out.path.count + 1)) })
+                == ["Docs/a.txt", "Docs/b.txt", "Docs/Sub"])
     }
 
     @Test func mergeAndKeepBothFiles() async throws {

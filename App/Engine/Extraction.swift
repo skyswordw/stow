@@ -45,6 +45,8 @@ enum Extraction {
         let items = staged.items(allFolder: options.allFolder, folderName: folderName(for: archive))
         guard !items.isEmpty else { throw EngineError(.failed, "Nothing was extracted.") }
         let placement = try await Placement.place(items, in: destination, resolve: options.resolve)
+        // Downloaded archive → downloaded contents, so Gatekeeper checks apps and scripts from it.
+        if let source = archive.source?.url { Quarantine.propagate(from: source, to: placement.added) }
         return Result(placed: placement.placed, report: staged.report, placement: placement,
                       restoredMetadata: staged.restoredMetadata)
     }

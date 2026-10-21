@@ -20,6 +20,8 @@ enum Placement {
     struct Result: Sendable {
         /// Top-level items as they ended up; a merged folder is the existing one.
         var placed: [URL] = []
+        /// Everything that was moved in (merged folders contribute their new children, not themselves).
+        var added: [URL] = []
         var merged = 0
         var replaced = 0
         var skipped = 0
@@ -41,6 +43,7 @@ enum Placement {
             run.undo()
             throw error
         }
+        run.result.added = run.movedIn
         return run.result
     }
 
@@ -124,6 +127,12 @@ enum Placement {
                 throw EngineError(.failed, "Couldn’t replace “\(target.lastPathComponent)”: \(String(cString: strerror(errno))).")
             }
             steps.append(.swapped(item, target))
+        }
+
+        var movedIn: [URL] {
+            steps.compactMap { step in
+                if case .moved(_, let to) = step { to } else { nil }
+            }
         }
 
         func undo() {
