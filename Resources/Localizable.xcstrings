@@ -4114,6 +4114,16 @@
         }
       }
     },
+    "Opening with Stow now: %@ and %lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前用 Stow 打开：%1$@，以及另外 %2$lld 种"
+          }
+        }
+      }
+    },
     "Pack": {
       "localizations": {
         "zh-Hans": {
@@ -4150,7 +4160,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "为 Windows、Mac、Linux 和网页上传压缩文件"
+            "value": "压缩为适合 Windows、Mac、Linux 或网页的格式"
           }
         }
       }
