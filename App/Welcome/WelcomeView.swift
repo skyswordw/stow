@@ -8,6 +8,8 @@ struct WelcomeView: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isTargeted = false
+    /// A drag that only promises a file (Mail, Photos, chat apps); see `OtherAppFiles`.
+    @State private var isPromiseTargeted = false
     @State private var isWide = false
 
     /// Wide enough for the drop target and the Recent list side by side.
@@ -38,11 +40,22 @@ struct WelcomeView: View {
         // A quiet title bar: the traffic lights over the window, no title, no bar.
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        // Files from Finder arrive on the drop zone's own target as URLs; drags that only promise
+        // an archive (Mail attachments, chat apps) fall through to here and are received first.
+        .onDrop(of: OtherAppFiles.promisedTypes, isTargeted: $isPromiseTargeted) { providers in
+            Task {
+                let urls = await OtherAppFiles.receive(providers)
+                if !urls.isEmpty { _ = handleDrop(urls) }
+            }
+            return true
+        }
         .onAppear { app.recents.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             app.recents.refresh()
         }
     }
+
+    private var highlighted: Bool { isTargeted || isPromiseTargeted }
 
     private func dropZone(size: CGSize) -> some View {
         // Without the format list when a short window also has to fit the Recent list.
@@ -57,12 +70,12 @@ struct WelcomeView: View {
         .frame(minHeight: 220, maxHeight: size.height)
         .background {
             RoundedRectangle(cornerRadius: Radius.panel + 4)
-                .fill(isTargeted ? AnyShapeStyle(.tint.opacity(0.08)) : AnyShapeStyle(.clear))
-                .strokeBorder(isTargeted ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator),
-                              style: StrokeStyle(lineWidth: isTargeted ? 2 : 1.5, dash: isTargeted ? [] : [7, 6]))
+                .fill(highlighted ? AnyShapeStyle(.tint.opacity(0.08)) : AnyShapeStyle(.clear))
+                .strokeBorder(highlighted ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator),
+                              style: StrokeStyle(lineWidth: highlighted ? 2 : 1.5, dash: highlighted ? [] : [7, 6]))
         }
-        .scaleEffect(isTargeted && !reduceMotion ? 1.015 : 1)
-        .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: isTargeted)
+        .scaleEffect(highlighted && !reduceMotion ? 1.015 : 1)
+        .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: highlighted)
         .dropDestination(for: URL.self) { urls, _ in
             handleDrop(urls)
         } isTargeted: { isTargeted = $0 }
@@ -84,7 +97,7 @@ struct WelcomeView: View {
             }
 
             VStack(spacing: Space.xs) {
-                Text(isTargeted ? String(localized: "Let go to open") : String(localized: "Drop to open or pack"))
+                Text(highlighted ? String(localized: "Let go to open") : String(localized: "Drop to open or pack"))
                     .font(.title2.weight(.semibold))
                     .contentTransition(.opacity)
                 Text("An archive opens here; several are extracted. Anything else gets packed.")
