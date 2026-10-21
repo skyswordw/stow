@@ -36,35 +36,22 @@ struct SidebarView: View {
 struct ArchiveCard: View {
     let archive: Archive
     @State private var showCheckup = false
-    /// Below this the name gets a line of its own instead of sharing one with the badge.
-    @State private var isNarrow = false
 
     var body: some View {
-        let header = isNarrow ? AnyLayout(VStackLayout(alignment: .leading, spacing: Space.s))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: Space.m))
         VStack(alignment: .leading, spacing: Space.m) {
-            header {
-                FormatBadge(format: archive.format)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(archive.name)
-                        .font(.headline)
-                        .lineLimit(3)
-                        .help(archive.name)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .foregroundStyle(.primary)
-                    ViewThatFits(in: .horizontal) {
-                        Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
-                            .fixedSize()
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("\(archive.files.count.formatted()) files")
-                            Text(archive.totalSize.bytes)
-                        }
-                    }
-                        .font(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+            // Badge beside the name while the name has room for a few words; on a narrow sidebar
+            // the name gets a line of its own. ViewThatFits decides from ideal sizes, so there is
+            // no measure-then-relayout loop.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: Space.m) {
+                    FormatBadge(format: archive.format)
+                    titleAndCounts
+                        .frame(minWidth: 120, idealWidth: 120, maxWidth: .infinity, alignment: .leading)
                 }
-                Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: Space.s) {
+                    FormatBadge(format: archive.format)
+                    titleAndCounts
+                }
             }
 
             CompressionBar(packed: archive.packedSize, total: archive.totalSize)
@@ -72,20 +59,41 @@ struct ArchiveCard: View {
             Button {
                 showCheckup.toggle()
             } label: {
-                CheckupBadge(archive: archive, isCompact: isNarrow)
+                CheckupBadge(archive: archive)
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showCheckup, arrowEdge: .trailing) {
                 CheckupView(findings: archive.checkup)
             }
         }
-        .padding(isNarrow ? Space.s : Space.m)
-        .onGeometryChange(for: Bool.self) { $0.size.width < 200 } action: { isNarrow = $0 }
+        .padding(Space.m)
         .background(.background.opacity(0.5), in: .rect(cornerRadius: Radius.card))
         .overlay {
             RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.primary.opacity(0.06))
         }
         .textCase(nil)
+    }
+
+    private var titleAndCounts: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(archive.name)
+                .font(.headline)
+                .lineLimit(3)
+                .help(archive.name)
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(.primary)
+            ViewThatFits(in: .horizontal) {
+                Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
+                    .fixedSize()
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("\(archive.files.count.formatted()) files")
+                    Text(archive.totalSize.bytes)
+                }
+            }
+            .font(.caption)
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+        }
     }
 }
 
@@ -154,28 +162,32 @@ struct CompressionBar: View {
 
 struct CheckupBadge: View {
     let archive: Archive
-    /// Drops the chevron so the label keeps whole words on a narrow card.
-    var isCompact = false
     @State private var isHovering = false
 
     var body: some View {
         let cautions = archive.checkup.count { $0.severity == .caution }
         let caution = cautions > 0
         let handled = archive.checkup.count { $0.severity == .handled }
-        HStack(spacing: 6) {
-            Image(systemName: caution ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
-                .foregroundStyle(caution ? .yellow : .green)
-            Text(caution ? String(localized: "Checkup: \(cautions) things to know")
-                 : handled > 0 ? String(localized: "Checkup: safe, \(handled) handled") : String(localized: "Checkup: looks safe"))
-                .fixedSize(horizontal: false, vertical: true)
-                .multilineTextAlignment(.leading)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.primary)
-            Spacer(minLength: 0)
-            if !isCompact {
+        let label = Text(caution ? String(localized: "Checkup: \(cautions) things to know")
+                         : handled > 0 ? String(localized: "Checkup: safe, \(handled) handled") : String(localized: "Checkup: looks safe"))
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.primary)
+        let shield = Image(systemName: caution ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
+            .foregroundStyle(caution ? .yellow : .green)
+        // The chevron goes first when the card is narrow, so the label keeps whole words.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) {
+                shield
+                label.frame(minWidth: 110, idealWidth: 110, maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.right")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.tertiary)
+            }
+            HStack(spacing: 6) {
+                shield
+                label.frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.horizontal, Space.s)

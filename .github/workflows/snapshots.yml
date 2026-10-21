@@ -69,10 +69,18 @@ jobs:
 
       - name: Snapshot Settings panes and scenes, light and dark, every language
         run: |
+          typeset -a missing
           shoot() { # <out-name> <scene> <look> <lang> [args…]
             local out=$1 scene=$2 look=$3 lang=$4; shift 4
             rm -f snapshots/$scene-*.png
             zsh scripts/snapshot.sh "$scene" "$look" "" -AppleLanguages "($lang)" "$@" || echo "::warning::$out $look $lang failed"
+            # A scene that renders nothing (a crash, a hang) must not pass as green: retry once, then fail.
+            if [[ -z $(print -l snapshots/$scene-*.png(N)) ]]; then
+              zsh scripts/snapshot.sh "$scene" "$look" "" -AppleLanguages "($lang)" "$@" || true
+            fi
+            if [[ -z $(print -l snapshots/$scene-*.png(N)) ]]; then
+              echo "::error::$out $look $lang produced no image"; missing+=("$lang/$out-$look")
+            fi
             for file in snapshots/$scene-*.png(N); do
               mv "$file" "shots/$lang/$out-$look-${${file:t}#$scene-$look-}"
             done
@@ -85,6 +93,7 @@ jobs:
             done
           done
           find shots -name '*.png' | wc -l
+          (( ${#missing} == 0 )) || { echo "Missing: ${missing[*]}"; exit 1; }
         shell: zsh {0}
 
       - uses: actions/upload-artifact@v6
