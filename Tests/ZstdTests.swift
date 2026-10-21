@@ -63,7 +63,7 @@ struct ZstdStreamTests {
         try data.write(to: source)
         let archive = folder.url.appending(path: "dump.bin.zst")
         var fractions: [Double] = []
-        try Zstd.compressNow(source, into: archive, level: 3, volumeSize: nil) { fractions.append($0) }
+        try Zstd.compressNow(source, into: archive, level: 3, volumeSize: nil, progress: { fractions.append($0) })
         #expect(fractions.last == 1 && fractions == fractions.sorted())
         let size = try #require(try archive.resourceValues(forKeys: [.fileSizeKey]).fileSize)
         #expect(size < data.count)
