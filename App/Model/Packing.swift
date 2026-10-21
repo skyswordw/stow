@@ -104,7 +104,8 @@ nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
 
     var formats: [PackFormat] {
         switch self {
-        case .windows, .mac: [.zip, .sevenZip]
+        case .windows: [.zip, .sevenZip]
+        case .mac: [.zip, .sevenZip, .dmg]
         case .linux: [.tarXz, .tarGz, .tarZst, .tarBz2, .tar, .zip, .sevenZip]
         case .web: [.zip]
         }
@@ -150,6 +151,7 @@ nonisolated extension PackFormat {
         case .tarBz2: "TAR.BZ2"
         case .tarXz: "TAR.XZ"
         case .tarZst: "TAR.ZST"
+        case .dmg: "DMG"
         }
     }
 }
@@ -203,11 +205,13 @@ nonisolated struct PackOptions: Equatable, Sendable {
         audience = newValue
         if !newValue.formats.contains(format) { format = newValue.formats[0] }
         if !format.supportsPassword { usesPassword = false }
+        if !format.supportsSplit { split = .none }
     }
 
     mutating func setFormat(_ newValue: PackFormat) {
         format = newValue
         if !newValue.supportsPassword { usesPassword = false }
+        if !newValue.supportsSplit { split = .none }
     }
 }
 
@@ -415,6 +419,12 @@ nonisolated enum Compatibility {
                 tone: .info,
                 title: String(localized: "Recent Windows 11 opens 7Z"),
                 detail: String(localized: "Older versions need 7-Zip. Choose ZIP if you’re not sure.")
+            ))
+        case (.mac, .dmg):
+            notes.append(.init(
+                tone: .info,
+                title: String(localized: "Opens like a disk on any Mac"),
+                detail: String(localized: "Double-clicking it shows the files in Finder; permissions and links stay. Windows and Linux need an extra app to open it.")
             ))
         case (.mac, .zip):
             notes.append(.init(

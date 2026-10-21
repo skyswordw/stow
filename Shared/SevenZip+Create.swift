@@ -107,6 +107,9 @@ extension SevenZip {
                            zstd: ZstdStep(source: tar, archive: archive, level: Zstd.level(for: request.level),
                                           volumeSize: request.volumeSize)),
             ]
+        case .dmg:
+            // Made in the app with hdiutil (DiskImageCreation); the engine has nothing to run.
+            return []
         case .tarGz, .tarBz2, .tarXz:
             let tarName = (archive.lastPathComponent as NSString).deletingPathExtension // "Project.tar"
             let tar = work.appending(path: tarName)

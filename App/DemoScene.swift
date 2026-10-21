@@ -104,6 +104,11 @@ enum DemoScene {
             var request = PackRequest(files: SampleArchive.packCandidates)
             request.initialFormat = .tarZst
             app.packRequest = request
+        case "pack-dmg":
+            // A DMG for Macs: the split word is off (a disk image is one file).
+            var request = PackRequest(files: SampleArchive.packCandidates)
+            request.initialFormat = .dmg
+            app.packRequest = request
         case "packing":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .running(0.42))
         case "packed":
