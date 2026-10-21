@@ -216,7 +216,8 @@ enum Quarantine {
 
 /// Packages waiting in Installer, each in a hidden folder beside its archive.
 enum PackageHandoff {
-    private static var waiting: [URL] = []
+    /// Each copy with the (security-scoped) folder it sits in, held open until the copy is removed.
+    private static var waiting: [(folder: URL, scope: URL, scoped: Bool)] = []
     private static var observer: NSObjectProtocol?
 
     static func makeFolder(in location: URL) throws(EngineError) -> URL {
@@ -226,7 +227,7 @@ enum PackageHandoff {
         } catch {
             throw EngineError(.failed, "Couldn’t prepare the installer: \(error.localizedDescription)")
         }
-        waiting.append(folder)
+        waiting.append((folder, location, location.startAccessingSecurityScopedResource()))
         return folder
     }
 
@@ -245,7 +246,10 @@ enum PackageHandoff {
 
     /// Removes the copies once Installer quits, and when Stow quits.
     static func removeAll() {
-        for folder in waiting { try? FileManager.default.removeItem(at: folder) }
+        for (folder, scope, scoped) in waiting {
+            try? FileManager.default.removeItem(at: folder)
+            if scoped { scope.stopAccessingSecurityScopedResource() }
+        }
         waiting.removeAll()
     }
 
