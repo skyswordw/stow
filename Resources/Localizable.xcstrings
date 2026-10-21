@@ -41,7 +41,17 @@
         }
       }
     },
-    "%1$@ %2$lld items": {
+    "%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@"
+          }
+        }
+      }
+    },
+    "%@ %lld items": {
       "comment": "Progress verb followed by the number of selected items.",
       "localizations": {
         "en": {
@@ -96,7 +106,7 @@
         }
       }
     },
-    "%1$@ (%2$lld of %3$lld)": {
+    "%@ (%lld of %lld)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -106,7 +116,7 @@
         }
       }
     },
-    "%1$@ Remembered for %2$@.": {
+    "%@ Remembered for %@.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -116,7 +126,7 @@
         }
       }
     },
-    "%1$@ Stow asks once for “%2$@” and remembers it.": {
+    "%@ Stow asks once for “%@” and remembers it.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -126,92 +136,12 @@
         }
       }
     },
-    "%1$@ You can put %2$@ back from the Trash.": {
+    "%@ You can put %@ back from the Trash.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ 你可以从废纸篓中将%2$@放回原处。"
-          }
-        }
-      }
-    },
-    "%1$@ files · %2$@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ 个文件 · %2$@"
-          }
-        }
-      }
-    },
-    "%1$@ packed · %2$lld%% smaller": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "压缩后 %1$@ · 减小 %2$lld%%"
-          }
-        }
-      }
-    },
-    "%1$@ results in %2$@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%2$@中有 %1$@ 个结果"
-          }
-        }
-      }
-    },
-    "%1$@ · %2$@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%1$@ · %2$lld%% smaller": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ · 减小 %2$lld%%"
-          }
-        }
-      }
-    },
-    "%1$@, %2$@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@，%2$@"
-          }
-        }
-      }
-    },
-    "%1$@: %2$@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@：%2$@"
-          }
-        }
-      }
-    },
-    "%@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@"
           }
         }
       }
@@ -246,6 +176,16 @@
         }
       }
     },
+    "%@ files · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 个文件 · %2$@"
+          }
+        }
+      }
+    },
     "%@ items": {
       "localizations": {
         "zh-Hans": {
@@ -266,6 +206,46 @@
         }
       }
     },
+    "%@ packed · %lld%% smaller": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后 %1$@ · 减小 %2$lld%%"
+          }
+        }
+      }
+    },
+    "%@ results in %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$@中有 %1$@ 个结果"
+          }
+        }
+      }
+    },
+    "%@ · %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ · %lld%% smaller": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · 减小 %2$lld%%"
+          }
+        }
+      }
+    },
     "%@ · already compressed": {
       "localizations": {
         "zh-Hans": {
@@ -276,12 +256,32 @@
         }
       }
     },
+    "%@, %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@，%2$@"
+          }
+        }
+      }
+    },
     "%@, automatically": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "%@（自动）"
+          }
+        }
+      }
+    },
+    "%@: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@：%2$@"
           }
         }
       }
@@ -1070,7 +1070,7 @@
         }
       }
     },
-    "A folder named “%1$@” is already in “%2$@”.": {
+    "A folder named “%@” is already in “%@”.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -2025,7 +2025,7 @@
         }
       }
     },
-    "Couldn’t move “%1$@” into place: %2$@.": {
+    "Couldn’t move “%@” into place: %@.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -2055,7 +2055,7 @@
         }
       }
     },
-    "Couldn’t read “%1$@”: %2$@": {
+    "Couldn’t read “%@”: %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -2065,7 +2065,7 @@
         }
       }
     },
-    "Couldn’t read “%1$@”: %2$@.": {
+    "Couldn’t read “%@”: %@.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -2085,7 +2085,7 @@
         }
       }
     },
-    "Couldn’t replace “%1$@”: %2$@.": {
+    "Couldn’t replace “%@”: %@.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -2095,7 +2095,7 @@
         }
       }
     },
-    "Couldn’t save “%1$@”: %2$@.": {
+    "Couldn’t save “%@”: %@.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -2425,7 +2425,7 @@
         }
       }
     },
-    "Existing: %1$@. Extracted: %2$@. Replacing moves the existing one to the Trash.": {
+    "Existing: %@. Extracted: %@. Replacing moves the existing one to the Trash.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -2565,7 +2565,7 @@
         }
       }
     },
-    "Extracting %1$lld of %2$lld": {
+    "Extracting %lld of %lld": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -3039,7 +3039,7 @@
         }
       }
     },
-    "Indexing… %1$@ of %2$@": {
+    "Indexing… %@ of %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -3143,7 +3143,7 @@
         }
       }
     },
-    "Installer couldn’t open “%1$@”: %2$@": {
+    "Installer couldn’t open “%@”: %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -4065,7 +4065,7 @@
         }
       }
     },
-    "Packed “%1$@”%2$@": {
+    "Packed “%@”%@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -4916,6 +4916,9 @@
       },
       "comment": "Compression level: save data without compression."
     },
+    "Stow": {
+      "shouldTranslate": false
+    },
     "Stow can only write in folders you allow. Choose Allow to let Stow extract “%@” here — and next time, extract anything in this folder without asking.": {
       "localizations": {
         "zh-Hans": {
@@ -5617,7 +5620,7 @@
         }
       }
     },
-    "Version %1$@ moves to the Trash and version %2$@ takes its place.": {
+    "Version %@ moves to the Trash and version %@ takes its place.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -6189,7 +6192,17 @@
         }
       }
     },
-    "“%1$@” already exists in “%2$@”.": {
+    "“%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        }
+      }
+    },
+    "“%@” already exists in “%@”.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -6199,7 +6212,7 @@
         }
       }
     },
-    "“%1$@” and %2$lld more will be kept inside the destination folder instead.": {
+    "“%@” and %lld more will be kept inside the destination folder instead.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -6209,52 +6222,12 @@
         }
       }
     },
-    "“%1$@” and “%2$@” can’t sit side by side on this Mac. Both are kept; the second gets a number added.": {
+    "“%@” and “%@” can’t sit side by side on this Mac. Both are kept; the second gets a number added.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "这台 Mac 无法在同一位置存放“%1$@”和“%2$@”。两者都会保留，第二个名称会添加编号。"
-          }
-        }
-      }
-    },
-    "“%1$@” is already in “%2$@”.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%2$@”中已有“%1$@”。"
-          }
-        }
-      }
-    },
-    "“%1$@” → “%2$@” was left out so nothing outside the folder can be reached.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已忽略“%1$@”→“%2$@”，防止访问文件夹外部的内容。"
-          }
-        }
-      }
-    },
-    "“%1$@” → “%2$@”. Links like this aren’t created when you extract.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@”→“%2$@”。解压缩时不会创建此类链接。"
-          }
-        }
-      }
-    },
-    "“%@”": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@”"
           }
         }
       }
@@ -6295,6 +6268,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "“%@”是设备文件或管道，无法安全解压缩。"
+          }
+        }
+      }
+    },
+    "“%@” is already in “%@”.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%2$@”中已有“%1$@”。"
           }
         }
       }
@@ -6469,6 +6452,26 @@
         }
       }
     },
+    "“%@” → “%@” was left out so nothing outside the folder can be reached.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已忽略“%1$@”→“%2$@”，防止访问文件夹外部的内容。"
+          }
+        }
+      }
+    },
+    "“%@” → “%@”. Links like this aren’t created when you extract.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@”→“%2$@”。解压缩时不会创建此类链接。"
+          }
+        }
+      }
+    },
     "“../../.zshrc” will be kept inside the destination folder instead.": {
       "localizations": {
         "zh-Hans": {
@@ -6519,7 +6522,7 @@
         }
       }
     },
-    "≈ %1$@%2$@": {
+    "≈ %@%@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {

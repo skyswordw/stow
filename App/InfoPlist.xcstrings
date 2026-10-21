@@ -21,6 +21,12 @@
         }
       }
     },
+    "CFBundleDisplayName": {
+      "shouldTranslate": false
+    },
+    "CFBundleName": {
+      "shouldTranslate": false
+    },
     "Comic book (7Z)": {
       "localizations": {
         "zh-Hans": {
@@ -70,6 +76,9 @@
           }
         }
       }
+    },
+    "NSHumanReadableCopyright": {
+      "shouldTranslate": false
     },
     "RAR archive": {
       "localizations": {
