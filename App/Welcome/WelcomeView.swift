@@ -13,6 +13,8 @@ struct WelcomeView: View {
     /// Wide enough for the drop target and the Recent list side by side.
     private static let wideWidth: CGFloat = 900
     private static let dropZoneSize = CGSize(width: 560, height: 380)
+    /// Alone in the window there's nothing to balance it against, so it stays a little smaller.
+    private static let soloDropZoneSize = CGSize(width: 520, height: 360)
 
     var body: some View {
         let entries = app.recents.visible
@@ -20,7 +22,7 @@ struct WelcomeView: View {
             ? AnyLayout(HStackLayout(alignment: .top, spacing: Space.xxl))
             : AnyLayout(VStackLayout(spacing: Space.xl))
         layout {
-            dropZone
+            dropZone(size: entries.isEmpty ? Self.soloDropZoneSize : Self.dropZoneSize)
             if !entries.isEmpty {
                 RecentList(entries: entries, recents: app.recents) { app.openRecent($0) }
                     .frame(maxWidth: isWide ? 440 : Self.dropZoneSize.width,
@@ -42,7 +44,7 @@ struct WelcomeView: View {
         }
     }
 
-    private var dropZone: some View {
+    private func dropZone(size: CGSize) -> some View {
         // Without the format list when a short window also has to fit the Recent list.
         ViewThatFits(in: .vertical) {
             dropZoneContent(showsFormats: true)
@@ -51,8 +53,8 @@ struct WelcomeView: View {
         .padding(.horizontal, Space.xl)
         .padding(.vertical, Space.l)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(maxWidth: Self.dropZoneSize.width)
-        .frame(minHeight: 220, maxHeight: Self.dropZoneSize.height)
+        .frame(maxWidth: size.width)
+        .frame(minHeight: 220, maxHeight: size.height)
         .background {
             RoundedRectangle(cornerRadius: Radius.panel + 4)
                 .fill(isTargeted ? AnyShapeStyle(.tint.opacity(0.08)) : AnyShapeStyle(.clear))
@@ -68,11 +70,18 @@ struct WelcomeView: View {
 
     private func dropZoneContent(showsFormats: Bool) -> some View {
         VStack(spacing: Space.l) {
-            Image(systemName: isTargeted ? "shippingbox.and.arrow.backward.fill" : "shippingbox")
-                .font(.system(size: 52, weight: .light))
-                .foregroundStyle(isTargeted ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                .contentTransition(.symbolEffect(.replace))
-                .frame(height: 64)
+            // The app's own icon and name, so a large empty window still says whose it is.
+            // The drop feedback is the border, the tint and the words; the icon stays put.
+            VStack(spacing: Space.xs) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 64, height: 64)
+                    .accessibilityHidden(true)
+                Text(verbatim: "Stow")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
 
             VStack(spacing: Space.xs) {
                 Text(isTargeted ? String(localized: "Let go to open") : String(localized: "Drop to open or pack"))
@@ -129,6 +138,16 @@ private struct RecentList: View {
     let recents: RecentArchives
     let open: (RecentArchives.Entry) -> Void
 
+    /// Which ends of the list have rows scrolled out of sight.
+    struct Edges: Equatable {
+        var above = false
+        var below = false
+    }
+
+    @State private var hidden = Edges()
+    /// Roughly one row: whatever row sits at the bottom edge is visibly on its way out.
+    private static let fade: CGFloat = 44
+
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             HStack(alignment: .firstTextBaseline) {
@@ -154,13 +173,20 @@ private struct RecentList: View {
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
-            // Rows that run past the bottom fade out instead of being cut; the margin lets the last one clear the fade.
-            .contentMargins(.bottom, Space.l, for: .scrollContent)
+            .onScrollGeometryChange(for: Edges.self) { geometry in
+                let below = geometry.contentSize.height - geometry.visibleRect.maxY
+                return Edges(above: geometry.visibleRect.minY > 1, below: below > 1)
+            } action: { _, edges in
+                hidden = edges
+            }
+            // An edge with more behind it fades over about a row, so a cut-off row reads as "scroll for more".
             .mask {
                 VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: hidden.above ? Space.l : 0)
                     Color.black
                     LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-                        .frame(height: Space.l)
+                        .frame(height: hidden.below ? Self.fade : 0)
                 }
             }
         }
