@@ -43,31 +43,12 @@ struct PackSheet: View {
 
     private var sentence: some View {
         FlowLayout(spacing: 7, lineSpacing: 8) {
-            words(String(localized: "Pack"))
-            subject
-            words(String(localized: "as a"))
-            Token(title: options.format.displayName) {
-                ForEach(options.audience.formats) { format in
-                    Button(format.displayName) { options.setFormat(format) }
-                }
-            }
-            words(String(localized: "for"))
-            Token(title: options.audience.phrase, suffix: String(localized: ",")) {
-                ForEach(Audience.allCases) { audience in
-                    Button(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) {
-                        setAudience(audience)
-                    }
-                }
-            }
-            Token(title: options.usesPassword ? String(localized: "with a password") : String(localized: "without a password"),
-                  suffix: String(localized: ","), isEnabled: options.format.supportsPassword,
-                  disabledHelp: String(localized: "\(options.format.displayName) can’t be password-protected")) {
-                Button("Without a password") { options.usesPassword = false }
-                Button("With a password") { options.usesPassword = true }
-            }
-            Token(title: options.split.phrase, suffix: String(localized: ".")) {
-                ForEach(SplitSize.allCases) { split in
-                    Button(split.phrase.prefix(1).uppercased() + split.phrase.dropFirst()) { options.split = split }
+            ForEach(Array(PackSentence.segments(from: String(localized: "pack.sentence",
+                defaultValue: "Pack {subject} as a {format} for {audience}, {password}, {split}.",
+                comment: "Pack sheet sentence. Keep the five {…} placeholders (any order); each becomes a menu or the item name.")).enumerated()), id: \.offset) { _, segment in
+                switch segment {
+                case .text(let text): Text(text)
+                case let .slot(slot, suffix): sentenceSlot(slot, suffix: suffix)
                 }
             }
         }
@@ -76,24 +57,54 @@ struct PackSheet: View {
     }
 
     @ViewBuilder
-    private var subject: some View {
+    private func sentenceSlot(_ slot: PackSentence.Slot, suffix: String) -> some View {
+        switch slot {
+        case .subject:
+            subject(suffix: suffix)
+        case .format:
+            Token(title: options.format.displayName, suffix: suffix) {
+                ForEach(options.audience.formats) { format in
+                    Button(format.displayName) { options.setFormat(format) }
+                }
+            }
+        case .audience:
+            Token(title: options.audience.phrase, suffix: suffix) {
+                ForEach(Audience.allCases) { audience in
+                    Button(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) {
+                        setAudience(audience)
+                    }
+                }
+            }
+        case .password:
+            Token(title: options.usesPassword ? String(localized: "with a password") : String(localized: "without a password"),
+                  suffix: suffix, isEnabled: options.format.supportsPassword,
+                  disabledHelp: String(localized: "\(options.format.displayName) can’t be password-protected")) {
+                Button("Without a password") { options.usesPassword = false }
+                Button("With a password") { options.usesPassword = true }
+            }
+        case .split:
+            Token(title: options.split.phrase, suffix: suffix) {
+                ForEach(SplitSize.allCases) { split in
+                    Button(split.phrase.prefix(1).uppercased() + split.phrase.dropFirst()) { options.split = split }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func subject(suffix: String) -> some View {
         if request.roots.count == 1, let root = request.roots.first {
-            Text("“\(root)”")
+            Text(verbatim: "“\(root)”" + suffix)
                 .fontWeight(.semibold)
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: 300)
                 .fixedSize(horizontal: true, vertical: false)
         } else {
-            Text("\(request.roots.count) items")
+            Text(String(localized: "\(request.roots.count) items") + suffix)
                 .fontWeight(.semibold)
                 .liveNumber()
         }
-    }
-
-    @ViewBuilder
-    private func words(_ string: String) -> some View {
-        ForEach(string.split(separator: " ").map(String.init), id: \.self) { Text($0) }
     }
 
     private var passwordField: some View {
