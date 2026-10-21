@@ -70,6 +70,16 @@ jobs:
           fi
           xcodegen generate
 
+      - name: Committed plists match project.yml
+        run: |
+          mkdir -p build
+          git diff -- '*.plist' > build/generated-plists.diff
+          if [[ -s build/generated-plists.diff ]]; then
+            git diff --stat -- '*.plist'
+            echo '::error::xcodegen changed committed plists; commit the regenerated files (diff in the test-results artifact)'
+            exit 1
+          fi
+
       - name: Report who declares the system file types
         continue-on-error: true
         run: scripts/report-type-declarers.sh
@@ -117,4 +127,5 @@ jobs:
           path: |
             build/Stow.xcresult
             build/*.log
+            build/generated-plists.diff
           retention-days: 14

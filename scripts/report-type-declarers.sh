@@ -15,7 +15,9 @@ for block in re.split(r"\n-{20,}\n", sys.stdin.read()):
     if not m or m.group(1) not in found: continue
     b = re.search(r"^bundle:\s+(.+?)\s+\(0x", block, re.M)
     flags = re.search(r"^flags:\s+(.+?)\s+\(", block, re.M)
-    found[m.group(1)].add(f"{b.group(1) if b else \"?\"} [{flags.group(1) if flags else \"\"}]")
+    name = b.group(1) if b else "?"
+    flag = flags.group(1) if flags else ""
+    found[m.group(1)].add(name + " [" + flag + "]")
 for i in ids:
     print(f"{i}: " + ("; ".join(sorted(found[i])) or "NOT DECLARED"))
 ' "$ids"
