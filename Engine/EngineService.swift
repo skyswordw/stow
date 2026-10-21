@@ -18,7 +18,7 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
     static func removeStaleOutputs() {
         let temporary = FileManager.default.temporaryDirectory
         let items = (try? FileManager.default.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil)) ?? []
-        for item in items where [outputPrefix, packPrefix, packInputPrefix].contains(where: item.lastPathComponent.hasPrefix) {
+        for item in items where [outputPrefix, packPrefix, packInputPrefix, "edit-"].contains(where: item.lastPathComponent.hasPrefix) {
             remove(item)
         }
     }
@@ -147,6 +147,172 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
         }
     }
 
+    func edit(_ archive: FileHandle, named name: String, tree: FileHandle?, request payload: Data,
+              reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        let request: EditRequest
+        do { request = try Self.decode(EditRequest.self, from: payload) }
+        catch {
+            try? tree?.close()
+            reply(nil, EngineError(error).nsError)
+            return
+        }
+        let archive = SendableHandle(archive)
+        let tree = tree.map(SendableHandle.init)
+        let id = request.operationID
+        let output = FileManager.default.temporaryDirectory.appending(path: "edit-" + UUID().uuidString)
+        let client = client
+        running.withLock { running in
+            running[id] = Task {
+                do {
+                    let manager = FileManager.default
+                    let input = output.appending(path: "input")
+                    let staged = output.appending(path: "tree")
+                    for folder in [input, staged] {
+                        try manager.createDirectory(at: folder, withIntermediateDirectories: true)
+                    }
+                    outputs.withLock { $0[id] = output }
+                    let work = output.appending(path: "work." + request.format.fileExtension)
+                    try await Self.copy(archive, to: work)
+                    if let tree { try await Self.receive(tree, into: input) }
+                    let sevenZip = try Self.sevenZip()
+                    var encryptedHeaders = false
+                    let listing: ArchiveListing
+                    do { listing = try await sevenZip.list(work) }
+                    catch let error where error.failure == .passwordRequired {
+                        guard request.password != nil else { throw error }
+                        encryptedHeaders = true
+                        listing = try await sevenZip.list(work, password: request.password)
+                    }
+                    guard EditableFormat(listingType: listing.type, fileName: name) == request.format else {
+                        throw EngineError(.failed, String(localized: "This archive format cannot be edited."))
+                    }
+                    if listing.entries.contains(where: \.isEncrypted), request.password == nil {
+                        throw EngineError(.passwordRequired)
+                    }
+                    // Validate passwords before deletion: deleting every encrypted entry must not
+                    // make an incorrect password appear to work at the final verification step.
+                    if encryptedHeaders || listing.entries.contains(where: \.isEncrypted) {
+                        try await sevenZip.test(.file(work), password: request.password) { _ in }
+                    }
+                    let steps = try EditPlan.steps(for: request.operations, listing: listing, format: request.format)
+                    for source in steps.flatMap(\.sources) {
+                        let from = input.appending(path: source.item)
+                        let to = staged.appending(path: source.path)
+                        if source.requiresRegularFile {
+                            var info = stat()
+                            guard lstat(from.path, &info) == 0, info.st_mode & S_IFMT == S_IFREG else {
+                                throw EngineError(.failed, String(localized: "Only an existing regular file can be replaced."))
+                            }
+                        }
+                        let resolved = PathContainment.resolvedPath(from.path)
+                        guard PathContainment.isInside(resolved, root: input.path) else {
+                            throw EngineError(.failed, String(localized: "A staged item points outside the staging tree."))
+                        }
+                        try manager.createDirectory(at: to.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try manager.copyItem(at: from, to: to)
+                    }
+                    let audit = try PathContainment.audit(staging: staged)
+                    guard audit.removedItems.isEmpty, audit.removedLinks.isEmpty else {
+                        throw EngineError(.failed, String(localized: "A staged item points outside the staging tree."))
+                    }
+                    let count = steps.count
+                    for (index, step) in steps.enumerated() {
+                        try Task.checkCancellation()
+                        if step.arguments.first == "t", !request.verify { continue }
+                        var arguments = step.arguments
+                        if arguments.first == "a", request.encryptNewItems, request.password != nil,
+                           request.format != .tar {
+                            arguments.insert(contentsOf: request.format == .zip ? ["-p", "-mem=AES256"] :
+                                (encryptedHeaders ? ["-p", "-mhe=on"] : ["-p"]), at: 1)
+                        }
+                        let parser = ProgressParser()
+                        let result = try await sevenZip.run(arguments, input: nil, password: request.password, in: staged) { chunk in
+                            if let fraction = parser.consume(chunk) { client.progress(id, (Double(index) + fraction) / Double(count)) }
+                        }
+                        do { try SevenZip.check(result) }
+                        catch {
+                            if step.arguments.first == "t", error.failure == .failed {
+                                throw EngineError(.failed, String(localized: "The edited archive didn’t pass its check. The original was kept."))
+                            }
+                            throw error
+                        }
+                        client.progress(id, Double(index + 1) / Double(count))
+                    }
+                    try Task.checkCancellation()
+                    let updated = try await sevenZip.list(work, password: request.password)
+                    let size = try work.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                    let data = try JSONEncoder.engine.encode(EditReport(size: Int64(size), verified: request.verify, listing: updated))
+                    _ = self.running.withLock { $0.removeValue(forKey: id) }
+                    reply(data, nil)
+                } catch {
+                    try? tree?.handle.close()
+                    self.discard(operation: id)
+                    _ = self.running.withLock { $0.removeValue(forKey: id) }
+                    reply(nil, (Task.isCancelled ? EngineError(.cancelled) : EngineError(error)).nsError)
+                }
+            }
+        }
+    }
+
+    /// Copies into the engine's container; cancellation is checked between bounded reads.
+    @concurrent
+    private static func copy(_ source: SendableHandle, to url: URL) async throws {
+        guard FileManager.default.createFile(atPath: url.path, contents: nil) else { throw EngineError(.failed) }
+        let destination = try FileHandle(forWritingTo: url)
+        defer { try? destination.close() }
+        while let bytes = try source.handle.read(upToCount: 64 * 1024), !bytes.isEmpty {
+            try Task.checkCancellation()
+            try destination.write(contentsOf: bytes)
+        }
+    }
+
+    func sendFile(operation: String, to destination: FileHandle, reply: @escaping @Sendable (NSError?) -> Void) {
+        let destination = SendableHandle(destination)
+        guard let output = outputs.withLock({ $0[operation] }), output.lastPathComponent.hasPrefix("edit-") else {
+            try? destination.handle.close()
+            reply(EngineError(.failed).nsError)
+            return
+        }
+        running.withLock { running in
+            running[operation] = Task {
+                do {
+                    let work = try FileManager.default.contentsOfDirectory(at: output, includingPropertiesForKeys: nil)
+                        .first { ["work.zip", "work.7z", "work.tar"].contains($0.lastPathComponent) }
+                    guard let work else { throw EngineError(.failed) }
+                    let size = try work.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                    try await Self.transfer(work, to: destination) { bytes in
+                        self.client.progress(operation, min(1, Double(bytes) / Double(max(1, size))))
+                    }
+                    try Task.checkCancellation()
+                    try destination.handle.close()
+                    self.discard(operation: operation)
+                    _ = self.running.withLock { $0.removeValue(forKey: operation) }
+                    reply(nil)
+                } catch {
+                    try? destination.handle.close()
+                    self.discard(operation: operation)
+                    _ = self.running.withLock { $0.removeValue(forKey: operation) }
+                    reply((Task.isCancelled ? EngineError(.cancelled) : EngineError(error)).nsError)
+                }
+            }
+        }
+    }
+
+    @concurrent
+    private static func transfer(_ work: URL, to destination: SendableHandle,
+                                 progress: @escaping @Sendable (Int64) -> Void) async throws {
+        let source = try FileHandle(forReadingFrom: work)
+        defer { try? source.close() }
+        var sent: Int64 = 0
+        while let bytes = try source.read(upToCount: 64 * 1024), !bytes.isEmpty {
+            try Task.checkCancellation()
+            try destination.handle.write(contentsOf: bytes)
+            sent += Int64(bytes.count)
+            progress(sent)
+        }
+        try destination.handle.synchronize()
+    }
+
     /// Blocking reads from Stow's pipe until it closes its end; off the cooperative pool.
     private static func receive(_ tree: SendableHandle, into folder: URL) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
@@ -188,7 +354,8 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
     }
 
     func cancel(operation: String) {
-        running.withLock { $0[operation] }?.cancel()
+        if let task = running.withLock({ $0[operation] }) { task.cancel() }
+        else { discard(operation: operation) }
     }
 
     // MARK: -

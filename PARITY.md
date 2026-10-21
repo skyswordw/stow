@@ -97,8 +97,8 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Add, delete, replace, rename items; save; undo/redo | ⬜ | |
-| Original untouched until save; rollback on failure | ⬜ (pattern exists for extraction) | |
+| Add, delete, replace, rename items; save; undo/redo | 🧪 E1 engine; ⬜ UI and undo/redo | ZIP / 7Z / TAR; pending macOS verification |
+| Original untouched until save; rollback on failure | 🧪 same-volume atomic save | Fault injection and byte-identity tests; pending macOS verification |
 | Detect archive changed on disk → reload or save a copy | ⬜ | |
 | Rename the archive itself (incl. SMB/NAS) | ⬜ | |
 | Keep browsing position after save | ⬜ | |
