@@ -180,6 +180,8 @@ struct PackSheet: View {
                     .frame(width: 220)
                 Text("." + options.format.fileExtension)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize() // ".tar.zst" wrapped after "tar."
                     .contentTransition(.opacity)
             }
             if archiveName != name.trimmingCharacters(in: .whitespaces), !name.isEmpty {
