@@ -29,18 +29,20 @@ struct NextStepChoicesTests {
             DiskImageLayout.DropTarget(path: "Applications", folder: "/Applications"),
             DiskImageLayout.DropTarget(path: "Components", folder: "/Library/Audio/Plug-Ins/Components"),
             DiskImageLayout.DropTarget(path: "VST3", folder: "/Library/Audio/Plug-Ins/VST3"),
+            DiskImageLayout.DropTarget(path: "HAL", folder: "/Library/Audio/Plug-Ins/HAL"),
         ]
         let plugIn = [entry("Echo.component")]
         let shown = NextStep.suggestions(for: plugIn, dropTargets: targets)
-        #expect(shown.first == .copyTo(folder: "/Library/Audio/Plug-Ins/Components"))
-        #expect(shown.last == .extract)
+        // Two on the bar (the first two folders), the third waits in More.
+        #expect(shown == [.copyTo(folder: "/Library/Audio/Plug-Ins/Components"),
+                          .copyTo(folder: "/Library/Audio/Plug-Ins/VST3"), .extract])
         let more = NextStep.alternatives(for: plugIn, dropTargets: targets)
-        #expect(more.contains(.copyTo(folder: "/Library/Audio/Plug-Ins/VST3")))
+        #expect(more == [.copyTo(folder: "/Library/Audio/Plug-Ins/HAL")])
         #expect(!more.contains(.copyTo(folder: "/Applications")))
         #expect(Set(more).isDisjoint(with: shown))
         // Turning Copy off moves every drop folder to More; nothing is lost.
         let hidden = NextStep.alternatives(for: plugIn, dropTargets: targets, hidden: [.copyTo])
-        #expect(hidden.filter { if case .copyTo = $0 { true } else { false } }.count == 2)
+        #expect(hidden.filter { if case .copyTo = $0 { true } else { false } }.count == 3)
     }
 
     @Test func extractCannotBeTurnedOff() {
