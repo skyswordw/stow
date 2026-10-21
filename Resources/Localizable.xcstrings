@@ -1753,6 +1753,26 @@
         }
       }
     },
+    "Clear Menu": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除菜单"
+          }
+        }
+      }
+    },
+    "Clear the list of recent archives": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除最近使用的压缩包列表"
+          }
+        }
+      }
+    },
     "Click to change": {
       "localizations": {
         "zh-Hans": {
@@ -4012,6 +4032,16 @@
         }
       }
     },
+    "Open Recent": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开最近使用"
+          }
+        }
+      }
+    },
     "Open Sample Archive": {
       "localizations": {
         "zh-Hans": {
@@ -4108,6 +4138,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "目前用 Stow 打开：%@"
+          }
+        }
+      }
+    },
+    "Opens the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开此压缩包"
           }
         }
       }
@@ -4419,6 +4459,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "移除"
+          }
+        }
+      }
+    },
+    "Remove from Recent": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从最近使用中移除"
           }
         }
       }
