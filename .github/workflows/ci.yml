@@ -1,0 +1,116 @@
+# Builds Stow and runs StowTests on a GitHub-hosted Xcode 27 runner (macOS 27), ad-hoc signed.
+# Guards against a "green" run that silently skipped the 7-Zip suites: the bundled 7zz must be in
+# StowEngine.xpc, and scripts/ci-assert-tests.sh fails on any failed or skipped test.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  # Any base branch: wave-2 work is stacked on earlier PRs until they merge.
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    env:
+      XCODE_APP: /Applications/Xcode_27.app
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode and print environment
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          sw_vers
+          xcodebuild -version
+
+      - name: Compute 7-Zip cache key
+        id: sevenzip
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version=//p' scripts/fetch-7zip.sh)
+          sha256=$(sed -n 's/^sha256=//p' scripts/fetch-7zip.sh)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+$ ]]
+          [[ "$sha256" =~ ^[[:xdigit:]]{64}$ ]]
+          echo "key=7zip-${{ runner.os }}-${{ runner.arch }}-${version}-${sha256}" >> "$GITHUB_OUTPUT"
+
+      # Restore and save separately: a combined actions/cache only saves when the whole job passes.
+      - id: cache-7zip
+        uses: actions/cache/restore@v5
+        with:
+          path: Vendor/7zip
+          key: ${{ steps.sevenzip.outputs.key }}
+
+      - name: Fetch and verify 7-Zip
+        run: |
+          zsh scripts/fetch-7zip.sh
+          test -f Vendor/7zip/7zz
+          test -x Vendor/7zip/7zz
+          Vendor/7zip/7zz i | head -3
+
+      - if: steps.cache-7zip.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: Vendor/7zip
+          key: ${{ steps.sevenzip.outputs.key }}
+
+      - name: Generate Xcode project
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen generate
+
+      - name: Build and test
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild test \
+            -project Stow.xcodeproj \
+            -scheme Stow \
+            -destination 'platform=macOS' \
+            -derivedDataPath build/DerivedData \
+            -resultBundlePath build/Stow.xcresult \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
+            2>&1 | tee build/xcodebuild-test.log
+
+      - name: Assert bundled 7-Zip
+        if: ${{ !cancelled() }}
+        run: |
+          found=0
+          while IFS= read -r binary; do
+            test -x "$binary"
+            echo "Verified executable: $binary"
+            found=1
+          done < <(find build/DerivedData -type f -path '*StowEngine.xpc/Contents/MacOS/7zz')
+          if [[ "$found" != 1 ]]; then
+            echo 'error: No executable 7zz found in StowEngine.xpc' >&2
+            exit 1
+          fi
+
+      - name: Assert test results
+        if: ${{ !cancelled() }}
+        env:
+          ALLOWED_SKIPS: "0"
+          # The first CI run (Xcode 27.0) reported exactly 156 tests, matching ROADMAP.md. Raise this
+          # when tests are added; a lower total means suites went missing.
+          MIN_TESTS: "156"
+        run: scripts/ci-assert-tests.sh build/Stow.xcresult
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: test-results
+          path: |
+            build/Stow.xcresult
+            build/*.log
+          retention-days: 14

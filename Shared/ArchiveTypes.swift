@@ -27,7 +27,7 @@ nonisolated struct ArchiveType: Identifiable, Hashable, Sendable {
     let name: String
     let extensions: [String]
     let group: Group
-    /// macOS declares it already; otherwise Stow imports a declaration (app.stow.*).
+    /// macOS declares it already; otherwise Stow imports a declaration (app.stow.* and RAR).
     let isSystemDeclared: Bool
     /// Suggested when people first choose which types open with Stow. Disk images, installers
     /// and executables have better homes (DiskImageMounter, Installer), so they're opt-in.
@@ -49,7 +49,8 @@ nonisolated enum ArchiveTypes {
         ArchiveType("public.zip-archive", "ZIP archive", ["zip"], .everyday),
         ArchiveType("com.winzip.zipx-archive", "ZIPX archive", ["zipx"], .everyday),
         ArchiveType("org.7-zip.7-zip-archive", "7-Zip archive", ["7z"], .everyday),
-        ArchiveType("com.rarlab.rar-archive", "RAR archive", ["rar"], .everyday),
+        // Not declared by macOS: Stow imports it (see project.yml).
+        ArchiveType("com.rarlab.rar-archive", "RAR archive", ["rar"], .everyday, system: false),
         ArchiveType("app.stow.split-archive", "Split archive part", ["001"], .everyday, system: false),
         ArchiveType("public.tar-archive", "TAR archive", ["tar"], .unix),
         ArchiveType("org.gnu.gnu-zip-tar-archive", "TAR.GZ archive", ["tgz"], .unix),
