@@ -195,6 +195,7 @@ struct PackSheet: View {
         options.setAudience(PackPreferences.audience)
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
+        options.split = SettingsKeys.splitSize()
         // Design review: -StowPackDetails YES opens both disclosures.
         if UserDefaults.standard.bool(forKey: "StowPackDetails") { showDetails = true; showMore = true }
     }

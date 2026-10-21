@@ -24,6 +24,10 @@ targets:
       - path: Shared
       - path: Preview
       - path: Handoff
+      - path: LICENSE
+        buildPhase: resources
+      - path: THIRD_PARTY_NOTICES.md
+        buildPhase: resources
     dependencies:
       - target: StowEngine
       - target: StowQuickLook

@@ -91,7 +91,9 @@ struct IntegrationView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(minWidth: 520, minHeight: 460)
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(minWidth: 520)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             settings.refresh()
         }

@@ -1,0 +1,86 @@
+# Renders demo scenes with scripts/snapshot.sh on the hosted Xcode 27 runner and uploads the
+# light and dark window images as an artifact, for design review of a PR. Not a test gate.
+name: Snapshots
+
+on:
+  pull_request:
+    paths:
+      - "App/**"
+      - "Preview/**"
+      - "project.yml"
+      - "scripts/snapshot.sh"
+      - ".github/workflows/snapshots.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  settings:
+    runs-on: xcode-27
+    timeout-minutes: 40
+    env:
+      XCODE_APP: /Applications/Xcode_27.app
+      PANES: general extraction installing packing previews passwords fileTypes integration advanced licenses
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+
+      - name: Compute 7-Zip cache key
+        id: sevenzip
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version=//p' scripts/fetch-7zip.sh)
+          sha256=$(sed -n 's/^sha256=//p' scripts/fetch-7zip.sh)
+          echo "key=7zip-${{ runner.os }}-${{ runner.arch }}-${version}-${sha256}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v5
+        with:
+          path: Vendor/7zip
+          key: ${{ steps.sevenzip.outputs.key }}
+
+      - name: Fetch 7-Zip and generate the project
+        run: |
+          zsh scripts/fetch-7zip.sh
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+          mkdir -p shots
+          # Generated files that are committed (App/Info.plist …) should match project.yml.
+          git diff -- '*.plist' > shots/generated-plists.diff
+          git diff --stat -- '*.plist'
+
+      - name: Build Stow (Debug, ad-hoc)
+        run: |
+          set -o pipefail
+          xcodebuild build -project Stow.xcodeproj -scheme Stow -configuration Debug \
+            -destination 'platform=macOS' -derivedDataPath build \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= | tail -20
+
+      - name: Snapshot every Settings pane, light and dark
+        run: |
+          for look in light dark; do
+            for pane in ${=PANES}; do
+              rm -f snapshots/settings-*.png
+              zsh scripts/snapshot.sh settings "$look" "" -StowSettingsPane "$pane" || echo "::warning::$pane $look failed"
+              for file in snapshots/settings-*.png(N); do
+                mv "$file" "shots/settings-$pane-$look-${${file:t}#settings-$look-}"
+              done
+            done
+          done
+          ls -la shots
+        shell: zsh {0}
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: settings-snapshots
+          path: shots
+          retention-days: 14

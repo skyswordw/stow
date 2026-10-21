@@ -5,6 +5,7 @@ struct PasswordSheet: View {
     let question: PasswordPrompt.Question
     let answer: (String?) -> Void
     @State private var password = ""
+    @State private var showsPassword = SettingsKeys.flag(SettingsKeys.showPassword)
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -25,11 +26,19 @@ struct PasswordSheet: View {
             }
 
             VStack(alignment: .leading, spacing: Space.s) {
-                SecureField("Password", text: $password)
+                Group {
+                    if showsPassword {
+                        TextField("Password", text: $password)
+                    } else {
+                        SecureField("Password", text: $password)
+                    }
+                }
                     .textFieldStyle(.roundedBorder)
                     .controlSize(.large)
                     .focused($isFocused)
                     .onSubmit(submit)
+                Toggle("Show password", isOn: $showsPassword)
+                    .onChange(of: showsPassword) { isFocused = true }
                 if question.isRetry {
                     Label("That password didn’t work. Check it and try again.",
                           systemImage: "exclamationmark.triangle.fill")

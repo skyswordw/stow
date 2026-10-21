@@ -47,6 +47,8 @@ struct ExtractionOptionsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -81,6 +83,8 @@ struct InstallOptionsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollDisabled(true)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func grantRow(_ title: String, granted: Binding<Bool>, folder: URL) -> some View {

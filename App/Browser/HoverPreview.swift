@@ -57,6 +57,7 @@ final class HoverPreviewModel {
 }
 
 private struct HoverPreviewModifier: ViewModifier {
+    @AppStorage(SettingsKeys.hoverPreviews) private var enabled = true
     let entry: ArchiveEntry
     let model: HoverPreviewModel
     let browser: BrowserModel
@@ -64,7 +65,7 @@ private struct HoverPreviewModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onHover { inside in
-                inside ? model.enter(entry) : model.exit(entry)
+                if enabled && inside { model.enter(entry) } else { model.exit(entry) }
                 // Drag-out needs to know which entry a press lands on.
                 if inside {
                     browser.dragOut.hovered = entry.id
@@ -72,6 +73,7 @@ private struct HoverPreviewModifier: ViewModifier {
                     browser.dragOut.hovered = nil
                 }
             }
+            .onChange(of: enabled) { if !enabled { model.close() } }
             .popover(isPresented: isPresented, arrowEdge: .trailing) {
                 HoverPreviewCard(entry: entry, browser: browser)
             }
@@ -79,7 +81,7 @@ private struct HoverPreviewModifier: ViewModifier {
 
     private var isPresented: Binding<Bool> {
         Binding {
-            model.presented == entry.id
+            enabled && model.presented == entry.id
         } set: { newValue in
             if !newValue, model.presented == entry.id { model.close() }
         }

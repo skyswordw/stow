@@ -151,12 +151,14 @@ final class AppState {
 struct StowApp: App {
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
     @State private var app = AppState()
+    @AppStorage(SettingsKeys.appearance) private var appearance = "system"
 
     var body: some Scene {
         Window("Stow", id: "main") {
             RootView()
                 .environment(app)
-                .onAppear { delegate.app = app }
+                .onAppear { delegate.app = app; SettingsAppearance.apply() }
+                .onChange(of: appearance) { SettingsAppearance.apply() }
         }
         .defaultSize(width: 1120, height: 700)
         .windowToolbarStyle(.unified)
@@ -164,6 +166,10 @@ struct StowApp: App {
             StowCommands(app: app)
             BrowseCommands(app: app)
         }
+        Settings {
+            SettingsView().environment(app)
+        }
+        .windowResizability(.contentSize)
     }
 }
 
@@ -171,6 +177,7 @@ struct RootView: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         @Bindable var app = app
@@ -208,7 +215,10 @@ struct RootView: View {
             Text(failure.message)
         }
         .overlay(alignment: .bottomTrailing) { BatchStack(queue: app.batch) }
-        .task { DemoScene.apply(to: app) }
+        .task {
+            SettingsRouter.shared.open = { openSettings() }
+            DemoScene.apply(to: app)
+        }
         .onAppear { app.showMainWindow = { [openWindow] in openWindow(id: "main") } }
     }
 
