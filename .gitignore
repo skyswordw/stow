@@ -14,3 +14,4 @@ DerivedData/
 # Third-party binaries — fetched and checksum-verified by scripts/fetch-7zip.sh
 /Vendor/
 /build-release/
+/_site/

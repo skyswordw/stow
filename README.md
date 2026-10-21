@@ -168,7 +168,8 @@ Settings keys (UserDefaults; views in `App/Options` for the Settings window):
 | `Preview`, `QuickLook` | Quick Look extension and its view (also compiled into the app for review) |
 | `FinderSync`, `Handoff` | Finder context-menu extension and the one-time token hand-off |
 | `App/Welcome` | Empty state / drop target |
-| `website/` | Marketing site |
+| `website/` | Marketing site, deployed with the rendered docs to GitHub Pages (`scripts/build-site.py`, `.github/workflows/pages.yml`) |
+| `ROADMAP.md` | Follow-up plan: remaining features, design polish, release work, and tests not yet run |
 | `.claude/skills` | Project-level agent skills (design engineering, Apple design, Swift) — MIT, © Emil Kowalski |
 
 ## License

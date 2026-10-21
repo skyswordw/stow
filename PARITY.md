@@ -68,7 +68,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | Same-name folder conflicts: Merge / Keep Both; file Replace | ✅ Merge / Keep Both; Replace / Keep Both / Skip; “do the same for the rest” | ➕ replaced items go to the Trash; stopping undoes everything placed so far; apps are never merged |
 | Skip system metadata (__MACOSX, AppleDouble, .DS_Store, Thumbs.db, desktop.ini) while keeping dotfiles like .gitignore | ✅ setting, on by default | ➕ Finder tags, comments and other Mac details in AppleDouble are put back on the files |
 | Unsafe paths, special files (FIFO, sockets, devices), links | ✅ containment | ➕ explained in Checkup |
-| Password archives (incl. RAR), incorrect-password retry, CJK passwords (show-password for IME) | ⬜ in progress (side session) | |
+| Password archives (incl. RAR), incorrect-password retry, CJK passwords (show-password for IME) | ✅ sheet with retry for opening (encrypted 7z file lists), extracting and nested archives; password kept in memory while the archive is open · ⬜ show-password-by-default setting | ZIP passwords outside ASCII get a warning when packing |
 | Batch extraction queue, stacked progress windows | ✅ File › Extract Archives… or drop several; compact progress stack | conflicts and keep/trash asked once per batch |
 | Staged writes, cleanup on cancel/failure | ✅ | |
 | Integrity check of disk images before browsing | ✅ in the background (browsing doesn’t wait) | |
@@ -88,7 +88,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · ⬜ Settings UI | |
 | Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
 | Create disk image (DMG) | ⬜ | (string present in ArcZip; low priority) |
-| Quick Compress with defaults (Finder) | ✅ wired (Services, `ArchivePacking`) · ⬜ create engine | names like Finder (“Report.zip”, “Archive 2.zip”) |
+| Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.
 Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
