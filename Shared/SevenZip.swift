@@ -101,12 +101,12 @@ nonisolated struct SevenZip: Sendable {
     /// each, which is removed here.
     func extract(_ archive: ArchiveInput, into directory: URL, paths: [String] = [], password: String? = nil,
                  progress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> [RemovedLink] {
+        if Self.isTarball(name: archive.name) {
+            return try await extractTarball(archive, into: directory, paths: paths, progress: progress)
+        }
+
         let input = try Prepared(archive)
         defer { input.cleanUp() }
-        if Self.isTarball(name: (input.path as NSString).lastPathComponent) {
-            return try await extractTarball(path: input.path, descriptor: input.descriptor, into: directory,
-                                            paths: paths, progress: progress)
-        }
         var arguments = ["x", "-y", "-aou", "-bso0", "-bsp1", "-sccUTF-8", "-o" + directory.path]
         var listFile: URL?
         if !paths.isEmpty {

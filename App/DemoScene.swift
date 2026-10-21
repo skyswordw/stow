@@ -74,8 +74,8 @@ enum DemoScene {
 
         if defaults.bool(forKey: "StowSnapshot") {
             Task {
-                try? await Task.sleep(for: .seconds(defaults.object(forKey: "StowSnapshotDelay") == nil ? 1.6
-                                                     : defaults.double(forKey: "StowSnapshotDelay")))
+                let delay = defaults.double(forKey: "StowSnapshotDelay")
+                try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
                 for (index, window) in NSApp.windows.filter(\.isVisible).enumerated() {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
                     let name = index == 0 ? "\(scene)-\(kind)" : "\(scene)-\(kind)\(index)"
