@@ -42,7 +42,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | Lazy browsing of huge archives (browse before index finishes) | ⬜ | |
 | iCloud placeholders: wait for download, cancel | ⬜ | |
 | Open Recent menu, clear history | 🎨 recents are sample · ⬜ | |
-| Read-only preview of DMG/ISO (mount read-only, verify, skip installer extras like the Applications alias) | ⬜ | |
+| Read-only preview of DMG/ISO (mount read-only, verify, skip installer extras like the Applications alias) | ✅ through the engine, no mounting (HFS+, APFS, ISO; zlib/LZFSE/LZMA) | ➕ nothing is attached, so nothing to detach or report busy; opens at the volume with the app selected; background art, volume icon and "drag here" shortcuts hidden and left out; checksums checked in the background; encrypted images explained with an Open in Finder way out; unfinished downloads caught |
 
 ## 2. Previews
 
@@ -53,23 +53,23 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 | Thumbnails in icon view | 🎨 generated art · ⬜ real | |
 | Quick Look extension for archives in Finder | ⬜ | ➕ all formats, not just zip/7z/tar; shows Checkup summary |
 | Encrypted entries: preview after unlock | ⬜ | in progress in a side session (password prompt) |
-| Extract to temp & open with default app | ⬜ | |
+| Extract to temp & open with default app | ✅ context menu “Open with Default App” | |
 
 ## 3. Extraction
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | Extract all / selected / drag-out to Finder | ✅ all & selected · ⬜ drag-out (file promises) | |
-| Extract All → folder named after archive | ⬜ | |
-| After Extract All: keep / move archive to Trash / ask | ⬜ | |
-| Auto-close window after extract / install | ⬜ | |
-| Same-name folder conflicts: Merge / Keep Both; file Replace | ⬜ (no-clobber today) | |
-| Skip system metadata (__MACOSX, AppleDouble, .DS_Store, Thumbs.db, desktop.ini) while keeping dotfiles like .gitignore | ✅ helper filter in Shared | |
+| Extract All → folder named after archive | ✅ automatic (one item lands as itself) or always | |
+| After Extract All: keep / move archive to Trash / ask | ✅ with “Don’t ask again” | |
+| Auto-close window after extract / install | ✅ setting | |
+| Same-name folder conflicts: Merge / Keep Both; file Replace | ✅ Merge / Keep Both; Replace / Keep Both / Skip; “do the same for the rest” | ➕ replaced items go to the Trash; stopping undoes everything placed so far; apps are never merged |
+| Skip system metadata (__MACOSX, AppleDouble, .DS_Store, Thumbs.db, desktop.ini) while keeping dotfiles like .gitignore | ✅ setting, on by default | ➕ Finder tags, comments and other Mac details in AppleDouble are put back on the files |
 | Unsafe paths, special files (FIFO, sockets, devices), links | ✅ containment | ➕ explained in Checkup |
 | Password archives (incl. RAR), incorrect-password retry, CJK passwords (show-password for IME) | ⬜ in progress (side session) | |
-| Batch extraction queue, stacked progress windows | ⬜ | |
+| Batch extraction queue, stacked progress windows | ✅ File › Extract Archives… or drop several; compact progress stack | conflicts and keep/trash asked once per batch |
 | Staged writes, cleanup on cancel/failure | ✅ | |
-| Integrity check of disk images before browsing | ⬜ | |
+| Integrity check of disk images before browsing | ✅ in the background (browsing doesn’t wait) | |
 
 ## 4. Creating archives
 
@@ -102,13 +102,13 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · ⬜ not started · �
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Install app from archive/DMG to /Applications; replace existing; reveal in Finder | 🎨 | needs privileged path or user-granted /Applications access |
-| Signature & notarization check (unsigned / ad-hoc / unnotarized / unknown) with warnings | ⬜ | ➕ already surfaced in Checkup design |
-| Optional quarantine-flag removal | ⬜ | off by default, explained |
-| Honour developer “drag to X” DMG layouts | ⬜ | |
-| Install fonts (OTF/TTF/TTC) to user library, replace existing | 🎨 | |
-| PKG: prepare safely, hand off to Installer | 🎨 | |
-| After install: keep/trash archive, close window | ⬜ | |
+| Install app from archive/DMG to /Applications; replace existing; reveal in Finder | ✅ one-time folder grant (see README › Installing) | replace shows both versions, old copy to the Trash; refuses while the app is running |
+| Signature & notarization check (unsigned / ad-hoc / unnotarized / unknown) with warnings | ✅ SecStaticCode + requirements | ➕ plain-word verdict in Checkup and the inspector (“Check Signature” before installing) |
+| Optional quarantine-flag removal | ✅ off by default, explained | installed apps keep the archive’s quarantine so Gatekeeper still checks them; if macOS refuses removal, Checkup says so |
+| Honour developer “drag to X” DMG layouts | ✅ | APFS images give the target; HFS+ ones only reveal a link named “Applications” |
+| Install fonts (OTF/TTF/TTC) to user library, replace existing | ✅ Replace / Skip | web fonts reported as not installable |
+| PKG: prepare safely, hand off to Installer | ✅ unpacked beside the archive, removed when Installer quits | |
+| After install: keep/trash archive, close window | ✅ | |
 | Alternative actions list; customise which actions show; restore suggestions | ⬜ | |
 
 ## 7. Compact window (ArcZip “Mini”) → **Glance**
