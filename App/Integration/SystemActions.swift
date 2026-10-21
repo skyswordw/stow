@@ -55,7 +55,7 @@ final class SystemActions {
         let others = urls.filter { ArchiveTypes.type(forFileName: $0.lastPathComponent) == nil }
         if let archive = archives.first { app?.showMainWindow(); app?.open(archive) }
         if !others.isEmpty, let tray = app?.tray {
-            tray.items += others.map { TrayItem(name: $0.lastPathComponent, size: $0.fileSize, url: $0) }
+            tray.add(others)
             tray.show()
         }
     }

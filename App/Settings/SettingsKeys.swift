@@ -9,6 +9,11 @@ nonisolated enum SettingsKeys {
     static let showPassword = "password.showByDefault"
     static let openInGlance = "glance.openFromFinder"
     static let glancePinned = "glance.pinned"
+    static let trayMenuBarIcon = "tray.menuBarIcon"
+    static let trayShowWhileDragging = "tray.showWhileDragging"
+    static let trayIdleSeconds = "tray.idleSeconds"
+    static let trayBorder = "tray.border"
+    static let trayPinned = "tray.pinned"
 
     enum Appearance: String, CaseIterable, Sendable { case system, light, dark }
     enum DefaultValue: Equatable, Sendable {
@@ -49,7 +54,12 @@ nonisolated enum SettingsKeys {
         .init(key: hoverPreviews, defaultValue: .bool(true)),
         .init(key: showPassword, defaultValue: .bool(false)),
         .init(key: openInGlance, defaultValue: .bool(false)),
-        .init(key: glancePinned, defaultValue: .bool(false))
+        .init(key: glancePinned, defaultValue: .bool(false)),
+        .init(key: trayMenuBarIcon, defaultValue: .bool(true)),
+        .init(key: trayShowWhileDragging, defaultValue: .bool(true)),
+        .init(key: trayIdleSeconds, defaultValue: .integer(30)),
+        .init(key: trayBorder, defaultValue: .string(TrayBorder.accent.rawValue)),
+        .init(key: trayPinned, defaultValue: .bool(false))
     ] + Audience.allCases.map {
         Entry(key: "PackLevel.\($0.rawValue)", defaultValue: .integer(Int64(CompressionLevel.balanced.rawValue)))
     }
@@ -69,6 +79,14 @@ nonisolated enum SettingsKeys {
     static func splitSize(in store: UserDefaults = .standard) -> SplitSize {
         guard let number = store.object(forKey: volumeSize) as? NSNumber else { return .none }
         return SplitSize(rawValue: number.int64Value) ?? .none
+    }
+    static func trayIdleSeconds(in store: UserDefaults = .standard) -> Int {
+        guard let number = store.object(forKey: trayIdleSeconds) as? NSNumber,
+              TrayRules.idleChoices.contains(number.intValue) else { return 30 }
+        return number.intValue
+    }
+    static func trayBorder(in store: UserDefaults = .standard) -> TrayBorder {
+        TrayBorder(rawValue: store.string(forKey: trayBorder) ?? "") ?? .accent
     }
     static func flag(_ key: String, in store: UserDefaults = .standard) -> Bool {
         if let number = store.object(forKey: key) as? NSNumber, number == 0 || number == 1 {

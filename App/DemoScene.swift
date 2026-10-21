@@ -214,7 +214,10 @@ enum DemoScene {
                 TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
                 TrayItem(name: "Kickoff.key", size: 18_900_000),
                 TrayItem(name: "budget-2027.numbers", size: 412_000),
+                TrayItem(name: "Site Photos", size: 0, isFolder: true),
+                TrayItem(name: "Brand Assets.zip", size: 26_400_000),
             ]
+            app.tray.selection = [app.tray.items[1].id, app.tray.items[2].id]
             app.tray.show()
         default:
             break
@@ -245,7 +248,9 @@ enum DemoScene {
                 try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
                 // Glance snapshots are named by the edge they opened at, so each edge keeps its own file.
                 let label = scene == "glance" ? "glance-\(glanceEdge(defaults).rawValue)" : scene
-                for (index, window) in NSApp.windows.filter(\.isVisible).enumerated() {
+                // The Tray's menu-bar icon lives in a status-bar window of its own; it isn't a scene.
+                let windows = NSApp.windows.filter { $0.isVisible && !$0.className.contains("StatusBar") }
+                for (index, window) in windows.enumerated() {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
                     let name = index == 0 ? "\(label)-\(kind)" : "\(label)-\(kind)\(index)"
                     if let url = snapshot(window, name: name) { print(url.path) }

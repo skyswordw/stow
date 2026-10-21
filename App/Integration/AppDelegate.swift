@@ -5,7 +5,10 @@ import OSLog
 /// Open With, Quick Look's "Open in Stow"), `stow://` hand-offs and Services requests.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var app: AppState? {
-        didSet { flush() }
+        didSet {
+            app?.tray.applySettings()
+            flush()
+        }
     }
 
     /// Arrived before the window (and its AppState) existed — e.g. Stow launched by a double-click
