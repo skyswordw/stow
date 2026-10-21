@@ -100,7 +100,7 @@ struct CheckupFormatTests {
         ("Disc.iso", .dmg, "HFS"),
         ("Letter.docx", .zip, "zip"),
         ("Tool.jar", .zip, "zip"),
-        ("data.tar.zst", .other, "zstd"),
+        ("Photos.cpio", .other, "Cpio"),
     ])
     func matchingNamesSayNothing(name: String, real: ArchiveFormat, type: String) {
         let scan = Checkup.FormatScan(name: name, real: real, realType: type)
