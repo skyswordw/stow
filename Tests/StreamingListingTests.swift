@@ -76,17 +76,19 @@ struct StreamingListingTests {
     }
 }
 
-/// Before/after for PARITY.md: the same 100,000-entry ZIP listed by 7-Zip, parsed after the
+/// Before/after for PARITY.md: the same 100,000-entry archive listed by 7-Zip, parsed after the
 /// listing (before #22) and while it runs (now). Times are printed; limits only catch a collapse.
 @Suite("Big listings", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
 struct StreamingListingBenchmark {
     @Test func hundredThousandEntriesStreamed() async throws {
         let folder = try TemporaryFolder()
         defer { folder.cleanUp() }
-        let zip = folder.url.appending(path: "big.zip")
+        // A TAR: ZipFixture writes no ZIP64, so it stops at 65,535 entries. 7-Zip reads TAR on the
+        // same fast path as ZIP and 7z.
+        let zip = folder.url.appending(path: "big.tar")
         let clock = ContinuousClock()
         let write = try clock.measure {
-            try ZipFixture(entries: (0..<100_000).map { .file("Folder \($0 / 200)/Item \($0 % 200).txt", "x") }).write(to: zip)
+            try Self.tar((0..<100_000).map { "Folder \($0 / 200)/Item \($0 % 200).txt" }).write(to: zip)
         }
         let sevenZip = try #require(SevenZip.bundled())
 
@@ -99,11 +101,37 @@ struct StreamingListingBenchmark {
         let encode = try clock.measure { wire = try JSONEncoder.engine.encode(after) }
         let decode = try clock.measure { _ = try JSONDecoder.engine.decode(ArchiveListing.self, from: wire) }
         let model = clock.measure { _ = Archive(listing: after, url: zip) }
-        print("100k-entry listing — fixture \(write); parsed after 7-Zip \(parsedAfter), parsed while it lists \(parsedWhile); "
+        print("100k-entry TAR listing — fixture \(write); parsed after 7-Zip \(parsedAfter), parsed while it lists \(parsedWhile); "
               + "XPC JSON encode \(encode), decode \(decode) (\(wire.count / 1_000_000) MB); browser model \(model)")
 
         #expect(after.entries == before.entries)
         #expect(after.entries.count == 100_000)
         #expect(parsedWhile < .seconds(30) && parsedAfter < .seconds(30))
+    }
+
+    /// A ustar archive of empty files: one 512-byte header each.
+    static func tar(_ names: [String]) -> Data {
+        var data = Data(capacity: (names.count + 2) * 512)
+        for name in names {
+            var header = [UInt8](repeating: 0, count: 512)
+            func put(_ text: String, at offset: Int) {
+                for (index, byte) in text.utf8.enumerated() { header[offset + index] = byte }
+            }
+            put(name, at: 0)
+            put("0000644", at: 100)
+            put("0000000", at: 108)
+            put("0000000", at: 116)
+            put("00000000000", at: 124)
+            put("14707275600", at: 136) // 2026-ish, octal seconds
+            put("        ", at: 148)
+            header[156] = UInt8(ascii: "0")
+            put("ustar", at: 257)
+            put("00", at: 263)
+            let sum = header.reduce(0) { $0 + Int($1) }
+            put(String(format: "%06o", sum) + "\0 ", at: 148)
+            data.append(contentsOf: header)
+        }
+        data.append(Data(count: 1_024))
+        return data
     }
 }
