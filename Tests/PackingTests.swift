@@ -51,7 +51,40 @@ private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, pa
 @Suite("Packing", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
 @MainActor
 struct PackingTests {
-    @Test(arguments: PackFormat.allCases)
+    /// #23: a folder packed as a DMG for Macs opens as a disk with the folder's contents at the top,
+    /// links and permissions intact. Made by hdiutil in the sandboxed test host, as in the app.
+    @Test func makesADiskImageFromAFolder() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, report) = try await pack(tree, audience: .mac, format: .dmg, verify: true, into: out)
+        #expect(result.placed.map(\.lastPathComponent) == ["Project.dmg"])
+        #expect(result.report.verified)
+        #expect(report.notes.contains { $0.title == "Opens like a disk on any Mac" })
+
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        let archive = Archive(listing: listing, url: result.placed[0])
+        #expect(archive.format == .dmg)
+        let top = Set(archive.children(of: archive.volumeRoot).map(\.name))
+        #expect(top.isSuperset(of: ["README.md", "Docs", "run.sh", "link", "Empty"]), "\(listing.entries.map(\.path))")
+        #expect(!top.contains("Project"))
+
+        let extracted = try await Extraction.run(archive, selection: nil, to: out) { _ in }
+        let root = try #require(extracted.placed.first)
+        let base = root
+        let files = TemporaryFolder.contents(of: base)
+        let readme = try #require(files.first { $0.hasSuffix("README.md") }, "\(files)")
+        let folder = base.appending(path: (readme as NSString).deletingLastPathComponent)
+        #expect(try String(contentsOf: folder.appending(path: "Docs/a.txt"), encoding: .utf8) == "a")
+        let mode = try FileManager.default.attributesOfItem(atPath: folder.appending(path: "run.sh").path)[.posixPermissions] as? Int
+        #expect(mode == 0o755)
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: folder.appending(path: "link").path) == "README.md")
+    }
+
+    /// DMG has its own test below: a disk's layout differs (one folder's contents at the top).
+    @Test(arguments: PackFormat.allCases.filter { $0 != .dmg })
     func roundTripsThroughEveryFormat(format: PackFormat) async throws {
         let tree = try SourceTree()
         defer { tree.cleanUp() }
