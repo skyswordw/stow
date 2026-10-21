@@ -58,11 +58,13 @@ enum Installer {
             if answer == .cancel { throw EngineError(.cancelled) }
             if answer == .alternate {
                 // Keep Both: the new copy gets a number, the installed one stays as it is.
+                if !removeQuarantine, let source = archive.source?.url { Quarantine.inherit(from: source, to: bundle) }
                 let placement = try await Placement.place([(bundle, entry.name)], in: folder)
                 return AppOutcome(app: placement.placed[0], verdict: verdict, replaced: false,
                                   quarantineRemoved: removeQuarantine ? Quarantine.remove(under: placement.placed[0]) : nil)
             }
         }
+        if !removeQuarantine, let source = archive.source?.url { Quarantine.inherit(from: source, to: bundle) }
         let placement = try await Placement.place([(bundle, entry.name)], in: folder) { _ in .replace }
         guard let app = placement.placed.first else { throw EngineError(.failed, "Nothing was installed.") }
         return AppOutcome(app: app, verdict: verdict, replaced: replacing,
@@ -131,12 +133,12 @@ enum Installer {
 
     // MARK: - Packages
 
-    /// Extracts the package into a private temporary folder and opens it in Installer, which shows
-    /// its signature and asks for an administrator password itself. The copy is removed when
-    /// Installer quits (or on Stow's next launch).
-    static func openInstaller(_ entry: ArchiveEntry, from archive: Archive,
+    /// Extracts the package into a hidden folder beside the archive (Installer refuses packages a
+    /// sandboxed app wrote into its own container) and opens it in Installer, which shows its
+    /// signature and asks for an administrator password itself. The copy is removed when Installer quits.
+    static func openInstaller(_ entry: ArchiveEntry, from archive: Archive, near location: URL,
                               onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> URL {
-        let folder = PackageHandoff.makeFolder()
+        let folder = try PackageHandoff.makeFolder(in: location)
         do {
             let result = try await Extraction.run(archive, selection: [entry], to: folder, onProgress: onProgress)
             guard let package = result.placed.first else { throw EngineError(.failed, "“\(entry.name)” wasn’t extracted.") }
@@ -157,6 +159,15 @@ enum Quarantine {
         getxattr(url.path, attribute, nil, 0, 0, XATTR_NOFOLLOW) >= 0
     }
 
+    /// Like Archive Utility: an app from a downloaded archive stays "downloaded", so Gatekeeper
+    /// checks it the first time it opens. Best effort — the sandbox may refuse, or have set it already.
+    static func inherit(from archive: URL, to root: URL) {
+        var buffer = [UInt8](repeating: 0, count: 1024)
+        let length = getxattr(archive.path, attribute, &buffer, buffer.count, 0, 0)
+        guard length > 0, !isQuarantined(root) else { return }
+        _ = setxattr(root.path, attribute, buffer, length, 0, XATTR_NOFOLLOW)
+    }
+
     /// Removes the flag from `root` and everything inside it. False if macOS refused for any item —
     /// a sandboxed app may not be allowed to; the app then simply gets Gatekeeper's normal check.
     static func remove(under root: URL) -> Bool {
@@ -172,14 +183,19 @@ enum Quarantine {
     }
 }
 
-/// Packages waiting in Installer. Each lives in its own folder in Stow's temporary directory.
+/// Packages waiting in Installer, each in a hidden folder beside its archive.
 enum PackageHandoff {
-    private static let parent = FileManager.default.temporaryDirectory.appending(path: "Installers", directoryHint: .isDirectory)
+    private static var waiting: [URL] = []
     private static var observer: NSObjectProtocol?
 
-    static func makeFolder() -> URL {
-        let folder = parent.appending(path: UUID().uuidString, directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    static func makeFolder(in location: URL) throws(EngineError) -> URL {
+        let folder = location.appending(path: ".stow-installer-\(UUID().uuidString)", directoryHint: .isDirectory)
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        } catch {
+            throw EngineError(.failed, "Couldn’t prepare the installer: \(error.localizedDescription)")
+        }
+        waiting.append(folder)
         return folder
     }
 
@@ -196,9 +212,10 @@ enum PackageHandoff {
         }
     }
 
-    /// Clears copies once Installer quits; also called at launch for anything left from last time.
+    /// Removes the copies once Installer quits, and when Stow quits.
     static func removeAll() {
-        try? FileManager.default.removeItem(at: parent)
+        for folder in waiting { try? FileManager.default.removeItem(at: folder) }
+        waiting.removeAll()
     }
 
     private static func watchInstaller() {

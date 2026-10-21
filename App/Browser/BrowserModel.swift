@@ -75,7 +75,7 @@ final class BrowserModel {
 
     var subtitle: String {
         let count = visibleEntries.count
-        return isSearching ? "\(count) results in \(archive.name)" : "\(count) items"
+        return isSearching ? "\(count) results in \(archive.name)" : count == 1 ? "1 item" : "\(count) items"
     }
 
     func open(_ entry: ArchiveEntry) {
@@ -260,8 +260,15 @@ final class BrowserModel {
 
     private func openInstaller(_ entry: ArchiveEntry) {
         let archive = archive
-        perform(.openInstaller, itemCount: 1) { progress throws(EngineError) in
-            _ = try await Installer.openInstaller(entry, from: archive, onProgress: progress)
+        let beside = FolderAccess.override ?? archive.source?.url.deletingLastPathComponent() ?? FolderAccess.home
+        var grant: FolderAccess.Grant?
+        perform(.openInstaller, itemCount: 1, prepare: { () async throws(EngineError) in
+            grant = try await FolderAccess.request(
+                beside, purpose: "To open “\(entry.name)” in Installer, Stow unpacks it next to the archive for a moment.")
+        }) { progress throws(EngineError) in
+            guard let grant else { throw EngineError(.cancelled) }
+            defer { grant.release() }
+            _ = try await Installer.openInstaller(entry, from: archive, near: grant.url, onProgress: progress)
             return Finished()
         }
     }
@@ -322,7 +329,7 @@ final class BrowserModel {
     static func finding(_ verdict: CodeSignature.Verdict, app: String) -> CheckupFinding {
         let base = verdict.finding
         return CheckupFinding(severity: base.severity == .fine ? .info : base.severity,
-                              title: "“\(Installer.displayName(app))”: \(base.title.prefix(1).lowercased() + base.title.dropFirst())",
+                              title: verdict.headline(app: Installer.displayName(app)),
                               detail: base.detail)
     }
 

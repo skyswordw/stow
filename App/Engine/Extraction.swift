@@ -110,8 +110,16 @@ enum Extraction {
         }
     }
 
-    /// On the destination's volume, so the final move is a rename.
+    /// Inside the destination itself: the final move is a rename, and — because the person chose
+    /// that folder — what Stow writes there isn't marked "created by a sandboxed app, may not run"
+    /// (see `com.apple.security.files.user-selected.executable` in App/Stow.entitlements). Staged
+    /// in Stow's container instead, extracted apps and packages would refuse to open.
+    /// Falls back to the system's replacement folder on volumes where that isn't possible.
     private static func makeStaging(for destination: URL) throws(EngineError) -> URL {
+        let inside = destination.appending(path: ".stow-staging-\(UUID().uuidString)", directoryHint: .isDirectory)
+        if (try? FileManager.default.createDirectory(at: inside, withIntermediateDirectories: false)) != nil {
+            return inside
+        }
         do {
             return try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask,
                                                appropriateFor: destination, create: true)

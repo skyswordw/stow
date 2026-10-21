@@ -27,9 +27,10 @@ final class AppState {
 
     init() {
         tray.app = self
-        // Copies handed to Installer or a default app last time.
-        PackageHandoff.removeAll()
+        // Copies opened in a default app last time.
         TemporaryOpen.removeAll()
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
+                                               queue: .main) { _ in MainActor.assumeIsolated { PackageHandoff.removeAll() } }
     }
 
     /// Lists a real archive through the engine and shows it in the browser.
