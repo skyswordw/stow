@@ -7,7 +7,7 @@ cd "${0:a:h}/.."
 lang=${1:-zh-Hans}
 rm -rf build/loc && mkdir -p build/loc
 xcodebuild -exportLocalizations -project Stow.xcodeproj -localizationPath build/loc -exportLanguage "$lang" \
-  -derivedDataPath build/LocDerivedData CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
+  CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
   > build/loc/export.log 2>&1 || { tail -40 build/loc/export.log; exit 1; }
 xliff=$(find build/loc -name "$lang.xliff" | head -1)
 [[ -n $xliff ]] || { echo "error: no $lang.xliff exported" >&2; exit 1; }
