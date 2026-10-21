@@ -21,6 +21,7 @@ struct SettingsTests {
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
                 "browse.hoverPreviews", "password.showByDefault", "glance.openFromFinder", "glance.pinned",
                 "tray.menuBarIcon", "tray.showWhileDragging", "tray.idleSeconds", "tray.border", "tray.pinned",
+                "nextSteps.shown", "nextSteps.hidden",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]
             let keys = SettingsKeys.resettable.map(\.key)
@@ -69,11 +70,11 @@ struct SettingsTests {
 
     @Test func panesHaveDesignOrderAndUniqueLabels() {
         let panes = SettingsPane.allCases
-        #expect(panes.map(\.rawValue) == ["general", "extraction", "installing", "packing", "previews",
+        #expect(panes.map(\.rawValue) == ["general", "extraction", "installing", "packing", "nextSteps", "previews",
                                           "passwords", "fileTypes", "integration", "advanced", "licenses"])
         #expect(panes.allSatisfy { !$0.title.isEmpty && !$0.systemImage.isEmpty })
-        #expect(Set(panes.map(\.title)).count == 10)
-        #expect(Set(panes.map(\.systemImage)).count == 10)
+        #expect(Set(panes.map(\.title)).count == 11)
+        #expect(Set(panes.map(\.systemImage)).count == 11)
     }
 
     @Test func invalidNewValuesFallBack() throws {
