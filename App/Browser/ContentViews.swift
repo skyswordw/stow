@@ -167,7 +167,7 @@ private struct GridTile: View {
                 .opacity(entry.isHelper ? 0.55 : 1)
 
             VStack(spacing: 2) {
-                EditingName(model: model, entry: entry)
+                EditingName(model: model, entry: entry, showsState: false)
                     .font(.callout)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -176,7 +176,7 @@ private struct GridTile: View {
                     .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                     .background(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.clear),
                                 in: .rect(cornerRadius: 5))
-                Text(showsPath ? entry.parent.isEmpty ? String(localized: "Top level") : entry.parent : entry.size.bytes)
+                detail
                     .font(.caption)
                     .monospacedDigit()
                     .lineLimit(1)
@@ -187,6 +187,13 @@ private struct GridTile: View {
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    /// Size (or where, while searching), then a staged edit's tag: "3.9 MB · Renamed".
+    private var detail: Text {
+        let base = Text(showsPath ? entry.parent.isEmpty ? String(localized: "Top level") : entry.parent : entry.size.bytes)
+        guard let state = model.editSession.state(for: entry.path) else { return base }
+        return Text("\(base) · \(Text(state).foregroundStyle(EditingTag.style(for: state)))")
     }
 }
 
