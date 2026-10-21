@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 /// A byte-level reader for `7zz l -slt`, for the common formats only (ZIP, 7z, RAR, tar). A
 /// 100,000-entry archive lists as well over a million lines; this reads them without making a
@@ -31,6 +32,14 @@ nonisolated extension SevenZip {
         var parser = ListingParser()
         parser.consumeLines(bytes)
         return parser.finish()
+    }
+
+    /// A `ListingParser` that 7-Zip's output handler can feed from its own queue.
+    final class ListingStream: Sendable {
+        private let parser = Mutex(ListingParser())
+
+        func consume(_ chunk: Data) { parser.withLock { $0.consume(chunk) } }
+        func finish() -> (listing: ArchiveListing, legacy: [Int])? { parser.withLock { $0.finish() } }
     }
 
     /// Reads `7zz l -slt` as it arrives (issue #22): feed each chunk of output to `consume` while

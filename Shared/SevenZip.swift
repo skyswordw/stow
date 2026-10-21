@@ -39,11 +39,12 @@ nonisolated struct SevenZip: Sendable {
     func list(_ archive: ArchiveInput, password: String? = nil, streamed: Bool = true) async throws(EngineError) -> ArchiveListing {
         let input = try Prepared(archive)
         defer { input.cleanUp() }
-        let parser = Mutex(ListingParser())
+        let stream = ListingStream()
+        let onOutput: (@Sendable (Data) -> Void)? = streamed ? { chunk in stream.consume(chunk) } : nil
         let result = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor, password: password,
-                                   onOutput: streamed ? { chunk in parser.withLock { $0.consume(chunk) } } : nil)
+                                   onOutput: onOutput)
         try Self.check(result)
-        let fast = streamed ? parser.withLock { $0.finish() } : Self.parseListingFast(result.output)
+        let fast = streamed ? stream.finish() : Self.parseListingFast(result.output)
         guard var listing = fast?.listing ?? Self.parseListing(result.output) else {
             throw EngineError(.notAnArchive)
         }
