@@ -6,7 +6,7 @@ import SwiftUI
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
 /// Scenes: onboarding, welcome (no history), recents (the welcome window with history),
-/// grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
+/// grid, list, fonts, search, search-nested (results inside an inner archive), activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too.
@@ -70,6 +70,20 @@ enum DemoScene {
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Fonts"
             app.browser?.selection = Set(app.browser?.visibleEntries.map(\.id) ?? [])
+        case "search-nested":
+            // Search reaching into Earlier Rounds/Old Explorations.7z; the sample can't extract,
+            // so the inner listing is made up here. One result inside it is selected.
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.viewMode = .list
+            app.browser?.nestedLoader = { entry, _ in
+                guard entry.name == "Old Explorations.7z" else { throw EngineError(.failed) }
+                let date = Date(timeIntervalSince1970: 1_700_000_000)
+                return [("Round 1/Wordmark Ideas.pdf", 2_400_000), ("Round 2/Wordmark Draft.svg", 31_000),
+                        ("Round 2/Mark Sketches.png", 880_000), ("Notes.txt", 2_000)]
+                    .map { ArchiveEntry(path: $0.0, isFolder: false, size: $0.1, packedSize: $0.1 / 2, modified: date) }
+            }
+            app.browser?.query = "wordmark"
+            app.browser?.selection = ["Earlier Rounds/Old Explorations.7z/Round 2/Wordmark Draft.svg"]
         case "search":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.query = "harbor"
@@ -89,6 +103,11 @@ enum DemoScene {
             UserDefaults.standard.register(defaults: ["StowPackDetails": true])
             var request = PackRequest(files: SampleArchive.packCandidates)
             request.initialFormat = .tarZst
+            app.packRequest = request
+        case "pack-dmg":
+            // A DMG for Macs: the split word is off (a disk image is one file).
+            var request = PackRequest(files: SampleArchive.packCandidates)
+            request.initialFormat = .dmg
             app.packRequest = request
         case "packing":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .running(0.42))
