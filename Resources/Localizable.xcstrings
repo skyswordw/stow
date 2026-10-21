@@ -71,6 +71,176 @@
         }
       }
     },
+    "Back to the Tray": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回托盘"
+          }
+        }
+      }
+    },
+    "Changed on disk": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘上已更改"
+          }
+        }
+      }
+    },
+    "Copies go in a new folder beside “%@”. The originals stay put.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "副本会放进“%@”旁边的新文件夹，原件保持不动。"
+          }
+        }
+      }
+    },
+    "Drop every unsaved change": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放弃所有未存储的更改"
+          }
+        }
+      }
+    },
+    "Extract and Repack makes a new ZIP or 7Z with the same files, which you can change. This archive stays as it is.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“解压缩并重新打包”会用相同的文件生成一个可以修改的 ZIP 或 7Z 压缩包，这个压缩包保持不变。"
+          }
+        }
+      }
+    },
+    "Folder name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹名称"
+          }
+        }
+      }
+    },
+    "Let go to add": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松开即可添加"
+          }
+        }
+      }
+    },
+    "More things to do with these items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对这些项目的更多操作"
+          }
+        }
+      }
+    },
+    "Nothing changes on disk until you save.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储之前，磁盘上的文件不会改变。"
+          }
+        }
+      }
+    },
+    "Pack these into an archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将这些项目压缩成一个压缩包"
+          }
+        }
+      }
+    },
+    "Remove from the Tray — the file stays where it is": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从托盘中移除——文件仍留在原处"
+          }
+        }
+      }
+    },
+    "Remove from Tray": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从托盘中移除"
+          }
+        }
+      }
+    },
+    "Save a copy to keep your changes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储副本以保留你的更改。"
+          }
+        }
+      }
+    },
+    "Save the archive with your changes as a new file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将包含更改的压缩包存储为新文件"
+          }
+        }
+      }
+    },
+    "Saving “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在存储“%@”"
+          }
+        }
+      }
+    },
+    "Saving…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在存储…"
+          }
+        }
+      }
+    },
+    "Show the archive as it is on disk now — your unsaved changes are dropped": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示磁盘上当前的压缩包——未存储的更改将被放弃"
+          }
+        }
+      }
+    },
     "This folder already has an item named “%@”.": {
       "localizations": {
         "zh-Hans": {
@@ -6868,6 +7038,16 @@
         }
       }
     },
+    "Write the changes into “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将更改写入“%@”"
+          }
+        }
+      }
+    },
     "XAR archive": {
       "localizations": {
         "zh-Hans": {
@@ -7311,6 +7491,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "这台 Mac 无法在同一位置存放“%1$@”和“%2$@”。两者都会保留，第二个名称会添加编号。"
+          }
+        }
+      }
+    },
+    "“%@” changed on disk.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”已在磁盘上更改。"
           }
         }
       }
