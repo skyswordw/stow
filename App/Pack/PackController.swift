@@ -31,6 +31,7 @@ final class PackController {
         var name: String
         var destination: URL
         var conflict: ArchiveCreation.Conflict = .keepBoth
+        var cleanupDirectory: URL?
     }
 
     private(set) var activity: Activity?
@@ -44,6 +45,7 @@ final class PackController {
         task?.cancel()
         activity = Activity(name: job.name + "." + job.request.format.fileExtension, phase: .running(0))
         task = Task { [weak self] in
+            defer { if let directory = job.cleanupDirectory { try? FileManager.default.removeItem(at: directory) } }
             do {
                 let result = try await ArchiveCreation.run(
                     job.items, totalBytes: job.totalBytes, attributes: job.attributes, request: job.request,
@@ -189,13 +191,13 @@ enum PackDestination {
     }
 
     /// Files and folders to pack, for New Archive (⌘N).
-    static func chooseSources() async -> [URL] {
+    static func chooseSources(forAdding: Bool = false) async -> [URL] {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.prompt = String(localized: "Choose")
-        panel.message = String(localized: "Choose files and folders to pack.")
+        panel.prompt = forAdding ? String(localized: "Add Files") : String(localized: "Choose")
+        panel.message = forAdding ? String(localized: "Choose files and folders to add.") : String(localized: "Choose files and folders to pack.")
         let response = if let window = NSApp.keyWindow {
             await panel.beginSheetModal(for: window)
         } else {

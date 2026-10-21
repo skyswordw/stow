@@ -73,7 +73,12 @@ enum ArchiveSaver {
         guard let format = EditableFormat(listingType: listing.type, fileName: url.lastPathComponent) else {
             throw EngineError(.failed, String(localized: "This archive format cannot be edited."))
         }
-        _ = try EditPlan.steps(for: operations, listing: listing, format: format)
+        let sources = items.compactMap { item -> ListedEntry? in
+            guard let values = try? item.source.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey]) else { return nil }
+            return ListedEntry(path: item.path, isFolder: values.isDirectory == true && values.isSymbolicLink != true,
+                               isSymlink: values.isSymbolicLink == true, size: Int64(values.fileSize ?? 0))
+        }
+        _ = try EditPlan.steps(for: operations, listing: listing, format: format, sources: sources)
         let directory: URL
         do {
             directory = try manager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url, create: true)

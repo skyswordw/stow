@@ -26,6 +26,8 @@ final class PreviewService {
     let cache: PreviewCache
     /// The password that opened the archive, if it needed one. Set by the browser.
     var password: (Archive) -> String? = { _ in nil }
+    var originalFile: (ArchiveEntry, Archive) -> (ArchiveEntry, Archive)? = { _, _ in nil }
+    var stagedSource: (ArchiveEntry, Archive) -> URL? = { _, _ in nil }
 
     private let thumbnails = NSCache<NSString, NSImage>()
     private var failed = Set<String>()
@@ -65,7 +67,11 @@ final class PreviewService {
         guard !Task.isCancelled else { return nil }
 
         let url: URL?
-        if let hit = cache.cachedFile(for: entry, in: archive) {
+        if let staged = stagedSource(entry, archive) {
+            url = staged
+        } else if let (original, base) = originalFile(entry, archive) {
+            url = try? await cache.file(for: original, in: base, password: password(archive))
+        } else if let hit = cache.cachedFile(for: entry, in: archive) {
             url = hit
         } else {
             url = await batchedFile(for: entry, in: archive)
@@ -115,7 +121,11 @@ final class PreviewService {
     /// The entry on disk, extracting it if needed (Space, Open, nested archives).
     func file(for entry: ArchiveEntry, in archive: Archive,
               onProgress: (@Sendable (Double) -> Void)? = nil) async throws(EngineError) -> URL {
-        try await cache.file(for: entry, in: archive, password: password(archive), onProgress: onProgress)
+        if let url = stagedSource(entry, archive) { return url }
+        if let (original, base) = originalFile(entry, archive) {
+            return try await cache.file(for: original, in: base, password: password(archive), onProgress: onProgress)
+        }
+        return try await cache.file(for: entry, in: archive, password: password(archive), onProgress: onProgress)
     }
 
     // MARK: - Rich previews

@@ -10,6 +10,9 @@ engine; packing creates real archives; the install Next Steps (apps, fonts, inst
 Finder integration (Quick Look, context menu, Services, file types) are real. "Try the Sample", the
 Recent list and most design-review scenes still use fictional sample data.
 
+- 🧪 Staged ZIP / 7Z / TAR editing: add, delete, rename, replace, undo/redo, and atomic Save (pending macOS verification).
+- 🧪 Read-only archives explain the limitation and offer Extract and Repack as ZIP or 7Z (pending macOS verification).
+
 ## Requirements
 
 - macOS 26 or later (uses Liquid Glass APIs directly — no fallbacks)
@@ -37,7 +40,7 @@ extensions (ad-hoc signatures change every build, and several worktrees may hold
 scripts/snapshot.sh <scene> [light|dark]   # → snapshots/
 ```
 
-Scenes: `welcome`, `grid`, `list`, `fonts`, `search`, `activity`, `pack`, `tray`, `quicklook`
+Scenes: `editing`, `readonly`, `welcome`, `grid`, `list`, `fonts`, `search`, `activity`, `pack`, `tray`, `quicklook`
 (`-StowPreview encrypted|slow`), `associations`, `integration` (`-StowRepair YES`), `batch`,
 `conflict`, `conflict-folder`, `signature-warning`, `replace-app`, `extract-options`, `install-options`,
 `packing`, `packed`, `packrun`. Browsing scenes take `-StowOpen <path>` plus the flags listed in

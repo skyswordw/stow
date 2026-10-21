@@ -47,6 +47,10 @@ final class AppState {
         Task {
             defer { isOpening = false }
             do {
+                if let browser, !(await browser.confirmDiscardingEdits()) {
+                    if scoped { url.stopAccessingSecurityScopedResource() }
+                    return
+                }
                 try await DownloadCheck.waitUntilComplete(url)
                 let listing: ArchiveListing
                 let password: String?
@@ -85,6 +89,34 @@ final class AppState {
         }
     }
 
+    func extractAndRepack(_ model: BrowserModel) {
+        // Snapshot/sample scenes must never start extraction or packing work.
+        guard model.archive.source != nil else { return }
+        Task {
+            do {
+                let archive = model.archive
+                let (staged, password) = try await model.passwords.retrying(archive.name, for: .extract, known: model.level.password) { password in
+                    var input = archive
+                    input.source?.password = password
+                    return try await Extraction.stage(input, selection: nil, near: FileManager.default.temporaryDirectory,
+                                                       skipSystemFiles: false, onProgress: { _ in })
+                }
+                model.level.password = password
+                do {
+                    let urls = try FileManager.default.contentsOfDirectory(at: staged.root, includingPropertiesForKeys: nil)
+                    var request = await PackRequest.gather(urls)
+                    request.directory = model.levels.first?.archive.source?.url.deletingLastPathComponent()
+                    var stem = (archive.name as NSString).deletingPathExtension
+                    if stem.lowercased().hasSuffix(".tar") { stem = (stem as NSString).deletingPathExtension }
+                    request.suggestedNameOverride = stem
+                    request.initialFormat = .zip
+                    request.cleanupDirectory = staged.folder
+                    packRequest = request
+                } catch { staged.discard(); throw error }
+            } catch { model.editSession.message = EngineError(error).message }
+        }
+    }
+
     /// New Archive (⌘N): pick what to pack.
     func chooseFilesToPack() {
         Task { pack(await PackDestination.chooseSources()) }
@@ -118,7 +150,6 @@ final class AppState {
 
     /// "Close the window after Extract All or an install": the archive closes with it.
     func closeWindow() {
-        closeArchive()
         NSApp.windows.first { !($0 is NSPanel) && $0.isVisible && $0.sheetParent == nil }?.performClose(nil)
     }
 
@@ -131,8 +162,11 @@ final class AppState {
     }
 
     func closeArchive() {
-        releaseScope()
-        browser = nil
+        Task {
+            guard await browser?.confirmDiscardingEdits() ?? true else { return }
+            releaseScope()
+            browser = nil
+        }
     }
 
     private func releaseScope() {

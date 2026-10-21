@@ -33,7 +33,9 @@ final class BrowserModel {
     final class Level: Identifiable {
         let id = UUID()
         var archive: Archive
+        var savedArchive: Archive
         var password: String?
+        let edits: EditSession
         /// Where this archive sits in the level above; nil for the archive that was opened.
         let entryPath: String?
         fileprivate(set) var search: SearchIndex
@@ -41,6 +43,9 @@ final class BrowserModel {
 
         init(archive: Archive, password: String? = nil, entryPath: String? = nil) {
             self.archive = archive
+            savedArchive = archive
+            let base = archive.source?.listing ?? ArchiveListing(type: archive.format == .sevenZip ? "7z" : archive.format.rawValue, entries: (archive.entries + archive.index.helpers).map { ListedEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size) })
+            edits = EditSession(base: base, url: archive.source?.url, name: archive.name, nested: entryPath != nil)
             self.password = password
             self.entryPath = entryPath
             search = SearchIndex(total: archive.index.visible.count + archive.index.helpers.count)
@@ -113,16 +118,161 @@ final class BrowserModel {
         }
         quickLook.model = self
         dragOut.model = self
+        connectEdits(root)
         refresh()
         if let suggested = Self.suggestedSelection(in: archive) { select([suggested]) }
         startIndexing(root)
     }
+
+    var editSession: EditSession { level.edits }
+    var renamingPath: String?
+    var renameText = ""
+    weak var editingWindow: NSWindow?
 
     var level: Level { levels[levels.count - 1] }
 
     var archive: Archive {
         get { level.archive }
         set { level.archive = newValue }
+    }
+
+    private func connectEdits(_ target: Level) {
+        var previousOperations = target.edits.operations
+        for (shown, stored) in target.archive.source?.storedPaths ?? [:] {
+            for path in stored { target.edits.displayedPaths[path] = shown }
+        }
+        target.edits.onChange = { [weak self, weak target] in
+            guard let self, let target else { return }
+            let old = target.archive
+            let nextOperations = target.edits.operations
+            let common = zip(previousOperations, nextOperations).prefix { pair in pair.0 == pair.1 }.count
+            let reversedRenames = previousOperations.dropFirst(common).reversed().compactMap { operation -> EditOperation? in
+                if case let .rename(from, to) = operation { return .rename(from: to, to: from) }
+                return nil
+            }
+            let moves = target.edits.isSaving ? [] : reversedRenames + Array(nextOperations.dropFirst(common))
+            previousOperations = nextOperations
+            if self.level === target {
+                self.folder = EditSession.map(path: self.folder, through: moves)
+                self.selection = Set(self.selection.map { EditSession.map(path: $0, through: moves) })
+            }
+            self.history = self.history.map { location in
+                Location(levels: location.levels, folder: location.levels.last === target ? EditSession.map(path: location.folder, through: moves) : location.folder)
+            }
+            if let url = old.source?.url {
+                var updated = Archive(listing: target.edits.pending, url: url, name: old.name, nameEncoding: old.source?.nameEncoding)
+                updated.source?.password = target.password
+                target.archive = updated
+                if target.edits.isSaving { target.savedArchive = updated }
+            } else {
+                target.archive = Archive(name: old.name, format: old.format, files: target.edits.pending.entries.map {
+                    ArchiveEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size, packedSize: $0.packedSize ?? 0, modified: $0.modified ?? .distantPast)
+                })
+            }
+            target.search = SearchIndex(total: target.archive.index.visible.count + target.archive.index.helpers.count)
+            target.indexed = 0
+            if self.level === target {
+                self.folder = EditSession.nearestExistingParent(self.folder, in: target.edits.pending)
+                self.selection = self.selection.filter { target.archive.entry(at: $0) != nil }
+                self.refresh()
+                self.runSearch()
+            }
+            self.editingWindow?.isDocumentEdited = self.levels.contains { $0.edits.isEdited }
+            self.startIndexing(target)
+        }
+        previews.originalFile = { [weak self] entry, archive in
+            guard let target = self?.levels.first(where: { $0.archive.id == archive.id }), target.edits.isEdited else { return nil }
+            let original = target.edits.originalPath(for: entry.path)
+            guard let originalEntry = target.savedArchive.entry(at: original) else { return nil }
+            return (originalEntry, target.savedArchive)
+        }
+        previews.stagedSource = { [weak self] entry, archive in
+            self?.levels.first { $0.archive.id == archive.id }?.edits.source(for: entry.path)
+        }
+    }
+
+    func chooseAddFiles() {
+        guard editSession.requireEditable() else { return }
+        Task { editSession.add(await PackDestination.chooseSources(forAdding: true), into: folder) }
+    }
+
+    func beginRename(_ entry: ArchiveEntry) {
+        guard editSession.requireEditable() else { return }
+        if let reason = editSession.refusal(for: [entry.path]) { editSession.message = reason; return }
+        renamingPath = entry.path
+        renameText = entry.name
+    }
+
+    func commitRename() {
+        guard let path = renamingPath else { return }
+        let parent = ArchiveEntry.parent(of: path)
+        let newPath = parent.isEmpty ? renameText : parent + "/" + renameText
+        editSession.rename(path, to: renameText)
+        if editSession.message == nil { selection = [newPath]; renamingPath = nil }
+    }
+
+    func chooseReplacement(_ entry: ArchiveEntry) {
+        guard editSession.requireEditable() else { return }
+        Task {
+            let panel = NSOpenPanel()
+            panel.canChooseDirectories = false
+            panel.allowsMultipleSelection = false
+            let response = if let window = editingWindow { await panel.beginSheetModal(for: window) } else { panel.runModal() }
+            if response == .OK, let url = panel.url { editSession.replace(entry.path, with: url) }
+        }
+    }
+
+    @discardableResult func saveEdits() async -> Bool {
+        if renamingPath != nil {
+            commitRename()
+            guard renamingPath == nil else { return false }
+        }
+        let target = level
+        if target.savedArchive.isEncrypted, target.password == nil {
+            guard let password = await passwords.ask(archive.name, .extract, false) else { return false }
+            target.password = password
+        }
+        let oldFolder = folder, oldSelection = selection, oldHistory = history
+        guard await target.edits.save(password: target.password) else { return false }
+        func mapped(_ path: String) -> String {
+            EditSession.nearestExistingParent(path, in: target.edits.base)
+        }
+        // Live positions and history already use staged names; discard missing descendants.
+        folder = EditSession.nearestExistingParent(oldFolder, in: target.edits.base)
+        selection = Set(oldSelection.filter { target.archive.entry(at: $0) != nil })
+        history = oldHistory.map { location in
+            Location(levels: location.levels, folder: location.levels.last === target ? mapped(location.folder) : location.folder)
+        }
+        refresh()
+        return true
+    }
+
+    func revertEdits() {
+        renamingPath = nil
+        editSession.revert()
+    }
+
+    func confirmDiscardingEdits() async -> Bool {
+        guard let editedIndex = levels.firstIndex(where: { $0.edits.isEdited }) else { return true }
+        guard !levels[editedIndex].edits.isSaving else { return false }
+        let originalLevels = levels, originalFolder = folder, originalSelection = selection
+        if editedIndex != levels.count - 1 {
+            navigate(to: "", levels: Array(levels.prefix(editedIndex + 1)), record: false)
+        }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Save changes to “\(archive.name)”?")
+        alert.addButton(withTitle: String(localized: "Save"))
+        alert.addButton(withTitle: String(localized: "Don’t Save"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        let response = if let window = editingWindow { await alert.beginSheetModal(for: window) } else { alert.runModal() }
+        let decision: EditSession.CloseDecision = response == .alertFirstButtonReturn ? .save : response == .alertSecondButtonReturn ? .discard : .cancel
+        let saved = decision == .save ? await saveEdits() : false
+        let allowed = EditSession.canClose(decision, saved: saved)
+        if decision == .discard { editSession.discardChanges() }
+        if originalLevels.map(\.id) != levels.map(\.id) {
+            navigate(to: originalFolder, levels: originalLevels, selecting: originalSelection, record: false)
+        }
+        return allowed
     }
 
     /// Disk images are checked against their checksums in the background; browsing doesn't wait.
@@ -207,6 +357,7 @@ final class BrowserModel {
             var lastSearch = ContinuousClock.now
             await search.build(entries) { count in
                 await MainActor.run {
+                    guard level?.search === search else { return }
                     level?.indexed = count
                     // Results grow as the index does. Search the newly indexed part now and then,
                     // not every chunk: replacing 100,000 results costs the list a moment each time.
@@ -246,6 +397,7 @@ final class BrowserModel {
         searchResults = []
         let levelChanged = target.levels.map(\.id) != levels.map(\.id)
         levels = target.levels
+        editingWindow?.isDocumentEdited = levels.contains { $0.edits.isEdited }
         if folder != target.folder {
             folder = target.folder
         } else if levelChanged {
@@ -549,6 +701,7 @@ final class BrowserModel {
                 let inner = await Self.makeArchive(listing, url: url, name: entry.name)
                 guard !Task.isCancelled else { return }
                 let level = Level(archive: inner, password: password, entryPath: entry.path)
+                connectEdits(level)
                 activity = nil
                 navigate(to: "", levels: parentLevels + [level])
                 startIndexing(level)
@@ -584,6 +737,13 @@ final class BrowserModel {
         var reread = Archive(listing: listing, url: source.url, name: archive.name, nameEncoding: encoding)
         reread.record(archive.checkup.filter { finding in !reread.checkup.contains { $0.title == finding.title } })
         let level = level
+        reread.source?.password = level.password
+        level.savedArchive = Archive(listing: level.edits.base, url: source.url, name: archive.name, nameEncoding: encoding)
+        level.savedArchive.source?.password = level.password
+        level.edits.displayedPaths = [:]
+        for (shown, stored) in reread.source?.storedPaths ?? [:] {
+            for path in stored { level.edits.displayedPaths[path] = shown }
+        }
         level.archive = reread
         level.search = SearchIndex(total: reread.index.visible.count + reread.index.helpers.count)
         level.indexed = 0

@@ -78,7 +78,7 @@ nonisolated enum EditPlan {
         }
     }
 
-    private static func nodes(_ ops: [EditOperation], _ listing: ArchiveListing) throws(EngineError) -> [Node] {
+    private static func nodes(_ ops: [EditOperation], _ listing: ArchiveListing, sources: [ListedEntry]) throws(EngineError) -> [Node] {
         var nodes = listing.entries.map { Node(entry: $0, original: $0.path) }
         var known = Set<String>()
         for node in nodes {
@@ -102,7 +102,17 @@ nonisolated enum EditPlan {
                     guard !exists(path), parentIsSafe(path) else {
                         throw refuse(String(localized: "An edit would overwrite an existing path or write inside a file."))
                     }
-                    nodes.append(Node(entry: ListedEntry(path: path, isFolder: false, size: 0), item: item))
+                    let tree = sources.filter { inside($0.path, item) }
+                    if tree.isEmpty {
+                        nodes.append(Node(entry: ListedEntry(path: path, isFolder: false, size: 0), item: item))
+                    } else {
+                        for source in tree {
+                            var entry = source
+                            entry.path = path + source.path.dropFirst(item.count)
+                            try validate(entry.path)
+                            nodes.append(Node(entry: entry, item: source.path))
+                        }
+                    }
                 }
             case let .replace(path, item):
                 try validate(path)
@@ -112,7 +122,15 @@ nonisolated enum EditPlan {
                     throw refuse(String(localized: "Only an existing regular file can be replaced."))
                 }
                 guard nodes[index].entry.rawPath == nil else {
-                    throw refuse(String(localized: "An entry with an unknown filename encoding cannot be changed safely."))
+                    throw refuse(String(localized: "This name uses an unknown text encoding, so Stow can’t rename or delete it safely."))
+                }
+                if let source = sources.first(where: { $0.path == item }) {
+                    guard !source.isFolder, !source.isSymlink else {
+                        throw refuse(String(localized: "Only an existing regular file can be replaced."))
+                    }
+                    var entry = source
+                    entry.path = path
+                    nodes[index].entry = entry
                 }
                 nodes[index].item = item
                 nodes[index].requiresRegularFile = true
@@ -122,7 +140,7 @@ nonisolated enum EditPlan {
                     try validate(path)
                     guard exists(path) else { throw refuse(String(localized: "An edit refers to an entry that no longer exists.")) }
                     guard !nodes.contains(where: { inside($0.entry.path, path) && $0.entry.rawPath != nil }) else {
-                        throw refuse(String(localized: "An entry with an unknown filename encoding cannot be changed safely."))
+                        throw refuse(String(localized: "This name uses an unknown text encoding, so Stow can’t rename or delete it safely."))
                     }
                     nodes.removeAll { inside($0.entry.path, path) }
                 }
@@ -134,7 +152,7 @@ nonisolated enum EditPlan {
                     throw refuse(String(localized: "A rename target already exists or is inside its source."))
                 }
                 guard !nodes.contains(where: { inside($0.entry.path, from) && $0.entry.rawPath != nil }) else {
-                    throw refuse(String(localized: "An entry with an unknown filename encoding cannot be changed safely."))
+                    throw refuse(String(localized: "This name uses an unknown text encoding, so Stow can’t rename or delete it safely."))
                 }
                 for index in nodes.indices where inside(nodes[index].entry.path, from) {
                     nodes[index].entry.path = to + nodes[index].entry.path.dropFirst(from.count)
@@ -145,8 +163,8 @@ nonisolated enum EditPlan {
     }
 
     static func steps(for operations: [EditOperation], listing: ArchiveListing,
-                      format: EditableFormat) throws(EngineError) -> [Step] {
-        let nodes = try nodes(operations, listing)
+                      format: EditableFormat, sources: [ListedEntry] = []) throws(EngineError) -> [Step] {
+        let nodes = try nodes(operations, listing, sources: sources)
         let archive = "../work." + format.fileExtension
         let common = ["-y", "-spd", "-bso0", "-bsp1", "-sccUTF-8"]
         var result: [Step] = []
@@ -198,19 +216,19 @@ nonisolated enum EditPlan {
         for offset in stride(from: 0, to: pairs.count, by: 2) {
             result.append(Step(arguments: ["rn"] + common + ["--", archive, pairs[offset], pairs[offset + 1]]))
         }
-        let sources = nodes.compactMap { node in node.item.map { Source(item: $0, path: node.entry.path, requiresRegularFile: node.requiresRegularFile) } }
-        if !sources.isEmpty {
+        let plannedSources = nodes.compactMap { node in node.item.map { Source(item: $0, path: node.entry.path, requiresRegularFile: node.requiresRegularFile) } }
+        if !plannedSources.isEmpty {
             result.append(Step(arguments: ["a", "-t" + format.fileExtension, "-snl", "-spf2"]
                                + (format == .tar ? [] : ["-mx5"])
                                + (format == .zip ? ["-mcu=on"] : []) + common
-                               + ["--", archive] + sources.map(\.path).sorted(), sources: sources))
+                               + ["--", archive] + plannedSources.map(\.path).sorted(), sources: plannedSources))
         }
         result.append(Step(arguments: ["t"] + common + ["--", archive]))
         return result
     }
 
-    static func apply(_ ops: [EditOperation], to listing: ArchiveListing) -> ArchiveListing {
-        guard let nodes = try? nodes(ops, listing) else { return listing }
+    static func apply(_ ops: [EditOperation], to listing: ArchiveListing, sources: [ListedEntry] = []) -> ArchiveListing {
+        guard let nodes = try? nodes(ops, listing, sources: sources) else { return listing }
         var result = listing
         result.entries = nodes.map(\.entry)
         result.physicalSize = nil

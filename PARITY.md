@@ -97,11 +97,12 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Add, delete, replace, rename items; save; undo/redo | 🧪 E1 engine; ⬜ UI and undo/redo | ZIP / 7Z / TAR; pending macOS verification |
+| Add, delete, replace, rename items; save; undo/redo | 🧪 engine, staged UI and undo/redo | ZIP / 7Z / TAR; pending macOS verification |
 | Original untouched until save; rollback on failure | 🧪 same-volume atomic save | Fault injection and byte-identity tests; pending macOS verification |
 | Detect archive changed on disk → reload or save a copy | ⬜ | |
 | Rename the archive itself (incl. SMB/NAS) | ⬜ | |
-| Keep browsing position after save | ⬜ | |
+| Keep browsing position after save | 🧪 | Folder, selection and history; pending macOS verification |
+| Read-only formats; extract and repack as ZIP / 7Z | 🧪 | RAR, compressed TAR, split and nested archives; pending macOS verification |
 
 ## 6. Next Steps (ArcZip “Flow”)
 

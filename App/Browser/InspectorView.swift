@@ -40,6 +40,7 @@ private struct EntryDetail: View {
                 Text(entry.name)
                     .font(.title3.weight(.semibold))
                     .textSelection(.enabled)
+                if let state = model.editSession.state(for: entry.path) { Text(state).font(.caption).foregroundStyle(.secondary) }
                 Text(entry.kindDescription)
                     .foregroundStyle(.secondary)
             }
