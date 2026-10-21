@@ -5,10 +5,7 @@ import UniformTypeIdentifiers
 final class AppState {
     struct OpenFailure: Identifiable {
         let id = UUID()
-        let name: String
-        let message: String
-        /// Disk images Stow can't read (encrypted, unusual formats) can still be opened by macOS.
-        var canOpenInFinder = false
+        let failure: Failure
         var url: URL?
     }
 
@@ -35,6 +32,10 @@ final class AppState {
         tray.app = self
         system.app = self
         glance.app = self
+        batch.onOpen = { [weak self] url in
+            self?.showMainWindow()
+            self?.open(url)
+        }
         // Copies opened in a default app last time.
         TemporaryOpen.removeAll()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
@@ -49,6 +50,10 @@ final class AppState {
         Task {
             defer { isOpening = false }
             do {
+                if let browser, !(await browser.confirmDiscardingEdits()) {
+                    if scoped { url.stopAccessingSecurityScopedResource() }
+                    return
+                }
                 try await DownloadCheck.waitUntilComplete(url)
                 let listing: ArchiveListing
                 let password: String?
@@ -70,10 +75,25 @@ final class AppState {
                 let error = EngineError(error)
                 if scoped { url.stopAccessingSecurityScopedResource() }
                 if error.failure != .cancelled {
-                    openFailure = OpenFailure(name: url.lastPathComponent, message: error.message,
-                                              canOpenInFinder: DiskImageCheck.isDiskImage(url), url: url)
+                    var failure = Failure(error, .open, name: url.lastPathComponent)
+                    // Disk images Stow can't read (encrypted, unusual formats) can still be opened by macOS.
+                    if DiskImageCheck.isDiskImage(url), failure.kind == .notAnArchive || failure.kind == .other {
+                        failure = Failure(kind: .notAnArchive, title: String(localized: "Stow can’t look inside “\(url.lastPathComponent)”"),
+                                          advice: error.message, action: .openInFinder)
+                    }
+                    openFailure = OpenFailure(failure: failure, url: url)
                 }
             }
+        }
+    }
+
+    /// A failed open's one next step.
+    func follow(_ action: Failure.Action, opening url: URL) {
+        switch action {
+        case .showInFinder: NSWorkspace.shared.activateFileViewerSelecting([url])
+        case .openInFinder: NSWorkspace.shared.open(url)
+        case .tryAgain, .openInStow: open(url)
+        case .chooseFolder: break
         }
     }
 
@@ -84,6 +104,34 @@ final class AppState {
             let request = await PackRequest.gather(urls)
             guard !request.files.isEmpty else { return }
             packRequest = request
+        }
+    }
+
+    func extractAndRepack(_ model: BrowserModel) {
+        // Snapshot/sample scenes must never start extraction or packing work.
+        guard model.archive.source != nil else { return }
+        Task {
+            do {
+                let archive = model.archive
+                let (staged, password) = try await model.passwords.retrying(archive.name, for: .extract, known: model.level.password) { password in
+                    var input = archive
+                    input.source?.password = password
+                    return try await Extraction.stage(input, selection: nil, near: FileManager.default.temporaryDirectory,
+                                                       skipSystemFiles: false, onProgress: { _ in })
+                }
+                model.level.password = password
+                do {
+                    let urls = try FileManager.default.contentsOfDirectory(at: staged.root, includingPropertiesForKeys: nil)
+                    var request = await PackRequest.gather(urls)
+                    request.directory = model.levels.first?.archive.source?.url.deletingLastPathComponent()
+                    var stem = (archive.name as NSString).deletingPathExtension
+                    if stem.lowercased().hasSuffix(".tar") { stem = (stem as NSString).deletingPathExtension }
+                    request.suggestedNameOverride = stem
+                    request.initialFormat = .zip
+                    request.cleanupDirectory = staged.folder
+                    packRequest = request
+                } catch { staged.discard(); throw error }
+            } catch { model.editSession.message = EngineError(error).message }
         }
     }
 
@@ -124,7 +172,6 @@ final class AppState {
 
     /// "Close the window after Extract All or an install": the archive closes with it.
     func closeWindow() {
-        closeArchive()
         glance.close()
         NSApp.windows.first { !($0 is NSPanel) && $0.isVisible && $0.sheetParent == nil }?.performClose(nil)
     }
@@ -138,8 +185,11 @@ final class AppState {
     }
 
     func closeArchive() {
-        releaseScope()
-        browser = nil
+        Task {
+            guard await browser?.confirmDiscardingEdits() ?? true else { return }
+            releaseScope()
+            browser = nil
+        }
     }
 
     private func releaseScope() {
@@ -218,15 +268,11 @@ struct RootView: View {
         .fileImporter(isPresented: $app.isChoosingArchive, allowedContentTypes: [.archive, .diskImage, .data]) { result in
             if case .success(let url) = result { app.open(url) }
         }
-        .alert("Couldn’t open “\(app.openFailure?.name ?? "")”", isPresented: Binding(
-            get: { app.openFailure != nil }, set: { if !$0 { app.openFailure = nil } }
-        ), presenting: app.openFailure) { failure in
-            if failure.canOpenInFinder, let url = failure.url {
-                Button("Open in Finder") { NSWorkspace.shared.open(url) }
+        .sheet(item: $app.openFailure) { open in
+            FailureCard(failure: open.failure) { action in
+                app.openFailure = nil
+                if let action, let url = open.url { app.follow(action, opening: url) }
             }
-            Button("OK") {}
-        } message: { failure in
-            Text(failure.message)
         }
         .overlay(alignment: .bottomTrailing) { BatchStack(queue: app.batch) }
         .task {

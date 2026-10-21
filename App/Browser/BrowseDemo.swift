@@ -11,6 +11,23 @@ import Quartz
 ///
 /// Pair with `-StowSnapshotDelay 5` so thumbnails and previews arrive before the picture.
 enum BrowseDemo {
+    static func editing(in app: AppState) {
+        app.openArchive(named: SampleArchive.make().name)
+        guard let model = app.browser else { return }
+        model.folder = "Photos"
+        model.editSession.add([URL(filePath: "/Stow-Sample/Field Notes.txt"), URL(filePath: "/Stow-Sample/Contact Sheet.pdf")], into: "Photos")
+        model.editSession.rename("Photos/Lighthouse.jpg", to: "Harbor Lighthouse.jpg")
+        model.editSession.delete(["Photos/Pier at Dawn.jpg"])
+        model.selection = ["Photos/Field Notes.txt"]
+    }
+
+    static func readOnly(in app: AppState) {
+        var archive = SampleArchive.make(named: "Harbor Handoff.rar")
+        archive.format = .rar
+        app.browser = BrowserModel(archive: archive)
+        app.browser?.editSession.showsReadOnly = true
+    }
+
     static func apply(to app: AppState) {
         let defaults = UserDefaults.standard
         Task {

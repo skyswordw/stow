@@ -226,7 +226,7 @@ nonisolated extension Archive {
                   checkup: Checkup.findings(for: scan))
         source = ArchiveSource(url: url, renamed: renamed, legacyNames: legacyNames,
                                nameEncoding: nameEncoding,
-                               listing: listing.entries.contains { $0.rawPath != nil } ? listing : nil,
+                               listing: listing,
                                storedPaths: storedPaths)
         volumeRoot = layout.volumeRoot
         installerExtras = layout.extras

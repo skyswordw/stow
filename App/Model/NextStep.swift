@@ -37,6 +37,16 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         }
     }
 
+    /// What a failure says Stow couldn't do.
+    var failureOperation: Failure.Operation {
+        switch self {
+        case .installFonts, .moveToApplications, .openInstaller: .install
+        case .copyTo: .copy
+        case .openInside, .quickLook: .open
+        case .extract: .extract
+        }
+    }
+
     /// Verb used in the progress capsule while the step runs.
     var progressTitle: String {
         switch self {

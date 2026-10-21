@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Stow app icon</title>
+  <!--
+    Source of the app icon (App/Resources/AppIcon.icon) and the website favicon (website/favicon.svg).
+    Edit this file, then run scripts/make-icon.py; don't edit the generated files.
+
+    The parcel from the website mark, seen from the front: an amber box, its lid, and a strip of
+    white tape over the lid with a notched end. The canvas is the icon's square; macOS adds the
+    rounded mask, the margin, the glass and the shadows.
+
+    - #fill is the background. Its data-dark stops are the dark appearance.
+    - Every <g id> is one Icon Composer layer, in paint order (the last one is frontmost).
+      data-dark      the layer's colour in the dark appearance
+      data-glass     the layer is Liquid Glass
+      data-tinted-opacity  its opacity in the tinted and clear appearances
+  -->
+  <defs>
+    <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1" data-dark="#2B2420 #121010">
+      <stop offset="0" stop-color="#EF984D"/>
+      <stop offset="1" stop-color="#CE691A"/>
+    </linearGradient>
+    <linearGradient id="lid-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F6B271"/>
+      <stop offset="1" stop-color="#F2A35C"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#fill)"/>
+  <g id="lid" data-dark="#362E28" data-tinted-opacity="0.45">
+    <rect width="1024" height="288" fill="url(#lid-fill)"/>
+  </g>
+  <g id="tape" data-dark="#F0954A" data-glass="true">
+    <path fill="#FFFFFF" d="M406 0H618V444Q618 464 601.6 452.5L528.4 401.5Q512 390 495.6 401.5L422.4 452.5Q406 464 406 444Z"/>
+  </g>
+</svg>

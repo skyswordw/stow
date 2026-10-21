@@ -31,6 +31,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    private var checkingTermination = false
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard app?.browser?.levels.contains(where: { $0.edits.isEdited }) == true else { return .terminateNow }
+        guard !checkingTermination else { return .terminateLater }
+        checkingTermination = true
+        Task {
+            let allowed = await app?.browser?.confirmDiscardingEdits() ?? true
+            checkingTermination = false
+            sender.reply(toApplicationShouldTerminate: allowed)
+        }
+        return .terminateLater
+    }
+
     /// Clicking Stow in Finder, Launchpad or the Dock with no window open brings the window back.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows { app?.showMainWindow() }

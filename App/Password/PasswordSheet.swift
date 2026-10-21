@@ -9,22 +9,8 @@ struct PasswordSheet: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.l) {
-            HStack(alignment: .top, spacing: Space.m) {
-                Image(systemName: "lock.fill")
-                    .font(.title)
-                    .foregroundStyle(.tint)
-                    .frame(width: 32)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("“\(question.archiveName)” is locked")
-                        .font(.headline)
-                    Text(explanation)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
+        PromptCard(symbol: "lock.fill", title: String(localized: "“\(question.archiveName)” is locked"),
+                   message: explanation, footnote: String(localized: "Stow keeps it only while this archive is open.")) {
             VStack(alignment: .leading, spacing: Space.s) {
                 Group {
                     if showsPassword {
@@ -40,30 +26,21 @@ struct PasswordSheet: View {
                 Toggle("Show password", isOn: $showsPassword)
                     .onChange(of: showsPassword) { isFocused = true }
                 if question.isRetry {
-                    Label("That password didn’t work. Check it and try again.",
+                    Label("That password didn’t work. Check for typos and Caps Lock, then try again.",
                           systemImage: "exclamationmark.triangle.fill")
                         .symbolRenderingMode(.multicolor)
                         .font(.callout)
                 }
             }
-
-            HStack {
-                Text("Stow keeps it only while this archive is open.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Cancel", role: .cancel) { answer(nil) }
-                    .keyboardShortcut(.cancelAction)
-                    .controlSize(.large)
-                Button(question.purpose == .open ? String(localized: "Open") : String(localized: "Extract"), action: submit)
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.glassProminent)
-                    .controlSize(.large)
-                    .disabled(password.isEmpty)
-            }
+            .padding(.leading, 32 + Space.m)
+        } buttons: {
+            Button("Cancel", role: .cancel) { answer(nil) }
+                .keyboardShortcut(.cancelAction)
+            Button(question.purpose == .open ? String(localized: "Open") : String(localized: "Extract"), action: submit)
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.glassProminent)
+                .disabled(password.isEmpty)
         }
-        .padding(Space.xl)
-        .frame(width: 440)
         .onAppear { isFocused = true }
     }
 
