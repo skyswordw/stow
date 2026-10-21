@@ -108,7 +108,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Developer ID signing and notarization | Gatekeeper; also unlocks App Group containers (the Finder hand-off uses a private pasteboard because ad-hoc builds can't) |
 | Universal 2 build (arm64 + x86_64) | only Apple-silicon builds have been made |
 | Signed DMG + GitHub Releases + Sparkle appcast | first public download |
-| Homebrew cask | `brew install --cask stow` |
+| Homebrew cask | template and tooling done (#36): `packaging/homebrew/stow.rb`, `scripts/render-cask.sh` and the `Homebrew cask` workflow fill in version + DMG checksum per release, audit, and install/uninstall once. Still to do: the first signed release DMG (#32, #34), then publish to a tap (or homebrew/cask under a non-conflicting token — `stow` is a homebrew/core formula) |
 | CI | `.github/workflows/ci.yml` builds and tests every push and PR to main on GitHub's `xcode-27` runner (preview image: macOS 27, Xcode 27). Fails if 7zz is missing or any test is skipped. Still to do: release builds, signing, and moving off the preview image once it is GA. |
 | Fuzzing | malformed ZIP/7Z/RAR/TAR/DMG inputs against the engine (crash and containment) |
 
