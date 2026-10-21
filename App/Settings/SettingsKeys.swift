@@ -59,7 +59,8 @@ nonisolated enum SettingsKeys {
         .init(key: trayShowWhileDragging, defaultValue: .bool(true)),
         .init(key: trayIdleSeconds, defaultValue: .integer(30)),
         .init(key: trayBorder, defaultValue: .string(TrayBorder.accent.rawValue)),
-        .init(key: trayPinned, defaultValue: .bool(false))
+        .init(key: trayPinned, defaultValue: .bool(false)),
+        .init(key: NextStepPreferences.key, defaultValue: .string(""))
     ] + Audience.allCases.map {
         Entry(key: "PackLevel.\($0.rawValue)", defaultValue: .integer(Int64(CompressionLevel.balanced.rawValue)))
     }

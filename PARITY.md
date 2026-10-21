@@ -115,7 +115,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Install fonts (OTF/TTF/TTC) to user library, replace existing | ✅ Replace / Skip | web fonts reported as not installable |
 | PKG: prepare safely, hand off to Installer | ✅ unpacked beside the archive, removed when Installer quits | |
 | After install: keep/trash archive, close window | ✅ | |
-| Alternative actions list; customise which actions show; restore suggestions | ⬜ | |
+| Alternative actions list; customise which actions show; restore suggestions | ✅ More Actions (…) on the bar; Settings › General › Next Steps | turned-off steps stay in More and the Control-click menu; Extract can’t be turned off; Reset All restores them |
 
 ## 7. Compact window (ArcZip “Mini”) → **Glance**
 

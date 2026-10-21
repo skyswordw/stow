@@ -6,7 +6,7 @@ import SwiftUI
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
 /// Scenes: onboarding, welcome (no history), recents (the welcome window with history),
-/// grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
+/// grid, list, fonts, next-steps (a suggestion turned off), search, activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too.
@@ -70,6 +70,14 @@ enum DemoScene {
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Fonts"
             app.browser?.selection = Set(app.browser?.visibleEntries.map(\.id) ?? [])
+        case "next-steps":
+            // Quick Look turned off (registration domain, so nothing is saved): the bar keeps Extract
+            // and the More Actions menu, which still lists it.
+            defaults.register(defaults: [NextStepPreferences.key: NextStep.Kind.quickLook.rawValue])
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.viewMode = .list
+            app.browser?.folder = "Specs"
+            app.browser?.selection = ["Specs/Brand Guidelines.pdf"]
         case "search":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.query = "harbor"

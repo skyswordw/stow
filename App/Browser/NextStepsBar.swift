@@ -5,6 +5,7 @@ import SwiftUI
 /// Labels never truncate: in a narrow window suggestions collapse to icons, then the summary goes.
 struct NextStepsBar: View {
     let model: BrowserModel
+    @AppStorage(NextStepPreferences.key) private var hiddenKinds = ""
     @Namespace private var glass
 
     private enum Density { case full, iconSuggestions, actionsOnly }
@@ -23,7 +24,9 @@ struct NextStepsBar: View {
 
     private func row(_ density: Density) -> some View {
         let entries = model.selectedEntries
-        let steps = NextStep.suggestions(for: entries, dropTargets: model.archive.dropTargets)
+        let hidden = NextStepPreferences.parse(hiddenKinds)
+        let steps = NextStep.suggestions(for: entries, dropTargets: model.archive.dropTargets, hidden: hidden)
+        let more = NextStep.alternatives(for: entries, dropTargets: model.archive.dropTargets, hidden: hidden)
 
         return HStack(spacing: Space.s) {
             if let activity = model.activity {
@@ -48,6 +51,17 @@ struct NextStepsBar: View {
                         .help(step.title)
                         .buttonStyle(.glass)
                         .glassEffectID(step, in: glass)
+                        .contextMenu {
+                            if let kind = step.kind {
+                                Button("Don’t Suggest “\(kind.title)”", systemImage: "eye.slash") {
+                                    NextStepPreferences.setHidden(kind, true)
+                                }
+                            }
+                        }
+                }
+                if !more.isEmpty || !hidden.isEmpty {
+                    MoreStepsMenu(steps: more, hasHidden: !hidden.isEmpty, model: model)
+                        .glassEffectID("more", in: glass)
                 }
                 Button(NextStep.extract.title, systemImage: NextStep.extract.symbol) { model.run(.extract) }
                     .labelStyle(.titleAndIcon)
@@ -57,6 +71,35 @@ struct NextStepsBar: View {
             }
         }
         .fixedSize()
+    }
+}
+
+/// "More Actions": every step that fits the selection but isn't on the bar, plus a way back
+/// for suggestions that were turned off.
+private struct MoreStepsMenu: View {
+    let steps: [NextStep]
+    let hasHidden: Bool
+    let model: BrowserModel
+
+    var body: some View {
+        Menu {
+            ForEach(steps) { step in
+                Button(step.title, systemImage: step.symbol) { model.run(step) }
+            }
+            if hasHidden {
+                if !steps.isEmpty { Divider() }
+                Button("Restore Suggestions", systemImage: "arrow.uturn.backward") {
+                    NextStepPreferences.restore()
+                }
+            }
+        } label: {
+            Label("More Actions", systemImage: "ellipsis")
+                .labelStyle(.iconOnly)
+        }
+        .menuIndicator(.hidden)
+        .buttonStyle(.glass)
+        .fixedSize()
+        .help(String(localized: "More Actions"))
     }
 }
 

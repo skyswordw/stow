@@ -77,7 +77,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 
 | Item | Notes |
 | --- | --- |
-| Next Steps: list of alternative actions, customise which show, restore suggestions | ArcZip "Flow" settings |
+| Next Steps: list of alternative actions, customise which show, restore suggestions | done (#20): More Actions menu on the bar, “Don’t Suggest” on each suggestion, Settings › General › Next Steps toggles, Restore Suggestions; the Control-click menu lists every step |
 | Checkup: warn when the extension doesn't match the real format (ZIP with prepended data, SFX) | done (#16): Checkup names the real format, self-extracting stubs, and data before or after the archive |
 | iCloud placeholders: wait for download, cancel | `DownloadCheck` covers browser downloads only |
 | Open Recent menu with clear history | welcome window "Recent" still shows sample names |

@@ -22,6 +22,7 @@ struct InspectorView: View {
 private struct EntryDetail: View {
     let entry: ArchiveEntry
     let model: BrowserModel
+    @AppStorage(NextStepPreferences.key) private var hiddenKinds = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
@@ -56,7 +57,8 @@ private struct EntryDetail: View {
                 SignatureSection(entry: entry, model: model)
             }
 
-            let steps = NextStep.suggestions(for: [entry], dropTargets: model.archive.dropTargets).dropLast()
+            let steps = NextStep.suggestions(for: [entry], dropTargets: model.archive.dropTargets,
+                                             hidden: NextStepPreferences.parse(hiddenKinds)).dropLast()
             if !steps.isEmpty, model.activity == nil {
                 HStack(spacing: Space.s) {
                     ForEach(Array(steps)) { step in

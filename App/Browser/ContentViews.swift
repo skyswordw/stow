@@ -347,7 +347,8 @@ struct EntryMenu: View {
             }
             Divider()
         }
-        let steps = NextStep.suggestions(for: [entry], dropTargets: model.archive.dropTargets).filter { !real || ($0 != .quickLook && $0 != .openInside) }
+        // Every step that fits, turned-off suggestions included: this menu is the full list.
+        let steps = (NextStep.available(for: [entry], dropTargets: model.archive.dropTargets) + [.extract]).filter { !real || ($0 != .quickLook && $0 != .openInside) }
         ForEach(steps) { step in
             Button(step.title, systemImage: step.symbol) { model.run(step, on: [entry]) }
         }

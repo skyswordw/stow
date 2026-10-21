@@ -9,6 +9,7 @@ struct GeneralSettingsView: View {
     @AppStorage(SettingsKeys.trayShowWhileDragging) private var trayWhileDragging = true
     @AppStorage(SettingsKeys.trayIdleSeconds) private var trayIdle = 30
     @AppStorage(SettingsKeys.trayBorder) private var trayBorder = TrayBorder.accent.rawValue
+    @AppStorage(NextStepPreferences.key) private var hiddenSteps = ""
     var body: some View {
         Form {
             Picker("Appearance", selection: $appearance) {
@@ -43,10 +44,32 @@ struct GeneralSettingsView: View {
                     }
                 }
             }
+            Section {
+                ForEach(NextStep.Kind.allCases) { kind in
+                    Toggle(kind.title, isOn: suggests(kind))
+                }
+                Button("Restore Suggestions") { NextStepPreferences.restore() }
+                    .disabled(hiddenSteps.isEmpty)
+            } header: {
+                Text("Suggest in the Next Steps bar")
+            } footer: {
+                Text("Turned-off steps stay in the More Actions menu and when you Control-click.")
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func suggests(_ kind: NextStep.Kind) -> Binding<Bool> {
+        Binding {
+            !NextStepPreferences.parse(hiddenSteps).contains(kind)
+        } set: { isOn in
+            var kinds = NextStepPreferences.parse(hiddenSteps)
+            if isOn { kinds.remove(kind) } else { kinds.insert(kind) }
+            hiddenSteps = NextStepPreferences.encode(kinds)
+        }
     }
 
     private static func idleTitle(_ seconds: Int) -> String {

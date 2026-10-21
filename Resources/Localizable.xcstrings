@@ -1,6 +1,76 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Copy to a Disk Image’s Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝到磁盘映像指定的文件夹"
+          }
+        }
+      }
+    },
+    "Don’t Suggest “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不再建议“%@”"
+          }
+        }
+      }
+    },
+    "Install Fonts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装字体"
+          }
+        }
+      }
+    },
+    "More Actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作"
+          }
+        }
+      }
+    },
+    "Restore Suggestions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复建议"
+          }
+        }
+      }
+    },
+    "Suggest in the Next Steps bar": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在“下一步”栏中建议"
+          }
+        }
+      }
+    },
+    "Turned-off steps stay in the More Actions menu and when you Control-click.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭的操作仍在“更多操作”菜单和按住 Control 点按时的菜单中。"
+          }
+        }
+      }
+    },
     "Couldn’t read the TAR to compress.": {
       "localizations": {
         "zh-Hans": {
