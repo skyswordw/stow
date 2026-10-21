@@ -59,6 +59,8 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         let selected = model.selectedEntries
         let folders = selected.filter(\.isFolder).map { $0.path + "/" }
         let entries = selected.filter { entry in !folders.contains { entry.path.hasPrefix($0) } }
+        // Results inside other archives aren't in this one to drag out.
+        guard !entries.isEmpty else { return }
         let point = view.convert(event.locationInWindow, from: nil)
         let items = entries.enumerated().map { index, entry in
             let type = entry.isFolder && !entry.isPackage ? UTType.folder : entry.contentType

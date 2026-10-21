@@ -319,6 +319,22 @@ struct EntryMenu: View {
     let entry: ArchiveEntry
 
     var body: some View {
+        if let hit = model.nestedHits[entry.id] {
+            // A search result inside an inner archive: go there first; nothing else reaches it.
+            Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: "arrow.down.right.and.arrow.up.left") {
+                model.showNested(hit)
+            }
+            Divider()
+            Button("Copy Name", systemImage: "doc.on.doc") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(entry.name, forType: .string)
+            }
+        } else {
+            actions
+        }
+    }
+
+    @ViewBuilder private var actions: some View {
         Button("Add Files…") { model.chooseAddFiles() }
             .disabled(model.editSession.format == nil || model.editSession.isSaving)
             .help(model.editSession.format == nil ? model.editSession.readOnlyReason : String(localized: "Add Files…"))

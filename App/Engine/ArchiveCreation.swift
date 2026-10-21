@@ -26,6 +26,10 @@ enum ArchiveCreation {
     static func run(_ items: [TreeStream.Item], totalBytes: Int64, attributes: Bool, request: CreateRequest,
                     named name: String, in destination: URL, conflict: Conflict = .keepBoth,
                     onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Result {
+        if request.format == .dmg {
+            return try await DiskImageCreation.run(items, request: request, named: name, in: destination,
+                                                   conflict: conflict, onProgress: onProgress)
+        }
         let engine = ArchiveEngine.shared
         let meter = Meter(total: totalBytes, onProgress: onProgress)
         let creation = try await engine.create(items, attributes: attributes, request: request,
