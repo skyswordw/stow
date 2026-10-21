@@ -76,6 +76,14 @@ targets:
             LSHandlerRank: Alternate
             LSItemContentTypes: [com.apple.disk-image-udif, public.iso-image, app.stow.wim-image, app.stow.vhd-image, com.apple.xar-archive, com.apple.installer-package-archive, com.redhat.rpm-archive, app.stow.deb-archive, app.stow.msi-installer, com.sun.java-archive, public.archive.apk]
         UTImportedTypeDeclarations:
+          # macOS itself doesn't declare RAR; without this the type only resolves when some other
+          # app happens to import it, so on a clean Mac Stow can't become RAR's default app.
+          - UTTypeIdentifier: com.rarlab.rar-archive
+            UTTypeDescription: RAR archive
+            UTTypeConformsTo: [public.archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [rar]
+              public.mime-type: [application/vnd.rar, application/x-rar-compressed, application/x-rar]
           - UTTypeIdentifier: app.stow.split-archive
             UTTypeDescription: Split archive part
             UTTypeConformsTo: [public.archive, public.data]
