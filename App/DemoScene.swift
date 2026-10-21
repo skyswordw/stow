@@ -218,7 +218,9 @@ enum DemoScene {
                 // `-StowActivate YES`: capture as the front app, so default buttons show their colour.
                 if defaults.bool(forKey: "StowActivate") { NSApp.activate() }
                 try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
-                for (index, window) in NSApp.windows.filter(\.isVisible).enumerated() {
+                // The Tray's menu-bar icon lives in a status-bar window of its own; it isn't a scene.
+                let windows = NSApp.windows.filter { $0.isVisible && !$0.className.contains("StatusBar") }
+                for (index, window) in windows.enumerated() {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
                     let name = index == 0 ? "\(scene)-\(kind)" : "\(scene)-\(kind)\(index)"
                     if let url = snapshot(window, name: name) { print(url.path) }

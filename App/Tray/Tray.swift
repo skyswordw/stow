@@ -49,10 +49,21 @@ final class TrayController {
                 MainActor.assumeIsolated { self?.applySettings() }
             }
         }
-        if SettingsKeys.flag(SettingsKeys.trayMenuBarIcon) { installStatusItem() } else { removeStatusItem() }
-        if SettingsKeys.flag(SettingsKeys.trayShowWhileDragging) { startWatchingDrags() } else { stopWatchingDrags() }
-        panel?.border = SettingsKeys.trayBorder()
+        // Installing a status item writes its own defaults, which posts didChange again: only act
+        // when a Tray setting really changed, and never re-entrantly.
+        let wanted = (icon: SettingsKeys.flag(SettingsKeys.trayMenuBarIcon),
+                      drags: SettingsKeys.flag(SettingsKeys.trayShowWhileDragging),
+                      border: SettingsKeys.trayBorder())
+        guard !isApplying, applied.map({ $0 != wanted }) ?? true else { return }
+        isApplying = true
+        defer { isApplying = false }
+        applied = wanted
+        if wanted.icon { installStatusItem() } else { removeStatusItem() }
+        if wanted.drags { startWatchingDrags() } else { stopWatchingDrags() }
+        panel?.border = wanted.border
     }
+    @ObservationIgnored private var isApplying = false
+    @ObservationIgnored private var applied: (icon: Bool, drags: Bool, border: TrayBorder)?
 
     private func installStatusItem() {
         guard statusItem == nil else { return }
