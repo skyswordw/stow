@@ -56,7 +56,9 @@ struct FinderCommentTests {
         try #require(process.terminationStatus == 0, "\(tool.lastPathComponent) \(arguments.joined(separator: " "))")
     }
 
-    /// `Source/Docs/{a.txt (comment + tag), b.txt}`, the folder itself with a comment too.
+    /// `Source/Docs/{a.txt (comment + tag), b.txt, Inner/ (comment) {c.txt}}`. The commented folder
+    /// is a nested one: Finder's Compress (like `ditto --keepParent`) never stores the details of
+    /// the folder it was asked to compress, only of what's inside.
     private func makeArchive(_ source: Source, in folder: TemporaryFolder) throws -> URL {
         let parent = folder.url.appending(path: "Source", directoryHint: .isDirectory)
         let docs = parent.appending(path: "Docs", directoryHint: .isDirectory)
@@ -66,7 +68,10 @@ struct FinderCommentTests {
         try Data("plain".utf8).write(to: docs.appending(path: "b.txt"))
         try set(Self.commentName, try Self.comment("From the Mac — 来自 Mac"), on: file)
         try set(Self.tagName, try PropertyListSerialization.data(fromPropertyList: ["Orange\n7"], format: .binary, options: 0), on: file)
-        try set(Self.commentName, try Self.comment("The folder"), on: docs)
+        let inner = docs.appending(path: "Inner", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: inner, withIntermediateDirectories: false)
+        try Data("inner".utf8).write(to: inner.appending(path: "c.txt"))
+        try set(Self.commentName, try Self.comment("The folder"), on: inner)
 
         let archive = folder.url.appending(path: source.fileName)
         let tar = URL(filePath: "/usr/bin/tar")
@@ -88,7 +93,7 @@ struct FinderCommentTests {
             try MacMetadata.sequester(in: parent)
             let sevenZip = try #require(SevenZip.bundled())
             try run(sevenZip.executable, ["a", "-t7z", "-bso0", "-bsp0", archive.path,
-                                          "Docs", "__MACOSX/Docs/._a.txt", "__MACOSX/._Docs"], in: parent)
+                                          "Docs", "__MACOSX/Docs/._a.txt", "__MACOSX/Docs/._Inner"], in: parent)
         }
         return archive
     }
@@ -105,7 +110,7 @@ struct FinderCommentTests {
         defer { folder.cleanUp() }
         let archive = try await open(try makeArchive(source, in: folder))
         let fileComment = try Self.comment("From the Mac — 来自 Mac"), folderComment = try Self.comment("The folder")
-        #expect(archive.files.map(\.name).sorted() == ["a.txt", "b.txt"])
+        #expect(archive.files.map(\.name).sorted() == ["a.txt", "b.txt", "c.txt"])
         let out = folder.url.appending(path: "Out", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
 
@@ -114,10 +119,10 @@ struct FinderCommentTests {
         let docs = out.appending(path: "Docs", directoryHint: .isDirectory)
         #expect(attribute(Self.commentName, of: docs.appending(path: "a.txt")) == fileComment)
         #expect(attribute(Self.tagName, of: docs.appending(path: "a.txt")) != nil)
-        #expect(attribute(Self.commentName, of: docs) == folderComment)
+        #expect(attribute(Self.commentName, of: docs.appending(path: "Inner")) == folderComment)
         #expect(attribute(Self.commentName, of: docs.appending(path: "b.txt")) == nil)
         #expect(result.restoredMetadata.files == 2)
-        #expect(TemporaryFolder.contents(of: out) == ["Docs", "Docs/a.txt", "Docs/b.txt"])
+        #expect(TemporaryFolder.contents(of: out) == ["Docs", "Docs/Inner", "Docs/Inner/c.txt", "Docs/a.txt", "Docs/b.txt"])
     }
 
     @Test(arguments: Source.allCases)
@@ -135,7 +140,7 @@ struct FinderCommentTests {
         let placed = try #require(result.placed.first)
         #expect(placed.lastPathComponent == "Docs")
         #expect(attribute(Self.commentName, of: placed.appending(path: "a.txt")) == fileComment)
-        #expect(attribute(Self.commentName, of: placed) == folderComment)
+        #expect(attribute(Self.commentName, of: placed.appending(path: "Inner")) == folderComment)
         #expect(!TemporaryFolder.contents(of: out).contains { $0.contains("._") || $0.contains("__MACOSX") })
     }
 
