@@ -1,6 +1,46 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Downloading “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下载“%@”"
+          }
+        }
+      }
+    },
+    "Downloading “%@” from iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在从 iCloud 下载“%@”"
+          }
+        }
+      }
+    },
+    "It isn’t on this Mac yet. Stow opens it as soon as the download finishes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它还不在这台 Mac 上。下载完成后，Stow 会立即打开它。"
+          }
+        }
+      }
+    },
+    "“%@” couldn’t be downloaded: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法下载“%1$@”：%2$@"
+          }
+        }
+      }
+    },
     "Couldn’t read the TAR to compress.": {
       "localizations": {
         "zh-Hans": {
