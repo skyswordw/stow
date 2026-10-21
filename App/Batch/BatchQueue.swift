@@ -124,7 +124,7 @@ final class BatchQueue {
         // Leave the results up for a moment, then tidy away if nothing failed.
         try? await Task.sleep(for: .seconds(6))
         if !isActive, !jobs.contains(where: { if case .failed = $0.phase { true } else { false } }) {
-            withAnimation(Motion.appear) { clearFinished() }
+            withAnimation(Motion.current(Motion.exit)) { clearFinished() }
         }
     }
 
