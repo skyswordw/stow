@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// Launch-argument hooks for design review and screenshots:
 ///
@@ -8,6 +9,11 @@ import AppKit
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too.
+/// quicklook (the Finder preview; `-StowPreview encrypted|slow`, or `-StowOpen <path>` for a real file),
+/// associations (Settings › File Types), integration (Settings › Integration; `-StowRepair YES`
+/// runs Repair for real).
+/// `-StowScene associations -StowAssociationsCheck <UTI>` makes Stow the real default for one
+/// type, switches it back, prints both reports and quits — a live check of Launch Services.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -59,6 +65,19 @@ enum DemoScene {
         case "open":
             // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
+        case "quicklook":
+            showQuickLook(defaults)
+        case "associations":
+            let model = Associations()
+            if let uti = defaults.string(forKey: "StowAssociationsCheck") {
+                checkAssociations(model, uti: uti)
+                return
+            }
+            model.selection = ["public.zip-archive", "org.7-zip.7-zip-archive", "com.rarlab.rar-archive"]
+            showSettingsPane(AssociationsView(model: model), title: "File Types", size: CGSize(width: 560, height: 640))
+        case "integration":
+            showSettingsPane(IntegrationView(), title: "Integration", size: CGSize(width: 560, height: 640))
+            if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
         case "tray":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
@@ -140,6 +159,67 @@ enum DemoScene {
                 fflush(stdout)
                 exit(1)
             }
+        }
+    }
+
+    /// The Quick Look extension's view in a window the size Finder gives it.
+    private static func showQuickLook(_ defaults: UserDefaults) {
+        let sample = SampleArchive.make()
+        let fallback = { (reason: ArchivePreviewFallback.Reason) in
+            ArchivePreviewContent.fallback(ArchivePreviewFallback(name: "Quarterly Backup.7z", format: .sevenZip,
+                                                                  size: 2_480_000_000, reason: reason))
+        }
+        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 640, height: 480),
+                              styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        window.title = "Quick Look"
+        window.isReleasedWhenClosed = false
+        func show(_ content: ArchivePreviewContent) {
+            window.contentView = NSHostingView(rootView: ArchivePreview(content: content, openInStow: {}))
+            window.center()
+            window.makeKeyAndOrderFront(nil)
+        }
+        switch defaults.string(forKey: "StowPreview") {
+        case "encrypted": show(fallback(.encrypted))
+        case "slow": show(fallback(.tooSlow))
+        default:
+            if let path = defaults.string(forKey: "StowOpen") {
+                Task { show(await ArchivePreviewLoader.load(URL(filePath: path)) { try await ArchiveEngine.shared.list($0) }) }
+            } else {
+                show(.listed(ArchivePreviewModel(archive: sample)))
+            }
+        }
+        quickLookWindow = window
+    }
+
+    private static var quickLookWindow: NSWindow?
+
+    private static func showSettingsPane(_ view: some View, title: String, size: CGSize) {
+        let window = NSWindow(contentRect: CGRect(origin: .zero, size: size),
+                              styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        window.title = title
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: view)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        quickLookWindow = window
+    }
+
+    private static func checkAssociations(_ model: Associations, uti: String) {
+        Task {
+            @MainActor func line(_ label: String) {
+                let row = model.rows.first { $0.id == uti }
+                print("\(label): \(model.name(of: row?.app)) (Stow: \(row?.opensWithStow ?? false), previous: \(row?.previous ?? "-"))")
+            }
+            line("before")
+            model.selection = [uti]
+            await model.makeStowDefault()
+            print("make default → \(model.report?.summary ?? "?") \(model.report?.failed ?? [:])")
+            line("after")
+            await model.restorePrevious()
+            print("switch back → \(model.report?.summary ?? "?") \(model.report?.failed ?? [:])")
+            line("restored")
+            fflush(stdout)
+            exit(0)
         }
     }
 
