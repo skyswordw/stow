@@ -219,6 +219,29 @@ enum EditingNotice: Identifiable {
     }
 }
 
+extension Prompt {
+    /// File › Rename Archive…: the name field, Cancel (Escape) and Rename (Return).
+    static func renameArchive(_ name: String) -> Prompt {
+        Prompt(symbol: "pencil", title: String(localized: "Rename Archive"),
+               message: String(localized: "Choose a new name for “\(name)”. The browsing position is kept."),
+               choices: [Choice(title: String(localized: "Cancel"), role: .cancel),
+                         Choice(title: String(localized: "Rename"), role: .primary)],
+               field: Field(text: name, label: String(localized: "Name")))
+    }
+
+    /// Closing or quitting with staged edits: Don’t Save (⌘D), Cancel (Escape), Save (Return).
+    static func saveChanges(_ name: String) -> Prompt {
+        Prompt(symbol: "square.and.arrow.down", title: String(localized: "Save changes to “\(name)”?"),
+               message: String(localized: "Your changes will be lost if you don’t save them."),
+               choices: [Choice(title: String(localized: "Don’t Save"), shortcut: KeyboardShortcut("d", modifiers: .command)),
+                         Choice(title: String(localized: "Cancel"), role: .cancel),
+                         Choice(title: String(localized: "Save"), role: .primary)])
+    }
+
+    /// Indexes into `saveChanges`' choices.
+    enum SaveChoice { static let discard = 0, cancel = 1, save = 2 }
+}
+
 extension EditSession {
     /// The notice to show now, if any; setting nil clears it.
     var notice: EditingNotice? {

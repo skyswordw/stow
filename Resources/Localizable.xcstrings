@@ -7128,6 +7128,16 @@
         }
       }
     },
+    "Your changes will be lost if you don’t save them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果不存储，你的更改将会丢失。"
+          }
+        }
+      }
+    },
     "Your font library": {
       "localizations": {
         "zh-Hans": {
