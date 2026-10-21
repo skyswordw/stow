@@ -1,6 +1,46 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "A %@ is always one file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 始终是单个文件"
+          }
+        }
+      }
+    },
+    "Couldn’t make the disk image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法制作磁盘映像"
+          }
+        }
+      }
+    },
+    "Double-clicking it shows the files in Finder; permissions and links stay. Windows and Linux need an extra app to open it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连按即可在“访达”中看到其中的文件，权限和链接都会保留。Windows 和 Linux 需要额外的应用才能打开。"
+          }
+        }
+      }
+    },
+    "Opens like a disk on any Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任何 Mac 上都能像磁盘一样打开"
+          }
+        }
+      }
+    },
     "DingTalk": {
       "localizations": {
         "zh-Hans": {
