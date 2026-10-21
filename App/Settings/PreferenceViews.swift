@@ -4,6 +4,10 @@ struct GeneralSettingsView: View {
     @AppStorage(SettingsKeys.appearance) private var appearance = SettingsKeys.Appearance.system.rawValue
     @AppStorage(SettingsKeys.defaultView) private var viewMode = "grid"
     @AppStorage("PackCPUCores") private var cores = 0
+    @AppStorage(SettingsKeys.trayMenuBarIcon) private var trayIcon = true
+    @AppStorage(SettingsKeys.trayShowWhileDragging) private var trayWhileDragging = true
+    @AppStorage(SettingsKeys.trayIdleSeconds) private var trayIdle = 30
+    @AppStorage(SettingsKeys.trayBorder) private var trayBorder = TrayBorder.accent.rawValue
     var body: some View {
         Form {
             Picker("Appearance", selection: $appearance) {
@@ -20,10 +24,37 @@ struct GeneralSettingsView: View {
                 Text("All").tag(0)
                 ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
             }
+            Section("Tray") {
+                Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
+                Toggle("Show Tray while dragging files", isOn: $trayWhileDragging)
+                Picker("Hide Tray when idle", selection: $trayIdle) {
+                    ForEach(TrayRules.idleChoices, id: \.self) { seconds in
+                        Text(Self.idleTitle(seconds)).tag(seconds)
+                    }
+                }
+                Picker("Tray border", selection: $trayBorder) {
+                    ForEach(TrayBorder.allCases) { border in
+                        Label { Text(border.title) } icon: {
+                            Image(systemName: "circle.fill").foregroundStyle(border.color)
+                        }
+                        .tag(border.rawValue)
+                    }
+                }
+            }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private static func idleTitle(_ seconds: Int) -> String {
+        switch seconds {
+        case 0: String(localized: "Never")
+        case 10: String(localized: "After 10 seconds")
+        case 30: String(localized: "After 30 seconds")
+        case 60: String(localized: "After 1 minute")
+        default: String(localized: "After 5 minutes")
+        }
     }
 }
 

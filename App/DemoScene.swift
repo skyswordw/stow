@@ -186,7 +186,10 @@ enum DemoScene {
                 TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
                 TrayItem(name: "Kickoff.key", size: 18_900_000),
                 TrayItem(name: "budget-2027.numbers", size: 412_000),
+                TrayItem(name: "Site Photos", size: 0, isFolder: true),
+                TrayItem(name: "Brand Assets.zip", size: 26_400_000),
             ]
+            app.tray.selection = [app.tray.items[1].id, app.tray.items[2].id]
             app.tray.show()
         default:
             break

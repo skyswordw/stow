@@ -20,6 +20,7 @@ struct SettingsTests {
                 "PackCPUCores", "FinderMenuOnExternalDrives", "HideDockIconWithoutWindows",
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
                 "browse.hoverPreviews", "password.showByDefault",
+                "tray.menuBarIcon", "tray.showWhileDragging", "tray.idleSeconds", "tray.border", "tray.pinned",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]
             let keys = SettingsKeys.resettable.map(\.key)
@@ -35,6 +36,11 @@ struct SettingsTests {
             #expect(SettingsKeys.splitSize(in: store) == .none)
             #expect(SettingsKeys.flag(SettingsKeys.hoverPreviews, in: store))
             #expect(!SettingsKeys.flag(SettingsKeys.showPassword, in: store))
+            #expect(SettingsKeys.flag(SettingsKeys.trayMenuBarIcon, in: store))
+            #expect(SettingsKeys.flag(SettingsKeys.trayShowWhileDragging, in: store))
+            #expect(!SettingsKeys.flag(SettingsKeys.trayPinned, in: store))
+            #expect(SettingsKeys.trayIdleSeconds(in: store) == 30)
+            #expect(SettingsKeys.trayBorder(in: store) == .accent)
         }
     }
 
