@@ -43,10 +43,12 @@ struct ArchiveCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(archive.name)
                         .font(.headline)
-                        .lineLimit(2)
+                        .lineLimit(3)
+                        .help(archive.name)
                         .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(.primary)
                     Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
+                        .fixedSize(horizontal: false, vertical: true)
                         .font(.caption)
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
@@ -116,10 +118,19 @@ struct CompressionBar: View {
                 }
             }
             .frame(height: 4)
-            HStack {
-                Text("\(packed.bytes) packed")
-                Spacer()
-                Text("\(Int(((1 - fraction) * 100).rounded()))% smaller")
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text("\(packed.bytes) packed")
+                        .fixedSize()
+                    Spacer()
+                    Text("\(Int(((1 - fraction) * 100).rounded()))% smaller")
+                        .fixedSize()
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(packed.bytes) packed")
+                    Text("\(Int(((1 - fraction) * 100).rounded()))% smaller")
+                }
+                .fixedSize(horizontal: false, vertical: true)
             }
             .font(.caption2)
             .monospacedDigit()
@@ -142,6 +153,8 @@ struct CheckupBadge: View {
                 .foregroundStyle(caution ? .yellow : .green)
             Text(caution ? String(localized: "Checkup: \(cautions) things to know")
                  : handled > 0 ? String(localized: "Checkup: safe, \(handled) handled") : String(localized: "Checkup: looks safe"))
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)

@@ -1,6 +1,16 @@
 import Foundation
 
 nonisolated enum Onboarding {
+    static func fileTypeSummary(_ names: [String]) -> String {
+        guard !names.isEmpty else { return String(localized: "No everyday file types open with Stow yet.") }
+        var items = Array(names.prefix(3))
+        if names.count > 3 {
+            let rest = names.count - 3
+            items.append(String(localized: "\(rest) more"))
+        }
+        return String(localized: "Opening with Stow now: \(items.formatted(.list(type: .and)))")
+    }
+
     // First-run state, not a preference. Resetting settings must keep completion remembered.
     static let completedKey = "onboarding.completed"
 
