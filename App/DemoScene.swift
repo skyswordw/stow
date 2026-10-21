@@ -45,7 +45,6 @@ enum DemoScene {
         case "open":
             // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
-            BrowseDemo.apply(to: app)
         case "tray":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
@@ -57,6 +56,8 @@ enum DemoScene {
         default:
             break
         }
+
+        if scene == "open" { BrowseDemo.apply(to: app) }
 
         if defaults.object(forKey: "StowInspector") != nil {
             app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
