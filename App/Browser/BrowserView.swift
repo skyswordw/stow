@@ -133,7 +133,8 @@ struct BrowserView: View {
             }
         }
         .padding(.bottom, Space.l + PathBar.height + (model.editSession.isEdited ? 48 : 0))
-        .animation(Motion.resolved(Motion.appear, reduceMotion: reduceMotion), value: visible)
+        // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
+        .animation(Motion.presence(visible, reduceMotion: reduceMotion), value: visible)
     }
 
     @ToolbarContentBuilder
@@ -196,7 +197,8 @@ struct BrowserView: View {
 
     private var inspectorToggle: some View {
         Button(model.showInspector ? String(localized: "Hide Inspector") : String(localized: "Show Inspector"), systemImage: "sidebar.right") {
-            model.showInspector.toggle()
+            // ⌥⌘I is a keyboard action: the inspector snaps; a click on the toggle still slides it.
+            withTransaction(Motion.keyboardAware) { model.showInspector.toggle() }
         }
         .keyboardShortcut("i", modifiers: [.command, .option])
     }
