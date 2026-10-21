@@ -16,7 +16,7 @@ import SwiftUI
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
 /// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
 /// password (the sheet after a rejected password), extract-options, install-options, batch, conflict, signature-warning, replace-app.
-/// Empty and error states: open-failed, open-damaged, extract-damaged, extract-full, extract-denied, extract-retry,
+/// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, empty-archive, empty-folder, search-empty, tray-empty.
 /// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
@@ -95,18 +95,28 @@ enum DemoScene {
             app.browser?.showInspector = false
             app.batch.preview([
                 ("Field Recordings.7z", .done), ("server-logs.tar.xz", .running(0.62)),
-                ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed(String(localized: "This archive needs a password."))),
+                ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed(Failure(EngineError(.passwordRequired), .extract, name: "Old Backup.rar"))),
                 ("Fonts 2026.zip", .waiting),
             ])
         case "conflict", "conflict-folder":
             app.openArchive(named: SampleArchive.make().name)
-            let base = FileManager.default.temporaryDirectory
             let isFolder = scene == "conflict-folder"
             let name = isFolder ? "Harbor Rebrand Handoff" : "Brand Guidelines.pdf"
+            // Two real files, so the prompt can compare them.
+            let base = FileManager.default.temporaryDirectory.appending(path: "Demo Conflict")
+            let existing = base.appending(path: "Downloads/\(name)"), incoming = base.appending(path: "Extracting/\(name)")
+            for (url, size, age) in [(existing, 7_900_000, -86_400.0 * 12), (incoming, 8_400_000, -3_600.0)] {
+                try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                if isFolder {
+                    try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+                } else {
+                    FileManager.default.createFile(atPath: url.path, contents: Data(count: size))
+                }
+                try? FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: age)], ofItemAtPath: url.path)
+            }
             Task {
                 try? await Task.sleep(for: .milliseconds(300))
-                _ = await Prompts.resolve(Placement.Conflict(name: name, existing: base.appending(path: name),
-                                                             incoming: base.appending(path: name), canMerge: isFolder))
+                _ = await Prompts.resolve(Placement.Conflict(name: name, existing: existing, incoming: incoming, canMerge: isFolder))
             }
         case "signature-warning", "replace-app":
             app.openArchive(named: SampleArchive.make().name)
@@ -120,19 +130,24 @@ enum DemoScene {
                 _ = await Prompts.ask(question)
             }
         case "open-failed", "open-damaged":
-            // The alert after an open that failed: not an archive, or one that's damaged.
-            let damaged = scene == "open-damaged"
-            app.openFailure = AppState.OpenFailure(
-                name: damaged ? "Field Recordings.7z" : "Invoice October.pdf",
-                message: damaged ? String(localized: "7-Zip couldn’t finish: Unexpected end of archive")
-                    : EngineError(.notAnArchive).message)
+            // The sheet after an open that failed: not an archive, or one that's damaged.
+            let failure = scene == "open-damaged"
+                ? Failure(EngineError(.failed, "7-Zip couldn’t finish: Unexpected end of archive"), .open, name: "Field Recordings.7z")
+                : Failure(EngineError(.notAnArchive), .open, name: "Invoice October.pdf")
+            app.openFailure = AppState.OpenFailure(failure: failure)
+        case "finder-failed":
+            // Extract Here from Finder that failed: the same sheet, on whatever window Stow has.
+            Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                _ = await Prompts.explain(demoFailure("extract-damaged", name: "Quarterly Backup.zip"))
+            }
         case "extract-damaged", "extract-full", "extract-denied", "extract-retry":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
-            app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailureMessage(scene))))
+            app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailure(scene, name: SampleArchive.make().name))))
         case "pack-failed":
-            app.packing.preview(name: "Harbor Handoff.zip", phase: .failed(demoFailureMessage("extract-full")))
+            app.packing.preview(name: "Harbor Handoff.zip", phase: .failed(demoFailure("pack-failed", name: "Harbor Handoff.zip")))
         case "empty-archive":
             app.browser = BrowserModel(archive: Archive(name: "Scans 2026.zip", format: .zip, files: []))
         case "empty-folder":
@@ -193,6 +208,8 @@ enum DemoScene {
         if defaults.bool(forKey: "StowSnapshot") {
             Task {
                 let delay = defaults.double(forKey: "StowSnapshotDelay")
+                // `-StowActivate YES`: capture as the front app, so default buttons show their colour.
+                if defaults.bool(forKey: "StowActivate") { NSApp.activate() }
                 try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
                 for (index, window) in NSApp.windows.filter(\.isVisible).enumerated() {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
@@ -205,13 +222,18 @@ enum DemoScene {
         }
     }
 
-    /// What a failure capsule says in the error scenes.
-    private static func demoFailureMessage(_ scene: String) -> String {
-        switch scene {
-        case "extract-damaged": "Photos/Lighthouse.jpg"
-        case "extract-full": "“Pier at Dawn.jpg” couldn’t be copied because there isn’t enough space."
-        case "extract-denied": "You don’t have permission to save the file “Photos” in the folder “Shared”."
-        default: EngineError(.connectionLost).message
+    /// The error scenes' failures, made from the errors the engine and the file system really throw.
+    private static func demoFailure(_ scene: String, name: String) -> Failure {
+        let downloads = FileManager.default.temporaryDirectory
+        return switch scene {
+        case "extract-damaged": Failure(EngineError(.failed, "Data Error : Photos/Lighthouse.jpg"), .extract, name: name)
+        case "extract-full": Failure(NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)), .extract, name: name,
+                                     destination: downloads, needs: 189_000_000)
+        case "pack-failed": Failure(NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)), .pack, name: name,
+                                    destination: downloads, needs: 0)
+        case "extract-denied": Failure(NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError), .extract,
+                                       name: name, destination: URL(filePath: "/Users/Shared", directoryHint: .isDirectory))
+        default: Failure(EngineError(.connectionLost), .extract, name: name)
         }
     }
 
