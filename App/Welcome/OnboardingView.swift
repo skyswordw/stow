@@ -62,11 +62,7 @@ struct OnboardingView: View {
         switch step {
         case .fileTypes:
             let names = associations.rows.filter { $0.type.suggested && $0.opensWithStow }.map(\.type.name)
-            if names.isEmpty { return String(localized: "No everyday file types open with Stow yet.") }
-            // A long list buries the button; name a few and count the rest.
-            if names.count <= 3 { return String(localized: "Opening with Stow now: \(names.formatted(.list(type: .and)))") }
-            let shown = names.prefix(3).formatted(.list(type: .and, width: .narrow))
-            return String(localized: "Opening with Stow now: \(shown) and \(names.count - 3) more")
+            return Onboarding.fileTypeSummary(names)
         case .finder:
             return integration.finderExtensionEnabled
                 ? String(localized: "Finder menu is on") : String(localized: "Finder menu is off")

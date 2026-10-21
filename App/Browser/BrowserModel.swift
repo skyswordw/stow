@@ -11,7 +11,7 @@ final class BrowserModel {
     enum Direction { case up, down, left, right }
 
     struct Activity: Equatable {
-        enum Phase: Equatable { case running(Double), done, failed(String) }
+        typealias Phase = ActivityPhase
         let step: NextStep
         let itemCount: Int
         var phase: Phase
@@ -105,6 +105,8 @@ final class BrowserModel {
     private var searchResults: [ArchiveEntry] = []
     private var searchTask: Task<Void, Never>?
     private var activityTask: Task<Void, Never>?
+    /// The last step run, for a failure's Try Again / Choose Another Folder.
+    private var lastRun: (() -> Void)?
     private var typeahead = (text: "", at: Date.distantPast)
 
     init(archive: Archive, previews: PreviewService = PreviewService()) {
@@ -794,7 +796,8 @@ final class BrowserModel {
         guard archive.source != nil else { return run(.openInside, on: [entry]) }
         guard levels.count < Self.maxDepth else {
             activity = Activity(step: .openInside, itemCount: 1,
-                                phase: .failed(String(localized: "Stow opens archives up to \(Self.maxDepth) levels deep.")))
+                                phase: .failed(Failure(String(localized: "Stow opens archives up to \(Self.maxDepth) levels deep"),
+                                                       advice: String(localized: "Extract this one first, then open it from Finder."))))
             return
         }
         let archive = archive, parentLevels = levels
@@ -818,7 +821,7 @@ final class BrowserModel {
                 navigate(to: "", levels: parentLevels + [level])
                 startIndexing(level)
             } catch {
-                report(error, step: .openInside, count: 1)
+                report(error, step: .openInside, count: 1, name: entry.name)
             }
         }
     }
@@ -828,13 +831,14 @@ final class BrowserModel {
         Archive(listing: listing, url: url, name: name)
     }
 
-    private func report(_ error: any Error, step: NextStep, count: Int) {
+    private func report(_ error: any Error, step: NextStep, count: Int, name: String? = nil) {
         let error = EngineError(error)
         withAnimation(Motion.appear) {
             if error.failure == .cancelled {
                 activity = nil
             } else {
-                activity = Activity(step: step, itemCount: count, phase: .failed(error.message))
+                activity = Activity(step: step, itemCount: count,
+                                    phase: .failed(Failure(error, step.failureOperation, name: name ?? archive.name)))
             }
         }
     }
@@ -870,6 +874,8 @@ final class BrowserModel {
     /// Runs a Next Step on the selection (or on `entries`); Extract with nothing selected extracts all.
     func run(_ step: NextStep, on entries: [ArchiveEntry]? = nil) {
         let items = entries ?? (selectedEntries.isEmpty ? archive.files : selectedEntries)
+        let again = entries ?? (selectedEntries.isEmpty ? nil : selectedEntries)
+        lastRun = { [weak self] in self?.run(step, on: again) }
         guard archive.source != nil else {
             simulate(step, itemCount: items.count)
             return
@@ -888,6 +894,7 @@ final class BrowserModel {
     }
 
     func extractAll() {
+        lastRun = { [weak self] in self?.extractAll() }
         if archive.source != nil {
             extract(nil)
         } else {
@@ -905,7 +912,10 @@ final class BrowserModel {
     }
 
     /// Progress → done (or failed) → gone, shared by every real step. Cancelling leaves nothing behind.
-    private func perform(_ step: NextStep, itemCount: Int, prepare: (() async throws(EngineError) -> Void)? = nil,
+    /// `name` is what the step works on; `destination` and `needs` let a failure tell a full or
+    /// read-only folder apart from a damaged archive.
+    private func perform(_ step: NextStep, itemCount: Int, name: String? = nil, destination: @escaping () -> URL? = { nil },
+                         needs bytes: Int64 = 0, prepare: (() async throws(EngineError) -> Void)? = nil,
                          _ work: @escaping (@escaping @Sendable (Double) -> Void) async throws(EngineError) -> Finished) {
         activityTask?.cancel()
         activityTask = Task { [weak self] in
@@ -918,14 +928,15 @@ final class BrowserModel {
                     Task { @MainActor in self.advance(to: fraction) }
                 }
             } catch {
-                let error = EngineError(error)
+                let failure = Failure(error, step.failureOperation, name: name ?? archive.name,
+                                      destination: destination(), needs: bytes)
                 withAnimation(Motion.appear) {
-                    if error.failure == .cancelled {
+                    if EngineError(error).failure == .cancelled {
                         activity = nil
                     } else {
-                        activity?.phase = .failed(error.message)
+                        activity?.phase = .failed(failure)
                         if activity == nil {
-                            activity = Activity(step: step, itemCount: itemCount, phase: .failed(error.message))
+                            activity = Activity(step: step, itemCount: itemCount, phase: .failed(failure))
                         }
                     }
                 }
@@ -960,7 +971,9 @@ final class BrowserModel {
     private func extract(_ selection: [ArchiveEntry]?) {
         var destination: URL?
         let archive = archive
-        perform(.extract, itemCount: selection?.count ?? archive.files.count, prepare: { () async throws(EngineError) in
+        let bytes = (selection ?? archive.files).reduce(Int64(0)) { $0 + $1.size }
+        perform(.extract, itemCount: selection?.count ?? archive.files.count, destination: { destination }, needs: bytes,
+                prepare: { () async throws(EngineError) in
             destination = await ExtractDestination.choose(for: archive)
             if destination == nil { throw EngineError(.cancelled) }
         }) { [weak self, passwords] progress throws(EngineError) in
@@ -1030,7 +1043,8 @@ final class BrowserModel {
         let archive = archive
         let target = installFolder(for: entry)
         var grant: FolderAccess.Grant?
-        perform(.moveToApplications, itemCount: 1, prepare: { () async throws(EngineError) in
+        perform(.moveToApplications, itemCount: 1, name: Installer.displayName(entry.name), destination: { grant?.url ?? target },
+                needs: entry.size, prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(
                 target, purpose: String(localized: "To install “\(Installer.displayName(entry.name))”, Stow needs permission to add apps to this folder."))
         }) { [weak self] progress throws(EngineError) in
@@ -1057,7 +1071,9 @@ final class BrowserModel {
         let archive = archive
         let target = FolderAccess.override ?? FolderAccess.userFonts
         var grant: FolderAccess.Grant?
-        perform(.installFonts(count: entries.count), itemCount: entries.count, prepare: { () async throws(EngineError) in
+        perform(.installFonts(count: entries.count), itemCount: entries.count,
+                name: entries.count == 1 ? entries[0].name : nil, destination: { grant?.url ?? target },
+                prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(target, purpose: String(localized: "To install fonts, Stow needs permission to add them to your font library."))
         }) { progress throws(EngineError) in
             guard let grant else { throw EngineError(.cancelled) }
@@ -1076,7 +1092,8 @@ final class BrowserModel {
         let archive = archive
         let beside = FolderAccess.override ?? archive.source?.url.deletingLastPathComponent() ?? FolderAccess.home
         var grant: FolderAccess.Grant?
-        perform(.openInstaller, itemCount: 1, prepare: { () async throws(EngineError) in
+        perform(.openInstaller, itemCount: 1, name: entry.name, destination: { grant?.url ?? beside }, needs: entry.size,
+                prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(
                 beside, purpose: String(localized: "To open “\(entry.name)” in Installer, Stow unpacks it next to the archive for a moment."))
         }) { progress throws(EngineError) in
@@ -1091,7 +1108,8 @@ final class BrowserModel {
     private func copy(_ entries: [ArchiveEntry], to folder: URL, step: NextStep) {
         let archive = archive
         var grant: FolderAccess.Grant?
-        perform(step, itemCount: entries.count, prepare: { () async throws(EngineError) in
+        perform(step, itemCount: entries.count, destination: { grant?.url ?? folder },
+                needs: entries.reduce(Int64(0)) { $0 + $1.size }, prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(FolderAccess.override ?? folder,
                                                    purpose: String(localized: "The disk image asks for this to be copied here."))
         }) { progress throws(EngineError) in
@@ -1177,5 +1195,23 @@ final class BrowserModel {
     func dismissActivity() {
         activityTask?.cancel()
         activity = nil
+    }
+
+    /// A failed step's one next step.
+    func follow(_ action: Failure.Action) {
+        let again = lastRun
+        dismissActivity()
+        switch action {
+        case .tryAgain, .chooseFolder: again?()
+        case .showInFinder:
+            if let url = archive.source?.url { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+        case .openInStow, .openInFinder: break
+        }
+    }
+
+    /// Design review only: shows a capsule state without running anything.
+    func previewActivity(_ activity: Activity) {
+        activityTask?.cancel()
+        self.activity = activity
     }
 }
