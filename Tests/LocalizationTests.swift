@@ -32,6 +32,15 @@ struct LocalizationTests {
         }
     }
 
+    /// Apps are named as people know them in Chinese (DESIGN: plain words), not by their English names.
+    @Test func appNamesUseTheirChineseNames() throws {
+        let bundle = try chineseBundle()
+        let names = ["WeChat": "微信", "WeCom": "企业微信", "DingTalk": "钉钉", "QQ": "QQ", "Telegram": "Telegram"]
+        for (english, chinese) in names {
+            #expect(bundle.localizedString(forKey: english, value: nil, table: nil) == chinese)
+        }
+    }
+
     @MainActor @Test func englishReportPluralsStayUnchanged() {
         let report = Associations.Report(kind: .madeDefault, changed: ["ZIP"], failed: ["RAR": "", "7Z": ""])
         #expect(report.summary == "1 type now open with Stow · 2 types not changed")

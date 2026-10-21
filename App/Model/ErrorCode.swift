@@ -13,6 +13,7 @@ nonisolated struct ErrorCode: Hashable, Sendable, CustomStringConvertible {
     /// destination, 15x the engine, 16x–18x Stow's own rules, 199 anything else.
     enum Reason: Int, CaseIterable, Sendable {
         case notAnArchive = 100
+        case noReadAccess = 101
         case passwordRequired = 110
         case wrongPassword = 111
         case damagedData = 120

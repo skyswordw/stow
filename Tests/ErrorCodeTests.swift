@@ -10,7 +10,7 @@ struct ErrorCodeTests {
     @Test func tableIsPinned() {
         let reasons = Dictionary(uniqueKeysWithValues: ErrorCode.Reason.allCases.map { ("\($0)", $0.rawValue) })
         #expect(reasons == [
-            "notAnArchive": 100, "passwordRequired": 110, "wrongPassword": 111,
+            "notAnArchive": 100, "noReadAccess": 101, "passwordRequired": 110, "wrongPassword": 111,
             "damagedData": 120, "damagedStructure": 121, "diskFull": 130, "noWriteAccess": 140,
             "engineMissing": 150, "engineOutdated": 151, "engineStopped": 152,
             "changedOnDisk": 160, "cancelled": 170, "limit": 180, "unknown": 199,
