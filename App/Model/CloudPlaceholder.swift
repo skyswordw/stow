@@ -10,12 +10,12 @@ enum CloudPlaceholder {
 
     /// What Stow asks the system about a file. `live` in the app; tests pass their own.
     struct Probe {
-        var state: (URL) -> State
-        var startDownload: (URL) throws -> Void
+        var state: @MainActor (URL) -> State
+        var startDownload: @MainActor (URL) throws -> Void
         /// 0…1 when the system says how far along it is.
-        var fraction: (URL) -> Double?
+        var fraction: @MainActor (URL) -> Double?
         /// The system's reason when a download failed (offline, not signed in, out of space).
-        var failure: (URL) -> String?
+        var failure: @MainActor (URL) -> String?
     }
 
     /// `st_flags` bit macOS sets on a file whose contents live with a File Provider (SF_DATALESS).
@@ -33,7 +33,7 @@ enum CloudPlaceholder {
     }
 
     static let live = Probe(
-        state: state(of:),
+        state: { state(of: $0) },
         startDownload: { url in
             do {
                 try FileManager.default.startDownloadingUbiquitousItem(at: url)
