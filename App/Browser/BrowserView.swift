@@ -82,20 +82,7 @@ struct BrowserView: View {
     @ViewBuilder
     private var content: some View {
         if model.isSearching, model.visibleEntries.isEmpty {
-            if let progress = model.indexingProgress {
-                ContentUnavailableView(progress, systemImage: "magnifyingglass",
-                                       description: Text("You can keep browsing while Stow finishes reading the names."))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ContentUnavailableView {
-                    Label("No files match “\(model.query)”", systemImage: "magnifyingglass")
-                } description: {
-                    Text("Stow looked in every folder of this archive. Check the spelling, or search for part of a name.")
-                } actions: {
-                    Button("Clear Search") { model.query = "" }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            NoSearchResultsView(model: model)
         } else if model.visibleEntries.isEmpty, model.folder.isEmpty || model.viewMode != .columns {
             EmptyContentView(model: model) { app.isChoosingArchive = true }
         } else {

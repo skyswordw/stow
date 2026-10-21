@@ -108,8 +108,7 @@ struct GlanceView: View {
     @ViewBuilder
     private var content: some View {
         if model.isSearching, model.visibleEntries.isEmpty {
-            ContentUnavailableView.search(text: model.query)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            NoSearchResultsView(model: model)
                 .background(.background)
         } else if model.visibleEntries.isEmpty {
             // The full window's words; there's no Open panel here, so an empty archive offers nothing.

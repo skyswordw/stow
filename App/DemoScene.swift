@@ -187,8 +187,12 @@ enum DemoScene {
         case "integration":
             showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
-        case "glance", "glance-empty":
-            if scene == "glance-empty" {
+        case "glance", "glance-empty", "glance-search-empty":
+            if scene == "glance-search-empty" {
+                // The same search as the full window's "search-empty" scene.
+                app.openArchive(named: SampleArchive.make().name)
+                app.browser?.query = "invoice"
+            } else if scene == "glance-empty" {
                 // The same empty folder as the full window's "empty-folder" scene.
                 let sample = SampleArchive.make()
                 let drafts = ArchiveEntry(path: "Drafts", isFolder: true, size: 0, packedSize: 0, modified: .now)

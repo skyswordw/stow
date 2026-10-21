@@ -31,3 +31,26 @@ struct EmptyContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+/// A search that found nothing, or can't yet: the same words in the full window and Glance.
+struct NoSearchResultsView: View {
+    let model: BrowserModel
+
+    var body: some View {
+        Group {
+            if let progress = model.indexingProgress {
+                ContentUnavailableView(progress, systemImage: "magnifyingglass",
+                                       description: Text("You can keep browsing while Stow finishes reading the names."))
+            } else {
+                ContentUnavailableView {
+                    Label("No files match “\(model.query)”", systemImage: "magnifyingglass")
+                } description: {
+                    Text("Stow looked in every folder of this archive. Check the spelling, or search for part of a name.")
+                } actions: {
+                    Button("Clear Search") { model.query = "" }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
