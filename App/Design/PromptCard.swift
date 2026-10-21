@@ -66,6 +66,15 @@ struct Prompt {
 
         let title: String
         var role: Role = .normal
+        /// A key for a `.normal` choice, like ⌘D for Don’t Save.
+        var shortcut: KeyboardShortcut?
+    }
+
+    /// A name to type (Rename Archive). It opens focused with the base name selected, the
+    /// extension left out, like Finder; Return answers the `.primary` choice, Escape the `.cancel` one.
+    struct Field {
+        var text: String
+        var label: String
     }
 
     var symbol: String
@@ -80,11 +89,14 @@ struct Prompt {
     var suppression: String?
     /// A failure's code and copyable details; nil for questions.
     var report: ErrorReport.Copyable?
+    var field: Field?
 
     struct Answer {
         /// Index into `choices`.
         let choice: Int
         let suppress: Bool
+        /// What was in `field` when the choice was made.
+        var text = ""
     }
 }
 
@@ -92,11 +104,24 @@ struct PromptView: View {
     let prompt: Prompt
     let answer: (Prompt.Answer) -> Void
     @State private var suppress = false
+    @State private var text: String
+
+    init(prompt: Prompt, answer: @escaping (Prompt.Answer) -> Void) {
+        self.prompt = prompt
+        self.answer = answer
+        _text = State(initialValue: prompt.field?.text ?? "")
+    }
 
     var body: some View {
         PromptCard(symbol: prompt.symbol, tint: prompt.tint, title: prompt.title, message: prompt.message, report: prompt.report) {
-            if !prompt.details.isEmpty || prompt.suppression != nil {
+            if !prompt.details.isEmpty || prompt.suppression != nil || prompt.field != nil {
                 VStack(alignment: .leading, spacing: Space.m) {
+                    if let field = prompt.field {
+                        PromptNameField(text: $text, label: field.label,
+                                        submit: { choose(prompt.choices.firstIndex { $0.role == .primary }) },
+                                        cancel: { choose(prompt.choices.firstIndex { $0.role == .cancel }) })
+                            .frame(height: 22)
+                    }
                     if !prompt.details.isEmpty { details }
                     if let suppression = prompt.suppression {
                         Toggle(suppression, isOn: $suppress)
@@ -113,7 +138,7 @@ struct PromptView: View {
             // With no Cancel among the choices, Escape answers the safe default.
             if !prompt.choices.contains(where: { $0.role == .cancel }),
                let primary = prompt.choices.firstIndex(where: { $0.role == .primary }) {
-                Button { answer(Prompt.Answer(choice: primary, suppress: suppress)) } label: { EmptyView() }
+                Button { choose(primary) } label: { EmptyView() }
                     .keyboardShortcut(.cancelAction)
                     .opacity(0)
                     .accessibilityHidden(true)
@@ -140,10 +165,15 @@ struct PromptView: View {
         .background(.primary.opacity(0.05), in: .rect(cornerRadius: Radius.card))
     }
 
+    private func choose(_ index: Int?) {
+        guard let index else { return }
+        answer(Prompt.Answer(choice: index, suppress: suppress, text: text))
+    }
+
     @ViewBuilder
     private func button(_ index: Int) -> some View {
         let choice = prompt.choices[index]
-        let action = { answer(Prompt.Answer(choice: index, suppress: suppress)) }
+        let action = { choose(index) }
         switch choice.role {
         case .primary:
             Button(choice.title, action: action)
@@ -154,6 +184,50 @@ struct PromptView: View {
                 .keyboardShortcut(.cancelAction)
         case .normal:
             Button(choice.title, action: action)
+                .keyboardShortcut(choice.shortcut)
+        }
+    }
+}
+
+/// A native field, so it can open focused with the base name selected (SwiftUI's TextField
+/// selects everything). Return and Escape go to the prompt's choices.
+private struct PromptNameField: NSViewRepresentable {
+    @Binding var text: String
+    let label: String
+    let submit: () -> Void
+    let cancel: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField(string: text)
+        field.delegate = context.coordinator
+        field.bezelStyle = .roundedBezel
+        field.setAccessibilityLabel(label)
+        field.placeholderString = label
+        DispatchQueue.main.async { [weak field] in
+            guard let field, let window = field.window else { return }
+            window.makeFirstResponder(field)
+            let stem = (field.stringValue as NSString).deletingPathExtension
+            field.currentEditor()?.selectedRange = NSRange(location: 0, length: (stem as NSString).length)
+        }
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) { context.coordinator.parent = self }
+
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: PromptNameField
+        init(_ parent: PromptNameField) { self.parent = parent }
+
+        func controlTextDidChange(_ notification: Notification) {
+            if let field = notification.object as? NSTextField { parent.text = field.stringValue }
+        }
+
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            if selector == #selector(NSResponder.insertNewline(_:)) { parent.submit(); return true }
+            if selector == #selector(NSResponder.cancelOperation(_:)) { parent.cancel(); return true }
+            return false
         }
     }
 }
@@ -187,11 +261,13 @@ extension Prompt {
 extension Prompts {
     /// Shows `prompt` as a sheet on Stow's window (or, with no window, on its own) and waits.
     /// Escape picks the `.cancel` choice.
-    static func present(_ prompt: Prompt) async -> Prompt.Answer {
-        await withCheckedContinuation { continuation in
+    /// `window`, when given and free, takes the sheet instead of the front window.
+    static func present(_ prompt: Prompt, on window: NSWindow? = nil) async -> Prompt.Answer {
+        let preferred = window?.attachedSheet == nil ? window : nil
+        return await withCheckedContinuation { continuation in
             let window = PromptWindow()
             var answered = false
-            let parent = Self.sheetParent()
+            let parent = preferred ?? Self.sheetParent()
             window.contentViewController = NSHostingController(rootView: PromptView(prompt: prompt) { answer in
                 guard !answered else { return }
                 answered = true
