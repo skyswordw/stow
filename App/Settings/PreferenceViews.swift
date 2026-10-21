@@ -16,9 +16,9 @@ struct GeneralSettingsView: View {
                 Text("List").tag("list")
                 Text("Columns").tag("columns")
             }
-            Stepper(value: $cores, in: 0...ProcessInfo.processInfo.activeProcessorCount) {
-                LabeledContent("CPU cores for packing", value: cores == 0 ? "All" : "\(cores)")
-                    .monospacedDigit()
+            Picker("CPU cores for packing", selection: $cores) {
+                Text("All").tag(0)
+                ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
             }
         }
         .formStyle(.grouped)
@@ -32,13 +32,13 @@ struct PackingSettingsView: View {
     var body: some View {
         Form {
             Picker("Pack for", selection: $audience) {
-                ForEach(Audience.allCases) { item in Text(item.phrase).tag(item.rawValue) }
+                ForEach(Audience.allCases) { item in Text(item.phrase.sentenceCased).tag(item.rawValue) }
             }
             Section("Compression level for each destination") {
                 ForEach(Audience.allCases) { item in LevelSetting(audience: item) }
             }
             Picker("Split archives", selection: $volume) {
-                ForEach(SplitSize.allCases) { item in Text(item.phrase).tag(Int(item.rawValue)) }
+                ForEach(SplitSize.allCases) { item in Text(item.phrase.sentenceCased).tag(Int(item.rawValue)) }
             }
             Toggle("Check archives after packing", isOn: $verify)
         }
@@ -54,7 +54,7 @@ private struct LevelSetting: View {
         _level = AppStorage(wrappedValue: CompressionLevel.balanced.rawValue, "PackLevel.\(audience.rawValue)")
     }
     var body: some View {
-        Picker(audience.phrase, selection: $level) {
+        Picker(audience.phrase.sentenceCased, selection: $level) {
             ForEach(CompressionLevel.allCases) { item in Text(item.title).tag(item.rawValue) }
         }
     }
@@ -122,4 +122,9 @@ struct AdvancedSettingsView: View {
             Text("Restore Stow’s settings to their defaults. Your archives and remembered previous apps are kept.")
         }
     }
+}
+
+private extension String {
+    /// `Audience` and `SplitSize` phrases are written to sit inside a sentence; a label starts upper-case.
+    var sentenceCased: String { prefix(1).uppercased() + dropFirst() }
 }
