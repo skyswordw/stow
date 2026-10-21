@@ -9,6 +9,11 @@ on:
   # Any base branch: wave-2 work is stacked on earlier PRs until they merge.
   pull_request:
   workflow_dispatch:
+    inputs:
+      intel-tests:
+        description: Also run the test suite as x86_64 under Rosetta (slow)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -111,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # The total this branch reports (333 after the accessibility pass). Raise it when tests are added;
+          # The total this branch reports (341 after the accessibility pass). Raise it when tests are added;
           # a lower total means suites went missing.
-          MIN_TESTS: "333"
+          MIN_TESTS: "341"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
@@ -138,3 +143,112 @@ jobs:
             build/loc/missing-*.txt
             build/generated-plists.diff
           retention-days: 14
+
+  # Universal 2 (#33): a Release build must carry arm64 and x86_64 in every binary, 7zz included.
+  universal:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    env:
+      XCODE_APP: /Applications/Xcode_27.app
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+
+      - name: Compute 7-Zip cache key
+        id: sevenzip
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version=//p' scripts/fetch-7zip.sh)
+          sha256=$(sed -n 's/^sha256=//p' scripts/fetch-7zip.sh)
+          echo "key=7zip-${{ runner.os }}-${{ runner.arch }}-${version}-${sha256}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v5
+        with:
+          path: Vendor/7zip
+          key: ${{ steps.sevenzip.outputs.key }}
+
+      - name: Fetch 7-Zip and generate the project
+        run: |
+          zsh scripts/fetch-7zip.sh
+          lipo -archs Vendor/7zip/7zz
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+
+      - name: Build Release (generic macOS, all architectures)
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild build \
+            -project Stow.xcodeproj \
+            -scheme Stow \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
+            2>&1 | tee build/xcodebuild-release.log | tail -40
+
+      - name: Every binary is arm64 + x86_64
+        run: scripts/check-universal.sh build/DerivedData/Build/Products/Release/Stow.app
+
+      # Informational: Rosetta is not an Intel Mac. 7-Zip's x86_64 build picks code paths from CPUID,
+      # and Rosetta doesn't run all of them, so a failure here is a warning; real Intel hardware is
+      # ROADMAP Tests #16.
+      - name: The Intel slices under Rosetta (informational)
+        run: |
+          if ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+            echo "::warning::Rosetta is not installed on this runner; the x86_64 slices were checked but not run"
+            exit 0
+          fi
+          sz=build/DerivedData/Build/Products/Release/Stow.app/Contents/XPCServices/StowEngine.xpc/Contents/MacOS/7zz
+          work=$(mktemp -d)
+          head -c 300000 /dev/urandom > "$work/noise.bin"
+          seq 1 20000 > "$work/text.txt"
+          Vendor/7zip/7zz a -bso0 "$work/arm.7z" "$work/text.txt" "$work/noise.bin"
+          failed=()
+          check() { # <label> <7zz arguments…>
+            local label=$1; shift
+            if arch -x86_64 "$sz" "$@" -bso0 -bse0 -bsp0 >/dev/null 2>&1; then echo "ok    $label"
+            else local status=$?; echo "FAIL  $label (exit $status)"; failed+=("$label ($status)"); fi
+          }
+          check "start (7zz i)"      i
+          check "list 7z"            l "$work/arm.7z"
+          check "test 7z (LZMA2)"    t "$work/arm.7z"
+          check "pack zip store"     a -tzip -mx0 "$work/s.zip" "$work/text.txt"
+          check "pack zip deflate"   a -tzip -mx5 "$work/d.zip" "$work/text.txt"
+          check "pack 7z one thread" a -t7z -mx5 -mmt1 "$work/m1.7z" "$work/text.txt"
+          check "pack 7z LZMA2"      a -t7z -mx5 "$work/m.7z" "$work/text.txt" "$work/noise.bin"
+          check "pack 7z AES"        a -t7z -pRosetta -mhe=on "$work/e.7z" "$work/text.txt"
+          check "pack xz"            a -txz "$work/t.xz" "$work/text.txt"
+          if (( ${#failed[@]} )); then
+            echo "::warning::Under Rosetta the x86_64 7zz failed: ${failed[*]}. Rosetta doesn't emulate every instruction 7-Zip's x86_64 build may pick; confirm on a real Intel Mac (ROADMAP Tests #16)."
+          fi
+
+      - name: Test suite as x86_64 under Rosetta
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.intel-tests }}
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Stow.xcodeproj \
+            -scheme Stow \
+            -destination 'platform=macOS,arch=x86_64' \
+            -derivedDataPath build/DerivedData-x86_64 \
+            -resultBundlePath build/Stow-x86_64.xcresult \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
+            2>&1 | tee build/xcodebuild-test-x86_64.log | tail -60
+          ALLOWED_SKIPS=0 MIN_TESTS=1 scripts/ci-assert-tests.sh build/Stow-x86_64.xcresult
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: universal-build
+          path: |
+            build/*.log
+            build/Stow-x86_64.xcresult
+          retention-days: 14
+

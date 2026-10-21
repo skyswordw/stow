@@ -106,11 +106,11 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Item | Why |
 | --- | --- |
 | Developer ID signing and notarization | Gatekeeper; also unlocks App Group containers (the Finder hand-off uses a private pasteboard because ad-hoc builds can't) |
-| Universal 2 build (arm64 + x86_64) | only Apple-silicon builds have been made |
+| Universal 2 build (arm64 + x86_64) | done (#33): Release builds `$(ARCHS_STANDARD)` for every target; CI's `universal` job builds Release and `scripts/check-universal.sh` fails unless the app, StowEngine.xpc, its 7zz and both extensions carry arm64 and x86_64, then runs the x86_64 7zz under Rosetta. A full x86_64 test run is a manual `workflow_dispatch` option |
 | Signed DMG + GitHub Releases + Sparkle appcast | first public download |
-| Homebrew cask | `brew install --cask stow` |
+| Homebrew cask | template and tooling done (#36): `packaging/homebrew/stow.rb`, `scripts/render-cask.sh` and the `Homebrew cask` workflow fill in version + DMG checksum per release, audit, and install/uninstall once. Still to do: the first signed release DMG (#32, #34), then publish to a tap (or homebrew/cask under a non-conflicting token — `stow` is a homebrew/core formula) |
 | CI | `.github/workflows/ci.yml` builds and tests every push and PR to main on GitHub's `xcode-27` runner (preview image: macOS 27, Xcode 27). Fails if 7zz is missing or any test is skipped. Still to do: release builds, signing, and moving off the preview image once it is GA. |
-| Fuzzing | malformed ZIP/7Z/RAR/TAR/DMG inputs against the engine (crash and containment) |
+| Fuzzing | done (#37): `Tests/FuzzTests.swift` mutates ZIP, 7Z, TAR (.gz/.bz2/.xz), RAR 4/5 and DMG seeds (truncation, bit flips, header/trailer corruption, huge length fields, splices, zero runs) and checks that 7zz never crashes or hangs, the engine only fails cleanly and survives, and extraction stays inside its folder; plus libarchive's malformed-RAR regressions. ~15 mutants per seed on every CI run; `.github/workflows/fuzz.yml` runs hundreds weekly and on demand, keeping any failing input |
 
 ---
 
@@ -152,9 +152,9 @@ have **not** been done and must be before a 1.0:
 | 12 | Archives of several GB, low disk space, and the engine's temporary copy while packing | packing needs space for the input plus the archive |
 | 13 | SMB/NAS and iCloud Drive locations (open, extract, pack, rename) | not tested |
 | 14 | Real-world corpus: multi-part RAR5, self-extracting EXE, ZIPs from Windows/Linux tools, legacy encodings beyond the fixtures | fixtures are synthetic |
-| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | Automated parts covered (#29); manual VoiceOver/keyboard checklist is in the PR/issue #38. |
-| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | no hardware run |
+| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | automated parts covered (#29); the manual VoiceOver/keyboard/display-settings checklist is on #38 |
+| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | the universal Release build is checked in CI (#33) and the test suite passed as x86_64 under Rosetta, but the x86_64 7zz dies with "Illegal instruction" under Rosetta; nothing has run on real Intel hardware or on macOS 26.0 |
 | 17 | Signed/notarized build behaviour (Gatekeeper on extracted apps, extensions, App Group hand-off) | only ad-hoc builds exist |
-| 18 | Fuzzing malformed archives | not started |
+| 18 | Fuzzing malformed archives | automated (#37): a deterministic set on every CI run, a longer weekly run (`fuzz.yml`). Still open: a sustained multi-hour run with no findings, and coverage-guided fuzzing of Stow's own parsers (AppleDouble, tar headers) |
 | 19 | Website in Safari, Firefox and on real phones | checked in one desktop browser engine and a 375 px emulation |
 | 20 | CI | runs on GitHub's `xcode-27` runner (`.github/workflows/ci.yml`); ad-hoc signed, so signed-build behaviour is still item 17 |
