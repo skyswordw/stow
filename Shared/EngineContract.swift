@@ -82,6 +82,8 @@ nonisolated struct ExtractRequest: Codable, Sendable {
     var password: String?
     /// Leaves out `.DS_Store`, `._*` and `__MACOSX` — Checkup tells people they're hidden.
     var excludeMacHelperFiles = true
+    /// Only checks the archive's data against its checksums (`7zz t`); nothing is kept.
+    var testOnly = false
     /// Reads Mac AppleDouble companions (`__MACOSX/…/._name`) into `ExtractReport.macMetadata`.
     var restoreMacMetadata = false
 }

@@ -58,6 +58,17 @@ final class ArchiveEngine {
         return Output(operationID: id, report: try decode(ExtractReport.self, from: reply))
     }
 
+    /// Checks every entry against the archive's checksums without extracting anything.
+    func verify(_ archive: URL, password: String? = nil) async throws(EngineError) {
+        let id = UUID().uuidString
+        let request = try encode(ExtractRequest(operationID: id, password: password, testOnly: true))
+        let handle = try Self.open(archive)
+        defer { try? handle.close() }
+        _ = try await call { proxy, reply in
+            proxy.extract(handle, named: archive.lastPathComponent, request: request, reply: reply)
+        }
+    }
+
     /// Streams the extracted files into `folder` (which must exist).
     func receive(_ output: Output, into folder: URL) async throws(EngineError) {
         let pipe = Pipe()

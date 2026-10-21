@@ -52,6 +52,7 @@ final class AppState {
                 releaseScope()
                 scopedURL = scoped ? url : nil
                 browser = makeBrowser(archive)
+                browser?.verifyDiskImage()
             } catch {
                 if scoped { url.stopAccessingSecurityScopedResource() }
                 openFailure = OpenFailure(name: url.lastPathComponent, message: EngineError(error).message,

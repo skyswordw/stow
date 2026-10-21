@@ -49,6 +49,22 @@ final class BrowserModel {
         if let suggested = Self.suggestedSelection(in: archive) { selection = [suggested] }
     }
 
+    /// Disk images are checked against their checksums in the background; browsing doesn't wait.
+    func verifyDiskImage() {
+        guard archive.format == .dmg, let url = archive.source?.url else { return }
+        Task { [weak self] in
+            var damage: String?
+            do {
+                try await ArchiveEngine.shared.verify(url)
+            } catch {
+                let error = EngineError(error)
+                if error.failure == .cancelled || error.failure == .passwordRequired { return }
+                damage = error.message
+            }
+            self?.archive.record([Checkup.diskImageFinding(damaged: damage)])
+        }
+    }
+
     /// The single app or installer package at the top of a disk image (or archive), if that's
     /// clearly what it's for.
     static func suggestedSelection(in archive: Archive) -> ArchiveEntry.ID? {

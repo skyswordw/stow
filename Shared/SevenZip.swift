@@ -91,6 +91,22 @@ nonisolated struct SevenZip: Sendable {
         return refused
     }
 
+    /// Reads every entry and checks it against the archive's checksums. Throws when data is damaged.
+    /// `type` "dmg" checks a disk image's own block checksums (like `hdiutil verify`) rather than
+    /// only the files inside its file system.
+    func test(_ archive: ArchiveInput, type: String? = nil, password: String? = nil,
+              progress: @escaping @Sendable (Double) -> Void) async throws(EngineError) {
+        let input = try Prepared(archive)
+        defer { input.cleanUp() }
+        let parser = ProgressParser()
+        let typeSwitch = type.map { ["-t" + $0] } ?? []
+        let result = try await run(["t", "-bso0", "-bsp1", "-sccUTF-8"] + typeSwitch + [input.path], input: input.descriptor,
+                                   password: password) { chunk in
+            if let fraction = parser.consume(chunk) { progress(fraction) }
+        }
+        try Self.check(result)
+    }
+
     // MARK: - Output parsing
 
     /// Parses `7zz l -slt`. Returns nil when the output has no archive section.
@@ -192,6 +208,9 @@ nonisolated struct SevenZip: Sendable {
 
     private static func check(_ result: RunResult) throws(EngineError) {
         guard result.status != 0 else { return }
+        if let damaged = result.errors.split(whereSeparator: \.isNewline).first(where: { $0.contains("Data Error") || $0.contains("CRC Failed") }) {
+            throw EngineError(.failed, String(damaged.drop { $0 != ":" }.dropFirst()).trimmingCharacters(in: .whitespaces))
+        }
         let all = result.output + "\n" + result.errors
         if all.contains("Wrong password") { throw EngineError(.wrongPassword) }
         if all.contains("Enter password") || all.contains("Can not open encrypted archive") {

@@ -96,6 +96,16 @@ nonisolated enum Checkup {
         return findings
     }
 
+    /// A disk image's checksums, checked in the background after it opens.
+    static func diskImageFinding(damaged message: String?) -> CheckupFinding {
+        guard let message else {
+            return CheckupFinding(severity: .fine, title: "Disk image checks out",
+                                  detail: "Every block matches the checksums the image was made with.")
+        }
+        return CheckupFinding(severity: .caution, title: "Disk image is damaged",
+                              detail: "Some data doesn’t match its checksum (\(message)) — download it again before installing anything from it.")
+    }
+
     /// Finder tags, comments and other Mac details put back from AppleDouble files.
     static func findings(for restored: AppleDouble.Restored) -> [CheckupFinding] {
         guard restored.files > 0 else { return [] }

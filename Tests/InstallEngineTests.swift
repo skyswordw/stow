@@ -213,6 +213,22 @@ struct InstallEngineTests {
         #expect(names.contains { $0.hasSuffix("Fixture Tool.app") })
     }
 
+    @Test func damagedDiskImagesAreCaught() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let good = folder.url.appending(path: "Good.dmg")
+        try FileManager.default.copyItem(at: try Self.fixture("Fixture-HFS.dmg"), to: good)
+        try await ArchiveEngine.shared.verify(good)
+
+        // Flip bytes inside the compressed data, past the header and before the trailing plist.
+        var bytes = try Data(contentsOf: good)
+        for index in stride(from: 2_000, to: 6_000, by: 7) { bytes[index] ^= 0x5A }
+        let bad = folder.url.appending(path: "Bad.dmg")
+        try bytes.write(to: bad)
+        await #expect(throws: EngineError.self) { try await ArchiveEngine.shared.verify(bad) }
+        #expect(Checkup.diskImageFinding(damaged: "CRC").severity == .caution)
+    }
+
     @Test func encryptedDiskImagesAreExplained() throws {
         let folder = try TemporaryFolder()
         defer { folder.cleanUp() }
