@@ -175,10 +175,97 @@ struct EditSessionTests {
         let operations = session.operations, pending = session.pending.entries
         try ZipFixture(entries: [.file("a.txt", "external change")]).write(to: url)
         #expect(!(await session.save(password: nil)))
-        #expect(session.message == String(localized: "The archive changed on disk. Close and reopen it before saving."))
+        #expect(session.changedOnDisk)
+        #expect(session.showsExternalChange)
+        #expect(session.message == String(localized: "The archive changed on disk. Reload it or save a copy."))
         #expect(session.operations == operations)
         #expect(session.pending.entries == pending)
         #expect(undo.canUndo)
+    }
+
+    @Test func reloadDiscardsEditsAndLoadsNewContent() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "Reload.zip")
+        try ZipFixture(entries: [.file("a.txt", "original")]).write(to: url)
+        let listing = try await ArchiveEngine.shared.list(url)
+        let session = EditSession(base: listing, url: url)
+        session.rename("a.txt", to: "b.txt")
+        try ZipFixture(entries: [.file("a.txt", "external"), .file("c.txt", "new")]).write(to: url)
+        #expect(!(await session.save(password: nil)))
+        #expect(await session.reload(password: nil))
+        #expect(!session.isEdited)
+        #expect(!session.changedOnDisk)
+        #expect(Set(session.pending.entries.map(\.path)) == ["a.txt", "c.txt"])
+        #expect(session.pending.entries.contains { $0.path == "a.txt" && $0.size == 8 })
+    }
+
+    @Test func saveCopyLeavesOriginalByteIdentical() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "Original.zip")
+        try ZipFixture(entries: [.file("a.txt", "original")]).write(to: url)
+        let listing = try await ArchiveEngine.shared.list(url)
+        let session = EditSession(base: listing, url: url)
+        session.rename("a.txt", to: "b.txt")
+        try ZipFixture(entries: [.file("a.txt", "external change")]).write(to: url)
+        let afterExternal = try Data(contentsOf: url)
+        #expect(!(await session.save(password: nil)))
+        let copy = directory.appending(path: "Copy.zip")
+        #expect(await session.saveCopy(to: copy, password: nil))
+        #expect(try Data(contentsOf: url) == afterExternal)
+        let copied = try await ArchiveEngine.shared.list(copy)
+        #expect(copied.entries.contains { $0.path == "b.txt" })
+        #expect(!copied.entries.contains { $0.path == "a.txt" })
+        #expect(session.url == copy)
+        #expect(!session.isEdited)
+        #expect(!session.changedOnDisk)
+    }
+
+    @Test func renameArchiveKeepsPendingEdits() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "Harbor.zip")
+        try ZipFixture(entries: [.file("Photos/a.txt", "a"), .file("Photos/b.txt", "b")]).write(to: url)
+        let listing = try await ArchiveEngine.shared.list(url)
+        let session = EditSession(base: listing, url: url)
+        session.rename("Photos/a.txt", to: "renamed.txt")
+        var adopted: URL?
+        session.onURLChange = { adopted = $0 }
+        #expect(await session.renameArchive(to: "Harbor Renamed.zip"))
+        #expect(session.url?.lastPathComponent == "Harbor Renamed.zip")
+        #expect(adopted?.lastPathComponent == "Harbor Renamed.zip")
+        #expect(session.isEdited)
+        #expect(session.pending.entries.contains { $0.path == "Photos/renamed.txt" })
+        #expect(FileManager.default.fileExists(atPath: directory.appending(path: "Harbor Renamed.zip").path))
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test func renameArchivePreservesBrowserFolder() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "Harbor.zip")
+        try ZipFixture(entries: [.file("Photos/a.txt", "a"), .file("Photos/b.txt", "b")]).write(to: url)
+        let listing = try await ArchiveEngine.shared.list(url)
+        let model = BrowserModel(archive: Archive(listing: listing, url: url))
+        model.folder = "Photos"
+        model.selection = ["Photos/a.txt"]
+        #expect(await model.editSession.renameArchive(to: "Harbor Renamed.zip"))
+        #expect(model.archive.name == "Harbor Renamed.zip")
+        #expect(model.folder == "Photos")
+        #expect(model.selection == ["Photos/a.txt"])
+        #expect(model.archive.source?.url.lastPathComponent == "Harbor Renamed.zip")
+    }
+
+    @Test func makeStagingLeavesOriginalUntouched() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "Local.zip")
+        try Data("pk".utf8).write(to: url)
+        let staging = try ArchiveSaver.makeStaging(for: url)
+        defer { staging.cleanup() }
+        #expect(!staging.file.path.isEmpty)
+        #expect(try Data(contentsOf: url) == Data("pk".utf8))
     }
 
     @Test func closeDecisions() {

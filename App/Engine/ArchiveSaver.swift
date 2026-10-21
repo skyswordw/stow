@@ -62,7 +62,17 @@ enum ArchiveSaver {
     private static func saveCoordinated(_ url: URL, identity: FileIdentity, operations: [EditOperation],
                                         items: [TreeStream.Item], password: String?, encryptNewItems: Bool,
                                         faults: Faults, progress: @escaping @Sendable (Double) -> Void) async throws -> ArchiveListing {
+        try await writeEdited(url, destination: url, replaceOriginal: true, identity: identity,
+                              operations: operations, items: items, password: password,
+                              encryptNewItems: encryptNewItems, faults: faults, progress: progress)
+    }
+
+    private static func writeEdited(_ url: URL, destination: URL, replaceOriginal: Bool, identity: FileIdentity?,
+                                    operations: [EditOperation], items: [TreeStream.Item], password: String?,
+                                    encryptNewItems: Bool, faults: Faults,
+                                    progress: @escaping @Sendable (Double) -> Void) async throws -> ArchiveListing {
         func checkIdentity() throws {
+            guard let identity else { return }
             guard (try? FileIdentity(of: url)) == identity else { throw EngineError(.changedOnDisk) }
         }
         try checkIdentity()
@@ -79,21 +89,9 @@ enum ArchiveSaver {
                                isSymlink: values.isSymbolicLink == true, size: Int64(values.fileSize ?? 0))
         }
         _ = try EditPlan.steps(for: operations, listing: listing, format: format, sources: sources)
-        let directory: URL
-        do {
-            directory = try manager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url, create: true)
-        } catch {
-            // TODO #10/#9: folder access and a sibling temporary file for SMB / other volumes.
-            throw EngineError(.failed, String(localized: "A replacement folder on the archive’s volume is unavailable. Save a copy instead."))
-        }
-        defer { try? manager.removeItem(at: directory) }
-        var originalInfo = stat(), stagingInfo = stat()
-        guard stat(url.path, &originalInfo) == 0, stat(directory.path, &stagingInfo) == 0,
-              originalInfo.st_dev == stagingInfo.st_dev else {
-            // TODO #10/#9: same-directory fallback with folder access.
-            throw EngineError(.failed, String(localized: "A replacement folder on the archive’s volume is unavailable. Save a copy instead."))
-        }
-        let temporary = directory.appending(path: url.lastPathComponent + ".stow-saving")
+        let staging = try Self.makeStaging(for: replaceOriginal ? url : destination)
+        defer { staging.cleanup() }
+        let temporary = staging.file
         var fd = open(temporary.path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0o600)
         if case .failWrite = faults, fd >= 0 {
             close(fd)
@@ -141,14 +139,110 @@ enum ArchiveSaver {
         try Task.checkCancellation()
         try checkIdentity()
         if case .failBeforeSwap = faults { throw EngineError(.failed, String(localized: "Couldn’t replace the archive. The original was kept.")) }
-        do {
-            _ = try manager.replaceItemAt(url, withItemAt: temporary, backupItemName: nil, options: [])
-        } catch {
-            try checkIdentity()
-            throw EngineError(.failed, String(localized: "Couldn’t replace the archive. The original was kept."))
+        if replaceOriginal {
+            do {
+                _ = try manager.replaceItemAt(url, withItemAt: temporary, backupItemName: nil, options: [])
+            } catch {
+                try checkIdentity()
+                throw EngineError(.failed, String(localized: "Couldn’t replace the archive. The original was kept."))
+            }
+        } else {
+            if FileManager.default.fileExists(atPath: destination.path) {
+                throw EngineError(.failed, String(localized: "An item named “\(destination.lastPathComponent)” already exists."))
+            }
+            do {
+                try manager.moveItem(at: temporary, to: destination)
+            } catch {
+                throw EngineError(.failed, String(localized: "Couldn’t save a copy of the archive."))
+            }
         }
         progress(1)
         return report.listing
+    }
+
+    /// Writes the edited archive to `destination` without touching the original. Used for
+    /// "Save a Copy" when the original changed on disk or lives on a volume Stow can't replace in place.
+    /// Pass `ignoreIdentity: true` after an external change so the current on-disk bytes are the base.
+    static func saveCopy(from archive: URL, to destination: URL, operations: [EditOperation], items: [TreeStream.Item],
+                         password: String? = nil, encryptNewItems: Bool = true, faults: Faults = .none,
+                         identity: FileIdentity? = nil, ignoreIdentity: Bool = false,
+                         progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws(EngineError) -> ArchiveListing {
+        do {
+            let baseline: FileIdentity?
+            if ignoreIdentity { baseline = nil }
+            else if let identity { baseline = identity }
+            else { baseline = try FileIdentity(of: archive) }
+            return try await coordinated(archive) { coordinatedURL in
+                try await writeEdited(coordinatedURL, destination: destination, replaceOriginal: false,
+                                      identity: baseline, operations: operations, items: items,
+                                      password: password, encryptNewItems: encryptNewItems, faults: faults, progress: progress)
+            }
+        } catch { throw error is CancellationError || Task.isCancelled ? EngineError(.cancelled) : EngineError(error) }
+    }
+
+    /// Renames the archive file on disk. Parent-folder write access must already be granted
+    /// (see `FolderAccess`). Keeps the same volume; used for File › Rename Archive… including SMB/NAS.
+    static func renameArchive(at url: URL, to newName: String) throws(EngineError) -> URL {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains("/"), trimmed != ".", trimmed != ".." else {
+            throw EngineError(.failed, String(localized: "Enter a name without a slash."))
+        }
+        let destination = url.deletingLastPathComponent().appending(path: trimmed)
+        guard destination.standardizedFileURL != url.standardizedFileURL else { return url }
+        if FileManager.default.fileExists(atPath: destination.path) {
+            throw EngineError(.failed, String(localized: "An item named “\(trimmed)” already exists."))
+        }
+        var coordinationError: NSError?
+        var moveError: (any Error)?
+        var moved: URL?
+        NSFileCoordinator().coordinate(writingItemAt: url, options: .forMoving,
+                                       writingItemAt: destination, options: .forReplacing,
+                                       error: &coordinationError) { from, to in
+            do {
+                try FileManager.default.moveItem(at: from, to: to)
+                moved = to
+            } catch {
+                moveError = error
+            }
+        }
+        if let moved { return moved }
+        if let moveError { throw EngineError(moveError) }
+        throw EngineError(coordinationError ?? EngineError(.failed).nsError)
+    }
+
+    /// Same-volume staging: prefer the system replacement directory; on SMB/FAT and other volumes
+    /// where that lands elsewhere, stage a sibling next to the archive (caller must have write access).
+    nonisolated static func makeStaging(for url: URL) throws(EngineError) -> (file: URL, cleanup: @Sendable () -> Void) {
+        let manager = FileManager.default
+        if let directory = try? manager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url, create: true) {
+            var originalInfo = stat(), stagingInfo = stat()
+            if stat(url.path, &originalInfo) == 0, stat(directory.path, &stagingInfo) == 0,
+               originalInfo.st_dev == stagingInfo.st_dev {
+                let temporary = directory.appending(path: url.lastPathComponent + ".stow-saving")
+                return (temporary, { try? FileManager.default.removeItem(at: directory) })
+            }
+            try? manager.removeItem(at: directory)
+        }
+        let parent = url.deletingLastPathComponent()
+        let probe = parent.appending(path: ".stow-access-\(UUID().uuidString)")
+        guard mkdir(probe.path, 0o700) == 0 else {
+            throw EngineError(.failed, String(localized: "A replacement folder on the archive’s volume is unavailable. Save a copy instead."))
+        }
+        rmdir(probe.path)
+        let temporary = parent.appending(path: ".\(url.lastPathComponent).stow-saving-\(UUID().uuidString)")
+        return (temporary, { try? FileManager.default.removeItem(at: temporary) })
+    }
+
+    /// Whether `url`'s parent is on a volume where `itemReplacementDirectory` is same-device.
+    nonisolated static func needsSiblingStaging(for url: URL) -> Bool {
+        let manager = FileManager.default
+        guard let directory = try? manager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url, create: true) else {
+            return true
+        }
+        defer { try? manager.removeItem(at: directory) }
+        var originalInfo = stat(), stagingInfo = stat()
+        guard stat(url.path, &originalInfo) == 0, stat(directory.path, &stagingInfo) == 0 else { return true }
+        return originalInfo.st_dev != stagingInfo.st_dev
     }
 
     /// The coordinator's accessor must remain alive across engine awaits. Block only a dedicated

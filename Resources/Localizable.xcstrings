@@ -7325,473 +7325,473 @@
         }
       }
     },
-    "A rename target already exists or is inside its source." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "A rename target already exists or is inside its source.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "新名称对应的路径已存在，或位于原项目内部。"
           }
         }
       }
     },
-    "A replacement folder on the archive’s volume is unavailable. Save a copy instead." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "A replacement folder on the archive’s volume is unavailable. Save a copy instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "无法在压缩包所在卷上创建替换目录。请改为保存副本。"
           }
         }
       }
     },
-    "A staged item points outside the staging tree." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "A staged item points outside the staging tree.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "暂存项目指向了暂存目录之外的位置。"
           }
         }
       }
     },
-    "Added items must have top-level staging names." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "Added items must have top-level staging names.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "新增项目必须使用暂存目录中的顶层名称。"
           }
         }
       }
     },
-    "An edit contains duplicate paths." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "An edit contains duplicate paths.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "此编辑包含重复路径。"
           }
         }
       }
     },
-    "An edit path is outside the archive or is not a clean relative path." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "An edit path is outside the archive or is not a clean relative path.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "编辑路径超出了压缩包范围，或不是规范的相对路径。"
           }
         }
       }
     },
-    "An edit refers to an entry that no longer exists." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "An edit refers to an entry that no longer exists.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "此编辑引用了已不存在的项目。"
           }
         }
       }
     },
-    "An edit would overwrite an existing path or write inside a file." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "An edit would overwrite an existing path or write inside a file.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "此编辑会覆盖现有路径，或尝试在文件内部写入。"
           }
         }
       }
     },
-    "An entry with an unknown filename encoding cannot be changed safely." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "An entry with an unknown filename encoding cannot be changed safely.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "无法安全修改文件名编码未知的项目。"
           }
         }
       }
     },
-    "Couldn’t create the replacement file." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "Couldn’t create the replacement file.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "无法创建替换文件。"
           }
         }
       }
     },
-    "Couldn’t replace the archive. The original was kept." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "Couldn’t replace the archive. The original was kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "无法替换压缩包。原文件已保留。"
           }
         }
       }
     },
-    "Couldn’t write the replacement archive." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "Couldn’t write the replacement archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "无法写入替换压缩包。"
           }
         }
       }
     },
-    "Only an existing regular file can be replaced." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "Only an existing regular file can be replaced.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "只能替换现有的普通文件。"
           }
         }
       }
     },
-    "The archive changed on disk. Reload it before saving." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "The archive changed on disk. Reload it before saving.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
-            "value": "磁盘上的压缩包已更改。请重新载入后再保存。"
+            "value": "磁盘上的压缩包已更改。请在存储前重新载入。"
           }
         }
       }
     },
-    "The archive contains duplicate paths and cannot be edited safely." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "The archive contains duplicate paths and cannot be edited safely.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "压缩包包含重复路径，无法安全编辑。"
           }
         }
       }
     },
-    "The edited archive didn’t pass its check. The original was kept." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "The edited archive didn’t pass its check. The original was kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "编辑后的压缩包未通过检查。原文件已保留。"
           }
         }
       }
     },
-    "The replacement archive is incomplete. The original was kept." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "The replacement archive is incomplete. The original was kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "替换压缩包不完整。原文件已保留。"
           }
         }
       }
     },
-    "This archive format cannot be edited." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "This archive format cannot be edited.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "无法编辑此压缩包格式。"
           }
         }
       }
     },
-    "Names beginning with @ cannot be edited safely." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
+    "Names beginning with @ cannot be edited safely.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
             "state": "translated",
             "value": "无法安全编辑名称以 @ 开头的项目。"
           }
         }
       }
     },
-    "This name uses an unknown text encoding, so Stow can’t rename or delete it safely." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此名称使用未知的文本编码，因此 Stow 无法安全地重命名或删除它。"
+    "This name uses an unknown text encoding, so Stow can’t rename or delete it safely.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此名称使用未知的文本编码，因此 Stow 无法安全地重命名或删除它。"
           }
         }
       }
     },
-    "Split archives are read-only." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "分卷压缩包只能读取。"
+    "Split archives are read-only.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分卷压缩包只能读取。"
           }
         }
       }
     },
-    "Compressed TAR archives are read-only in Stow for now." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stow 目前只能读取经过压缩的 TAR 压缩包。"
+    "Compressed TAR archives are read-only in Stow for now.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 目前只能读取经过压缩的 TAR 压缩包。"
           }
         }
       }
     },
-    "“%@” is a RAR archive, which Stow can open but not change." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“%@”是 RAR 压缩包，Stow 可以打开，但无法修改。"
+    "“%@” is a RAR archive, which Stow can open but not change.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”是 RAR 压缩包，Stow 可以打开，但无法修改。"
           }
         }
       }
     },
-    "“%@” is read-only in Stow. Extract and repack it to make changes." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stow 只能读取“%@”。请先解压缩并重新打包，再进行修改。"
+    "“%@” is read-only in Stow. Extract and repack it to make changes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 只能读取“%@”。请先解压缩并重新打包，再进行修改。"
           }
         }
       }
     },
-    "Enter a name without a slash." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请输入不含斜杠的名称。"
+    "Enter a name without a slash.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入不含斜杠的名称。"
           }
         }
       }
     },
-    "That name is already taken." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此名称已被使用。"
+    "That name is already taken.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此名称已被使用。"
           }
         }
       }
     },
-    "Rename" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重命名"
+    "Rename": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重命名"
           }
         }
       }
     },
-    "Revert" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复原"
+    "Revert": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复原"
           }
         }
       }
     },
-    "Revert to Saved" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复原到上次存储的版本"
+    "Revert to Saved": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复原到上次存储的版本"
           }
         }
       }
     },
-    "Save" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "存储"
+    "Save": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储"
           }
         }
       }
     },
-    "Don’t Save" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不存储"
+    "Don’t Save": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不存储"
           }
         }
       }
     },
-    "Save changes to “%@”?" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "要存储对“%@”的更改吗？"
+    "Save changes to “%@”?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要存储对“%@”的更改吗？"
           }
         }
       }
     },
-    "The archive changed on disk. Close and reopen it before saving." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "磁盘上的压缩包已更改。请关闭并重新打开它，然后再存储。"
+    "The archive changed on disk. Close and reopen it before saving.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘上的压缩包已更改。请关闭并重新打开它，然后再存储。"
           }
         }
       }
     },
-    "New" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新增"
+    "New": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增"
           }
         }
       }
     },
-    "Renamed" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已重命名"
+    "Renamed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已重命名"
           }
         }
       }
     },
-    "Replaced" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已替换"
+    "Replaced": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已替换"
           }
         }
       }
     },
-    "Add Files…" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加文件…"
+    "Add Files…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加文件…"
           }
         }
       }
     },
-    "Delete" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除"
+    "Delete": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除"
           }
         }
       }
     },
-    "Delete “%@”" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除“%@”"
+    "Delete “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除“%@”"
           }
         }
       }
     },
-    "Replace…" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "替换…"
+    "Replace…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "替换…"
           }
         }
       }
     },
-    "Archive Editing" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "编辑压缩包"
+    "Archive Editing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑压缩包"
           }
         }
       }
     },
-    "Extract and Repack…" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解压缩并重新打包…"
+    "Extract and Repack…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩并重新打包…"
           }
         }
       }
     },
-    "Extract and Repack as ZIP or 7Z…" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解压缩并重新打包为 ZIP 或 7Z…"
+    "Extract and Repack as ZIP or 7Z…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩并重新打包为 ZIP 或 7Z…"
           }
         }
       }
     },
-    "“%@” couldn’t be read. Choose the file again." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法读取“%@”。请重新选择此文件。"
+    "“%@” couldn’t be read. Choose the file again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取“%@”。请重新选择此文件。"
           }
         }
       }
     },
-    "%lld unsaved changes" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld unsaved change"
+    "%lld unsaved changes": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld unsaved change"
                 }
               },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld unsaved changes"
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld unsaved changes"
                 }
               }
             }
           }
         },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld 项未存储的更改"
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 项未存储的更改"
                 }
               }
             }
@@ -7799,33 +7799,33 @@
         }
       }
     },
-    "Add %lld Items" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Add %lld Item"
+    "Add %lld Items": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Add %lld Item"
                 }
               },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Add %lld Items"
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Add %lld Items"
                 }
               }
             }
           }
         },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "添加 %lld 个项目"
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "添加 %lld 个项目"
                 }
               }
             }
@@ -7833,33 +7833,33 @@
         }
       }
     },
-    "Delete %lld Items" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Delete %lld Item"
+    "Delete %lld Items": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Delete %lld Item"
                 }
               },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Delete %lld Items"
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Delete %lld Items"
                 }
               }
             }
           }
         },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "删除 %lld 个项目"
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "删除 %lld 个项目"
                 }
               }
             }
@@ -7867,22 +7867,142 @@
         }
       }
     },
-    "Add Files" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加文件"
+    "Add Files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加文件"
           }
         }
       }
     },
-    "Choose files and folders to add." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选取要添加的文件和文件夹。"
+    "Choose files and folders to add.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选取要添加的文件和文件夹。"
+          }
+        }
+      }
+    },
+    "This archive changed on disk.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘上的压缩包已更改。"
+          }
+        }
+      }
+    },
+    "The archive changed on disk. Reload it or save a copy.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘上的压缩包已更改。请重新载入或存储副本。"
+          }
+        }
+      }
+    },
+    "Reload": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新载入"
+          }
+        }
+      }
+    },
+    "Save a Copy…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储副本…"
+          }
+        }
+      }
+    },
+    "Save a Copy": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储副本"
+          }
+        }
+      }
+    },
+    "Rename Archive…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新命名压缩包…"
+          }
+        }
+      }
+    },
+    "Rename Archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新命名压缩包"
+          }
+        }
+      }
+    },
+    "Choose a new name for “%@”. The browsing position is kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为“%@”选择新名称。浏览位置会保留。"
+          }
+        }
+      }
+    },
+    "Stow needs to write a temporary file next to the archive to save your changes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 需要在压缩包旁写入临时文件才能存储更改。"
+          }
+        }
+      }
+    },
+    "Stow needs access to this folder to rename the archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 需要访问此文件夹才能重新命名压缩包。"
+          }
+        }
+      }
+    },
+    "Couldn’t save a copy of the archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法存储压缩包的副本。"
+          }
+        }
+      }
+    },
+    "An item named “%@” already exists.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已存在名为“%@”的项目。"
           }
         }
       }
