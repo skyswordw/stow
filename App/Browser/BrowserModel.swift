@@ -845,7 +845,7 @@ final class BrowserModel {
     }
 
     /// Opens an archive inside this one in place; the path bar shows the chain.
-    func openInside(_ entry: ArchiveEntry, revealing inner: ArchiveEntry? = nil) {
+    func openInside(_ entry: ArchiveEntry, revealing target: ArchiveEntry? = nil) {
         guard archive.source != nil else { return run(.openInside, on: [entry]) }
         guard levels.count < Self.maxDepth else {
             activity = Activity(step: .openInside, itemCount: 1,
@@ -872,10 +872,10 @@ final class BrowserModel {
                 let level = Level(archive: inner, password: password, entryPath: entry.path)
                 connectEdits(level)
                 activity = nil
-                if let inner, inner.isFolder {
-                    navigate(to: inner.path, levels: parentLevels + [level])
+                if let target, target.isFolder {
+                    navigate(to: target.path, levels: parentLevels + [level])
                 } else {
-                    navigate(to: inner?.parent ?? "", levels: parentLevels + [level], selecting: inner.map { [$0.id] } ?? [])
+                    navigate(to: target?.parent ?? "", levels: parentLevels + [level], selecting: target.map { [$0.id] } ?? [])
                 }
                 startIndexing(level)
             } catch {
