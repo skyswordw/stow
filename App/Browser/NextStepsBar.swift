@@ -36,6 +36,9 @@ struct NextStepsBar: View {
                                 showInFinder: activity.placed.isEmpty ? nil : { model.showInFinder() },
                                 perform: { model.follow($0) },
                                 dismiss: { model.dismissActivity() })
+            } else if entries.isEmpty, !model.selection.isEmpty {
+                // Search results inside other archives: the one thing to do is go there.
+                NestedResultRow(model: model, compact: density == .actionsOnly)
             } else {
                 if density != .actionsOnly {
                     SelectionSummary(entries: entries)
@@ -58,6 +61,49 @@ struct NextStepsBar: View {
             }
         }
         .fixedSize()
+    }
+}
+
+/// The bar for a search result inside an inner archive: its name, where it is, and Show.
+private struct NestedResultRow: View {
+    let model: BrowserModel
+    let compact: Bool
+
+    var body: some View {
+        if let hit = model.selectedNestedHit {
+            if !compact {
+                HStack(spacing: 6) {
+                    Text(hit.inner.name)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: 220)
+                        .fixedSize(horizontal: true, vertical: false)
+                    Text("in \(hit.container.name)")
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: 200)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .font(.callout)
+                .padding(.horizontal, Space.l)
+                .padding(.vertical, 9)
+                .glassEffect(.regular, in: .capsule)
+            }
+            Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: "arrow.down.right.and.arrow.up.left") {
+                model.showNested(hit)
+            }
+            .labelStyle(.titleAndIcon)
+            .buttonStyle(.glassProminent)
+        } else {
+            Text("\(model.selection.count) items inside other archives — open one to act on it")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, Space.l)
+                .padding(.vertical, 9)
+                .glassEffect(.regular, in: .capsule)
+        }
     }
 }
 

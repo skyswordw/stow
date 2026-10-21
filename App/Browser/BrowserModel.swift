@@ -41,6 +41,8 @@ final class BrowserModel {
         let entryPath: String?
         fileprivate(set) var search: SearchIndex
         fileprivate(set) var indexed = 0
+        /// The archives inside this one, read the first time someone searches (#21).
+        fileprivate(set) var nested: NestedSearch?
 
         init(archive: Archive, password: String? = nil, entryPath: String? = nil) {
             self.archive = archive
@@ -103,6 +105,11 @@ final class BrowserModel {
 
     private var positions: [ArchiveEntry.ID: Int] = [:]
     private var searchResults: [ArchiveEntry] = []
+    /// Results that sit inside an inner archive, by the id they show under.
+    private(set) var nestedHits: [ArchiveEntry.ID: NestedHit] = [:]
+    /// Reads an inner archive for search. Real archives extract it to the preview cache; nil
+    /// (the sample archive) leaves search at the open level. Demo scenes and tests swap it.
+    var nestedLoader: NestedSearch.Loader?
     private var searchTask: Task<Void, Never>?
     private var activityTask: Task<Void, Never>?
     /// The last step run, for a failure's Try Again / Choose Another Folder.
@@ -122,6 +129,16 @@ final class BrowserModel {
         quickLook.model = self
         dragOut.model = self
         connectEdits(root)
+        if archive.source != nil {
+            nestedLoader = { [weak self] entry, archive in
+                guard let self else { throw EngineError(.cancelled) }
+                let url = try await self.previews.file(for: entry, in: archive)
+                self.previews.cache.pin(url)
+                let listing = try await ArchiveEngine.shared.list(url, password: nil)
+                let inner = await Self.makeArchive(listing, url: url, name: entry.name)
+                return inner.index.visible + inner.index.helpers
+            }
+        }
         refresh()
         if let suggested = Self.suggestedSelection(in: archive) { select([suggested]) }
         startIndexing(root)
@@ -433,9 +450,19 @@ final class BrowserModel {
         return isSearching ? String(localized: "\(count.formatted()) results in \(archive.name)") : items
     }
 
+    /// The selected search result, when it sits inside an inner archive.
+    var selectedNestedHit: NestedHit? {
+        guard selection.count == 1, let id = selection.first else { return nil }
+        return nestedHits[id]
+    }
+
     /// "Indexing… 12,000 of 40,000" while a big archive's search index builds.
     var indexingProgress: String? {
         let search = level.search
+        if isSearching, let nested = level.nested, nested.isLoading {
+            return nested.pending == 1 ? String(localized: "Looking inside 1 more archive…")
+                : String(localized: "Looking inside \(nested.pending) more archives…")
+        }
         guard level.indexed < search.total, search.total > 2_000 else { return nil }
         return String(localized: "Indexing… \(level.indexed.formatted()) of \(search.total.formatted())")
     }
@@ -452,16 +479,40 @@ final class BrowserModel {
         searchTask?.cancel()
         guard isSearching else {
             searchResults = []
+            nestedHits = [:]
             refresh()
             return
         }
         let level = level, query = query, helpers = showHelperItems
+        startNestedSearch(level)
         searchTask = Task {
             let results = await level.search.search(query, includingHelpers: helpers)
+            let hits = await level.nested?.search(query, includingHelpers: helpers) ?? []
             guard !Task.isCancelled, level === self.level else { return }
-            searchResults = results
+            nestedHits = Dictionary(hits.map { ($0.entry.id, $0) }, uniquingKeysWith: { first, _ in first })
+            searchResults = results + hits.map(\.entry)
             refresh()
         }
+    }
+
+    /// The first search in a level reads the archives inside it, once; results grow as each is read.
+    private func startNestedSearch(_ level: Level) {
+        guard level.nested == nil, let loader = nestedLoader else { return }
+        let nested = NestedSearch(archive: level.archive)
+        level.nested = nested
+        guard !nested.isEmpty else { return }
+        let archive = level.archive
+        Task { [weak self, weak level] in
+            await nested.load(in: archive, with: loader) {
+                guard let self, let level, level.nested === nested, self.level === level, self.isSearching else { return }
+                self.runSearch()
+            }
+        }
+    }
+
+    /// Opens the inner archive a search result sits in, with the result selected.
+    func showNested(_ hit: NestedHit) {
+        openInside(hit.container, revealing: hit.inner)
     }
 
     private func startIndexing(_ level: Level) {
@@ -732,7 +783,9 @@ final class BrowserModel {
     // MARK: - Opening
 
     func open(_ entry: ArchiveEntry) {
-        if entry.isNavigable {
+        if let hit = nestedHits[entry.id] {
+            showNested(hit)
+        } else if entry.isNavigable {
             navigate(to: entry.path)
         } else if archive.source == nil {
             entry.kind == .archive ? run(.openInside, on: [entry]) : run(.quickLook, on: [entry])
@@ -792,7 +845,7 @@ final class BrowserModel {
     }
 
     /// Opens an archive inside this one in place; the path bar shows the chain.
-    func openInside(_ entry: ArchiveEntry) {
+    func openInside(_ entry: ArchiveEntry, revealing target: ArchiveEntry? = nil) {
         guard archive.source != nil else { return run(.openInside, on: [entry]) }
         guard levels.count < Self.maxDepth else {
             activity = Activity(step: .openInside, itemCount: 1,
@@ -819,7 +872,11 @@ final class BrowserModel {
                 let level = Level(archive: inner, password: password, entryPath: entry.path)
                 connectEdits(level)
                 activity = nil
-                navigate(to: "", levels: parentLevels + [level])
+                if let target, target.isFolder {
+                    navigate(to: target.path, levels: parentLevels + [level])
+                } else {
+                    navigate(to: target?.parent ?? "", levels: parentLevels + [level], selecting: target.map { [$0.id] } ?? [])
+                }
                 startIndexing(level)
             } catch {
                 report(error, step: .openInside, count: 1, name: entry.name)
@@ -864,6 +921,7 @@ final class BrowserModel {
         level.archive = reread
         level.search = SearchIndex(total: reread.index.visible.count + reread.index.helpers.count)
         level.indexed = 0
+        level.nested = nil
         startIndexing(level)
         selection = []
         if !folder.isEmpty, reread.entry(at: folder) == nil { folder = "" } else { refresh() }
@@ -874,6 +932,8 @@ final class BrowserModel {
 
     /// Runs a Next Step on the selection (or on `entries`); Extract with nothing selected extracts all.
     func run(_ step: NextStep, on entries: [ArchiveEntry]? = nil) {
+        // Only results inside other archives are selected: nothing here to act on, and not "everything".
+        if entries == nil, selectedEntries.isEmpty, !selection.isEmpty { return }
         let items = entries ?? (selectedEntries.isEmpty ? archive.files : selectedEntries)
         let again = entries ?? (selectedEntries.isEmpty ? nil : selectedEntries)
         lastRun = { [weak self] in self?.run(step, on: again) }

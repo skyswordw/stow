@@ -88,7 +88,8 @@ struct PackSheet: View {
                 Button("With a password") { options.usesPassword = true }
             }
         case .split:
-            Token(title: options.split.phrase, suffix: suffix) {
+            Token(title: options.split.phrase, suffix: suffix, isEnabled: options.format.supportsSplit,
+                  disabledHelp: String(localized: "A \(options.format.displayName) is always one file")) {
                 ForEach(SplitSize.allCases) { split in
                     Button(split.phrase.prefix(1).uppercased() + split.phrase.dropFirst()) { options.split = split }
                 }
@@ -230,7 +231,7 @@ struct PackSheet: View {
         }
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
-        options.split = SettingsKeys.splitSize()
+        options.split = options.format.supportsSplit ? SettingsKeys.splitSize() : .none
         // Design review: -StowPackDetails YES opens both disclosures.
         if UserDefaults.standard.bool(forKey: "StowPackDetails") { showDetails = true; showMore = true }
     }

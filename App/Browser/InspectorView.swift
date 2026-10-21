@@ -7,14 +7,44 @@ struct InspectorView: View {
         let selected = model.selectedEntries
         ScrollView {
             Group {
+                if let hit = model.selectedNestedHit {
+                    NestedDetail(hit: hit, model: model)
+                } else {
                 switch selected.count {
                 case 0: ArchiveSummary(archive: model.archive)
                 case 1: EntryDetail(entry: selected[0], model: model)
                 default: MultiDetail(entries: selected, model: model)
                 }
+                }
             }
             .padding(Space.l)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// A search result inside an inner archive: what and where, and the way there.
+private struct NestedDetail: View {
+    let hit: NestedHit
+    let model: BrowserModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.l) {
+            EntryThumbnail(entry: hit.inner, style: .large)
+                .frame(maxWidth: .infinity, minHeight: 120)
+            Text(hit.inner.name)
+                .font(.title3.weight(.semibold))
+                .lineLimit(3)
+            MetadataGrid(rows: [
+                (String(localized: "Size"), hit.inner.size.bytes),
+                (String(localized: "Modified"), hit.inner.modified.formatted(date: .abbreviated, time: .shortened)),
+                (String(localized: "Inside"), hit.container.path),
+                (String(localized: "Where"), hit.inner.parent.isEmpty ? String(localized: "Top level") : hit.inner.parent),
+            ])
+            Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: "arrow.down.right.and.arrow.up.left") {
+                model.showNested(hit)
+            }
+            .controlSize(.large)
         }
     }
 }
