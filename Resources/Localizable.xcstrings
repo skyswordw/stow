@@ -1808,6 +1808,16 @@
         }
       }
     },
+    "%lld percent": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "百分之 %lld"
+          }
+        }
+      }
+    },
     "%lld special files left out": {
       "localizations": {
         "zh-Hans": {
@@ -3579,6 +3589,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "文件名也已加密。请在 Stow 中打开并输入密码以查看内容。"
+          }
+        }
+      }
+    },
+    "Every other step for the selection, and Customize Next Steps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项目的其他所有操作，以及“自定义‘下一步’”"
           }
         }
       }
@@ -5719,6 +5739,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "预览"
+          }
+        }
+      }
+    },
+    "Progress": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "进度"
           }
         }
       }

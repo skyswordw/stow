@@ -34,7 +34,7 @@ struct ExtractionOptionsView: View {
                     Text("Skip").tag(Preferences.FileConflict.skip)
                 }
             } header: {
-                Text("When something is already there")
+                Text("When something is already there").accessibilityAddTraits(.isHeader)
             } footer: {
                 Text("Replaced files go to the Trash, so nothing is lost.")
                     .foregroundStyle(.secondary)
@@ -76,7 +76,7 @@ struct InstallOptionsView: View {
                 grantRow(String(localized: "Applications"), granted: $applicationsGranted, folder: FolderAccess.applications)
                 grantRow(String(localized: "Your font library"), granted: $fontsGranted, folder: FolderAccess.userFonts)
             } header: {
-                Text("Folders Stow may install into")
+                Text("Folders Stow may install into").accessibilityAddTraits(.isHeader)
             } footer: {
                 Text("Stow is sandboxed. It asks once before the first install into a folder and remembers only that folder.")
                     .foregroundStyle(.secondary)

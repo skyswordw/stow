@@ -10,6 +10,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: Space.xl) {
             Text("Welcome to Stow")
                 .font(.title.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
             VStack(alignment: .leading, spacing: Space.l) {
                 ForEach(OnboardingStep.allCases) { step in
                     HStack(alignment: .top, spacing: Space.m) {
@@ -19,7 +20,7 @@ struct OnboardingView: View {
                             .frame(width: 28)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: Space.xs) {
-                            Text(step.title).font(.headline)
+                            Text(step.title).font(.headline).accessibilityAddTraits(.isHeader)
                             Text(detail(for: step))
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
@@ -42,6 +43,7 @@ struct OnboardingView: View {
             HStack {
                 Spacer()
                 Button("Skip", action: finish).buttonStyle(.plain)
+                    .keyboardShortcut(.cancelAction)
                 Button("Get Started", action: finish)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)

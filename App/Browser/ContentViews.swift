@@ -152,6 +152,7 @@ struct ContentGrid: View {
 }
 
 private struct GridTile: View {
+    @Environment(\.colorSchemeContrast) private var contrast
     let entry: ArchiveEntry
     let model: BrowserModel
     let isSelected: Bool
@@ -164,6 +165,13 @@ private struct GridTile: View {
                 .frame(maxWidth: .infinity)
                 .padding(Space.s)
                 .background(.primary.opacity(isSelected ? 0.08 : 0), in: .rect(cornerRadius: Radius.card))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.card)
+                        .strokeBorder(.primary.opacity(ContrastStyle.resolve(contrast).increased ? 0.45 : 0))
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+                .accessibilityHidden(true)
                 .opacity(entry.isHelper ? 0.55 : 1)
 
             VStack(spacing: 2) {
@@ -185,7 +193,9 @@ private struct GridTile: View {
             }
         }
         .contentShape(.rect)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
+        .accessibilityLabel(model.accessibilityLabel(for: entry))
+        .accessibilityAction { model.select([entry.id]); model.open(entry) }
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 }
@@ -252,6 +262,7 @@ struct ContentList: View {
                 TableColumn(String(localized: "Name")) { entry in
                     HStack(spacing: Space.s) {
                         RowIcon(entry: entry, model: model)
+                            .accessibilityHidden(true)
                             .frame(width: 18, height: 18)
                         VStack(alignment: .leading, spacing: 0) {
                             EditingName(model: model, entry: entry).lineLimit(1)
@@ -266,6 +277,9 @@ struct ContentList: View {
                     }
                     .opacity(entry.isHelper ? 0.55 : 1)
                     .contentShape(.rect)
+                    .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
+                    .accessibilityLabel(model.accessibilityLabel(for: entry))
+                    .accessibilityAddTraits(model.selection.contains(entry.id) ? .isSelected : [])
                     .hoverPreview(for: entry, model: hover, browser: model)
                     .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
                 }

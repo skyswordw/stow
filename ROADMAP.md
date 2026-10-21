@@ -97,7 +97,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Welcome window | Feels empty at large sizes: real Open Recent, a smaller drop target, a quieter title bar. |
 | Motion audit | Run the `review-animations` skill over every transition; enforce DESIGN.md (no animation on keyboard actions, exits faster than entrances, springs only where touched). |
 | Consistency | One progress capsule style for packing, extracting, installing and batch; one prompt style for conflicts, signatures and passwords. |
-| Accessibility | VoiceOver labels and rotor order on every screen; full keyboard path; Reduce Motion, Reduce Transparency and Increase Contrast checked per screen. |
+| Accessibility | done (#29): composed VoiceOver labels (grid, list, columns, Glance, Tray, nested search results, Next Steps summary), headers for the rotor, reading order sidebar → content → inspector → Next Steps, keyboard paths (Tray rows, onboarding, Quick Look); no animation for keyboard actions, solid surfaces under Reduce Transparency, stronger outlines and metadata under Increase Contrast. Manual VoiceOver checklist in #66 / #38 |
 | Empty and error states | Every failure says what happened and what to do, in plain words, with one action. |
 | Website | Real product video of Pack and Checkup; screenshots refreshed from the release build. |
 
@@ -152,8 +152,8 @@ have **not** been done and must be before a 1.0:
 | 12 | Archives of several GB, low disk space, and the engine's temporary copy while packing | packing needs space for the input plus the archive |
 | 13 | SMB/NAS and iCloud Drive locations (open, extract, pack, rename) | not tested |
 | 14 | Real-world corpus: multi-part RAR5, self-extracting EXE, ZIPs from Windows/Linux tools, legacy encodings beyond the fixtures | fixtures are synthetic |
-| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | not audited |
-| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | the universal Release build is checked in CI and its x86_64 7zz runs under Rosetta; the app itself has not run on real Intel hardware or on macOS 26.0 |
+| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | automated parts covered (#29); the manual VoiceOver/keyboard/display-settings checklist is on #38 |
+| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | the universal Release build is checked in CI (#33) and the test suite passed as x86_64 under Rosetta, but the x86_64 7zz dies with "Illegal instruction" under Rosetta; nothing has run on real Intel hardware or on macOS 26.0 |
 | 17 | Signed/notarized build behaviour (Gatekeeper on extracted apps, extensions, App Group hand-off) | only ad-hoc builds exist |
 | 18 | Fuzzing malformed archives | automated (#37): a deterministic set on every CI run, a longer weekly run (`fuzz.yml`). Still open: a sustained multi-hour run with no findings, and coverage-guided fuzzing of Stow's own parsers (AppleDouble, tar headers) |
 | 19 | Website in Safari, Firefox and on real phones | checked in one desktop browser engine and a 375 px emulation |

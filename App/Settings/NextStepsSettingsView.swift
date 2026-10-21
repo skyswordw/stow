@@ -26,6 +26,7 @@ struct NextStepsSettingsView: View {
                             Image(systemName: kind.symbol)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 20)
+                                .accessibilityHidden(true)
                         }
                     }
                 }
