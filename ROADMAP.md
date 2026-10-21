@@ -110,7 +110,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Signed DMG + GitHub Releases + Sparkle appcast | first public download |
 | Homebrew cask | `brew install --cask stow` |
 | CI | `.github/workflows/ci.yml` builds and tests every push and PR to main on GitHub's `xcode-27` runner (preview image: macOS 27, Xcode 27). Fails if 7zz is missing or any test is skipped. Still to do: release builds, signing, and moving off the preview image once it is GA. |
-| Fuzzing | malformed ZIP/7Z/RAR/TAR/DMG inputs against the engine (crash and containment) |
+| Fuzzing | done (#37): `Tests/FuzzTests.swift` mutates ZIP, 7Z, TAR (.gz/.bz2/.xz), RAR 4/5 and DMG seeds (truncation, bit flips, header/trailer corruption, huge length fields, splices, zero runs) and checks that 7zz never crashes or hangs, the engine only fails cleanly and survives, and extraction stays inside its folder; plus libarchive's malformed-RAR regressions. ~15 mutants per seed on every CI run; `.github/workflows/fuzz.yml` runs hundreds weekly and on demand, keeping any failing input |
 
 ---
 
@@ -155,6 +155,6 @@ have **not** been done and must be before a 1.0:
 | 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | not audited |
 | 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | no hardware run |
 | 17 | Signed/notarized build behaviour (Gatekeeper on extracted apps, extensions, App Group hand-off) | only ad-hoc builds exist |
-| 18 | Fuzzing malformed archives | not started |
+| 18 | Fuzzing malformed archives | automated (#37): a deterministic set on every CI run, a longer weekly run (`fuzz.yml`). Still open: a sustained multi-hour run with no findings, and coverage-guided fuzzing of Stow's own parsers (AppleDouble, tar headers) |
 | 19 | Website in Safari, Firefox and on real phones | checked in one desktop browser engine and a 375 px emulation |
 | 20 | CI | runs on GitHub's `xcode-27` runner (`.github/workflows/ci.yml`); ad-hoc signed, so signed-build behaviour is still item 17 |
