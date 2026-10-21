@@ -518,7 +518,7 @@ struct TrayView: View {
             if hasFooter { footer }
         }
         .frame(width: 300, height: 440)
-        .background { background }
+        .modifier(TrayMaterial(solid: GlanceMaterial.resolve(reduceTransparency: reduceTransparency) == .solid))
         .overlay {
             RoundedRectangle(cornerRadius: Self.radius)
                 .strokeBorder(border.color.opacity(0.45), lineWidth: 1)
@@ -528,14 +528,6 @@ struct TrayView: View {
         .onKeyPress(.delete) { tray.removeSelected(); return .handled }
     }
 
-    @ViewBuilder
-    private var background: some View {
-        let shape = RoundedRectangle(cornerRadius: Self.radius)
-        switch GlanceMaterial.resolve(reduceTransparency: reduceTransparency) {
-        case .glass: Color.clear.glassEffect(.regular, in: shape)
-        case .solid: shape.fill(Color(nsColor: .windowBackgroundColor))
-        }
-    }
 
     // MARK: Header
 
@@ -757,6 +749,21 @@ struct TrayView: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled((tray.collectingName ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
             }
+        }
+    }
+}
+
+/// Glass on the Tray's own content (a separate clear layer behind it leaves a square edge in the
+/// window shadow), or a solid window background under Reduce Transparency.
+private struct TrayMaterial: ViewModifier {
+    let solid: Bool
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: TrayView.radius)
+        if solid {
+            content.background(Color(nsColor: .windowBackgroundColor), in: shape)
+        } else {
+            content.glassEffect(.regular, in: shape)
         }
     }
 }
