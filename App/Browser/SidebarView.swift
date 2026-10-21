@@ -36,10 +36,14 @@ struct SidebarView: View {
 struct ArchiveCard: View {
     let archive: Archive
     @State private var showCheckup = false
+    /// Below this the name gets a line of its own instead of sharing one with the badge.
+    @State private var isNarrow = false
 
     var body: some View {
+        let header = isNarrow ? AnyLayout(VStackLayout(alignment: .leading, spacing: Space.s))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: Space.m))
         VStack(alignment: .leading, spacing: Space.m) {
-            HStack(alignment: .top, spacing: Space.m) {
+            header {
                 FormatBadge(format: archive.format)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(archive.name)
@@ -68,14 +72,15 @@ struct ArchiveCard: View {
             Button {
                 showCheckup.toggle()
             } label: {
-                CheckupBadge(archive: archive)
+                CheckupBadge(archive: archive, isCompact: isNarrow)
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showCheckup, arrowEdge: .trailing) {
                 CheckupView(findings: archive.checkup)
             }
         }
-        .padding(Space.m)
+        .padding(isNarrow ? Space.s : Space.m)
+        .onGeometryChange(for: Bool.self) { $0.size.width < 200 } action: { isNarrow = $0 }
         .background(.background.opacity(0.5), in: .rect(cornerRadius: Radius.card))
         .overlay {
             RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.primary.opacity(0.06))
@@ -149,6 +154,8 @@ struct CompressionBar: View {
 
 struct CheckupBadge: View {
     let archive: Archive
+    /// Drops the chevron so the label keeps whole words on a narrow card.
+    var isCompact = false
     @State private var isHovering = false
 
     var body: some View {
@@ -165,9 +172,11 @@ struct CheckupBadge: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.tertiary)
+            if !isCompact {
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 6)
