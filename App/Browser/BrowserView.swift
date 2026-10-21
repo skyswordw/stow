@@ -63,6 +63,7 @@ struct BrowserView: View {
             if let progress = model.indexingProgress {
                 ContentUnavailableView(progress, systemImage: "magnifyingglass",
                                        description: Text("You can keep browsing while Stow finishes reading the names."))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ContentUnavailableView {
                     Label("No files match “\(model.query)”", systemImage: "magnifyingglass")
@@ -71,6 +72,7 @@ struct BrowserView: View {
                 } actions: {
                     Button("Clear Search") { model.query = "" }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         } else if model.visibleEntries.isEmpty, model.folder.isEmpty {
             ContentUnavailableView {
@@ -80,6 +82,7 @@ struct BrowserView: View {
             } actions: {
                 Button("Open Another Archive…") { app.isChoosingArchive = true }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if model.visibleEntries.isEmpty, model.viewMode != .columns {
             ContentUnavailableView {
                 Label("“\((model.folder as NSString).lastPathComponent)” is empty", systemImage: "folder")
@@ -88,6 +91,7 @@ struct BrowserView: View {
             } actions: {
                 Button("Enclosing Folder") { model.goUp() }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             // View-mode switches are keyboard-speed actions: no animation.
             switch model.isSearching && model.viewMode == .columns ? .list : model.viewMode {
