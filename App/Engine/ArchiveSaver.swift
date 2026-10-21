@@ -219,7 +219,7 @@ enum ArchiveSaver {
             if stat(url.path, &originalInfo) == 0, stat(directory.path, &stagingInfo) == 0,
                originalInfo.st_dev == stagingInfo.st_dev {
                 let temporary = directory.appending(path: url.lastPathComponent + ".stow-saving")
-                return (temporary, { try? manager.removeItem(at: directory) })
+                return (temporary, { try? FileManager.default.removeItem(at: directory) })
             }
             try? manager.removeItem(at: directory)
         }
@@ -230,7 +230,7 @@ enum ArchiveSaver {
         }
         rmdir(probe.path)
         let temporary = parent.appending(path: ".\(url.lastPathComponent).stow-saving-\(UUID().uuidString)")
-        return (temporary, { try? manager.removeItem(at: temporary) })
+        return (temporary, { try? FileManager.default.removeItem(at: temporary) })
     }
 
     /// Whether `url`'s parent is on a volume where `itemReplacementDirectory` is same-device.
