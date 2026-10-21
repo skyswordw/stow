@@ -39,19 +39,28 @@ struct ArchiveCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
-            // Badge beside the name while the name has room for a few words; on a narrow sidebar
-            // the name gets a line of its own. ViewThatFits decides from ideal sizes, so there is
-            // no measure-then-relayout loop.
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: Space.m) {
-                    FormatBadge(format: archive.format)
-                    titleAndCounts
-                        .frame(minWidth: 120, idealWidth: 120, maxWidth: .infinity, alignment: .leading)
+            HStack(alignment: .top, spacing: Space.m) {
+                FormatBadge(format: archive.format)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(archive.name)
+                        .font(.headline)
+                        .lineLimit(3)
+                        .help(archive.name)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .foregroundStyle(.primary)
+                    ViewThatFits(in: .horizontal) {
+                        Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
+                            .fixedSize()
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("\(archive.files.count.formatted()) files")
+                            Text(archive.totalSize.bytes)
+                        }
+                    }
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
                 }
-                VStack(alignment: .leading, spacing: Space.s) {
-                    FormatBadge(format: archive.format)
-                    titleAndCounts
-                }
+                Spacer(minLength: 0)
             }
 
             CompressionBar(packed: archive.packedSize, total: archive.totalSize)
@@ -72,28 +81,6 @@ struct ArchiveCard: View {
             RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.primary.opacity(0.06))
         }
         .textCase(nil)
-    }
-
-    private var titleAndCounts: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(archive.name)
-                .font(.headline)
-                .lineLimit(3)
-                .help(archive.name)
-                .fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(.primary)
-            ViewThatFits(in: .horizontal) {
-                Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
-                    .fixedSize()
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("\(archive.files.count.formatted()) files")
-                    Text(archive.totalSize.bytes)
-                }
-            }
-            .font(.caption)
-            .monospacedDigit()
-            .foregroundStyle(.secondary)
-        }
     }
 }
 
@@ -168,27 +155,19 @@ struct CheckupBadge: View {
         let cautions = archive.checkup.count { $0.severity == .caution }
         let caution = cautions > 0
         let handled = archive.checkup.count { $0.severity == .handled }
-        let label = Text(caution ? String(localized: "Checkup: \(cautions) things to know")
-                         : handled > 0 ? String(localized: "Checkup: safe, \(handled) handled") : String(localized: "Checkup: looks safe"))
-            .fixedSize(horizontal: false, vertical: true)
-            .multilineTextAlignment(.leading)
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.primary)
-        let shield = Image(systemName: caution ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
-            .foregroundStyle(caution ? .yellow : .green)
-        // The chevron goes first when the card is narrow, so the label keeps whole words.
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) {
-                shield
-                label.frame(minWidth: 110, idealWidth: 110, maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
-            HStack(spacing: 6) {
-                shield
-                label.frame(maxWidth: .infinity, alignment: .leading)
-            }
+        HStack(spacing: 6) {
+            Image(systemName: caution ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
+                .foregroundStyle(caution ? .yellow : .green)
+            Text(caution ? String(localized: "Checkup: \(cautions) things to know")
+                 : handled > 0 ? String(localized: "Checkup: safe, \(handled) handled") : String(localized: "Checkup: looks safe"))
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 6)
