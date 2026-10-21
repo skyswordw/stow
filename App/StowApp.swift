@@ -14,6 +14,8 @@ final class AppState {
     let system = SystemActions()
     let passwords = PasswordPrompt()
     let glance = GlanceController()
+    /// Demo scenes keep their own list so screenshots never show (or change) real history.
+    let recents = RecentArchives(defaults: UserDefaults.standard.string(forKey: "StowScene") == nil ? .standard : nil)
     var browser: BrowserModel?
     var packRequest: PackRequest?
     var isChoosingArchive = false
@@ -69,6 +71,7 @@ final class AppState {
                 archive.source?.password = password
                 releaseScope()
                 scopedURL = scoped ? url : nil
+                recents.add(url)
                 browser = makeBrowser(archive)
                 browser?.verifyDiskImage()
             } catch {
@@ -154,6 +157,13 @@ final class AppState {
             showMainWindow()
             open(archive)
         }
+    }
+
+    /// File › Open Recent and the welcome window's Recent list.
+    func openRecent(_ entry: RecentArchives.Entry) {
+        guard let url = recents.url(for: entry) else { return }
+        showMainWindow()
+        open(url)
     }
 
     /// Sample data for design review and the "Try the Sample" button.
@@ -313,6 +323,8 @@ struct StowCommands: Commands {
                 .keyboardShortcut("n")
             Button("Open Archive…") { app.isChoosingArchive = true }
                 .keyboardShortcut("o")
+            // Read here, in the Commands body: a nested view's reads don't refresh the menu.
+            OpenRecentMenu(entries: app.recents.visible, open: { app.openRecent($0) }, clear: { app.recents.clear() })
             Button("Extract Archives…") { app.isChoosingBatch = true }
                 .keyboardShortcut("e", modifiers: [.command, .option])
             Button("Open Sample Archive") { app.openArchive(named: SampleArchive.make().name) }

@@ -5,7 +5,8 @@ import SwiftUI
 ///
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
-/// Scenes: onboarding, welcome, grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
+/// Scenes: onboarding, welcome (no history), recents (the welcome window with history),
+/// grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too.
@@ -193,6 +194,18 @@ enum DemoScene {
             if let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
                 app.glance.show(near: pointer, size: CGSize(width: size[0], height: size[1]), animated: false)
             }
+        case "recents":
+            // The welcome window with history; the files don't exist and nothing is saved.
+            let home = FolderAccess.home.path
+            let hour: TimeInterval = 3600
+            app.recents.preview([
+                ("\(home)/Downloads/Harbor Rebrand Handoff.zip", .now.addingTimeInterval(-0.4 * hour)),
+                ("\(home)/Documents/Field Recordings/Field Recordings.7z", .now.addingTimeInterval(-3 * hour)),
+                ("\(home)/Projects/harbor-api/server-logs.tar.xz", .now.addingTimeInterval(-26 * hour)),
+                ("\(home)/Downloads/Fonts 2026.zip", .now.addingTimeInterval(-3 * 24 * hour)),
+                ("/Volumes/Archive/Backups/Old Backup.rar", .now.addingTimeInterval(-9 * 24 * hour)),
+                ("\(home)/Desktop/Kickoff Deck.zip", .now.addingTimeInterval(-24 * 24 * hour)),
+            ])
         case "tray":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
