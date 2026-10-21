@@ -79,11 +79,11 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | --- | --- |
 | Next Steps: list of alternative actions, customise which show, restore suggestions | done (#20): More Actions menu on the bar, “Don’t Suggest” on each suggestion, Settings › General › Next Steps toggles, Restore Suggestions; the Control-click menu lists every step |
 | Checkup: warn when the extension doesn't match the real format (ZIP with prepended data, SFX) | done (#16): Checkup names the real format, self-extracting stubs, and data before or after the archive |
-| iCloud placeholders: wait for download, cancel | `DownloadCheck` covers browser downloads only |
+| iCloud placeholders: wait for download, cancel | built (#18), pending a real iCloud check: opening a placeholder asks for the download, shows its progress and opens when it's here; Cancel or Escape stops waiting |
 | Open Recent menu with clear history | welcome window "Recent" still shows sample names |
 | Search across nested archives | today search covers the open level |
 | Streaming listings beyond ~100k entries | 100,500 entries open in 2.8 s today |
-| Reading files dropped from other apps (e.g. WeChat) with permission guidance | |
+| Reading files dropped from other apps (e.g. WeChat) with permission guidance | built (#19), pending a real WeChat/Mail check: archives an app only promises during a drag are received first; a file macOS won't let Stow read gets plain words naming the app (`OPN-101`) and how to get a copy |
 | Error details with codes for bug reports | done (#14): every failure has a stable code (`EXT-120`, see [ERROR-CODES.md](ERROR-CODES.md)) and Copy Details |
 | Create disk images (DMG) | low priority |
 | TAR.ZST creation | done: 7-Zip writes the TAR, Stow's linked zstd 1.5.7 compresses it (Linux audience, splits into volumes, verified by 7-Zip) |

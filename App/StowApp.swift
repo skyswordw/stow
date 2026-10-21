@@ -22,6 +22,8 @@ final class AppState {
     var isChoosingBatch = false
     private(set) var isOpening = false
     var openFailure: OpenFailure?
+    /// A cloud placeholder being downloaded before it opens.
+    var cloudDownload: CloudDownload?
 
     /// The open archive's security scope (Open panel URLs need it claimed; dropped URLs don't).
     private var scopedURL: URL?
@@ -40,6 +42,7 @@ final class AppState {
         }
         // Copies opened in a default app last time.
         TemporaryOpen.removeAll()
+        OtherAppFiles.removeReceived()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
                                                queue: .main) { _ in MainActor.assumeIsolated { PackageHandoff.removeAll() } }
     }
@@ -54,6 +57,14 @@ final class AppState {
             do {
                 if let browser, !(await browser.confirmDiscardingEdits()) {
                     if scoped { url.stopAccessingSecurityScopedResource() }
+                    return
+                }
+                try await waitForCloudDownload(url)
+                // Files in another app's private storage (WeChat, Mail…) that macOS won't let Stow
+                // read get plain words and a way to a readable copy, not "permission denied".
+                guard OtherAppFiles.canRead(url) else {
+                    if scoped { url.stopAccessingSecurityScopedResource() }
+                    openFailure = OpenFailure(failure: OtherAppFiles.unreadable(url), url: url)
                     return
                 }
                 try await DownloadCheck.waitUntilComplete(url)
@@ -71,7 +82,8 @@ final class AppState {
                 archive.source?.password = password
                 releaseScope()
                 scopedURL = scoped ? url : nil
-                recents.add(url)
+                // Files received from a drag (Mail, chat apps) live in a folder Stow empties at launch.
+                if !OtherAppFiles.isReceived(url) { recents.add(url) }
                 browser = makeBrowser(archive)
                 browser?.verifyDiskImage()
             } catch {
@@ -90,6 +102,26 @@ final class AppState {
                 }
             }
         }
+    }
+
+    /// An iCloud (or other cloud) placeholder comes down first, with its progress on screen and
+    /// a Cancel button. Files already on this Mac go straight through, with nothing shown.
+    private func waitForCloudDownload(_ url: URL) async throws(EngineError) {
+        let download = CloudDownload(url: url)
+        defer {
+            if cloudDownload === download { cloudDownload = nil }
+            DownloadPercent.shared.stop()
+        }
+        try await CloudPlaceholder.waitForDownload(url, isCancelled: { download.isCancelled }) { fraction in
+            if cloudDownload !== download { cloudDownload = download }
+            download.fraction = fraction
+        }
+    }
+
+    /// Stops waiting for the download on screen (Cancel, Escape).
+    func cancelCloudDownload() {
+        cloudDownload?.cancel()
+        cloudDownload = nil
     }
 
     /// A failed open's one next step.
@@ -286,6 +318,7 @@ struct RootView: View {
                 if let action, let url = open.url { app.follow(action, opening: url) }
             }
         }
+        .cloudDownloadSheet(app, isActive: !app.glance.isShown)
         .overlay(alignment: .bottomTrailing) { BatchStack(queue: app.batch) }
         .task {
             SettingsRouter.shared.open = { openSettings() }
