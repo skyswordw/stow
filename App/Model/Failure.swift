@@ -179,9 +179,12 @@ struct Failure: Equatable, Sendable {
         default:
             let detail = engine.message.trimmingCharacters(in: .whitespacesAndNewlines)
             let sentence = detail.isEmpty || detail.hasSuffix(".") ? detail : detail + "."
+            // Packing never touches the originals, and there's no archive yet that could be damaged.
+            let next = operation == .pack
+                ? String(localized: "Try again. Your files weren’t changed.")
+                : String(localized: "Try again; if it fails the same way, the archive may be damaged.")
             self.init(kind: .other, title: operation.couldNot(name),
-                      advice: (sentence.isEmpty ? "" : sentence + " ")
-                          + String(localized: "Try again; if it fails the same way, the archive may be damaged."),
+                      advice: (sentence.isEmpty ? "" : sentence + " ") + next,
                       action: .tryAgain)
         }
     }

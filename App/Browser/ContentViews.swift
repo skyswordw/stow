@@ -166,8 +166,10 @@ private struct GridTile: View {
                 .padding(Space.s)
                 .background(.primary.opacity(isSelected ? 0.08 : 0), in: .rect(cornerRadius: Radius.card))
                 .overlay {
+                    // Increase Contrast outlines the selection, so it reads by shape as well as by the
+                    // tinted name; boxing every tile would make them all look selected.
                     RoundedRectangle(cornerRadius: Radius.card)
-                        .strokeBorder(.primary.opacity(ContrastStyle.resolve(contrast).increased ? 0.45 : 0))
+                        .strokeBorder(.primary.opacity(ContrastStyle.resolve(contrast).increased && isSelected ? 0.45 : 0))
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
@@ -335,7 +337,7 @@ struct EntryMenu: View {
     var body: some View {
         if let hit = model.nestedHits[entry.id] {
             // A search result inside an inner archive: go there first; nothing else reaches it.
-            Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: "arrow.down.right.and.arrow.up.left") {
+            Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: NextStep.openInside.symbol) {
                 model.showNested(hit)
             }
             Divider()
