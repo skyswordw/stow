@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Harbor mark</title>
+  <path d="M36 52 L220 102 L220 52 L36 102 Z" fill="#E2802F" fill-opacity=".38"/>
+  <path d="M117 99 L139 99 L148 206 L108 206 Z" fill="#173049"/>
+  <path d="M114.7 126 L141.3 126 L142.8 144 L113.2 144 Z M111.5 164 L144.5 164 L146 182 L110 182 Z" fill="#E2802F"/>
+  <rect x="106" y="88" width="44" height="11" rx="3" fill="#173049"/>
+  <rect x="115" y="60" width="26" height="30" rx="4" fill="#E2802F"/>
+  <path d="M108 62 L128 40 L148 62 Z" fill="#173049"/>
+  <path d="M40 222 Q62 210 84 222 Q106 234 128 222 Q150 210 172 222 Q194 234 216 222" fill="none" stroke="#173049" stroke-width="11" stroke-linecap="round"/>
+</svg>
