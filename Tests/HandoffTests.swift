@@ -98,6 +98,83 @@ struct HandoffTests {
         #expect(try handoff.receive(url).paths == ["/x/a.txt", "/x/b.txt"])
         #expect(throws: HandoffError.unknownToken) { try handoff.receive(url) }
     }
+
+    @Test func fileMailboxRoundTripsAndIsSingleUse() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "stow-handoff-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let handoff = Handoff(mailbox: FileMailbox(root: root))
+        let url = try handoff.send(HandoffRequest(action: .extractTo, paths: ["/Users/a/a.zip"]))
+        #expect(!url.absoluteString.contains("zip"))
+        #expect(try handoff.receive(url).paths == ["/Users/a/a.zip"])
+        #expect(throws: HandoffError.unknownToken) { try handoff.receive(url) }
+    }
+
+    @Test func fileMailboxRefusesTokenCollision() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "stow-handoff-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let mailbox = FileMailbox(root: root)
+        let token = HandoffToken.random()
+        try mailbox.post(Data("one".utf8), for: token)
+        #expect(throws: HandoffError.invalidRequest) { try mailbox.post(Data("two".utf8), for: token) }
+    }
+
+    @Test func fileMailboxSweepsStaleRequests() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "stow-handoff-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let mailbox = FileMailbox(root: root)
+        let token = HandoffToken.random()
+        try mailbox.post(Data("{}".utf8), for: token)
+        let file = root.appending(path: "handoff/\(token.value).json")
+        let stale = Date.now.addingTimeInterval(-(Handoff.lifetime * 2 + 5))
+        try FileManager.default.setAttributes([.modificationDate: stale], ofItemAtPath: file.path)
+        mailbox.sweep(now: .now)
+        #expect(!FileManager.default.fileExists(atPath: file.path))
+    }
+
+    @Test func defaultMailboxUsesTheGroupOnlyWhenWritable() {
+        let mailbox = Handoff.defaultMailbox()
+        if AppGroup.containerURL != nil {
+            #expect(mailbox is GroupMailbox)
+        } else {
+            #expect(mailbox is PasteboardMailbox)
+        }
+    }
+
+    /// Developer ID builds have no provisioning profile, so the group must be Team-ID-prefixed.
+    @Test func appGroupIsTeamIDPrefixed() {
+        #expect(AppGroup.identifier == "YNQ2233752.app.stow.Stow")
+        #expect(AppGroup.identifier.hasPrefix(AppGroup.teamID + "."))
+        #expect(!AppGroup.identifier.hasPrefix("group."))
+    }
+
+    @Test func groupMailboxFindsPasteboardRequestsAndEmptiesBoth() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "stow-handoff-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fallback = MemoryMailbox()
+        let group = GroupMailbox(file: FileMailbox(root: root), fallback: fallback)
+        // The extension fell back to the pasteboard; the app still finds it, once.
+        let sent = try Handoff(mailbox: fallback).send(HandoffRequest(action: .open, paths: ["/a.zip"]))
+        let handoff = Handoff(mailbox: group)
+        #expect(try handoff.receive(sent).paths == ["/a.zip"])
+        #expect(throws: HandoffError.unknownToken) { try handoff.receive(sent) }
+        // Posted through the group: lands in the file, not the fallback.
+        let url = try handoff.send(HandoffRequest(action: .open, paths: ["/b.zip"]))
+        let token = try #require(Handoff.token(in: url))
+        #expect(FileManager.default.fileExists(atPath: root.appending(path: "handoff/\(token.value).json").path))
+        #expect(try handoff.receive(url).paths == ["/b.zip"])
+    }
+}
+
+@Suite("Finder menu settings store")
+struct FinderMenuSettingsStoreTests {
+    @Test func settingsRoundTripThroughAFolder() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "stow-settings-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let settings = FinderMenuSettings(showsOnExternalDrives: true)
+        try FinderMenuSettings.publish(settings, into: root)
+        #expect(FinderMenuSettings.published(from: root) == settings)
+    }
 }
 
 @Suite("Finder menu")

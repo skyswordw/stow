@@ -12,6 +12,13 @@
 	<true/>
 	<key>com.apple.security.files.user-selected.executable</key>
 	<true/>
+	<!-- Shared with StowFinderSync for the Finder hand-off mailbox (#32). Ad-hoc builds
+	     still fall back to a private pasteboard because macOS only opens the group to
+	     Team-signed binaries; see Handoff/Handoff.swift. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>YNQ2233752.app.stow.Stow</string>
+	</array>
 	<!-- Sparkle (#35): talks to its installer, which runs outside the sandbox. Xcode expands the
 	     bundle identifier (app.stow.Stow-spks / -spki). No network entitlement: Sparkle's
 	     downloader service fetches the appcast and the update. -->

@@ -7,6 +7,10 @@ import AppKit
 /// empties it) and refuses tokens it doesn't know, has already used, or that are older than
 /// `lifetime`. A web page or another document can open `stow://` URLs too, but without a
 /// matching, fresh request in the mailbox the URL does nothing.
+///
+/// The mailbox is an App Group container when both sides are signed with a Team ID (#32); ad-hoc
+/// builds fall back to a private pasteboard because macOS only opens the group to Team-signed
+/// binaries.
 nonisolated enum HandoffAction: String, Codable, CaseIterable, Sendable {
     case extractHere, extractTo, open, compress, quickCompress
 }
@@ -59,6 +63,32 @@ nonisolated protocol HandoffMailbox: Sendable {
     func take(_ token: HandoffToken) -> Data?
 }
 
+/// Shared App Group for the Finder hand-off and Finder-menu settings (#32).
+///
+/// Team-ID-prefixed (`<Team ID>.<bundle prefix>`), not `group.…`: Stow ships with Developer ID and
+/// no provisioning profile, and macOS only honours `group.` identifiers that a profile authorizes.
+/// A Team-ID-prefixed group is authorized by the code signature itself.
+nonisolated enum AppGroup {
+    static let teamID = "YNQ2233752"
+    /// Both Stow and StowFinderSync list it in their entitlements.
+    static let identifier = "\(teamID).app.stow.Stow"
+
+    /// The group container, only when this process can actually write to it. macOS hands back a
+    /// path even for builds the sandbox won't let in (ad-hoc, CI, tests), so this checks first;
+    /// `nil` means callers fall back to the pasteboard.
+    static var containerURL: URL? {
+        guard let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier)
+        else { return nil }
+        return isUsable(url) ? url : nil
+    }
+
+    static func isUsable(_ url: URL) -> Bool {
+        let fm = FileManager.default
+        guard (try? fm.createDirectory(at: url, withIntermediateDirectories: true)) != nil else { return false }
+        return fm.isWritableFile(atPath: url.path)
+    }
+}
+
 nonisolated struct Handoff: Sendable {
     static let scheme = "stow"
     static let host = "handoff"
@@ -69,8 +99,16 @@ nonisolated struct Handoff: Sendable {
 
     let mailbox: any HandoffMailbox
 
-    init(mailbox: any HandoffMailbox = PasteboardMailbox()) {
-        self.mailbox = mailbox
+    /// Uses the App Group container when macOS opens it, otherwise the private pasteboard.
+    init(mailbox: (any HandoffMailbox)? = nil) {
+        self.mailbox = mailbox ?? Self.defaultMailbox()
+    }
+
+    static func defaultMailbox() -> any HandoffMailbox {
+        if let root = AppGroup.containerURL {
+            return GroupMailbox(file: FileMailbox(root: root), fallback: PasteboardMailbox())
+        }
+        return PasteboardMailbox()
     }
 
     static func url(for token: HandoffToken) -> URL {
@@ -122,9 +160,75 @@ nonisolated struct Handoff: Sendable {
     }
 }
 
+/// One file per token under `root/handoff/`. Used for the App Group container; tests pass a
+/// temporary folder. A take deletes the file, so each token works once.
+nonisolated struct FileMailbox: HandoffMailbox {
+    let root: URL
+
+    private var directory: URL {
+        root.appending(path: "handoff", directoryHint: .isDirectory)
+    }
+
+    private func fileURL(for token: HandoffToken) -> URL {
+        directory.appending(path: "\(token.value).json")
+    }
+
+    func post(_ data: Data, for token: HandoffToken) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: directory, withIntermediateDirectories: true)
+        sweep(now: .now)
+        let url = fileURL(for: token)
+        // Refuse to overwrite an existing token file (collision or replay).
+        if fm.fileExists(atPath: url.path) { throw HandoffError.invalidRequest }
+        try data.write(to: url, options: .withoutOverwriting)
+    }
+
+    func take(_ token: HandoffToken) -> Data? {
+        let url = fileURL(for: token)
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        try? FileManager.default.removeItem(at: url)
+        return data
+    }
+
+    /// Drops request files older than twice the hand-off lifetime (abandoned posts).
+    func sweep(now: Date = .now) {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: .skipsHiddenFiles
+        ) else { return }
+        let limit = Handoff.lifetime * 2
+        for file in files where file.pathExtension == "json" {
+            let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            if now.timeIntervalSince(modified) > limit {
+                try? fm.removeItem(at: file)
+            }
+        }
+    }
+}
+
+/// The App Group mailbox, still reading the pasteboard on take: if the extension couldn't open
+/// the group (for example, a mismatched or older build), its request is found anyway.
+nonisolated struct GroupMailbox: HandoffMailbox {
+    let file: FileMailbox
+    let fallback: any HandoffMailbox
+
+    func post(_ data: Data, for token: HandoffToken) throws {
+        do { try file.post(data, for: token) } catch { try fallback.post(data, for: token) }
+    }
+
+    func take(_ token: HandoffToken) -> Data? {
+        // Both are emptied so a token can't be replayed through the other one.
+        let fromFile = file.take(token)
+        let fromFallback = fallback.take(token)
+        return fromFile ?? fromFallback
+    }
+}
+
 /// A private named pasteboard per request. Works between sandboxed processes signed by anyone —
 /// unlike an App Group container, which macOS only opens to builds signed with a Team ID — and
-/// `releaseGlobally()` makes each one single-use.
+/// `releaseGlobally()` makes each one single-use. Kept as the ad-hoc / CI fallback.
 nonisolated struct PasteboardMailbox: HandoffMailbox {
     static let type = NSPasteboard.PasteboardType("app.stow.handoff-request")
 
@@ -145,23 +249,48 @@ nonisolated struct PasteboardMailbox: HandoffMailbox {
     }
 }
 
-/// The few Finder settings the extension needs from the app. Published on a named pasteboard
-/// (same reason as above); the extension keeps the last copy it saw for after a restart.
+/// The few Finder settings the extension needs from the app. Prefer the App Group container
+/// (#32); the named pasteboard remains the fallback when the group isn't available, and the
+/// extension keeps the last copy it saw for after a restart.
 nonisolated struct FinderMenuSettings: Codable, Equatable, Sendable {
     var showsOnExternalDrives = false
 
     private static let pasteboard = NSPasteboard.Name("app.stow.finder-settings")
     private static let type = NSPasteboard.PasteboardType("app.stow.finder-settings")
+    private static let fileName = "finder-menu-settings.json"
+
+    private static var settingsFileURL: URL? {
+        AppGroup.containerURL?.appending(path: fileName)
+    }
 
     func publish() {
         guard let data = try? JSONEncoder().encode(self) else { return }
+        if let url = Self.settingsFileURL {
+            try? data.write(to: url, options: .atomic)
+        }
         let pasteboard = NSPasteboard(name: Self.pasteboard)
         pasteboard.clearContents()
         pasteboard.setData(data, forType: Self.type)
     }
 
     static func published() -> FinderMenuSettings? {
-        NSPasteboard(name: pasteboard).data(forType: type).flatMap { try? JSONDecoder().decode(Self.self, from: $0) }
+        if let url = settingsFileURL,
+           let data = try? Data(contentsOf: url),
+           let settings = try? JSONDecoder().decode(Self.self, from: data) {
+            return settings
+        }
+        return NSPasteboard(name: pasteboard).data(forType: type).flatMap { try? JSONDecoder().decode(Self.self, from: $0) }
+    }
+
+    /// Test helper: read/write settings through a folder the way the App Group path does.
+    static func publish(_ settings: FinderMenuSettings, into root: URL) throws {
+        let data = try JSONEncoder().encode(settings)
+        try data.write(to: root.appending(path: fileName), options: .atomic)
+    }
+
+    static func published(from root: URL) -> FinderMenuSettings? {
+        let url = root.appending(path: fileName)
+        return (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode(Self.self, from: $0) }
     }
 }
 

@@ -345,7 +345,7 @@ targets:
         ENABLE_APP_SANDBOX: YES
         SKIP_INSTALL: YES
   # Finder context menu. Sees only the selection's paths; hands them to Stow under a one-time
-  # token (Handoff/) and never opens the files itself.
+  # token via the App Group mailbox (Handoff/, #32) and never opens the files itself.
   StowFinderSync:
     type: app-extension
     platform: macOS
@@ -355,7 +355,7 @@ targets:
       - path: FinderSync/InfoPlist.xcstrings
         buildPhase: resources
       - path: FinderSync
-        excludes: ["InfoPlist.xcstrings", "Info.plist"]
+        excludes: ["InfoPlist.xcstrings", "Info.plist", "*.entitlements"]
       - path: Handoff
       - path: Shared/ArchiveTypes.swift
     info:
@@ -376,6 +376,7 @@ targets:
         PRODUCT_NAME: StowFinderSync
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: YES
+        CODE_SIGN_ENTITLEMENTS: FinderSync/StowFinderSync.entitlements
         SKIP_INSTALL: YES
   StowTests:
     type: bundle.unit-test
