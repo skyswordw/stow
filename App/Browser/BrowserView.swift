@@ -24,6 +24,9 @@ struct BrowserView: View {
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
                 }
+                // Next Steps takes real room above the bars: grid, list and columns scroll their last
+                // row clear of it, and nothing is reserved while it's hidden.
+                .safeAreaInset(edge: .bottom, spacing: 0) { nextSteps }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
                         if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
@@ -31,7 +34,6 @@ struct BrowserView: View {
                         PathBar(model: model)
                     }
                 }
-                .overlay(alignment: .bottom) { nextSteps }
                 .navigationTitle(model.title)
                 .navigationSubtitle(model.subtitle)
         }
@@ -60,12 +62,11 @@ struct BrowserView: View {
         }
         .onChange(of: model.selection) { model.quickLook.selectionChanged() }
         .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
-        .alert("Archive Editing", isPresented: Binding(get: { model.editSession.message != nil }, set: { if !$0 { model.editSession.message = nil } })) {
-            Button("OK", role: .cancel) { model.editSession.message = nil }
-        } message: { Text(model.editSession.message ?? "") }
-        .alert(model.editSession.readOnlyReason, isPresented: Binding(get: { model.editSession.showsReadOnly }, set: { model.editSession.showsReadOnly = $0 })) {
-            Button("Extract and Repack…") { app.extractAndRepack(model) }
-            Button("OK", role: .cancel) { }
+        .sheet(item: Binding(get: { model.editSession.notice }, set: { model.editSession.notice = $0 })) { notice in
+            PromptView(prompt: notice.prompt) { answer in
+                model.editSession.notice = nil
+                if notice.wantsRepack(answer) { app.extractAndRepack(model) }
+            }
         }
         .onChange(of: model.level.id) {
             if let window = model.editingWindow { editingDelegate.attach(window, model: model) }
@@ -110,10 +111,14 @@ struct BrowserView: View {
                 NextStepsBar(model: model)
                     .accessibilityElement(children: .contain)
                     .accessibilitySortPriority(0)
+                    .padding(.top, Space.s)
+                    .padding(.bottom, Space.l)
                     .transition(.rise(reduceMotion: reduceMotion))
             }
         }
-        .padding(.bottom, Space.l + PathBar.height + (model.editSession.isEdited ? 48 : 0))
+        // Never ask the column for the capsule's width: a minimum here feeds the split view's own
+        // sizing and loops (the "Update Constraints in Window" crash).
+        .frame(minWidth: 0, maxWidth: .infinity)
         // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
         .animation(Motion.presence(visible, reduceMotion: reduceMotion), value: visible)
     }

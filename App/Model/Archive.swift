@@ -459,5 +459,6 @@ nonisolated struct SortKey: Comparable, Sendable {
 }
 
 nonisolated extension Int64 {
-    var bytes: String { formatted(.byteCount(style: .file)) }
+    /// "4.2 MB"; an empty file is "Zero bytes", as Finder says, not "Zero KB".
+    var bytes: String { self == 0 ? formatted(.byteCount(style: .file, allowedUnits: .bytes)) : formatted(.byteCount(style: .file)) }
 }

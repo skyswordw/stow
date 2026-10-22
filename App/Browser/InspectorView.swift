@@ -88,7 +88,7 @@ private struct EntryDetail: View {
             MetadataGrid(rows: [
                 (String(localized: "Size"), entry.size.bytes),
                 (String(localized: "Packed"), packedDescription),
-                (String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened)),
+            ] + (hasDate ? [(String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened))] : []) + [
                 (String(localized: "Where"), entry.parent.isEmpty ? String(localized: "Top level") : entry.parent),
             ])
 
@@ -114,7 +114,15 @@ private struct EntryDetail: View {
         return kind.prefix(1).localizedUppercase + kind.dropFirst()
     }
 
+    /// Listings without a date give the distant past; that's no date, not 1 January of year 1.
+    private var hasDate: Bool { entry.modified > Date(timeIntervalSince1970: 0) }
+
     private var packedDescription: String {
+        // Added and replaced files aren't packed until Save.
+        if let state = model.editSession.state(for: entry.path),
+           state == String(localized: "New") || state == String(localized: "Replaced") {
+            return String(localized: "When you save")
+        }
         guard entry.size > 0 else { return entry.packedSize.bytes }
         let saved = 1 - Double(entry.packedSize) / Double(entry.size)
         return saved < 0.02 ? String(localized: "\(entry.packedSize.bytes) · already compressed")

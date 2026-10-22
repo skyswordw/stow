@@ -16,7 +16,8 @@ struct SidebarView: View {
         // Above the list rather than in a section header: a header row has a fixed height, so a long
         // name or a narrow sidebar clipped or truncated the card. Here it takes the height it needs.
         .safeAreaInset(edge: .top, spacing: 0) {
-            ArchiveCard(archive: model.archive)
+            // Staged items have no packed size until Save, so the packed figures stay the saved archive's.
+            ArchiveCard(archive: model.archive, packedFrom: model.editSession.isEdited ? model.level.savedArchive : nil)
                 .padding(.horizontal, Space.m)
                 .padding(.bottom, Space.s)
         }
@@ -37,6 +38,8 @@ struct ArchiveCard: View {
     @Environment(\.colorSchemeContrast) private var contrast
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let archive: Archive
+    /// Whose packed size and ratio to show, when not `archive`'s (the saved archive while edits are staged).
+    var packedFrom: Archive?
     @State private var showCheckup = false
     /// Design review: the Checkup popover opens by itself (`-StowScene checkup-format`).
     static var opensCheckupForDemo = false
@@ -67,7 +70,12 @@ struct ArchiveCard: View {
                 Spacer(minLength: 0)
             }
 
-            CompressionBar(packed: archive.packedSize, total: archive.totalSize)
+            let figures = packedFrom ?? archive
+            // A listing that doesn't say how big files are packed would read "100% smaller"; say nothing instead.
+            if figures.packedSize > 0 || figures.totalSize == 0 {
+                CompressionBar(packed: figures.packedSize, total: figures.totalSize)
+                    .help(packedFrom == nil ? "" : String(localized: "As last saved. This updates when you save your changes."))
+            }
 
             Button {
                 showCheckup.toggle()

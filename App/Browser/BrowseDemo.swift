@@ -15,10 +15,35 @@ enum BrowseDemo {
         app.openArchive(named: SampleArchive.make().name)
         guard let model = app.browser else { return }
         model.folder = "Photos"
-        model.editSession.add([URL(filePath: "/Stow-Sample/Field Notes.txt"), URL(filePath: "/Stow-Sample/Contact Sheet.pdf")], into: "Photos")
+        model.editSession.add(sampleFilesToAdd(), into: "Photos")
         model.editSession.rename("Photos/Lighthouse.jpg", to: "Harbor Lighthouse.jpg")
         model.editSession.delete(["Photos/Pier at Dawn.jpg"])
         model.selection = ["Photos/Field Notes.txt"]
+    }
+
+    /// Two real files to add, so the staged items have a size, a date and a kind like a real drop.
+    private static func sampleFilesToAdd() -> [URL] {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "Stow-Sample", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let notes = folder.appending(path: "Field Notes.txt")
+        let sheet = folder.appending(path: "Contact Sheet.pdf")
+        let text = String(repeating: "Harbor, 6:40 am. Low tide, pier lights still on. Shot the lighthouse from the north jetty.\n", count: 40)
+        try? Data(text.utf8).write(to: notes)
+        let pdf = NSMutableData()
+        var page = CGRect(x: 0, y: 0, width: 612, height: 792)
+        if let consumer = CGDataConsumer(data: pdf), let context = CGContext(consumer: consumer, mediaBox: &page, nil) {
+            for index in 0..<4 {
+                context.beginPDFPage(nil)
+                context.setFillColor(gray: 0.2 + 0.15 * CGFloat(index), alpha: 1)
+                context.fill(page.insetBy(dx: 72, dy: 96))
+                context.endPDFPage()
+            }
+            context.closePDF()
+        }
+        try? (pdf as Data).write(to: sheet)
+        let date = Date.now.addingTimeInterval(-2 * 3600)
+        for url in [notes, sheet] { try? FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: url.path) }
+        return [notes, sheet]
     }
 
     static func readOnly(in app: AppState) {
