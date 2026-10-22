@@ -6,7 +6,7 @@ import SwiftUI
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
 /// Scenes: onboarding, welcome (no history), recents (the welcome window with history),
-/// grid, list, fonts, search, activity, pack, tray, open (`-StowOpen <path>`),
+/// grid, list, fonts, search, search-nested (results inside an inner archive), activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too.
@@ -28,6 +28,9 @@ import SwiftUI
 /// puts the pointer on that edge of the screen first, `-glance.pinned '<true/>'` pins it,
 /// `-StowReduceTransparency YES` shows the solid fallback). With -StowSnapshot it also writes
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
+/// Next Steps: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
+/// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
+/// `-nextSteps.hidden quickLook,extract` and `-nextSteps.shown NO` try other choices without saving them.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -35,6 +38,8 @@ enum DemoScene {
     static func apply(to app: AppState) {
         let defaults = UserDefaults.standard
         guard let scene = defaults.string(forKey: "StowScene") else { return }
+        if scene == "a11y-contrast" { defaults.register(defaults: ["StowIncreaseContrast": true]) }
+        if scene == "a11y-solid" { defaults.register(defaults: ["StowReduceTransparency": true]) }
         switch defaults.string(forKey: "StowAppearance") {
         case "light": NSApp.appearance = NSAppearance(named: .aqua)
         case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -71,11 +76,25 @@ enum DemoScene {
             ArchiveCard.opensCheckupForDemo = true
         case "readonly":
             BrowseDemo.readOnly(in: app)
+        case "next-steps", "next-steps-more":
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.folder = defaults.string(forKey: "StowFolder") ?? "Photos"
+            app.browser?.selection = Set(defaults.string(forKey: "StowSelect").map { [$0] }
+                                         ?? ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"])
+            if scene == "next-steps-more" {
+                Task {
+                    try? await Task.sleep(for: .seconds(1))
+                    NextStepsDemo.openMoreMenu()
+                }
+            }
+        case "next-steps-settings":
+            SettingsRouter.shared.pane = .nextSteps
+            SettingsRouter.shared.open()
         case "grid":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
-        case "list":
+        case "list", "a11y-contrast", "a11y-solid":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.viewMode = .list
             app.browser?.folder = "Specs"
@@ -84,6 +103,20 @@ enum DemoScene {
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Fonts"
             app.browser?.selection = Set(app.browser?.visibleEntries.map(\.id) ?? [])
+        case "search-nested":
+            // Search reaching into Earlier Rounds/Old Explorations.7z; the sample can't extract,
+            // so the inner listing is made up here. One result inside it is selected.
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.viewMode = .list
+            app.browser?.nestedLoader = { entry, _ in
+                guard entry.name == "Old Explorations.7z" else { throw EngineError(.failed) }
+                let date = Date(timeIntervalSince1970: 1_700_000_000)
+                return [("Round 1/Wordmark Ideas.pdf", 2_400_000), ("Round 2/Wordmark Draft.svg", 31_000),
+                        ("Round 2/Mark Sketches.png", 880_000), ("Notes.txt", 2_000)]
+                    .map { ArchiveEntry(path: $0.0, isFolder: false, size: $0.1, packedSize: $0.1 / 2, modified: date) }
+            }
+            app.browser?.query = "wordmark"
+            app.browser?.selection = ["Earlier Rounds/Old Explorations.7z/Round 2/Wordmark Draft.svg"]
         case "search":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.query = "harbor"
@@ -104,6 +137,11 @@ enum DemoScene {
             var request = PackRequest(files: SampleArchive.packCandidates)
             request.initialFormat = .tarZst
             app.packRequest = request
+        case "pack-dmg":
+            // A DMG for Macs: the split word is off (a disk image is one file).
+            var request = PackRequest(files: SampleArchive.packCandidates)
+            request.initialFormat = .dmg
+            app.packRequest = request
         case "packing":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .running(0.42))
         case "packed":
@@ -111,6 +149,9 @@ enum DemoScene {
         case "packrun":
             runPack(defaults)
             return
+        case "cloud-download":
+            // An iCloud placeholder on its way down; nothing is downloaded.
+            app.cloudDownload = CloudDownload(name: "Field Recordings.zip", isICloud: true, fraction: 0.42)
         case "password":
             // The question after a rejected password; nothing is checked against an archive.
             Task { _ = await app.passwords.ask(.init(archiveName: "Harbor Handoff.7z", purpose: .extract, isRetry: true)) }
@@ -173,6 +214,10 @@ enum DemoScene {
                 ? Failure(EngineError(.failed, "7-Zip couldn’t finish: Unexpected end of archive"), .open, name: "Field Recordings.7z")
                 : Failure(EngineError(.notAnArchive), .open, name: "Invoice October.pdf")
             app.openFailure = AppState.OpenFailure(failure: failure)
+        case "open-unreadable":
+            // A file in WeChat's private storage that macOS won't let Stow read.
+            let url = URL(filePath: "/Users/Shared/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat/2.0b4.0.9/Message/File/Harbor Handoff.zip")
+            app.openFailure = AppState.OpenFailure(failure: OtherAppFiles.unreadable(url), url: url)
         case "finder-failed":
             // Extract Here from Finder that failed: the same sheet, on whatever window Stow has.
             Task {
@@ -308,6 +353,7 @@ enum DemoScene {
                     if let url = snapshot(window, name: name) { print(url.path) }
                 }
                 if scene == "glance", let url = glancePlacement(app, name: "\(label)-screen") { print(url.path) }
+                if scene == "next-steps-more", let url = NextStepsDemo.captureWithMenu(name: "\(label)-menu") { print(url.path) }
                 fflush(stdout)
                 exit(0) // terminate(_:) waits on open sheets; this is a screenshot run.
             }

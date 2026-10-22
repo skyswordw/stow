@@ -1,0 +1,103 @@
+# Longer fuzzing runs of malformed archives against 7zz and the engine (#37). Normal CI already runs
+# Tests/FuzzTests.swift with a small deterministic seed set; this runs more mutants per seed, with a
+# different seed each week, and uploads every input that crashed, hung or escaped.
+name: Fuzz
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: Mutants per seed archive
+        default: "300"
+      minutes:
+        description: Time budget for the mutant tests (shared by the three)
+        default: "60"
+      seed:
+        description: Run seed (decimal or 0x hex); empty = derived from the run number
+        default: ""
+  schedule:
+    - cron: "17 3 * * 0" # Sundays 03:17 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fuzz:
+    runs-on: xcode-27
+    timeout-minutes: 120
+    env:
+      XCODE_APP: /Applications/Xcode_27.app
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+
+      - name: Compute 7-Zip cache key
+        id: sevenzip
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version=//p' scripts/fetch-7zip.sh)
+          sha256=$(sed -n 's/^sha256=//p' scripts/fetch-7zip.sh)
+          echo "key=7zip-${{ runner.os }}-${{ runner.arch }}-${version}-${sha256}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v5
+        with:
+          path: Vendor/7zip
+          key: ${{ steps.sevenzip.outputs.key }}
+
+      - name: Fetch 7-Zip and generate the project
+        run: |
+          zsh scripts/fetch-7zip.sh
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+
+      - name: Fuzz
+        env:
+          ITERATIONS: ${{ inputs.iterations || '300' }}
+          MINUTES: ${{ inputs.minutes || '60' }}
+          SEED_INPUT: ${{ inputs.seed }}
+        run: |
+          set -o pipefail
+          seed=${SEED_INPUT:-$(( 0x5704F022 + ${{ github.run_number }} ))}
+          echo "Fuzzing: $ITERATIONS mutants per seed, $MINUTES minutes, seed $seed" | tee -a "$GITHUB_STEP_SUMMARY"
+          mkdir -p build
+          TEST_RUNNER_STOW_FUZZ_ITERATIONS="$ITERATIONS" \
+          TEST_RUNNER_STOW_FUZZ_MINUTES="$MINUTES" \
+          TEST_RUNNER_STOW_FUZZ_SEED="$seed" \
+          xcodebuild test \
+            -project Stow.xcodeproj \
+            -scheme Stow \
+            -destination 'platform=macOS' \
+            -only-testing:StowTests/FuzzTests \
+            -derivedDataPath build/DerivedData \
+            -resultBundlePath build/Fuzz.xcresult \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
+            2>&1 | tee build/xcodebuild-fuzz.log | grep -E 'Fuzz|error|failed|passed' || true
+          ALLOWED_SKIPS=0 MIN_TESTS=6 scripts/ci-assert-tests.sh build/Fuzz.xcresult
+
+      - name: Collect findings
+        if: always()
+        run: |
+          mkdir -p build/findings
+          cp -R ~/Library/Containers/app.stow.Stow/Data/tmp/StowFuzzFindings/. build/findings/ 2>/dev/null || true
+          cp ~/Library/Logs/DiagnosticReports/{Stow,StowEngine,7zz}*.ips build/findings/ 2>/dev/null || true
+          count=$(find build/findings -type f ! -name '*.txt' ! -name '*.ips' | wc -l | tr -d ' ')
+          echo "Findings kept: $count" | tee -a "$GITHUB_STEP_SUMMARY"
+          grep -h 'Fuzz:' build/xcodebuild-fuzz.log | sort -u >> "$GITHUB_STEP_SUMMARY" || true
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: fuzz-findings
+          path: |
+            build/findings
+            build/Fuzz.xcresult
+            build/*.log
+          retention-days: 30

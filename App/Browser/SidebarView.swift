@@ -35,6 +35,8 @@ struct SidebarView: View {
 
 /// The archive at a glance: what it is, how big, how well it packed, and whether it's safe.
 struct ArchiveCard: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let archive: Archive
     /// Whose packed size and ratio to show, when not `archive`'s (the saved archive while edits are staged).
     var packedFrom: Archive?
@@ -48,7 +50,7 @@ struct ArchiveCard: View {
                 FormatBadge(format: archive.format)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(archive.name)
-                        .font(.headline)
+                        .font(.headline).accessibilityAddTraits(.isHeader)
                         .lineLimit(3)
                         .help(archive.name)
                         .fixedSize(horizontal: false, vertical: true)
@@ -81,6 +83,8 @@ struct ArchiveCard: View {
                 CheckupBadge(archive: archive)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "Checkup"))
+            .help("Checkup")
             .popover(isPresented: $showCheckup, arrowEdge: .trailing) {
                 CheckupView(findings: archive.checkup)
             }
@@ -91,9 +95,9 @@ struct ArchiveCard: View {
             }
         }
         .padding(Space.m)
-        .background(.background.opacity(0.5), in: .rect(cornerRadius: Radius.card))
+        .background(Color(nsColor: .windowBackgroundColor), in: .rect(cornerRadius: Radius.card))
         .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.primary.opacity(0.06))
+            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.primary.opacity(contrastStyle.faintBorderOpacity))
         }
         .textCase(nil)
     }
@@ -163,6 +167,8 @@ struct CompressionBar: View {
 }
 
 struct CheckupBadge: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let archive: Archive
     @State private var isHovering = false
 
@@ -181,8 +187,9 @@ struct CheckupBadge: View {
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
+                .accessibilityHidden(true)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(contrastStyle.metadata)
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 6)
@@ -199,7 +206,7 @@ struct CheckupView: View {
         VStack(alignment: .leading, spacing: Space.l) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Checkup")
-                    .font(.headline)
+                    .font(.headline).accessibilityAddTraits(.isHeader)
                 Text("Stow inspects every archive before anything touches your disk.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -207,6 +214,7 @@ struct CheckupView: View {
             ForEach(findings) { finding in
                 HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                     Image(systemName: finding.severity.symbol)
+                        .accessibilityHidden(true)
                         .foregroundStyle(finding.severity.color)
                         .frame(width: 18)
                     VStack(alignment: .leading, spacing: 2) {

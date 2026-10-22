@@ -58,7 +58,8 @@ final class PreviewService {
     /// A Quick Look thumbnail at `side` points, or nil if the file has none. Call from a view's
     /// task: a cancelled request (scrolled away) stops before anything is extracted.
     func thumbnail(for entry: ArchiveEntry, in archive: Archive, side: CGFloat) async -> NSImage? {
-        guard archive.source != nil, Self.wantsThumbnail(entry),
+        // A search result inside an inner archive (#21) isn't in `archive` to extract.
+        guard archive.source != nil, Self.wantsThumbnail(entry), archive.entry(at: entry.path) != nil,
               let key = thumbnailKey(entry, archive, side) else { return nil }
         if let image = thumbnails.object(forKey: key as NSString) { return image }
         guard !failed.contains(key) else { return nil }
@@ -132,6 +133,9 @@ final class PreviewService {
 
     func richPreview(for entry: ArchiveEntry, in archive: Archive) async -> RichPreview {
         guard archive.source != nil else { return .unavailable(String(localized: "Sample content")) }
+        guard archive.entry(at: entry.path) != nil else {
+            return .unavailable(String(localized: "Inside another archive — open it to preview"))
+        }
         guard entry.size <= Self.hoverLimit else { return .unavailable(String(localized: "Too large to preview here — press Space")) }
         guard entry.size > 0 else { return .unavailable(String(localized: "Empty file")) }
         let url: URL

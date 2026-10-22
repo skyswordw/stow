@@ -21,7 +21,7 @@ struct LiveThumbnail: View {
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)
                     .shadow(color: .black.opacity(0.12), radius: 1.5, y: 0.5)
-                    .transition(.opacity.animation(Motion.preview))
+                    .transition(.opacity.animation(Motion.current(Motion.preview)))
             } else {
                 NativeIcon(type: entry.contentType)
                     .padding(4)
@@ -41,6 +41,9 @@ struct LiveThumbnail: View {
 /// The entry's real content — picture, text, table, font, artwork or a video frame — for hover
 /// previews, the inspector and the column view's preview column.
 struct RichPreviewView: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let entry: ArchiveEntry
     let model: BrowserModel
 
@@ -176,7 +179,7 @@ struct RichPreviewView: View {
                         .monospacedDigit()
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
-                        .background(.black.opacity(0.55), in: .capsule)
+                        .background(.black.opacity(reduceTransparency || UserDefaults.standard.bool(forKey: "StowReduceTransparency") ? 1 : 0.55), in: .capsule)
                         .foregroundStyle(.white)
                         .padding(6)
                 }
@@ -207,7 +210,7 @@ struct RichPreviewView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Color(nsColor: .textBackgroundColor))
             .clipShape(.rect(cornerRadius: Radius.chip))
-            .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(0.1)) }
+            .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(contrastStyle.borderOpacity)) }
     }
 
     /// Enough Markdown for a glance: headings, bullets and inline styles, line by line.

@@ -6,6 +6,7 @@ import SwiftUI
 /// plain-words detail, anything the question needs (a field, a comparison, "do the same"), then
 /// the choices on the right with the safe one on Return.
 struct PromptCard<Content: View, Buttons: View>: View {
+    @Environment(\.colorSchemeContrast) private var contrast
     let symbol: String
     var tint: Color?
     let title: String
@@ -27,7 +28,7 @@ struct PromptCard<Content: View, Buttons: View>: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text(title)
-                        .font(.headline)
+                        .font(.headline).accessibilityAddTraits(.isHeader)
                         .fixedSize(horizontal: false, vertical: true)
                     if !message.isEmpty {
                         Text(message)
@@ -54,6 +55,12 @@ struct PromptCard<Content: View, Buttons: View>: View {
         }
         .padding(Space.xl)
         .frame(width: 460)
+        .overlay {
+            RoundedRectangle(cornerRadius: Radius.panel)
+                .strokeBorder(.primary.opacity(ContrastStyle.resolve(contrast).increased ? 0.45 : 0))
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
     }

@@ -10,7 +10,7 @@ struct AssociationsView: View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("File Types")
-                    .font(.title3.weight(.semibold))
+                    .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                 Text("Choose which files open in Stow when you double-click them. Stow remembers the app each type used before, so you can always switch back.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -72,6 +72,8 @@ struct AssociationsView: View {
 }
 
 private struct AssociationRow: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let row: Associations.Row
     let appName: String
     @Binding var isSelected: Bool
@@ -103,7 +105,7 @@ private struct AssociationRow: View {
                 } else {
                     Text("No app")
                         .font(.callout)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(contrastStyle.metadata)
                 }
             }
         }

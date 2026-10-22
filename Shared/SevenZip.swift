@@ -34,12 +34,20 @@ nonisolated struct SevenZip: Sendable {
         try await list(.file(archive), password: password)
     }
 
-    func list(_ archive: ArchiveInput, password: String? = nil) async throws(EngineError) -> ArchiveListing {
+    /// `streamed` (the default) parses 7-Zip's output while it lists (#22); false parses it after,
+    /// the way Stow did before, for the benchmark in PerformanceTests.
+    func list(_ archive: ArchiveInput, password: String? = nil, streamed: Bool = true) async throws(EngineError) -> ArchiveListing {
         let input = try Prepared(archive)
         defer { input.cleanUp() }
-        let result = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor, password: password)
+        let stream = ListingStream()
+        var onOutput: (@Sendable (Data) -> Void)?
+        if streamed {
+            onOutput = { @Sendable chunk in stream.consume(chunk) }
+        }
+        let result = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor, password: password,
+                                   onOutput: onOutput)
         try Self.check(result)
-        let fast = Self.parseListingFast(result.output)
+        let fast = streamed ? stream.finish() : Self.parseListingFast(result.output)
         guard var listing = fast?.listing ?? Self.parseListing(result.output) else {
             throw EngineError(.notAnArchive)
         }

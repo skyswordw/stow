@@ -7,14 +7,44 @@ struct InspectorView: View {
         let selected = model.selectedEntries
         ScrollView {
             Group {
+                if let hit = model.selectedNestedHit {
+                    NestedDetail(hit: hit, model: model)
+                } else {
                 switch selected.count {
                 case 0: ArchiveSummary(archive: model.archive)
                 case 1: EntryDetail(entry: selected[0], model: model)
                 default: MultiDetail(entries: selected, model: model)
                 }
+                }
             }
             .padding(Space.l)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// A search result inside an inner archive: what and where, and the way there.
+private struct NestedDetail: View {
+    let hit: NestedHit
+    let model: BrowserModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.l) {
+            EntryThumbnail(entry: hit.inner, style: .large)
+                .frame(maxWidth: .infinity, minHeight: 120)
+            Text(hit.inner.name)
+                .font(.title3.weight(.semibold))
+                .lineLimit(3)
+            MetadataGrid(rows: [
+                (String(localized: "Size"), hit.inner.size.bytes),
+                (String(localized: "Modified"), hit.inner.modified.formatted(date: .abbreviated, time: .shortened)),
+                (String(localized: "Inside"), hit.container.path),
+                (String(localized: "Where"), hit.inner.parent.isEmpty ? String(localized: "Top level") : hit.inner.parent),
+            ])
+            Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: "arrow.down.right.and.arrow.up.left") {
+                model.showNested(hit)
+            }
+            .controlSize(.large)
         }
     }
 }
@@ -38,7 +68,7 @@ private struct EntryDetail: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name)
-                    .font(.title3.weight(.semibold))
+                    .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .textSelection(.enabled)
                 if let state = model.editSession.state(for: entry.path) { Text(state).font(.caption).foregroundStyle(.secondary) }
                 Text(entry.kindDescription)
@@ -96,6 +126,7 @@ private struct SignatureSection: View {
                 let finding = verdict.finding
                 HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                     Image(systemName: finding.severity.symbol)
+                        .accessibilityHidden(true)
                         .foregroundStyle(finding.severity.color)
                         .frame(width: 16)
                     VStack(alignment: .leading, spacing: 2) {
@@ -148,7 +179,7 @@ private struct MultiDetail: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(entries.count) items")
-                    .font(.title3.weight(.semibold))
+                    .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .liveNumber()
                 Text(entries.reduce(Int64(0)) { $0 + $1.size }.bytes)
                     .foregroundStyle(.secondary)
@@ -166,7 +197,7 @@ private struct ArchiveSummary: View {
             HStack(spacing: Space.m) {
                 FormatBadge(format: archive.format)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(archive.name).font(.headline)
+                    Text(archive.name).font(.headline).accessibilityAddTraits(.isHeader)
                     Text("\(archive.format.displayName) archive").foregroundStyle(.secondary)
                 }
             }
@@ -183,6 +214,7 @@ private struct ArchiveSummary: View {
                 ForEach(archive.checkup) { finding in
                     HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                         Image(systemName: finding.severity.symbol)
+                        .accessibilityHidden(true)
                             .foregroundStyle(finding.severity.color)
                             .frame(width: 16)
                         VStack(alignment: .leading, spacing: 2) {
@@ -225,6 +257,7 @@ struct SectionLabel: View {
 
     var body: some View {
         Text(text)
+            .accessibilityAddTraits(.isHeader)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.secondary)
     }

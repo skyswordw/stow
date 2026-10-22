@@ -135,6 +135,7 @@ struct HoverPreviewCardBody: View {
                 .frame(width: 300, height: 220)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.name)
+                    .accessibilityAddTraits(.isHeader)
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)

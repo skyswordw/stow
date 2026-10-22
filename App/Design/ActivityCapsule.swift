@@ -32,12 +32,13 @@ struct ActivityCapsule: View {
                 .padding(.leading, Space.l)
                 .padding(.trailing, isFailure ? Space.m : Space.l)
                 .padding(.vertical, isFailure ? Space.m : 9)
-                .glassEffect(.regular, in: isFailure ? AnyShape(.rect(cornerRadius: Radius.panel + 4)) : AnyShape(.capsule))
+                .accessibleGlass(in: isFailure ? AnyShape(.rect(cornerRadius: Radius.panel + 4)) : AnyShape(.capsule))
                 .glassEffectID("summary", in: glass)
             switch phase {
             case .running:
                 if let stop {
                     Button("Stop", systemImage: "xmark", action: stop)
+                        .accessibilityLabel(String(localized: "Stop"))
                         .labelStyle(.iconOnly)
                         .help(stopHelp)
                         .buttonStyle(.glass)
@@ -46,6 +47,7 @@ struct ActivityCapsule: View {
             case .done:
                 if let showInFinder {
                     Button("Show in Finder", systemImage: "folder", action: showInFinder)
+                        .accessibilityLabel(String(localized: "Show in Finder"))
                         .buttonStyle(.glass)
                         .glassEffectID("finder", in: glass)
                 }
@@ -124,6 +126,7 @@ struct ActivityLabel: View {
                 .frame(maxWidth: 340, alignment: .leading)
                 if let dismiss {
                     Button("Dismiss", systemImage: "xmark", action: dismiss)
+                        .accessibilityLabel(String(localized: "Dismiss"))
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .foregroundStyle(.secondary)
@@ -133,7 +136,12 @@ struct ActivityLabel: View {
             }
         }
         .font(.callout)
-        .accessibilityElement(children: perform == nil ? .combine : .contain)
+        .accessibilityElement(children: perform == nil && dismiss == nil ? .combine : .contain)
+        .accessibilityValue(progressValue)
+    }
+
+    private var progressValue: String {
+        if case .running(let fraction) = phase { AccessibilityText.progress(fraction) } else { "" }
     }
 
     private var isFailure: Bool {
@@ -184,16 +192,19 @@ struct ActivityGlyph: View {
 }
 
 struct ProgressRing: View {
+    @Environment(\.colorSchemeContrast) private var contrast
     let progress: Double
 
     var body: some View {
         ZStack {
-            Circle().stroke(.quaternary, lineWidth: 2.5)
+            Circle().stroke(ContrastStyle.resolve(contrast).increased ? AnyShapeStyle(.secondary) : AnyShapeStyle(.quaternary), lineWidth: 2.5)
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(.tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
         }
         .frame(width: 15, height: 15)
+        .accessibilityLabel(String(localized: "Progress"))
+        .accessibilityValue(AccessibilityText.progress(progress))
     }
 }

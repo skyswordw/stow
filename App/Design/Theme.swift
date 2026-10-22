@@ -42,8 +42,9 @@ enum Motion {
     }
 
     /// For changes made outside a view (models, controllers), which can't read the environment.
-    static func current(_ animation: Animation) -> Animation {
-        resolved(animation, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+    static func current(_ animation: Animation) -> Animation? {
+        guard !byKeyboard else { return nil }
+        return resolved(animation, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
     }
 
     /// Something showing or hiding: `appear` in, `exit` out, and nothing at all when a key press
@@ -82,7 +83,7 @@ extension AnyTransition {
 extension View {
     /// Monospaced digits that roll instead of jitter when they change.
     func liveNumber() -> some View {
-        monospacedDigit().contentTransition(.numericText())
+        modifier(LiveNumber())
     }
 }
 
@@ -121,5 +122,14 @@ extension PackReport.Tone {
         case .info: .secondary
         case .caution: .yellow
         }
+    }
+}
+
+private struct LiveNumber: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.monospacedDigit()
+            .contentTransition(reduceMotion || Motion.byKeyboard ? .identity : .numericText())
     }
 }

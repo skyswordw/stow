@@ -53,6 +53,7 @@ private struct RenameField: NSViewRepresentable {
         field.isBezeled = true
         field.bezelStyle = .roundedBezel
         field.focusRingType = .default
+        field.setAccessibilityLabel(String(localized: "Rename"))
         DispatchQueue.main.async { [weak field] in
             guard let field, let window = field.window else { return }
             window.makeFirstResponder(field)
@@ -132,7 +133,7 @@ struct UnsavedChangesBar: View {
         .padding(.horizontal, Space.m)
         .frame(height: EditingBar.height)
         .frame(minWidth: 0, maxWidth: .infinity)
-        .background(.bar)
+        .accessibleBar()
         .overlay(alignment: .top) { Divider() }
     }
 
@@ -181,7 +182,7 @@ struct ExternalChangeBar: View {
         .padding(.horizontal, Space.m)
         .frame(height: EditingBar.height)
         .frame(minWidth: 0, maxWidth: .infinity)
-        .background(.bar)
+        .accessibleBar()
         .overlay(alignment: .top) { Divider() }
     }
 }
