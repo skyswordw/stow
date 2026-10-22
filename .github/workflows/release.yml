@@ -1,0 +1,279 @@
+# Release build (#32, #34): archives Stow, signs it with Developer ID, builds the DMG, notarizes and
+# staples it, verifies it, uploads it as an artifact and — only when it is notarized — attaches it to
+# a DRAFT GitHub release. It never publishes a release, never pushes a tag and never merges anything;
+# a person reviews the draft and publishes it (which is what triggers the Homebrew cask workflow).
+#
+# Secrets (names only; see RELEASING.md):
+#   signing      DEVELOPER_ID_P12_BASE64, DEVELOPER_ID_P12_PASSWORD, DEVELOPER_ID_IDENTITY,
+#                APPLE_TEAM_ID, KEYCHAIN_PASSWORD
+#   notarization ASC_API_KEY_ID, ASC_API_ISSUER_ID, ASC_API_KEY_P8_BASE64
+# Missing signing secrets → an ad-hoc dry run; missing notarization secrets → signed, not
+# notarized, and no draft release. Pull requests always get the ad-hoc dry run (no secrets used).
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version without the leading v (e.g. 0.1.0). Empty = MARKETING_VERSION from project.yml
+        required: false
+      build-number:
+        description: CFBundleVersion. Empty = this workflow's run number
+        required: false
+      draft-release:
+        description: Attach a notarized DMG to a DRAFT release v<version> (never published)
+        type: boolean
+        default: true
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "scripts/package.sh"
+      - "scripts/verify-app-bundle.sh"
+      - "scripts/generate-appcast.sh"
+      - "project.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  package:
+    runs-on: xcode-27
+    timeout-minutes: 120
+    permissions:
+      contents: write # only used by the draft-release step
+    env:
+      XCODE_APP: /Applications/Xcode_27.app
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          sw_vers
+          xcodebuild -version
+
+      - name: Version
+        id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_BUILD: ${{ inputs.build-number }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT" == push ]]; then version=${GITHUB_REF_NAME#v}
+          elif [[ -n "$INPUT_VERSION" ]]; then version=${INPUT_VERSION#v}
+          else version=$(sed -n 's/^ *MARKETING_VERSION: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' project.yml | head -1); fi
+          [[ $version =~ ^[0-9]+(\.[0-9]+){1,3}([-.][0-9A-Za-z.]+)?$ ]] || { echo "::error::bad version '$version'"; exit 1; }
+          build=${INPUT_BUILD:-$GITHUB_RUN_NUMBER}
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "Stow $version ($build)"
+
+      # Secrets can't appear in `if:`; this step turns "is it set?" into outputs. Values never leave env.
+      - name: Which credentials are available
+        id: creds
+        env:
+          EVENT: ${{ github.event_name }}
+          P12: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          IDENTITY: ${{ secrets.DEVELOPER_ID_IDENTITY }}
+          ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
+          ASC_P8: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: |
+          sign=false notarize=false
+          if [[ "$EVENT" == pull_request ]]; then
+            echo "::notice::Pull request: ad-hoc dry run, no secrets are used."
+          elif [[ -n "$P12" && -n "$P12_PASSWORD" && -n "$IDENTITY" ]]; then
+            sign=true
+            if [[ -n "$ASC_KEY_ID" && -n "$ASC_ISSUER" && -n "$ASC_P8" ]]; then
+              notarize=true
+            else
+              echo "::warning::ASC_API_KEY_ID / ASC_API_ISSUER_ID / ASC_API_KEY_P8_BASE64 are not set: the DMG will be signed but not notarized, and no draft release is made."
+            fi
+          else
+            echo "::warning::Developer ID secrets (DEVELOPER_ID_P12_BASE64, DEVELOPER_ID_P12_PASSWORD, DEVELOPER_ID_IDENTITY) are not set: ad-hoc dry run only. See RELEASING.md."
+          fi
+          echo "sign=$sign" >> "$GITHUB_OUTPUT"
+          echo "notarize=$notarize" >> "$GITHUB_OUTPUT"
+
+      - name: Compute 7-Zip cache key
+        id: sevenzip
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version=//p' scripts/fetch-7zip.sh)
+          sha256=$(sed -n 's/^sha256=//p' scripts/fetch-7zip.sh)
+          echo "key=7zip-${{ runner.os }}-${{ runner.arch }}-${version}-${sha256}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v5
+        with:
+          path: Vendor/7zip
+          key: ${{ steps.sevenzip.outputs.key }}
+
+      - name: Fetch 7-Zip and XcodeGen
+        run: |
+          zsh scripts/fetch-7zip.sh
+          command -v xcodegen >/dev/null || brew install xcodegen
+
+      - name: Temporary signing keychain
+        id: keychain
+        if: ${{ steps.creds.outputs.sign == 'true' }}
+        env:
+          P12: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          IDENTITY: ${{ secrets.DEVELOPER_ID_IDENTITY }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/stow-signing.keychain-db"
+          password=${KEYCHAIN_PASSWORD:-$(openssl rand -hex 24)}
+          echo "::add-mask::$password"
+          security create-keychain -p "$password" "$keychain"
+          echo "path=$keychain" >> "$GITHUB_OUTPUT" # set early so the cleanup step always finds it
+          security set-keychain-settings -lut 7200 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+
+          p12="$RUNNER_TEMP/developer-id.p12"
+          (umask 077; printf '%s' "$P12" | base64 --decode > "$p12")
+          security import "$p12" -k "$keychain" -P "$P12_PASSWORD" -f pkcs12 \
+            -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productsign
+          rm -f "$p12"
+
+          # The .p12 holds only the leaf certificate. Without Apple's Developer ID G2 intermediate
+          # the identity isn't valid for codesigning; import it (pinned SHA-256) unless the runner has it.
+          if ! security find-certificate -c "Developer ID Certification Authority" -Z \
+               /Library/Keychains/System.keychain /System/Library/Keychains/SystemRootCertificates.keychain 2>/dev/null \
+               | grep -qi 'F16CD3C54C7F83CEA4BF1A3E6A0819C8AAA8E4A1528FD144715F350643D2DF3A'; then
+            ca="$RUNNER_TEMP/DeveloperIDG2CA.cer"
+            curl --fail --silent --show-error --location -o "$ca" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+            echo "f16cd3c54c7f83cea4bf1a3e6a0819c8aaa8e4a1528fd144715f350643d2df3a  $ca" | shasum -a 256 --check --status \
+              || { echo "::error::DeveloperIDG2CA.cer checksum mismatch"; exit 1; }
+            security import "$ca" -k "$keychain"
+            echo "Imported the Developer ID G2 intermediate into the temporary keychain"
+          fi
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain" >/dev/null
+          # Prepend to the user search list so codesign and notarytool find it.
+          existing=$(security list-keychains -d user | sed 's/^ *"//; s/"$//')
+          # shellcheck disable=SC2086
+          security list-keychains -d user -s "$keychain" $existing
+
+          identities=$(security find-identity -v -p codesigning "$keychain")
+          if ! grep -qF "\"$IDENTITY\"" <<<"$identities"; then
+            echo "$identities"
+            echo "::error::DEVELOPER_ID_IDENTITY is not a valid codesigning identity in the imported .p12 (expired, or the intermediate is missing?)"
+            exit 1
+          fi
+          if [[ -n "$TEAM_ID" && "$IDENTITY" != *"($TEAM_ID)" ]]; then
+            echo "::error::DEVELOPER_ID_IDENTITY does not end in (APPLE_TEAM_ID)"; exit 1
+          fi
+          echo "Signing identity ready in the temporary keychain"
+
+      - name: App Store Connect API key
+        id: asc
+        if: ${{ steps.creds.outputs.notarize == 'true' }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_P8: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/asc"
+          mkdir -m 700 -p "$dir"
+          (umask 077; printf '%s' "$ASC_P8" | base64 --decode > "$dir/AuthKey_$ASC_KEY_ID.p8")
+          grep -q 'BEGIN PRIVATE KEY' "$dir/AuthKey_$ASC_KEY_ID.p8" || { echo "::error::ASC_API_KEY_P8_BASE64 does not decode to a .p8 private key"; exit 1; }
+          echo "path=$dir/AuthKey_$ASC_KEY_ID.p8" >> "$GITHUB_OUTPUT"
+
+      - name: Build, sign, notarize and verify
+        id: package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build }}
+          SIGN: ${{ steps.creds.outputs.sign }}
+          IDENTITY: ${{ secrets.DEVELOPER_ID_IDENTITY }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEYCHAIN: ${{ steps.keychain.outputs.path }}
+          ASC_API_KEY_PATH: ${{ steps.asc.outputs.path }}
+          ASC_API_KEY_ID: ${{ steps.creds.outputs.notarize == 'true' && secrets.ASC_API_KEY_ID || '' }}
+          ASC_API_ISSUER_ID: ${{ steps.creds.outputs.notarize == 'true' && secrets.ASC_API_ISSUER_ID || '' }}
+        run: |
+          set -euo pipefail
+          if [[ "$SIGN" == true ]]; then export SIGN_IDENTITY="$IDENTITY"; else export SIGN_IDENTITY=- TEAM_ID= KEYCHAIN=; fi
+          scripts/package.sh
+          cat build/release/package.env >> "$GITHUB_OUTPUT"
+
+      # Hook for #35: skips (exit 0) until Sparkle and Stow's own EdDSA key (SPARKLE_ED_PRIVATE_KEY,
+      # not created yet) exist. Never reuse another app's Sparkle key.
+      - name: Sparkle appcast (hook for #35)
+        if: ${{ steps.package.outputs.mode == 'notarized' }}
+        run: scripts/generate-appcast.sh "${{ steps.package.outputs.dmg }}"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stow-${{ steps.version.outputs.version }}-${{ steps.package.outputs.mode || 'failed' }}
+          path: |
+            build/release/*.dmg
+            build/release/*.sha256
+            build/release/*-dSYMs.zip
+            build/release/appcast.xml
+            build/release/notary-*.json
+            build/release/*.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Draft GitHub release (never published)
+        if: >-
+          ${{ steps.package.outputs.mode == 'notarized' && github.event_name != 'pull_request' &&
+              (github.event_name == 'push' || inputs.draft-release) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          DMG: ${{ steps.package.outputs.dmg }}
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
+          assets=("$DMG" "$DMG.sha256")
+          [[ -f build/release/appcast.xml ]] && assets+=(build/release/appcast.xml)
+          if state=$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [[ "$state" != true ]]; then
+              echo "::error::Release $tag is already published; this workflow only touches drafts."; exit 1
+            fi
+            gh release upload "$tag" "${assets[@]}" --clobber
+          else
+            # A draft does not create the tag; publishing it (by a person) does.
+            gh release create "$tag" "${assets[@]}" --draft --target "$GITHUB_SHA" \
+              --title "Stow $VERSION" --generate-notes
+          fi
+          echo "::notice::Draft release $tag updated. Review and publish it by hand."
+
+      - name: Summary
+        if: always()
+        env:
+          MODE: ${{ steps.package.outputs.mode }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          {
+            echo "### Stow $VERSION — ${MODE:-failed}"
+            case "$MODE" in
+              notarized) echo "Signed, notarized and stapled. Draft release only when requested; nothing is published." ;;
+              signed)    echo "Developer ID signed but **not notarized** (App Store Connect API key secrets missing). Not for distribution." ;;
+              adhoc)     echo "Ad-hoc dry run. Not for distribution." ;;
+            esac
+            [[ -f build/release/Stow-$VERSION.dmg.sha256 ]] && echo && echo '`'"$(cat build/release/Stow-$VERSION.dmg.sha256)"'`'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove keychain and keys
+        if: always()
+        env:
+          KEYCHAIN: ${{ steps.keychain.outputs.path }}
+        run: |
+          if [[ -n "$KEYCHAIN" ]]; then security delete-keychain "$KEYCHAIN" || true; fi
+          rm -rf "$RUNNER_TEMP/asc" "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/DeveloperIDG2CA.cer"
+          rm -f "$RUNNER_TEMP"/stow-signing.keychain-db

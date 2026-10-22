@@ -195,6 +195,14 @@ jobs:
       - name: Every binary is arm64 + x86_64
         run: scripts/check-universal.sh build/DerivedData/Build/Products/Release/Stow.app
 
+      # #32/#34: the release packaging path on every PR, without secrets. Re-signs the Release build
+      # ad-hoc inside-out, builds the DMG and runs scripts/verify-app-bundle.sh (sandbox on every
+      # piece, no get-task-allow, codesign --verify --deep --strict, DMG layout).
+      - name: Package dry run (ad-hoc DMG)
+        run: |
+          SIGN_IDENTITY=- PREBUILT_APP=build/DerivedData/Build/Products/Release/Stow.app \
+            OUT_DIR=build/package-dry-run scripts/package.sh
+
       # Informational: Rosetta is not an Intel Mac. 7-Zip's x86_64 build picks code paths from CPUID,
       # and Rosetta doesn't run all of them, so a failure here is a warning; real Intel hardware is
       # ROADMAP Tests #16.
@@ -250,5 +258,6 @@ jobs:
           path: |
             build/*.log
             build/Stow-x86_64.xcresult
+            build/package-dry-run/*.dmg
           retention-days: 14
 
