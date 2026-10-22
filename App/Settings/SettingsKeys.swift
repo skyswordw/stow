@@ -7,6 +7,8 @@ nonisolated enum SettingsKeys {
     static let volumeSize = "PackVolumeSize"
     static let hoverPreviews = "browse.hoverPreviews"
     static let showPassword = "password.showByDefault"
+    /// Opt-in Keychain vault for archive passwords (#76). Off by default.
+    static let rememberPasswords = "password.rememberInKeychain"
     static let openInGlance = "glance.openFromFinder"
     static let glancePinned = "glance.pinned"
     static let trayMenuBarIcon = "tray.menuBarIcon"
@@ -58,6 +60,7 @@ nonisolated enum SettingsKeys {
         .init(key: volumeSize, defaultValue: .integer(0)),
         .init(key: hoverPreviews, defaultValue: .bool(true)),
         .init(key: showPassword, defaultValue: .bool(false)),
+        .init(key: rememberPasswords, defaultValue: .bool(false)),
         .init(key: openInGlance, defaultValue: .bool(false)),
         .init(key: glancePinned, defaultValue: .bool(false)),
         .init(key: trayMenuBarIcon, defaultValue: .bool(true)),

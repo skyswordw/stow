@@ -19,6 +19,12 @@
 	<array>
 		<string>YNQ2233752.app.stow.Stow</string>
 	</array>
+	<!-- Archive password vault (#76): app-only access group, not the App Group shared with
+	     Finder Sync. Passwords never go to the XPC. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)app.stow.Stow.archive-password</string>
+	</array>
 	<!-- Sparkle (#35): talks to its installer, which runs outside the sandbox. Xcode expands the
 	     bundle identifier (app.stow.Stow-spks / -spki). No network entitlement: Sparkle's
 	     downloader service fetches the appcast and the update. -->

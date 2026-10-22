@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # The total this branch reports (358 after App Group hand-off, #32). Raise it when tests are added;
+          # The total this branch reports (372 after Keychain password vault, #76). Raise it when tests are added;
           # a lower total means suites went missing.
-          MIN_TESTS: "364"
+          MIN_TESTS: "372"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

@@ -133,6 +133,10 @@ struct PreviewSettingsView: View {
 
 struct PasswordSettingsView: View {
     @AppStorage(SettingsKeys.showPassword) private var show = false
+    @AppStorage(SettingsKeys.rememberPasswords) private var remember = false
+    @State private var entries: [ArchivePasswordEntry] = []
+    @State private var confirmsWipe = false
+
     var body: some View {
         Form {
             Section {
@@ -140,10 +144,62 @@ struct PasswordSettingsView: View {
             } footer: {
                 Text("Visible passwords support Chinese and Japanese input methods. You can hide a password in the password sheet.")
             }
+            Section {
+                Toggle("Remember passwords in Keychain", isOn: $remember)
+            } footer: {
+                Text("When on, a password that unlocks an archive is saved in your Keychain — nowhere else, and only this app can read it. When off, Stow keeps passwords only while the archive is open.")
+            }
+            if remember {
+                Section {
+                    if entries.isEmpty {
+                        Text("No saved passwords yet")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(entries) { entry in
+                            LabeledContent {
+                                Button("Forget", role: .destructive) {
+                                    ArchivePasswordVault.forget(entry)
+                                    reload()
+                                }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.displayName)
+                                    if !entry.identity.path.isEmpty {
+                                        Text(entry.identity.path)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if !entries.isEmpty {
+                        Button("Remove All Saved Passwords…", role: .destructive) { confirmsWipe = true }
+                    }
+                } header: {
+                    Text("Saved passwords")
+                }
+            }
         }
         .formStyle(.grouped)
-        .scrollDisabled(true)
-        .fixedSize(horizontal: false, vertical: true)
+        .scrollDisabled(entries.count > 6)
+        .fixedSize(horizontal: false, vertical: entries.count <= 6)
+        .onAppear(perform: reload)
+        .onChange(of: remember) { reload() }
+        .alert("Remove all saved passwords?", isPresented: $confirmsWipe) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove All", role: .destructive) {
+                ArchivePasswordVault.wipe()
+                reload()
+            }
+        } message: {
+            Text("Stow forgets every archive password stored in your Keychain. Archives already open keep their passwords until you close them.")
+        }
+    }
+
+    private func reload() {
+        entries = ArchivePasswordVault.entries()
     }
 }
 
