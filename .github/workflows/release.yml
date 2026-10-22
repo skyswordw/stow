@@ -258,6 +258,7 @@ jobs:
         env:
           MODE: ${{ steps.package.outputs.mode }}
           VERSION: ${{ steps.version.outputs.version }}
+          DMG: ${{ steps.package.outputs.dmg }}
         run: |
           {
             echo "### Stow $VERSION — ${MODE:-failed}"
@@ -266,7 +267,7 @@ jobs:
               signed)    echo "Developer ID signed but **not notarized** (App Store Connect API key secrets missing). Not for distribution." ;;
               adhoc)     echo "Ad-hoc dry run. Not for distribution." ;;
             esac
-            [[ -f build/release/Stow-$VERSION.dmg.sha256 ]] && echo && echo '`'"$(cat build/release/Stow-$VERSION.dmg.sha256)"'`'
+            if [[ -n "$DMG" && -f "$DMG.sha256" ]]; then echo; echo '`'"$(cat "$DMG.sha256")"'`'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Remove keychain and keys
