@@ -57,6 +57,10 @@ targets:
         buildPhase: resources
       - path: THIRD_PARTY_NOTICES.md
         buildPhase: resources
+      # The sample archive's files (Try the Sample, demo scenes); sources and licenses in its CREDITS.md.
+      - path: Resources/Sample
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: StowEngine
       - target: StowQuickLook

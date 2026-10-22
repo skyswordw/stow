@@ -1,0 +1,31 @@
+HARBOR 3.0 — MOTION NOTES
+Round 4, 1 October 2026 · Tomas
+
+The rule: motion explains where something came from. If it doesn't, cut it.
+
+SPRINGS
+  Default        response 0.35 s, damping 0.85   sheets, cards, the ticket
+  Snappy         response 0.25 s, damping 0.9    toggles, chips, the tab bar
+  No bounce on anything that shows money or a departure time.
+
+DEPARTURE BOARD
+  New times slide up 8 pt and fade in over 0.2 s.
+  A delay doesn't flash. The time changes colour to status.late and stays.
+  Cancelled sailings fade to 40% and get a line through them. No shake.
+
+TICKET
+  Buying: the ticket rises from the Pay button into the wallet (0.45 s, Default spring).
+  At the gate: brightness goes to full and the code pulses once, then holds still.
+
+ONBOARDING
+  Photos cross-fade (0.6 s, ease in-out). Text moves 12 pt with the swipe, photos 4 pt.
+  The beam in the mark turns once on the last screen. Only there.
+
+REDUCE MOTION
+  Every slide becomes a 0.15 s fade. The beam doesn't turn. The board updates in place.
+
+LOGO REVEAL (Video/Logo Reveal.mov)
+  0.0–1.2 s   the beam sweeps left to right across navy
+  1.2–2.0 s   the tower draws up from the wave
+  2.0–3.4 s   the wordmark fades in, 16 pt to the right of the mark
+  Sting starts at 1.2 s (Audio/Brand Sting.wav). Hold the end frame for 2 s.

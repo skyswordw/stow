@@ -78,7 +78,9 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         let archive = model.archive
         let cache = model.previews.cache
         items = selected.map { entry in
-            Item(entry: entry, url: cache.cachedFile(for: entry, in: archive) ?? Self.placeholder(for: entry))
+            // The sample archive has its real files in the app (Resources/Sample).
+            Item(entry: entry, url: cache.cachedFile(for: entry, in: archive)
+                ?? (archive.source == nil ? SampleContent.previewFile(for: entry) : nil) ?? Self.placeholder(for: entry))
         }
         let wanted = items.filter { !$0.entry.isNavigable && $0.url?.path.hasPrefix(Self.placeholders.path) == true }
         guard !wanted.isEmpty else { return }

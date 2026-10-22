@@ -12,7 +12,7 @@ struct BrowserView: View {
             SidebarView(model: model)
                 .accessibilityElement(children: .contain)
                 .accessibilitySortPriority(3)
-                .navigationSplitViewColumnWidth(min: 220, ideal: 248, max: 320)
+                .sidebarColumnWidth()
                 // Search sits at the top of the sidebar, beside the folders it searches across,
                 // which keeps the inspector's toolbar section to just its toggle.
                 .searchable(text: $model.query, placement: .sidebar, prompt: searchPrompt)

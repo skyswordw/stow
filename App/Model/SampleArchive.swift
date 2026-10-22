@@ -1,6 +1,8 @@
 import Foundation
 
-/// Fictional content used until the 7-Zip engine is wired in.
+/// "Harbor Rebrand Handoff", the archive Try the Sample opens and the demo scenes show: a design
+/// studio's handoff for a fictional ferry app. It's a listing only; the files behind its previews
+/// are in Resources/Sample (see `SampleContent`).
 enum SampleArchive {
     static func make(named name: String = "Harbor Rebrand Handoff.zip") -> Archive {
         let files: [(String, Int64)] = [
@@ -22,11 +24,11 @@ enum SampleArchive {
             ("Photos/Pier at Dawn.jpg", 4_210_000),
             ("Photos/Lighthouse.jpg", 3_870_000),
             ("Photos/Rope Detail.jpg", 2_660_000),
-            ("Photos/Crew on Deck.heic", 2_940_000),
+            ("Photos/Old Jetty.heic", 2_940_000),
             ("Photos/Harbor at Night.jpg", 3_120_000),
-            ("Fonts/Harbor Sans Regular.otf", 186_000),
-            ("Fonts/Harbor Sans Bold.otf", 191_000),
-            ("Fonts/Harbor Serif Italic.otf", 204_000),
+            ("Fonts/Atkinson Hyperlegible Regular.ttf", 186_000),
+            ("Fonts/Atkinson Hyperlegible Bold.ttf", 191_000),
+            ("Fonts/Instrument Serif Italic.ttf", 204_000),
             ("Prototype/Harbor Prototype.app", 48_600_000),
             ("Prototype/Install Helper.pkg", 3_400_000),
             ("Audio/Brand Sting.wav", 5_300_000),
@@ -73,6 +75,12 @@ enum SampleArchive {
             ]
         )
     }
+
+    /// What's inside "Earlier Rounds/Old Explorations.7z", for the demo that searches into it.
+    static let oldExplorations: [ArchiveEntry] = ([
+        ("Round 1/Wordmark Ideas.pdf", 2_400_000), ("Round 2/Wordmark Draft.svg", 31_000),
+        ("Round 2/Mark Sketches.png", 880_000), ("Notes.txt", 2_000),
+    ] as [(String, Int64)]).map { ArchiveEntry(path: $0.0, isFolder: false, size: $0.1, packedSize: $0.1 / 2, modified: Date(timeIntervalSince1970: 1_700_000_000)) }
 
     /// Files that show off the Pack sentence's compatibility report.
     static let packCandidates: [PackFile] = [

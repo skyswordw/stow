@@ -234,6 +234,8 @@ struct PackSheet: View {
         options.split = options.format.supportsSplit ? SettingsKeys.splitSize() : .none
         // Design review: -StowPackDetails YES opens both disclosures.
         if UserDefaults.standard.bool(forKey: "StowPackDetails") { showDetails = true; showMore = true }
+        // Design review: -StowPackPassword YES starts with "with a password" (formats that allow one).
+        if UserDefaults.standard.bool(forKey: "StowPackPassword"), options.format.supportsPassword { options.usesPassword = true }
     }
 
     private func setAudience(_ audience: Audience) {
@@ -303,9 +305,15 @@ private struct Token<Items: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 1) {
-            menu
-            if !suffix.isEmpty { Text(suffix) }
+        if isEnabled {
+            // Punctuation sits against the chip's edge in sentence colour (-2 takes up the glyph's own
+            // left margin); being in the same row, it wraps with the chip and never starts a line.
+            HStack(spacing: -2) {
+                menu
+                if !suffix.isEmpty { Text(suffix) }
+            }
+        } else {
+            fixed
         }
     }
 
@@ -315,7 +323,7 @@ private struct Token<Items: View>: View {
         } label: {
             Text(title)
                 .fontWeight(.semibold)
-                .foregroundStyle(isEnabled ? AnyShapeStyle(.tint) : contrastStyle.metadata)
+                .foregroundStyle(.tint)
                 .id(title)
                 // Blur-replace scales a little, so Reduce Motion gets the cross-fade alone.
                 .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
@@ -326,10 +334,22 @@ private struct Token<Items: View>: View {
         .fixedSize()
         .padding(.horizontal, 6)
         .padding(.vertical, 1)
-        .background(.tint.opacity(isHovering && isEnabled ? 0.16 : 0.08), in: .rect(cornerRadius: 6))
+        .background(.tint.opacity(isHovering ? 0.16 : 0.08), in: .rect(cornerRadius: 6))
         .onHover { isHovering = $0 }
-        .disabled(!isEnabled)
-        .help(isEnabled ? String(localized: "Click to change") : disabledHelp)
+        .help(String(localized: "Click to change"))
+    }
+
+    /// A word this format decides ("as one file" for a DMG): plain sentence text, not a faded
+    /// button, with its punctuation attached in the same colour. The reason is in the tooltip
+    /// and spoken after it.
+    private var fixed: some View {
+        Text(title + suffix)
+            .foregroundStyle(contrastStyle.increased ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+            .id(title)
+            .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
+            .fixedSize()
+            .help(disabledHelp)
+            .accessibilityHint(disabledHelp)
     }
 }
 

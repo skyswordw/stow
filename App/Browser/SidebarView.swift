@@ -223,3 +223,19 @@ struct CheckupView: View {
         .frame(width: 320)
     }
 }
+
+extension View {
+    /// The browser's sidebar column width. The extra `frame(minWidth:)` matters: SwiftUI measures a
+    /// column's minimum size with a zero proposal, not the minimum width declared here. Measured that
+    /// narrow, the archive card wraps its captions a few characters per line and grows ~700 pt tall,
+    /// and a minimum that tall can fight the window until AppKit throws "more Update Constraints in
+    /// Window passes than there are views" — whether it does depends on the digits in the sizes.
+    func sidebarColumnWidth() -> some View {
+        frame(minWidth: SidebarView.minWidth)
+            .navigationSplitViewColumnWidth(min: SidebarView.minWidth, ideal: 248, max: 320)
+    }
+}
+
+extension SidebarView {
+    static let minWidth: CGFloat = 220
+}
