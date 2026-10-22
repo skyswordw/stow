@@ -66,7 +66,6 @@ struct ContentGrid: View {
                         }
                     }
                     .padding(GridMetrics.inset)
-                    .padding(.bottom, 64) // room for the Next Steps capsule
                     .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .topLeading)
                     .background { marqueeSurface(metrics, count: entries.count) }
                     .overlay(alignment: .topLeading) { marqueeRectangle }
@@ -322,7 +321,6 @@ struct ContentList: View {
                 }
             }
             .alternatingRowBackgrounds(.disabled)
-            .safeAreaPadding(.bottom, 56)
             .quickLookKeys(model)
             .onChange(of: model.selection) { model.selectionDidChange() }
             .onChange(of: model.demoHover, initial: true) { if let id = model.demoHover { hover.present(id) } }

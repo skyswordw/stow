@@ -33,7 +33,6 @@ struct ContentColumns: View {
                 scroller.scrollTo(previewedFile == nil ? parents.last : "preview", anchor: .trailing)
             }
         }
-        .safeAreaPadding(.bottom, 56)
         .focusable()
         .focusEffectDisabled()
         .focused($isFocused)

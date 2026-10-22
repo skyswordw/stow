@@ -24,6 +24,9 @@ struct BrowserView: View {
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
                 }
+                // Next Steps takes real room above the bars: grid, list and columns scroll their last
+                // row clear of it, and nothing is reserved while it's hidden.
+                .safeAreaInset(edge: .bottom, spacing: 0) { nextSteps }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
                         if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
@@ -31,7 +34,6 @@ struct BrowserView: View {
                         PathBar(model: model)
                     }
                 }
-                .overlay(alignment: .bottom) { nextSteps }
                 .navigationTitle(model.title)
                 .navigationSubtitle(model.subtitle)
         }
@@ -109,10 +111,14 @@ struct BrowserView: View {
                 NextStepsBar(model: model)
                     .accessibilityElement(children: .contain)
                     .accessibilitySortPriority(0)
+                    .padding(.top, Space.s)
+                    .padding(.bottom, Space.l)
                     .transition(.rise(reduceMotion: reduceMotion))
             }
         }
-        .padding(.bottom, Space.l + PathBar.height + (model.editSession.isEdited ? EditingBar.height : 0))
+        // Never ask the column for the capsule's width: a minimum here feeds the split view's own
+        // sizing and loops (the "Update Constraints in Window" crash).
+        .frame(minWidth: 0, maxWidth: .infinity)
         // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
         .animation(Motion.presence(visible, reduceMotion: reduceMotion), value: visible)
     }
