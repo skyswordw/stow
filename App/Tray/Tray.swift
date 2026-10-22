@@ -20,7 +20,10 @@ final class TrayController {
     var isPinned = SettingsKeys.flag(SettingsKeys.trayPinned) {
         didSet { UserDefaults.standard.set(isPinned, forKey: SettingsKeys.trayPinned); touch() }
     }
-    var message: String?
+    /// Something that went wrong, told inside the Tray (it has no window to hang a sheet on).
+    var failure: Failure?
+    /// The folder name being typed for Collect into a Folder; nil when not asking.
+    var collectingName: String?
     weak var app: AppState?
 
     @ObservationIgnored private var panel: TrayPanel?
@@ -37,7 +40,7 @@ final class TrayController {
     /// The row under the pointer, as rows report it (multi-item drag out starts from here).
     @ObservationIgnored var hoveredRow: UUID?
 
-    private let size = CGSize(width: 300, height: 440)
+    private let size = TrayView.size
 
     // MARK: - Menu bar
 
@@ -117,30 +120,41 @@ final class TrayController {
         guard pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) else { return }
         isDragging = true
         touch()
-        if !isShown { show() }
+        if !isShown { show(fromDrag: true) }
     }
 
     // MARK: - Showing
 
     func toggle() { isShown ? hide() : show() }
 
-    func show() {
+    /// Whether the Tray's content is showing; the view animates it in and out with
+    /// `Motion.presence` (DESIGN.md › Motion), while the window itself just orders in and out.
+    private(set) var isPresented = false
+    /// The edge the Tray comes from and goes back to: the menu bar, or the screen's right edge.
+    private(set) var edge: UnitPoint = .top
+
+    /// A drag brings the Tray out without taking the keyboard from the app being dragged from;
+    /// asking for it (menu-bar icon, toolbar, ⌥⌘T) makes it key, so its controls show as active.
+    func show(fromDrag: Bool = false) {
         let panel = panel ?? makePanel()
         self.panel = panel
         panel.border = SettingsKeys.trayBorder()
-        let final = frame()
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        panel.setFrame(reduceMotion || Motion.byKeyboard ? final : final.offsetBy(dx: 0, dy: 16), display: false)
-        panel.alphaValue = 0
-        panel.orderFrontRegardless()
+        panel.setFrame(frame(), display: false)
+        edge = statusItem?.button?.window == nil ? .trailing : .top
         isShown = true
         touch()
         startIdleTimer()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Motion.byKeyboard ? 0 : reduceMotion ? 0.15 : 0.28
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1) // strong ease-out
-            panel.animator().setFrame(final, display: true)
-            panel.animator().alphaValue = 1
+        if fromDrag { panel.orderFrontRegardless() } else { panel.makeKeyAndOrderFront(nil) }
+        // Nothing moves when ⌥⌘T brought it out. Decided now, while the key press is current.
+        let animation = Motion.presence(true, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        guard let animation else {
+            isPresented = true
+            return
+        }
+        // The next turn, so the hidden state has been drawn once and there's something to animate from.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isShown else { return }
+            withAnimation(animation) { self.isPresented = true }
         }
     }
 
@@ -149,20 +163,27 @@ final class TrayController {
         isShown = false
         idleTimer?.invalidate()
         idleTimer = nil
+        collectingName = nil
         if QLPreviewPanel.sharedPreviewPanelExists(), QLPreviewPanel.shared().isVisible { QLPreviewPanel.shared().orderOut(nil) }
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Motion.byKeyboard ? 0 : reduceMotion ? 0.1 : 0.18 // leaving is faster than arriving
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1)
-            if !reduceMotion && !Motion.byKeyboard { panel.animator().setFrame(panel.frame.offsetBy(dx: 0, dy: 16), display: true) }
-            panel.animator().alphaValue = 0
-        } completionHandler: {
+        // Esc and ⌥⌘T: gone at once. Otherwise `Motion.exit`, quicker than it came.
+        guard let animation = Motion.presence(false, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) else {
+            isPresented = false
             panel.orderOut(nil)
+            return
+        }
+        withAnimation(animation) { isPresented = false } completion: { [weak self] in
+            // Brought back out while it was leaving: stay.
+            if self?.isShown == false { panel.orderOut(nil) }
         }
     }
 
-    /// Under the menu-bar icon when there is one, otherwise at the right edge of the screen.
+    /// Under the menu-bar icon when there is one, otherwise at the right edge of the screen; the
+    /// window is larger by the margin its shadow is drawn in.
     private func frame() -> CGRect {
+        contentFrame().insetBy(dx: -TrayView.shadowMargin, dy: -TrayView.shadowMargin)
+    }
+
+    private func contentFrame() -> CGRect {
         if let button = statusItem?.button, let window = button.window, let screen = window.screen {
             let anchor = window.convertToScreen(button.convert(button.bounds, to: nil))
             let visible = screen.visibleFrame
@@ -286,33 +307,38 @@ final class TrayController {
         app?.system.perform(.extractHere, on: archives)
     }
 
+    /// Asks for the folder's name inside the Tray, starting from "New Folder" (or the first free variant).
+    func beginCollecting() {
+        guard let parent = TrayRules.collectionParent(for: targetURLs) else { return }
+        failure = nil
+        collectingName = TrayRules.freeName(String(localized: "New Folder"), in: parent)
+        panel?.makeKey()
+        touch()
+    }
+
+    /// Where the new folder goes, for the question's wording.
+    var collectionNeighbour: String? { targets.first?.name }
+
     /// Copies the items into a new folder beside the first one, named by people, and puts that
     /// folder on the Tray in their place. Copies, never moves: the originals stay where they were.
     func collectIntoFolder() async {
+        guard let typed = collectingName else { return }
+        collectingName = nil
         let chosen = targets.filter { $0.url != nil }
         let urls = chosen.compactMap(\.url)
         guard let parent = TrayRules.collectionParent(for: urls) else { return }
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Collect into a Folder")
-        alert.informativeText = String(localized: "Stow copies the items into a new folder beside “\(urls[0].lastPathComponent)”.")
-        let field = NSTextField(string: TrayRules.freeName(String(localized: "New Folder"), in: parent))
-        field.frame = NSRect(x: 0, y: 0, width: 260, height: 24)
-        alert.accessoryView = field
-        alert.addButton(withTitle: String(localized: "Collect"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        NSApp.activate()
-        let response: NSApplication.ModalResponse
-        if let panel { response = await alert.beginSheetModal(for: panel) } else { response = alert.runModal() }
-        guard response == .alertFirstButtonReturn else { return }
-        let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty, !name.contains("/") else { message = String(localized: "Enter a name without a slash."); return }
+        let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, !name.contains("/") else {
+            failure = Failure(String(localized: "Enter a name without a slash."))
+            return
+        }
         guard let folder = await FolderAccess.shared.writableFolder(
             parent, for: .explained(String(localized: "Stow needs access to this folder to collect the Tray’s items into it.")))
         else { return }
         let destination = folder.appending(path: name, directoryHint: .isDirectory)
         do {
             guard !FileManager.default.fileExists(atPath: destination.path) else {
-                message = String(localized: "This folder already has an item named “\(name)”.")
+                failure = Failure(String(localized: "This folder already has an item named “\(name)”."))
                 return
             }
             try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
@@ -320,7 +346,7 @@ final class TrayController {
                 try FileManager.default.copyItem(at: url, to: destination.appending(path: TrayRules.freeName(url.lastPathComponent, in: destination)))
             }
         } catch {
-            message = EngineError(error).message
+            failure = Failure(EngineError(error).message)
             return
         }
         let ids = Set(chosen.map(\.id))
@@ -368,7 +394,7 @@ final class TrayController {
     // MARK: - Panel
 
     private func makePanel() -> TrayPanel {
-        let panel = TrayPanel(contentRect: CGRect(origin: .zero, size: size),
+        let panel = TrayPanel(contentRect: frame(),
                               styleMask: [.borderless, .nonactivatingPanel],
                               backing: .buffered, defer: true)
         panel.level = .floating
@@ -376,7 +402,9 @@ final class TrayController {
         panel.isMovableByWindowBackground = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        // The view draws the shadow: the window server's follows the square frame once the panel is
+        // key, which showed as square corners behind the rounded panel.
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         let host = NSHostingView(rootView: TrayView(tray: self).environment(app ?? AppState()))
         host.sizingOptions = []
@@ -470,6 +498,8 @@ private struct TrayPreviewBox: @unchecked Sendable { let panel: QLPreviewPanel? 
 
 // MARK: - View
 
+/// Glance's arrangement in a smaller frame: the controls on the glass, the files on a solid card
+/// (DESIGN.md › "Content is the hero"). Radii are concentric: panel 20 ⊃ card 12 (8 in) ⊃ rows 8 (4 in).
 struct TrayView: View {
     let tray: TrayController
     @Environment(AppState.self) private var app
@@ -478,35 +508,45 @@ struct TrayView: View {
     @State private var isTargeted = false
     @FocusState private var focusedRow: UUID?
 
+    static let radius = Radius.card + Space.s
+    static let size = CGSize(width: 300, height: 440)
+    /// Room around the panel for its shadow.
+    static let shadowMargin: CGFloat = 24
     private var border: TrayBorder { TrayBorder(rawValue: borderName) ?? .accent }
+    private var isEmpty: Bool { tray.visibleItems.isEmpty }
+    private var hasFooter: Bool { tray.failure != nil || tray.collectingName != nil || !tray.items.isEmpty }
 
     var body: some View {
         VStack(spacing: 0) {
             header
-            Group {
-                if tray.visibleItems.isEmpty { empty } else { list }
-            }
-            .frame(maxHeight: .infinity)
-            if !tray.items.isEmpty { footer }
+            card
+                .padding(.horizontal, Space.s)
+                // Same 8 below the card as beside it when there's no footer.
+                .padding(.bottom, hasFooter ? 0 : Space.s)
+            if hasFooter { footer }
         }
-        .frame(width: 300, height: 440)
-        .accessibleGlass(in: .rect(cornerRadius: 24))
+        .frame(width: Self.size.width, height: Self.size.height)
+        .accessibleGlass(in: RoundedRectangle(cornerRadius: Self.radius))
         .overlay {
-            RoundedRectangle(cornerRadius: 24)
-                .strokeBorder(border.color.opacity(isTargeted ? 1 : 0.45), lineWidth: isTargeted ? 2 : 1)
+            RoundedRectangle(cornerRadius: Self.radius)
+                .strokeBorder(border.color.opacity(0.45), lineWidth: 1)
         }
-        .dropDestination(for: URL.self) { urls, _ in
-            tray.add(urls)
-            return true
-        } isTargeted: { isTargeted = $0; tray.touch() }
-        .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: isTargeted)
+        .background {
+            RoundedRectangle(cornerRadius: Self.radius)
+                .fill(.black.opacity(0.001))
+                .shadow(color: .black.opacity(0.25), radius: 14, y: 6)
+        }
+        // In from its edge and back out to it: a slight scale and a fade, a fade alone under Reduce Motion.
+        .scaleEffect(tray.isPresented || reduceMotion ? 1 : 0.96, anchor: tray.edge)
+        .opacity(tray.isPresented ? 1 : 0)
+        .padding(Self.shadowMargin)
         .onHover { tray.isHovered = $0 }
         .onKeyPress(.space) { tray.quickLook(); return .handled }
         .onKeyPress(.delete) { tray.removeSelected(); return .handled }
-        .alert("Tray", isPresented: Binding(get: { tray.message != nil }, set: { if !$0 { tray.message = nil } })) {
-            Button("OK", role: .cancel) { tray.message = nil }
-        } message: { Text(tray.message ?? "") }
     }
+
+
+    // MARK: Header
 
     private var header: some View {
         HStack(spacing: Space.s) {
@@ -515,7 +555,7 @@ struct TrayView: View {
                     .accessibilityLabel(String(localized: "Back"))
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
-                    .help("See the previous place")
+                    .help("Back to the Tray")
                 Text(title).font(.headline).lineLimit(1).truncationMode(.middle).accessibilityAddTraits(.isHeader)
             } else {
                 Text("Tray").font(.headline).accessibilityAddTraits(.isHeader)
@@ -523,13 +563,13 @@ struct TrayView: View {
                     Text("\(tray.items.count)")
                         .font(.caption.weight(.semibold))
                         .liveNumber()
+                        .foregroundStyle(.secondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
-                        .background(.tint.opacity(0.15), in: .capsule)
-                        .foregroundStyle(.tint)
+                        .background(.quaternary, in: .capsule)
                 }
             }
-            Spacer()
+            Spacer(minLength: Space.s)
             Toggle(isOn: Binding(get: { tray.isPinned }, set: { tray.isPinned = $0 })) {
                 Label("Keep Tray Open", systemImage: tray.isPinned ? "pin.fill" : "pin")
             }
@@ -542,39 +582,68 @@ struct TrayView: View {
                 .accessibilityLabel(String(localized: "Close"))
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
-                .keyboardShortcut(.cancelAction)
                 .help("Close")
+                // While a folder name is being typed, Escape cancels that instead.
+                .keyboardShortcut(tray.collectingName == nil ? .cancelAction : nil)
         }
         .padding(.horizontal, Space.l)
-        .padding(.top, Space.l)
+        .padding(.top, Space.m)
         .padding(.bottom, Space.s)
     }
 
+    // MARK: Card
+
+    /// The solid card is the drop target, the same way the welcome window's is: a dashed edge
+    /// while empty, the border colour and a light tint while something is held over it.
+    private var card: some View {
+        Group {
+            if isEmpty { empty } else { list }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.background)
+        .overlay {
+            if isTargeted { Rectangle().fill(border.color.opacity(0.08)).allowsHitTesting(false) }
+        }
+        .clipShape(.rect(cornerRadius: Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: Radius.card)
+                .strokeBorder(isTargeted ? AnyShapeStyle(border.color) : AnyShapeStyle(.separator),
+                              style: StrokeStyle(lineWidth: isTargeted ? 2 : (isEmpty ? 1.5 : 1),
+                                                 dash: isEmpty && !isTargeted ? [7, 6] : []))
+        }
+        .scaleEffect(isTargeted && !reduceMotion ? 1.015 : 1)
+        .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: isTargeted)
+        .dropDestination(for: URL.self) { urls, _ in
+            tray.add(urls)
+            return true
+        } isTargeted: { isTargeted = $0; tray.touch() }
+    }
+
     private var empty: some View {
-        VStack(spacing: Space.s) {
-            Image(systemName: "tray.and.arrow.down").accessibilityHidden(true)
-                .font(.system(size: 34, weight: .light))
+        VStack(spacing: Space.m) {
+            Image(systemName: tray.folderTitle == nil ? "tray.and.arrow.down" : "folder")
+                .font(.system(size: 32, weight: .light))
                 .foregroundStyle(.secondary)
-            Text(tray.folderTitle == nil ? LocalizedStringKey("Drop files here to gather them") : LocalizedStringKey("This folder is empty"))
-                .font(.callout.weight(.medium))
+                .accessibilityHidden(true)
             if tray.folderTitle == nil {
-                Text("Collect from different folders, then pack or drag them out together.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                VStack(spacing: Space.xs) {
+                    Text(isTargeted ? String(localized: "Let go to add") : String(localized: "Drop files here to gather them"))
+                        .font(.headline)
+                        .contentTransition(.opacity)
+                    Text("Collect from different folders, then pack or drag them out together.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .multilineTextAlignment(.center)
                 Button("Add Files…") { chooseFiles() }
-                    .buttonStyle(.glass)
                     .controlSize(.large)
-                    .padding(.top, Space.s)
+                    .padding(.top, Space.xs)
+            } else {
+                Text("This folder is empty").font(.headline)
             }
         }
         .padding(Space.xl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: Radius.panel)
-                .strokeBorder(.separator, style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
-                .padding(Space.m)
-        }
     }
 
     private func chooseFiles() {
@@ -589,13 +658,13 @@ struct TrayView: View {
 
     private var list: some View {
         ScrollView {
-            VStack(spacing: Space.xs) {
+            VStack(spacing: 2) {
                 ForEach(tray.visibleItems) { item in
                     TrayRow(tray: tray, item: item, isSelected: tray.selection.contains(item.id),
                             canRemove: tray.folderTitle == nil, focusedRow: $focusedRow)
                 }
             }
-            .padding(.horizontal, Space.s)
+            .padding(Space.xs)
         }
         .contextMenu { actionsMenu }
     }
@@ -605,24 +674,56 @@ struct TrayView: View {
         Divider()
         Button("Pack…") { tray.pack() }
         Button("Extract Here") { tray.extract() }.disabled(!tray.canExtract)
-        Button("Collect into a Folder…") { Task { await tray.collectIntoFolder() } }
+        Button("Collect into a Folder…") { tray.beginCollecting() }
+            .disabled(tray.targetURLs.isEmpty)
         Divider()
         Button("Share…") { tray.share(from: nil) }
         Button("Show in Finder") { tray.reveal() }
         Button("Send to Main Window") { tray.sendToMainWindow() }
     }
 
+    // MARK: Footer
+
+    /// One thing at a time under the card: a failure, the folder-name question, or the summary
+    /// with Pack — the Tray's one obvious next step.
+    @ViewBuilder
     private var footer: some View {
+        Group {
+            if let failure = tray.failure {
+                ActivityLabel(phase: .failed(failure), title: failure.title, dismiss: { tray.failure = nil })
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if tray.collectingName != nil {
+                collectForm
+            } else {
+                summary
+            }
+        }
+        .padding(.horizontal, Space.l)
+        .padding(.top, Space.m)
+        .padding(.bottom, Space.m)
+        // A failure turning up is a status change; the rest follow clicks and keys, and don't move.
+        .animation(tray.failure == nil ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: tray.failure)
+    }
+
+    private var summary: some View {
         HStack(spacing: Space.s) {
             VStack(alignment: .leading, spacing: 0) {
-                Text(tray.selection.isEmpty ? String(localized: "All items") : String(localized: "\(tray.selection.count) selected"))
-                    .font(.caption.weight(.medium))
+                Group {
+                    if tray.selection.isEmpty {
+                        Text("\(tray.visibleItems.count) items")
+                    } else {
+                        Text("\(tray.selection.count) selected")
+                    }
+                }
+                .font(.callout.weight(.medium))
+                .liveNumber()
                 Text(tray.targets.reduce(Int64(0)) { $0 + $1.size }.bytes)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .liveNumber()
             }
-            Spacer()
+            .lineLimit(1)
+            Spacer(minLength: Space.s)
             Menu {
                 actionsMenu
                 Divider()
@@ -631,17 +732,48 @@ struct TrayView: View {
                 Label("More", systemImage: "ellipsis")
             }
             .menuStyle(.button)
-            .buttonStyle(.glass)
+            .menuIndicator(.hidden)
             .labelStyle(.iconOnly)
             .accessibilityLabel(String(localized: "More"))
-            .help("More")
             .fixedSize()
-            Button("Pack", systemImage: "archivebox") { tray.pack() }
-                .accessibilityLabel(String(localized: "Pack"))
-                .buttonStyle(.glassProminent)
+            .help("More things to do with these items")
+            // Inside the glass, so the buttons can't take a glass style of their own.
+            Button {
+                tray.pack()
+            } label: {
+                Label("Pack", systemImage: "archivebox")
+            }
+            .accessibilityLabel(String(localized: "Pack"))
+            .buttonStyle(.borderedProminent)
+            .help("Pack these into an archive")
         }
         .controlSize(.large)
-        .padding(Space.m)
+    }
+
+    private var collectForm: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Collect into a Folder").font(.headline)
+                if let neighbour = tray.collectionNeighbour {
+                    Text("Copies go in a new folder beside “\(neighbour)”. The originals stay put.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            TextField("Folder name", text: Binding(get: { tray.collectingName ?? "" }, set: { tray.collectingName = $0 }))
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { Task { await tray.collectIntoFolder() } }
+            HStack(spacing: Space.s) {
+                Spacer(minLength: 0)
+                Button("Cancel", role: .cancel) { tray.collectingName = nil }
+                    .keyboardShortcut(.cancelAction)
+                Button("Collect") { Task { await tray.collectIntoFolder() } }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled((tray.collectingName ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
     }
 }
 
@@ -660,29 +792,29 @@ private struct TrayRow: View {
         HStack(spacing: Space.s) {
             TrayThumbnail(item: item)
                 .accessibilityHidden(true)
-                .frame(width: 30, height: 30)
+                .frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 0) {
-                Text(item.name).font(.callout).lineLimit(1).truncationMode(.middle)
+                Text(item.name).lineLimit(1).truncationMode(.middle)
                 Text(item.isFolder ? String(localized: "Folder") : item.size.bytes)
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
             Spacer(minLength: 0)
-            if item.isFolder {
-                Image(systemName: "chevron.right").accessibilityHidden(true).font(.caption).foregroundStyle(contrastStyle.metadata)
-            }
-            if canRemove {
-                Button("Remove", systemImage: "minus.circle.fill") { tray.remove(item) }
+            // Shown on hover and for the focused row, so the keyboard reaches it too.
+            if canRemove, isHovering || isFocused {
+                Button("Remove from Tray", systemImage: "xmark.circle.fill") { tray.remove(item) }
                     .accessibilityLabel(String(localized: "Remove"))
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .opacity(isHovering || isFocused ? 1 : 0)
-                    .help("Remove")
+                    .foregroundStyle(contrastStyle.metadata)
+                    .help("Remove from the Tray — the file stays where it is")
+            } else if item.isFolder {
+                Image(systemName: "chevron.right").accessibilityHidden(true).font(.caption).foregroundStyle(contrastStyle.metadata)
             }
         }
-        .padding(Space.s)
-        .background(isSelected ? AnyShapeStyle(.tint.opacity(0.22)) : AnyShapeStyle(.primary.opacity(isHovering ? 0.06 : 0)),
-                    in: .rect(cornerRadius: Radius.card))
+        .padding(.horizontal, Space.s)
+        .padding(.vertical, 6)
+        .background(isSelected ? AnyShapeStyle(.tint.opacity(0.2)) : AnyShapeStyle(.primary.opacity(isHovering ? 0.05 : 0)),
+                    in: .rect(cornerRadius: Radius.chip))
         .contentShape(.rect)
         .onHover { hovering in
             isHovering = hovering

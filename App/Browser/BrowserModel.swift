@@ -47,7 +47,7 @@ final class BrowserModel {
         init(archive: Archive, password: String? = nil, entryPath: String? = nil) {
             self.archive = archive
             savedArchive = archive
-            let base = archive.source?.listing ?? ArchiveListing(type: archive.format == .sevenZip ? "7z" : archive.format.rawValue, entries: (archive.entries + archive.index.helpers).map { ListedEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size) })
+            let base = archive.source?.listing ?? ArchiveListing(type: archive.format == .sevenZip ? "7z" : archive.format.rawValue, entries: (archive.entries + archive.index.helpers).map { ListedEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size, packedSize: $0.packedSize, modified: $0.modified) })
             edits = EditSession(base: base, url: archive.source?.url, name: archive.name, nested: entryPath != nil)
             self.password = password
             self.entryPath = entryPath
@@ -346,17 +346,10 @@ final class BrowserModel {
     /// Renames the archive file on disk (File › Rename Archive…), including SMB/NAS after a folder grant.
     @discardableResult func renameArchive() async -> Bool {
         guard levels.count == 1, archive.source?.url != nil else { return false }
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Rename Archive")
-        alert.informativeText = String(localized: "Choose a new name for “\(archive.name)”. The browsing position is kept.")
-        let field = NSTextField(string: archive.name)
-        field.frame = NSRect(x: 0, y: 0, width: 280, height: 24)
-        alert.accessoryView = field
-        alert.addButton(withTitle: String(localized: "Rename"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        let response = if let window = editingWindow { await alert.beginSheetModal(for: window) } else { alert.runModal() }
-        guard response == .alertFirstButtonReturn else { return false }
-        let newName = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prompt = Prompt.renameArchive(archive.name)
+        let answer = await Prompts.present(prompt, on: editingWindow)
+        guard prompt.choices[answer.choice].role == .primary else { return false }
+        let newName = answer.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !newName.isEmpty, newName != archive.name else { return false }
         let folderBefore = folder, selectionBefore = selection
         guard await editSession.renameArchive(to: newName) else { return false }
@@ -392,13 +385,12 @@ final class BrowserModel {
         if editedIndex != levels.count - 1 {
             navigate(to: "", levels: Array(levels.prefix(editedIndex + 1)), record: false)
         }
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Save changes to “\(archive.name)”?")
-        alert.addButton(withTitle: String(localized: "Save"))
-        alert.addButton(withTitle: String(localized: "Don’t Save"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        let response = if let window = editingWindow { await alert.beginSheetModal(for: window) } else { alert.runModal() }
-        let decision: EditSession.CloseDecision = response == .alertFirstButtonReturn ? .save : response == .alertSecondButtonReturn ? .discard : .cancel
+        let answer = await Prompts.present(.saveChanges(archive.name), on: editingWindow)
+        let decision: EditSession.CloseDecision = switch answer.choice {
+        case Prompt.SaveChoice.save: .save
+        case Prompt.SaveChoice.discard: .discard
+        default: .cancel
+        }
         let saved = decision == .save ? await saveEdits() : false
         let allowed = EditSession.canClose(decision, saved: saved)
         if decision == .discard { editSession.discardChanges() }

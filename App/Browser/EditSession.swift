@@ -58,9 +58,11 @@ final class EditSession {
 
     private var sourceEntries: [ListedEntry] {
         sourceFiles.values.flatMap { $0 }.map {
-            ListedEntry(path: $0.path, isFolder: $0.isFolder, isSymlink: $0.isLink, size: $0.size)
+            ListedEntry(path: $0.path, isFolder: $0.isFolder, isSymlink: $0.isLink, size: $0.size, modified: sourceDates[$0.path])
         }
     }
+    /// Added files' modification dates on disk, read once when they're staged.
+    private var sourceDates: [String: Date] = [:]
     var pending: ArchiveListing {
         if operations.isEmpty { return base }
         if let cachedPending { return cachedPending }
@@ -102,6 +104,12 @@ final class EditSession {
         guard !changedOnDisk else { return }
         changedOnDisk = true
         onChange?()
+    }
+
+    /// Snapshot scenes: show Save part-way through, as the progress the engine reports would.
+    func showSavingForDemo(progress: Double) {
+        isSaving = true
+        self.progress = progress
     }
 
     /// Sample / snapshot scenes have no real file to watch; flip the same flag the watcher would.
@@ -170,6 +178,9 @@ final class EditSession {
             var file = file
             file.path = name + file.path.dropFirst(url.lastPathComponent.count)
             return file
+        }
+        for file in sourceFiles[name] ?? [] {
+            sourceDates[file.path] = try? file.source?.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
         }
         if files.isEmpty {
             if self.url == nil { sourceFiles[name] = [PackFile(path: name, size: 0)] }
