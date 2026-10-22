@@ -1,0 +1,54 @@
+<!-- "Harbor Prototype.app", the app inside the sample archive. Only demo scenes show it (marketing and
+     design-review screenshots); it is drawn on the macOS icon grid so it sits like a real app icon.
+     Render: see App/Resources/Assets.xcassets/DemoAppIcon.imageset (256 px PNG). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3B7F9C" />
+      <stop offset="1" stop-color="#173049" />
+    </linearGradient>
+    <linearGradient id="beam-l" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#F6B271" stop-opacity=".55" />
+      <stop offset="1" stop-color="#F6B271" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="beam-r" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F6B271" stop-opacity=".55" />
+      <stop offset="1" stop-color="#F6B271" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="tower" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFF6EA" />
+      <stop offset="1" stop-color="#E9D7C0" />
+    </linearGradient>
+    <clipPath id="squircle"><rect x="100" y="100" width="824" height="824" rx="185" /></clipPath>
+    <clipPath id="tower-shape"><path d="M462 790 L478 452 H546 L562 790 Z" /></clipPath>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feGaussianBlur stdDeviation="14" />
+    </filter>
+  </defs>
+  <!-- drop shadow, like the system draws under app icons -->
+  <rect x="100" y="114" width="824" height="824" rx="185" fill="#000" opacity=".28" filter="url(#shadow)" />
+  <g clip-path="url(#squircle)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#sky)" />
+    <!-- light beams from the lamp -->
+    <path d="M512 382 L100 300 V470 Z" fill="url(#beam-l)" />
+    <path d="M512 382 L924 300 V470 Z" fill="url(#beam-r)" />
+    <!-- sea -->
+    <path d="M100 760 Q190 735 280 760 T460 760 T640 760 T820 760 T1000 760 V924 H100 Z" fill="#1E4867" />
+    <path d="M100 810 Q190 788 280 810 T460 810 T640 810 T820 810 T1000 810 V924 H100 Z" fill="#132C44" />
+    <!-- rock -->
+    <path d="M400 792 Q512 748 624 792 Z" fill="#0E2133" />
+    <!-- tower with two amber bands -->
+    <path d="M462 790 L478 452 H546 L562 790 Z" fill="url(#tower)" />
+    <g clip-path="url(#tower-shape)" fill="#E2802F">
+      <rect x="440" y="540" width="144" height="46" />
+      <rect x="440" y="666" width="144" height="46" />
+    </g>
+    <!-- gallery, lamp room, roof -->
+    <rect x="448" y="430" width="128" height="26" rx="8" fill="#2B3B4C" />
+    <rect x="474" y="348" width="76" height="84" rx="10" fill="#FFD48F" />
+    <path d="M512 348 V432 M493 348 V432 M531 348 V432" stroke="#E2A04F" stroke-width="5" />
+    <path d="M458 352 L512 296 L566 352 Z" fill="#E2802F" />
+    <circle cx="512" cy="288" r="11" fill="#E2802F" />
+  </g>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3" />
+</svg>

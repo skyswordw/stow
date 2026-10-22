@@ -70,16 +70,19 @@ def add_heading_ids(page: str) -> str:
     seen: dict[str, int] = {}
 
     def repl(match: re.Match) -> str:
-        level, inner = match.group(1), match.group(2)
+        level, attrs, inner = match.group(1), match.group(2), match.group(3)
+        if " id=" in attrs:
+            return match.group(0)
         text = html.unescape(re.sub(r"<[^>]+>", "", inner)).strip().lower()
         slug = re.sub(r"[^\w\- ]", "", text).replace(" ", "-")
         count = seen.get(slug, 0)
         seen[slug] = count + 1
         if count:
             slug = f"{slug}-{count}"
-        return f'<h{level} id="{slug}">{inner}</h{level}>'
+        return f'<h{level} id="{slug}"{attrs}>{inner}</h{level}>'
 
-    return re.sub(r"<h([1-4])>(.*?)</h\1>", repl, page, flags=re.S)
+    # The API adds attributes such as dir="auto" to headings, so match those too and keep them.
+    return re.sub(r"<h([1-4])((?:\s[^>]*)?)>(.*?)</h\1>", repl, page, flags=re.S)
 
 
 TEMPLATE = """<!doctype html>
@@ -144,7 +147,7 @@ footer {{ border-top: 1px solid var(--line); padding: 28px 16px 48px; text-align
 <body>
 <header class="nav">
   <div class="nav-inner">
-    <a class="brand" href="../"><svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="4" width="28" height="25" rx="7.5" fill="#D97B2B"/><path d="M13 4h6v10.5l-3-2.1-3 2.1z" fill="#fff"/></svg>Stow</a>
+    <a class="brand" href="../"><img src="../favicon.svg" width="24" height="24" alt="">Stow</a>
     <nav class="links" aria-label="Documents">{nav}<a href="{repo_url}">GitHub</a></nav>
   </div>
 </header>

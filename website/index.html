@@ -166,7 +166,8 @@ p { margin: 0; }
 .hero-shot {
   margin: clamp(24px, 4vw, 48px) auto 0;
   width: min(1240px, 100% + 40px);
-  margin-inline: auto;
+  /* Centred even when wider than its column, so a phone sees an even bleed on both sides. */
+  margin-left: 50%; margin-right: 0; translate: -50% 0;
   position: relative;
 }
 .hero-shot img { width: 100%; filter: drop-shadow(0 40px 60px rgba(0,0,0,.12)); }
@@ -236,6 +237,65 @@ section { padding: clamp(80px, 12vw, 148px) 0; }
 @media (max-width: 900px) { .steps-head { grid-template-columns: 1fr; } }
 /* Window captures include a transparent shadow margin; pull the frame out so the window aligns with the text column. */
 .steps-shot { margin: clamp(16px, 3vw, 32px) -4.5% 0; }
+
+/* ───────────────────────── Walkthrough ─────────────────────────
+   A stand-in for the product video: real snapshot frames, cross-faded. Plays only while on screen,
+   never with sound, and not at all with Reduced Motion (the first frame stays put). */
+.tour { margin-top: 48px; }
+.tour-tabs { display: flex; justify-content: center; align-items: center; gap: 10px; }
+.seg { position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 4px; border-radius: 999px;
+  background: var(--bg-2); box-shadow: 0 0 0 1px var(--line) inset; }
+.seg button { position: relative; z-index: 1; border: 0; background: none; padding: 8px 22px; border-radius: 999px; cursor: pointer;
+  font: 600 14.5px var(--font); color: var(--ink-2); transition: color 150ms ease; }
+.seg button[aria-selected="true"] { color: var(--ink); }
+.seg .thumb { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px;
+  background: var(--surface); box-shadow: var(--shadow-1), 0 0 0 1px var(--line); transition: transform 300ms var(--ease-out); }
+.seg[data-at="1"] .thumb { transform: translateX(100%); }
+.tour-stage { position: relative; aspect-ratio: 1600 / 1164; margin: 24px -3% 0; }
+.tour-frame { position: absolute; inset: 0; margin: 0; opacity: 0; transition: opacity 500ms var(--ease-in-out); }
+.tour-frame[data-on] { opacity: 1; }
+.tour-frame img { width: 100%; height: 100%; object-fit: contain; }
+.tour-panel[hidden] { display: none; }
+.tour-foot { max-width: 980px; margin: 4px auto 0; }
+.tour-play { width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
+  background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1), 0 0 0 1px var(--line); transition: transform 160ms var(--ease-out); }
+.tour-play:active { transform: scale(.94); }
+.tour-play .i-pause, .tour-play[aria-pressed="true"] .i-play { display: none; }
+.tour-play[aria-pressed="true"] .i-pause { display: block; }
+.tour-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 12px; }
+.tour-steps button { display: block; width: 100%; padding: 0 0 4px; border: 0; background: none; text-align: left; cursor: pointer;
+  font: 13.5px/1.4 var(--font); color: var(--ink-3); transition: color 150ms ease; }
+.tour-steps button[aria-current="step"] { color: var(--ink); }
+.tour-steps .bar { display: block; height: 3px; border-radius: 3px; background: var(--line-2); overflow: hidden; margin: 16px 0 10px; }
+.tour-steps .bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); }
+.tour-steps [data-done] .bar i, .tour-steps [aria-current="step"] .bar i { transform: none; }
+.tour-steps [aria-current="step"].timing .bar i { animation: fill var(--dwell, 3800ms) linear both; }
+@keyframes fill { from { transform: scaleX(0); } }
+.tour-steps b { display: block; font-weight: 600; }
+.tour-caption { display: none; }
+@media (hover: hover) and (pointer: fine) { .tour-steps button:hover { color: var(--ink); } }
+@media (max-width: 720px) {
+  .tour-steps b, .tour-steps b + span { display: none; }
+  .tour-steps { gap: 6px; }
+  .tour-caption { display: block; min-height: 4.5em; margin: 0; font-size: 15px; color: var(--ink-2); }
+  .tour-steps .bar { margin-top: 12px; }
+  .tour-steps button { padding: 6px 0; } /* a taller hit area for the thin bars */
+  .tour-caption b { color: var(--ink); }
+}
+
+/* ───────────────────────── Around the Mac (gallery) ───────────────────────── */
+.gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 48px; }
+.card { background: var(--surface); border-radius: var(--r-panel); box-shadow: 0 0 0 1px var(--line); overflow: hidden;
+  display: flex; flex-direction: column; }
+.card .copy { padding: 28px 28px 0; }
+.card h3 { font-size: 19px; }
+.card p { margin-top: 6px; color: var(--ink-2); font-size: 15px; max-width: 44ch; }
+.card .pic { margin-top: auto; padding: 20px 12px 0; background: linear-gradient(to bottom, transparent, var(--bg-2)); }
+.card .pic img { width: 100%; height: auto; display: block; margin-inline: auto; }
+/* Panels are narrower than windows; show them at about the same scale. */
+.card .pic-glance img { max-width: 360px; }
+.card .pic-tray img { max-width: 300px; }
+@media (max-width: 820px) { .gallery { grid-template-columns: 1fr; } }
 
 /* ───────────────────────── Pack demo ───────────────────────── */
 .pack-demo {
@@ -333,12 +393,15 @@ section { padding: clamp(80px, 12vw, 148px) 0; }
 .pal-coast { background: radial-gradient(60% 60% at 30% 30%, #d9e7d0, transparent), linear-gradient(150deg, #8db38b, #23443a); }
 .pal-doc   { background: repeating-linear-gradient(180deg, transparent 0 14px, var(--line) 14px 18px), var(--surface); box-shadow: 0 0 0 1px var(--line) inset; }
 
-/* Tray art */
-.tray-art { display: grid; gap: 8px; width: min(100%, 260px); margin-left: auto; padding: 12px; border-radius: 20px;
-  background: color-mix(in srgb, var(--surface) 70%, transparent); box-shadow: var(--shadow-2), 0 0 0 1px var(--line);
-  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-.tray-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; background: var(--bg-2); font-size: 13.5px; }
-.tray-item i { width: 22px; height: 26px; border-radius: 4px; flex: none; }
+/* Errors art (the app's own wording for a full disk) */
+.err-art { display: grid; grid-template-columns: 18px 1fr; gap: 10px; padding: 14px 16px; border-radius: 16px; font-size: 13.5px; line-height: 1.4;
+  background: var(--surface); box-shadow: var(--shadow-2), 0 0 0 1px var(--line); max-width: 420px; margin-left: auto; }
+.err-art svg { margin-top: 1px; }
+.err-art b { display: block; font-weight: 600; }
+.err-art span { color: var(--ink-2); }
+.err-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; font-size: 12.5px; font-weight: 500; }
+.err-actions span { white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: var(--bg-2); color: var(--ink); }
+.err-actions .quiet { background: none; color: var(--ink-3); }
 
 /* Search art */
 .search-art { display: grid; gap: 10px; }
@@ -432,10 +495,10 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   .menu, .peek { transform: none !important; }
   .search-field .caret { animation: none; }
   .seg .thumb { transition: none; }
+  .tour-frame { transition-duration: 150ms; transition-timing-function: ease; }
 }
 @media (prefers-reduced-transparency: reduce) {
   .nav { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .tray-art { background: var(--surface); }
 }
 </style>
 </head>
@@ -449,7 +512,8 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   <symbol id="i-shield" viewBox="0 0 20 20"><path d="M10 1.5l7 2.6v5.2c0 4.3-2.9 7.7-7 9.2-4.1-1.5-7-4.9-7-9.2V4.1z" fill="currentColor"/><path d="M10 3.6v13.2c3-1.4 5-4.1 5-7.5V5.5z" fill="#fff" opacity=".35"/></symbol>
   <symbol id="i-tick" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-dash" viewBox="0 0 16 16"><path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
-  <symbol id="logo" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ec9a52"/><stop offset="1" stop-color="#cf6d1f"/></linearGradient></defs><rect x="2" y="4" width="28" height="25" rx="7.5" fill="url(#lg)"/><path d="M13 4h6v10.5l-3-2.1-3 2.1z" fill="#fff" opacity=".95"/><rect x="2.5" y="4.5" width="27" height="24" rx="7" fill="none" stroke="#fff" stroke-opacity=".25"/></symbol>
+  <!-- The app icon (Design/AppIcon.svg, same as favicon.svg) -->
+  <symbol id="logo" viewBox="0 0 1024 1024"><defs><linearGradient id="logo-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EF984D"/><stop offset="1" stop-color="#CE691A"/></linearGradient><linearGradient id="logo-lid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6B271"/><stop offset="1" stop-color="#F2A35C"/></linearGradient><clipPath id="logo-mask"><rect width="1024" height="1024" rx="230"/></clipPath></defs><g clip-path="url(#logo-mask)"><rect width="1024" height="1024" fill="url(#logo-fill)"/><rect y="288" width="1024" height="28" fill="#000" opacity=".12"/><rect width="1024" height="288" fill="url(#logo-lid)"/><path fill="#fff" d="M406 0H618V444Q618 464 601.6 452.5L528.4 401.5Q512 390 495.6 401.5L422.4 452.5Q406 464 406 444Z"/></g></symbol>
 </svg>
 
 <!-- ───────── Nav ───────── -->
@@ -458,6 +522,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     <a class="brand" href="#top" aria-label="Stow home"><svg aria-hidden="true"><use href="#logo"/></svg>Stow</a>
     <nav class="nav-links" aria-label="Main">
       <a href="#features">Features</a>
+      <a href="#tour">Walkthrough</a>
       <a href="#pack">Packing</a>
       <a href="#formats">Formats</a>
       <a href="#open-source">Open source</a>
@@ -483,8 +548,8 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   </div>
   <div class="hero-shot">
     <picture>
-      <source srcset="assets/grid-dark.png" media="(prefers-color-scheme: dark)">
-      <img src="assets/grid-light.png" width="1800" height="1151" alt="Stow showing the Photos folder of an archive: a sidebar with the archive card and Checkup status, image thumbnails, two selected photos, and a floating capsule offering Quick Look and Extract.">
+      <source srcset="assets/grid-dark.webp" media="(prefers-color-scheme: dark)">
+      <img src="assets/grid-light.webp" width="2000" height="1242" fetchpriority="high" alt="Stow showing the Photos folder of an archive: a sidebar with the archive card and Checkup status, image thumbnails, two selected photos, and a floating capsule offering Quick Look and Extract.">
     </picture>
   </div>
 </section>
@@ -518,6 +583,68 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
         <h3>Will it open for them?</h3>
         <p>Tell Stow who it’s for. It fixes names Windows rejects and leaves out Mac-only clutter.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── Walkthrough (stand-in for the product video) ───────── -->
+<section id="tour" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Walkthrough</span>
+      <h2>See it work, step by step.</h2>
+      <p class="lede">Real screens from today’s build. A full video comes with the first signed release.</p>
+    </div>
+    <div class="tour reveal" id="tour-player">
+      <div class="tour-tabs">
+        <div class="seg" role="tablist" aria-label="Walkthrough" data-at="0">
+          <span class="thumb" aria-hidden="true"></span>
+          <button type="button" role="tab" id="tab-checkup" aria-controls="tour-checkup" aria-selected="true">Checkup</button>
+          <button type="button" role="tab" id="tab-pack" aria-controls="tour-pack" aria-selected="false" tabindex="-1">Pack</button>
+        </div>
+        <button type="button" class="tour-play" aria-pressed="false" aria-label="Play walkthrough">
+          <svg class="i-play" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.6v8.8a.6.6 0 0 0 .9.5l7-4.4a.6.6 0 0 0 0-1L3.9 1.1a.6.6 0 0 0-.9.5z" fill="currentColor"/></svg>
+          <svg class="i-pause" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2.5" y="1.5" width="2.5" height="9" rx=".8" fill="currentColor"/><rect x="7" y="1.5" width="2.5" height="9" rx=".8" fill="currentColor"/></svg>
+        </button>
+      </div>
+    <div class="tour-panel" role="tabpanel" id="tour-checkup" aria-labelledby="tab-checkup">
+      <div class="tour-stage">
+        <figure class="tour-frame" data-on><picture><source srcset="assets/tour/checkup-1-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tour/checkup-1-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The archive just opened at its Prototype folder, nothing selected: Harbor Prototype.app and Install Helper.pkg, with the inspector listing the Checkup, starting with “Harbor Prototype.app isn’t notarized”."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-2-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The Prototype folder with Harbor Prototype.app selected. The inspector offers Install App, and the archive card says “Checkup: 1 thing to know”."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-3-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="A sheet: “Harbor Prototype” isn’t notarized by Apple, with Install Anyway and Cancel."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-4-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="A sheet asking to replace the installed Harbor Prototype version 1.2 with version 1.3 from the archive, with Cancel, Keep Both and Replace."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-5-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The Prototype folder with Harbor Prototype.app selected and a status capsule saying “Installed in Applications”."></picture></figure>
+      </div>
+      <div class="tour-foot">
+        <ol class="tour-steps" aria-label="Checkup steps">
+          <li><button type="button"><span class="bar"><i></i></span><b>Open</b><span>Checkup runs the moment an archive opens. Its findings sit beside the files: the app inside isn’t notarized.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Find the app</b><span>Select it and the next step is ready: Install App, with the Checkup one click away.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Install with care</b><span>The app inside isn’t notarized. Stow says what macOS will do, and you decide.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Already installed?</b><span>Replace the old version or keep both. The old one moves to the Trash.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Done</b><span>In Applications, and the archive is just as it was.</span></button></li>
+        </ol>
+        <p class="tour-caption"></p>
+      </div>
+    </div>
+    <div class="tour-panel" role="tabpanel" id="tour-pack" aria-labelledby="tab-pack" hidden>
+      <div class="tour-stage">
+        <figure class="tour-frame" data-on><picture><source data-srcset="assets/tour/pack-1-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-1-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The pack sheet: “Pack “Harbor Handoff” as a ZIP for Windows PCs, without a password, as one file”, reporting 3 names adjusted and 3 Mac-only files left out."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-2-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The same pack sentence, now for Macs, with its report."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-3-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The pack sheet for Linux and servers, with More Options open: Balanced compression, and Verify ticked to test every file once it’s packed."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-4-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="A capsule at the bottom of the window showing Harbor Handoff.zip being packed."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-5-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The capsule saying Harbor Handoff.zip was packed and tested."></picture></figure>
+      </div>
+      <div class="tour-foot">
+        <ol class="tour-steps" aria-label="Pack steps">
+          <li><button type="button"><span class="bar"><i></i></span><b>Say who it’s for</b><span>Pack “Harbor Handoff” as a ZIP for Windows PCs. Names Windows rejects get fixed; Mac-only files stay out.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Change a word</b><span>Pick Macs instead, and the report below follows.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Linux &amp; servers</b><span>Permissions and symlinks stay. Under More Options, Verify is on.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Pack</b><span>Progress stays in a small capsule, out of the way.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Tested</b><span>Packed, and every file tested before you send it.</span></button></li>
+        </ol>
+        <p class="tour-caption"></p>
+      </div>
+    </div>
     </div>
   </div>
 </section>
@@ -572,9 +699,30 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     </div>
     <div class="shot steps-shot reveal">
       <picture>
-        <source srcset="assets/steps-dark.png" media="(prefers-color-scheme: dark)">
-        <img src="assets/steps-light.png" width="1600" height="868" loading="lazy" alt="Three font files selected in Stow, each shown as a type specimen. The floating capsule offers Install 3 Fonts, Quick Look and Extract.">
+        <source srcset="assets/steps-dark.webp" media="(prefers-color-scheme: dark)">
+        <img src="assets/steps-light.webp" width="1800" height="1118" loading="lazy" decoding="async" alt="Three font files selected in Stow, each shown as a type specimen. The floating capsule offers Install 3 Fonts, Quick Look and Extract.">
       </picture>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── Editing ───────── -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="steps-head">
+      <div class="reveal">
+        <span class="eyebrow">Editing</span>
+        <h2>Change an archive without unpacking it.</h2>
+        <p class="lede" style="margin-top:18px">Add files, rename and delete right in the browser. Nothing is written until you save — then it’s written in one step.</p>
+      </div>
+      <ul class="points reveal" style="--i:1">
+        <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Marked as you go.</strong> New and renamed files are labelled, and the bar counts unsaved changes.</span></li>
+        <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Revert any time.</strong> Until you save, the archive on disk hasn’t changed.</span></li>
+        <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Safe to save.</strong> A new copy is written first, so a cancel or an error leaves the original as it was.</span></li>
+      </ul>
+    </div>
+    <div class="shot steps-shot reveal">
+      <picture><source srcset="assets/editing-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/editing-light.webp" width="1800" height="1102" loading="lazy" decoding="async" alt="Stow editing the Photos folder of an archive: Contact Sheet.pdf and Field Notes.txt marked New, Lighthouse.jpg marked Renamed, and a bar at the bottom reading “3 unsaved changes” with Revert and Save."></picture>
     </div>
   </div>
 </section>
@@ -593,6 +741,34 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
         <p class="sentence-hint"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8h10M8 3v10"/></svg>Click a highlighted word to change it</p>
       </div>
       <div class="report" id="report" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── Around the Mac ───────── -->
+<section id="around" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Around your Mac</span>
+      <h2>Wherever an archive turns up.</h2>
+    </div>
+    <div class="gallery">
+      <article class="card reveal" style="--i:0">
+        <div class="copy"><h3>Glance</h3><p>A small window that opens right by the pointer. See what’s inside, extract, and get back to work.</p></div>
+        <div class="pic pic-glance"><picture><source srcset="assets/glance-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/glance-light.webp" width="900" height="1022" loading="lazy" decoding="async" alt="Glance: a compact window listing the Photos folder, two photos selected, with Quick Look and Extract."></picture></div>
+      </article>
+      <article class="card reveal" style="--i:1">
+        <div class="copy"><h3>The Tray</h3><p>A shelf for files from anywhere, one click away in the menu bar. Gather them, then pack them or drag them out together.</p></div>
+        <div class="pic pic-tray"><picture><source srcset="assets/tray-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tray-light.webp" width="692" height="972" loading="lazy" decoding="async" alt="The Tray panel holding six items, two selected, with a Pack button."></picture></div>
+      </article>
+      <article class="card reveal" style="--i:0">
+        <div class="copy"><h3>Open Recent</h3><p>The welcome window keeps your recent archives, with where they are and when you last opened them.</p></div>
+        <div class="pic pic-recents"><picture><source srcset="assets/recents-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/recents-light.webp" width="1200" height="873" loading="lazy" decoding="async" alt="The welcome window: a drop area on the left and a list of recent archives on the right, each with its folder and when it was opened."></picture></div>
+      </article>
+      <article class="card reveal" style="--i:1">
+        <div class="copy"><h3>Quick Look</h3><p>Press Space on an archive in Finder to see its contents and its Checkup, without opening Stow.</p></div>
+        <div class="pic pic-quicklook"><picture><source srcset="assets/quicklook-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/quicklook-light.webp" width="1100" height="895" loading="lazy" decoding="async" alt="A Quick Look preview of a ZIP: its size, a Checkup line saying an app isn’t notarized, and the folder tree with file sizes."></picture></div>
+      </article>
     </div>
   </div>
 </section>
@@ -621,13 +797,13 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       </article>
 
       <article class="tile wide reveal" style="--i:1">
-        <h3>The Tray</h3>
-        <p>A floating shelf at the edge of your screen. Gather files from different folders, then pack them or drag them out together.</p>
+        <h3>Errors in plain words</h3>
+        <p>When something goes wrong, Stow says what happened and what to do next — never just a code.</p>
         <div class="art">
-          <div class="tray-art" aria-hidden="true">
-            <div class="tray-item"><i class="pal-doc"></i>Invoice October.pdf</div>
-            <div class="tray-item"><i class="pal-sea"></i>Pier at Dawn.jpg</div>
-            <div class="tray-item"><i class="pal-dawn"></i>Kickoff.key</div>
+          <div class="err-art" aria-hidden="true">
+            <svg width="16" height="16" style="color:var(--yellow)"><use href="#i-warn"/></svg>
+            <div><b>There isn’t enough space on “Macintosh HD”</b><span>Free up some space, or choose a folder on another disk. Nothing was left half-written.</span>
+              <div class="err-actions"><span>Choose Another Folder</span><span class="quiet">Copy Details</span></div></div>
           </div>
         </div>
       </article>
@@ -719,7 +895,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       <div class="reveal" style="--i:1">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
         <h3>Everything included</h3>
-        <p>Search, hover previews, encryption, split volumes, editing, installing apps and fonts — no upsell, ever.</p>
+        <p>Search, hover previews, Glance, the Tray, encryption, split volumes, editing, installing apps and fonts — no upsell, ever.</p>
       </div>
       <div class="reveal" style="--i:2">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>
@@ -741,6 +917,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       <h2>Questions</h2>
     </div>
     <div class="faq reveal">
+      <details><summary>Where do I download it?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">There’s no signed download yet. Today you can <a class="link" href="docs/readme.html#build--run">build Stow from source</a> on macOS 26 with Xcode. Signed, notarized releases are next on the <a class="link" href="docs/roadmap.html#release-engineering">roadmap</a>.</div></details>
       <details><summary>Will Stow change my original archive?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">Never by browsing, previewing or extracting. Changes happen only when you edit and save — and they’re written to a staging copy first, so a cancel or an error leaves the original exactly as it was.</div></details>
       <details><summary>Can it create RAR files?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">No — RAR creation is licensed by its authors. Stow opens and extracts RAR 4 and 5 (including encrypted and multi-part ones). To pack, ZIP works everywhere and 7Z compresses harder.</div></details>
       <details><summary>What does “for Windows PCs” actually change?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">It replaces characters Windows rejects (like “:” or “?”), renames reserved names such as “aux”, stores accents the way Windows expects, and leaves out “.DS_Store” and other Finder files. You see every change before packing; your originals stay as they are.</div></details>
@@ -931,6 +1108,73 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   });
   document.addEventListener('pointerdown', e => { if (openToken && !menu.contains(e.target) && !e.target.closest('.token')) closeMenu(); });
   renderSentence();
+
+  /* ───────── Walkthrough: steps through real frames while on screen; never with Reduced Motion ───────── */
+  const tour = document.getElementById('tour-player');
+  if (tour) {
+    const DWELL = 3800;
+    const tabs = [...tour.querySelectorAll('[role="tab"]')], panels = [...tour.querySelectorAll('[role="tabpanel"]')];
+    const seg = tour.querySelector('.seg'), play = tour.querySelector('.tour-play');
+    const frames = p => [...panels[p].querySelectorAll('.tour-frame')];
+    const steps = p => [...panels[p].querySelectorAll('.tour-steps button')];
+    let panel = 0, step = 0, timer = 0, playing = !reduceMotion, onScreen = false;
+    tour.style.setProperty('--dwell', DWELL + 'ms');
+
+    // Frames past the first load only once the walkthrough is near, so the page stays light.
+    const hydrate = p => panels[p].querySelectorAll('[data-srcset], [data-src]').forEach(el => {
+      if (el.dataset.srcset) el.srcset = el.dataset.srcset;
+      if (el.dataset.src) el.src = el.dataset.src;
+      el.removeAttribute('data-srcset'); el.removeAttribute('data-src');
+    });
+
+    function show(p, s) {
+      if (p !== panel) {
+        panels[panel].hidden = true; panels[p].hidden = false;
+        tabs.forEach((t, i) => { t.setAttribute('aria-selected', i === p); t.tabIndex = i === p ? 0 : -1; });
+        seg.dataset.at = p; panel = p; hydrate(p);
+      }
+      step = s;
+      frames(p).forEach((f, i) => { f.toggleAttribute('data-on', i === s); f.setAttribute('aria-hidden', i !== s); });
+      steps(p).forEach((b, i) => {
+        b.toggleAttribute('data-done', i < s); b.classList.remove('timing');
+        i === s ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current');
+      });
+      const cur = steps(p)[s];
+      panels[p].querySelector('.tour-caption').innerHTML = `<b>${cur.querySelector('b').textContent}.</b> ${cur.querySelector('b + span').textContent}`;
+      if (s >= frames(p).length - 2) hydrate(1 - p);
+      schedule();
+    }
+    function schedule() {
+      clearTimeout(timer);
+      if (!playing || !onScreen || document.hidden) return;
+      const b = steps(panel)[step];
+      void b.offsetWidth; b.classList.add('timing'); // restart the progress fill
+      timer = setTimeout(() => step + 1 < frames(panel).length ? show(panel, step + 1) : show(1 - panel, 0), DWELL);
+    }
+    function setPlaying(on) {
+      playing = on;
+      play.setAttribute('aria-pressed', on);
+      play.setAttribute('aria-label', on ? 'Pause walkthrough' : 'Play walkthrough');
+      if (!on) steps(panel)[step].classList.remove('timing');
+      schedule();
+    }
+
+    tabs.forEach((t, i) => t.addEventListener('click', () => show(i, 0)));
+    tour.querySelector('[role="tablist"]').addEventListener('keydown', e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault(); const p = 1 - panel; show(p, 0); tabs[p].focus();
+    });
+    panels.forEach((el, p) => steps(p).forEach((b, s) => b.addEventListener('click', () => show(p, s))));
+    play.addEventListener('click', () => setPlaying(!playing));
+    // The whole player is observed (not one panel's stage), so switching panels doesn't read as leaving the screen.
+    new IntersectionObserver(([e]) => { if (e.isIntersecting) hydrate(panel); }, { rootMargin: '400px 0px' }).observe(tour);
+    new IntersectionObserver(([e]) => {
+      const now = e.intersectionRatio >= .4;
+      if (now !== onScreen) { onScreen = now; schedule(); }
+    }, { threshold: [0, .4, .6] }).observe(tour);
+    document.addEventListener('visibilitychange', schedule);
+    setPlaying(playing); show(0, 0);
+  }
 
   /* ───────── Hover preview demo: delayed first open, instant neighbours ───────── */
   const peek = document.getElementById('peek'), demo = document.getElementById('hover-demo');
