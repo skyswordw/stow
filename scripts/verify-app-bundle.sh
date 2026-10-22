@@ -5,10 +5,10 @@
 #
 # Every mode: the bundle layout (app, StowEngine.xpc + 7zz, Quick Look and Finder extensions,
 # Sparkle.framework and its helpers), Universal 2 binaries, App Sandbox on every executable we
-# build (Sparkle's helpers run outside the sandbox by design), no get-task-allow, the Sparkle
-# configuration (feed, public key, installer service, mach-lookup exceptions), and
-# `codesign --verify --deep --strict`. The DMG, when given, must hold Stow.app and an
-# /Applications link.
+# build (Sparkle's helpers run outside the sandbox by design), the App Group on Stow.app and
+# StowFinderSync (#32), no get-task-allow, the Sparkle configuration (feed, public key, installer
+# service, mach-lookup exceptions), and `codesign --verify --deep --strict`. The DMG, when given,
+# must hold Stow.app and an /Applications link.
 # signed:    also Developer ID authority, the expected Team ID (TEAM_ID env, if set), hardened
 #            runtime and a secure timestamp on every piece; the DMG itself is signed.
 # notarized: also stapled tickets on app and DMG, and Gatekeeper (`spctl`) accepts both.
@@ -83,6 +83,32 @@ sys.exit(1 if problems else 0)
 PY
 then ok "Sparkle: feed, public key, installer + downloader services, mach-lookup exceptions"
 else fail "Sparkle configuration (see above)"
+fi
+
+
+# --- App Group hand-off (#32) ------------------------------------------------------------------
+# Stow.app and StowFinderSync share group.app.stow.Stow so the Finder mailbox can use the
+# container (pasteboard remains the ad-hoc fallback when macOS won't open the group).
+if python3 - "$app" <<'PY'
+import plistlib, subprocess, sys
+app = sys.argv[1]
+want = "group.app.stow.Stow"
+problems = []
+for rel in ("", "Contents/PlugIns/StowFinderSync.appex"):
+    path = app if not rel else f"{app}/{rel}"
+    xml = subprocess.run(["codesign", "-d", "--entitlements", "-", "--xml", path], capture_output=True).stdout
+    ents = plistlib.loads(xml) if xml.strip() else {}
+    groups = ents.get("com.apple.security.application-groups", [])
+    label = "Stow.app" if not rel else "StowFinderSync.appex"
+    if want not in groups:
+        problems.append(f"{label}: missing application-group {want} (has {groups})")
+    if ents.get("com.apple.security.app-sandbox") is not True:
+        problems.append(f"{label}: App Sandbox entitlement missing")
+for p in problems: print(p)
+sys.exit(1 if problems else 0)
+PY
+then ok "App Group group.app.stow.Stow on Stow.app and StowFinderSync"
+else fail "App Group hand-off entitlements (see above)"
 fi
 
 # --- Signatures --------------------------------------------------------------------------------

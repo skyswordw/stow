@@ -136,6 +136,14 @@ Check with `gh secret list -R skyswordw/stow` (names only; values can't be read 
 - **The first release with Sparkle** is the first one that can update itself; whatever people
   install before it has to be replaced by hand once.
 
+### App Group Finder hand-off (#32)
+
+`App/Stow.entitlements` and `FinderSync/StowFinderSync.entitlements` both list
+`group.app.stow.Stow`. Team-signed builds share that container for the one-time Finder mailbox and
+menu settings (`Handoff/`); ad-hoc / CI builds fall back to the private pasteboard because macOS
+only opens the group to binaries signed with a Team ID. `scripts/verify-app-bundle.sh` checks the
+group is on the app and the Finder extension in every mode.
+
 What each credential state produces:
 
 | Secrets present | Result |

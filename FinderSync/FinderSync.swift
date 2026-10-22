@@ -3,7 +3,8 @@ import FinderSync
 import OSLog
 
 /// Stow's items in Finder's context menu. The extension never opens the files: it posts the
-/// selection under a one-time token and opens `stow://handoff/<token>` (see Handoff.swift).
+/// selection under a one-time token into the App Group mailbox (pasteboard fallback for ad-hoc
+/// builds) and opens `stow://handoff/<token>` (see Handoff.swift).
 /// Finder calls in on the main thread, but FIFinderSync's methods aren't annotated.
 nonisolated final class FinderSync: FIFinderSync {
     private static let log = Logger(subsystem: "app.stow.Stow.FinderSync", category: "menu")
@@ -15,8 +16,8 @@ nonisolated final class FinderSync: FIFinderSync {
         FIFinderSyncController.default().directoryURLs = [URL(filePath: "/")]
     }
 
-    /// The app's latest settings, or the last ones this extension saw (the pasteboard is empty
-    /// after a restart until Stow runs again).
+    /// The app's latest settings (App Group file, else pasteboard), or the last ones this
+    /// extension saw after a restart until Stow runs again.
     private var settings: FinderMenuSettings {
         if let published = FinderMenuSettings.published() {
             if let data = try? JSONEncoder().encode(published) { defaults.set(data, forKey: "FinderMenuSettings") }
