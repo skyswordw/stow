@@ -6,7 +6,7 @@ import SwiftUI
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
 /// Scenes: onboarding, welcome (no history), recents (the welcome window with history),
-/// grid, list, fonts, search, search-nested (results inside an inner archive), activity, pack, tray, open (`-StowOpen <path>`),
+/// grid, list, fonts, search, search-nested (results inside an inner archive; search-nested-many selects two), activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too.
@@ -18,7 +18,7 @@ import SwiftUI
 /// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
 /// password (the sheet after a rejected password), extract-options, install-options, batch, conflict, signature-warning, replace-app.
 /// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
-/// pack-failed, empty-archive, empty-folder, search-empty, tray-empty.
+/// pack-failed, pack-failed-dmg, empty-archive, empty-folder, search-empty, tray-empty.
 /// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
 /// glance (the compact window over the sample archive; `-StowGlanceEdge top|bottom|left|right|topLeft|…`
@@ -89,9 +89,10 @@ enum DemoScene {
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Fonts"
             app.browser?.selection = Set(app.browser?.visibleEntries.map(\.id) ?? [])
-        case "search-nested":
+        case "search-nested", "search-nested-many":
             // Search reaching into Earlier Rounds/Old Explorations.7z; the sample can't extract,
-            // so the inner listing is made up here. One result inside it is selected.
+            // so the inner listing is made up here. One result inside it is selected
+            // (both with `search-nested-many`).
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.viewMode = .list
             app.browser?.nestedLoader = { entry, _ in
@@ -103,6 +104,9 @@ enum DemoScene {
             }
             app.browser?.query = "wordmark"
             app.browser?.selection = ["Earlier Rounds/Old Explorations.7z/Round 2/Wordmark Draft.svg"]
+            if scene == "search-nested-many" {
+                app.browser?.selection.insert("Earlier Rounds/Old Explorations.7z/Round 1/Wordmark Ideas.pdf")
+            }
         case "search":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.query = "harbor"
@@ -217,6 +221,10 @@ enum DemoScene {
             app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailure(scene, name: SampleArchive.make().name))))
         case "pack-failed":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .failed(demoFailure("pack-failed", name: "Harbor Handoff.zip")))
+        case "pack-failed-dmg":
+            // A disk image hdiutil refused, worded the way DiskImageCreation reports it.
+            let error = EngineError(.failed, String(localized: "Couldn’t make the disk image") + " (hdiutil create: create failed - Resource busy)")
+            app.packing.preview(name: "Harbor Handoff.dmg", phase: .failed(Failure(error, .pack, name: "Harbor Handoff.dmg")))
         case "empty-archive":
             app.browser = BrowserModel(archive: Archive(name: "Scans 2026.zip", format: .zip, files: []))
         case "empty-folder":

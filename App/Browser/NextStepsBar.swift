@@ -41,7 +41,7 @@ struct NextStepsBar: View {
                                 dismiss: { model.dismissActivity() })
             } else if entries.isEmpty, !model.selection.isEmpty {
                 // Search results inside other archives: the one thing to do is go there.
-                NestedResultRow(model: model, compact: density == .actionsOnly)
+                NestedResultRow(model: model, compact: density == .actionsOnly, glass: glass)
             } else {
                 if density != .actionsOnly {
                     SelectionSummary(entries: entries)
@@ -76,6 +76,8 @@ struct NextStepsBar: View {
 private struct NestedResultRow: View {
     let model: BrowserModel
     let compact: Bool
+    /// Shared with the regular row, so the summary capsule morphs in place like it does there.
+    let glass: Namespace.ID
 
     var body: some View {
         if let hit = model.selectedNestedHit {
@@ -98,20 +100,35 @@ private struct NestedResultRow: View {
                 .padding(.horizontal, Space.l)
                 .padding(.vertical, 9)
                 .accessibleGlass(in: .capsule)
+                .glassEffectID("summary", in: glass)
                 .accessibilityElement(children: .combine)
             }
-            Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: "arrow.down.right.and.arrow.up.left") {
+            // The capsule beside it already names the archive; the button stays short so it never truncates.
+            Button(String(localized: "Show in Archive"), systemImage: NextStep.openInside.symbol) {
                 model.showNested(hit)
             }
+            .accessibilityLabel(String(localized: "Show in “\(hit.container.name)”"))
+            .help(String(localized: "Show in “\(hit.container.name)”"))
             .labelStyle(.titleAndIcon)
             .buttonStyle(.glassProminent)
+            .glassEffectID("showNested", in: glass)
         } else {
-            Text("\(model.selection.count) items inside other archives — open one to act on it")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, Space.l)
-                .padding(.vertical, 9)
-                .accessibleGlass(in: .capsule)
+            // Shaped like the selection summary: the count first, then what to do about it.
+            HStack(spacing: 6) {
+                Text("\(model.selection.count) items")
+                    .fontWeight(.medium)
+                    .liveNumber()
+                Text("inside other archives — select one to show it")
+                    .foregroundStyle(.secondary)
+            }
+            .font(.callout)
+            .lineLimit(1)
+            .fixedSize()
+            .accessibilityElement(children: .combine)
+            .padding(.horizontal, Space.l)
+            .padding(.vertical, 9)
+            .accessibleGlass(in: .capsule)
+            .glassEffectID("summary", in: glass)
         }
     }
 }

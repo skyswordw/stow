@@ -4,7 +4,8 @@ struct InspectorView: View {
     let model: BrowserModel
 
     var body: some View {
-        let selected = model.selectedEntries
+        // Search results inside other archives count too, so the inspector matches what's highlighted.
+        let selected = model.selectedEntries + model.selection.compactMap { model.nestedHits[$0]?.entry }
         ScrollView {
             Group {
                 if let hit = model.selectedNestedHit {
@@ -41,9 +42,10 @@ private struct NestedDetail: View {
                 (String(localized: "Inside"), hit.container.path),
                 (String(localized: "Where"), hit.inner.parent.isEmpty ? String(localized: "Top level") : hit.inner.parent),
             ])
-            Button(String(localized: "Show in “\(hit.container.name)”"), systemImage: "arrow.down.right.and.arrow.up.left") {
+            Button(String(localized: "Show in Archive"), systemImage: NextStep.openInside.symbol) {
                 model.showNested(hit)
             }
+            .accessibilityLabel(String(localized: "Show in “\(hit.container.name)”"))
             .controlSize(.large)
         }
     }
@@ -70,9 +72,17 @@ private struct EntryDetail: View {
                 Text(entry.name)
                     .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .textSelection(.enabled)
-                if let state = model.editSession.state(for: entry.path) { Text(state).font(.caption).foregroundStyle(.secondary) }
-                Text(entry.kindDescription)
-                    .foregroundStyle(.secondary)
+                // One subtitle: the kind, then an edit tag the way the grid shows it ("Text · New").
+                HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                    Text(kindTitle)
+                        .foregroundStyle(.secondary)
+                    if let state = model.editSession.state(for: entry.path) {
+                        Text(verbatim: "·").foregroundStyle(.secondary).accessibilityHidden(true)
+                        Text(state)
+                            .foregroundStyle(state == String(localized: "New") ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                    }
+                }
+                .accessibilityElement(children: .combine)
             }
 
             MetadataGrid(rows: [
@@ -96,6 +106,12 @@ private struct EntryDetail: View {
                 .controlSize(.large)
             }
         }
+    }
+
+    /// The list's kind with a capital first letter, as a subtitle ("text" → "Text").
+    private var kindTitle: String {
+        let kind = entry.kindDescription
+        return kind.prefix(1).localizedUppercase + kind.dropFirst()
     }
 
     private var packedDescription: String {

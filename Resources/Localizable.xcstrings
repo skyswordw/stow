@@ -1,6 +1,36 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Try again. Your files weren’t changed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请再试一次。你的文件没有被更改。"
+          }
+        }
+      }
+    },
+    "Show in Archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在压缩包中显示"
+          }
+        }
+      }
+    },
+    "inside other archives — select one to show it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位于其他压缩包中——选择一个即可显示"
+          }
+        }
+      }
+    },
     "Copy to Folder": {
       "localizations": {
         "zh-Hans": {
@@ -207,16 +237,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "有可预览的项目时"
-          }
-        }
-      }
-    },
-    "%lld items inside other archives — open one to act on it": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 个项目位于其他压缩包中——打开压缩包后才能操作"
           }
         }
       }

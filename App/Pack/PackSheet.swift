@@ -304,7 +304,7 @@ private struct Token<Items: View>: View {
 
     var body: some View {
         HStack(spacing: 1) {
-            menu
+            if isEnabled { menu } else { fixed }
             if !suffix.isEmpty { Text(suffix) }
         }
     }
@@ -315,7 +315,7 @@ private struct Token<Items: View>: View {
         } label: {
             Text(title)
                 .fontWeight(.semibold)
-                .foregroundStyle(isEnabled ? AnyShapeStyle(.tint) : contrastStyle.metadata)
+                .foregroundStyle(.tint)
                 .id(title)
                 // Blur-replace scales a little, so Reduce Motion gets the cross-fade alone.
                 .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
@@ -326,10 +326,21 @@ private struct Token<Items: View>: View {
         .fixedSize()
         .padding(.horizontal, 6)
         .padding(.vertical, 1)
-        .background(.tint.opacity(isHovering && isEnabled ? 0.16 : 0.08), in: .rect(cornerRadius: 6))
+        .background(.tint.opacity(isHovering ? 0.16 : 0.08), in: .rect(cornerRadius: 6))
         .onHover { isHovering = $0 }
-        .disabled(!isEnabled)
-        .help(isEnabled ? String(localized: "Click to change") : disabledHelp)
+        .help(String(localized: "Click to change"))
+    }
+
+    /// A word this format decides ("as one file" for a DMG): plain sentence text, not a faded
+    /// button. The reason is in the tooltip and spoken after it.
+    private var fixed: some View {
+        Text(title)
+            .foregroundStyle(contrastStyle.increased ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+            .id(title)
+            .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
+            .fixedSize()
+            .help(disabledHelp)
+            .accessibilityHint(disabledHelp)
     }
 }
 

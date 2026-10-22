@@ -36,6 +36,8 @@ struct ContrastStyle: Equatable {
 }
 
 /// Glass is chrome; under Reduce Transparency its shape remains, filled with opaque window color.
+/// The solid fill matches the content behind it in light mode, so it keeps a hairline edge, like
+/// the system's own glass buttons do under Reduce Transparency.
 private struct AccessibleGlass<S: Shape>: ViewModifier {
     let shape: S
     @Environment(\.colorSchemeContrast) private var contrast
@@ -44,7 +46,10 @@ private struct AccessibleGlass<S: Shape>: ViewModifier {
     func body(content: Content) -> some View {
         if reduceTransparency || UserDefaults.standard.bool(forKey: "StowReduceTransparency") {
             content.background(Color(nsColor: .windowBackgroundColor), in: shape)
-                .overlay { shape.stroke(.primary.opacity(ContrastStyle.resolve(contrast).increased ? 0.45 : 0), lineWidth: 1).allowsHitTesting(false).accessibilityHidden(true) }
+                .overlay {
+                    shape.stroke(ContrastStyle.resolve(contrast).increased ? AnyShapeStyle(.primary.opacity(0.45)) : AnyShapeStyle(.separator), lineWidth: 1)
+                        .allowsHitTesting(false).accessibilityHidden(true)
+                }
         } else {
             content.glassEffect(.regular, in: shape)
                 .overlay { shape.stroke(.primary.opacity(ContrastStyle.resolve(contrast).increased ? 0.45 : 0), lineWidth: 1).allowsHitTesting(false).accessibilityHidden(true) }
