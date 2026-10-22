@@ -101,7 +101,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
             for item in wanted {
                 guard let model, !Task.isCancelled else { return }
                 let url: URL
-                do {
+                do throws(EngineError) {
                     url = try await model.previews.file(for: item.entry, in: archive)
                 } catch {
                     guard !Task.isCancelled, let self else { return }
