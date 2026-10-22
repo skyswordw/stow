@@ -64,13 +64,28 @@ nonisolated protocol HandoffMailbox: Sendable {
 }
 
 /// Shared App Group for the Finder hand-off and Finder-menu settings (#32).
+///
+/// Team-ID-prefixed (`<Team ID>.<bundle prefix>`), not `group.…`: Stow ships with Developer ID and
+/// no provisioning profile, and macOS only honours `group.` identifiers that a profile authorizes.
+/// A Team-ID-prefixed group is authorized by the code signature itself.
 nonisolated enum AppGroup {
-    /// Matches the app's bundle-id prefix (`app.stow`); both Stow and StowFinderSync list it.
-    static let identifier = "group.app.stow.Stow"
+    static let teamID = "YNQ2233752"
+    /// Both Stow and StowFinderSync list it in their entitlements.
+    static let identifier = "\(teamID).app.stow.Stow"
 
-    /// `nil` for ad-hoc builds (no Team ID) — callers fall back to the pasteboard mailbox.
+    /// The group container, only when this process can actually write to it. macOS hands back a
+    /// path even for builds the sandbox won't let in (ad-hoc, CI, tests), so this checks first;
+    /// `nil` means callers fall back to the pasteboard.
     static var containerURL: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier)
+        guard let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier)
+        else { return nil }
+        return isUsable(url) ? url : nil
+    }
+
+    static func isUsable(_ url: URL) -> Bool {
+        let fm = FileManager.default
+        guard (try? fm.createDirectory(at: url, withIntermediateDirectories: true)) != nil else { return false }
+        return fm.isWritableFile(atPath: url.path)
     }
 }
 
@@ -91,7 +106,7 @@ nonisolated struct Handoff: Sendable {
 
     static func defaultMailbox() -> any HandoffMailbox {
         if let root = AppGroup.containerURL {
-            return FileMailbox(root: root)
+            return GroupMailbox(file: FileMailbox(root: root), fallback: PasteboardMailbox())
         }
         return PasteboardMailbox()
     }
@@ -190,6 +205,24 @@ nonisolated struct FileMailbox: HandoffMailbox {
                 try? fm.removeItem(at: file)
             }
         }
+    }
+}
+
+/// The App Group mailbox, still reading the pasteboard on take: if the extension couldn't open
+/// the group (for example, a mismatched or older build), its request is found anyway.
+nonisolated struct GroupMailbox: HandoffMailbox {
+    let file: FileMailbox
+    let fallback: any HandoffMailbox
+
+    func post(_ data: Data, for token: HandoffToken) throws {
+        do { try file.post(data, for: token) } catch { try fallback.post(data, for: token) }
+    }
+
+    func take(_ token: HandoffToken) -> Data? {
+        // Both are emptied so a token can't be replayed through the other one.
+        let fromFile = file.take(token)
+        let fromFallback = fallback.take(token)
+        return fromFile ?? fromFallback
     }
 }
 

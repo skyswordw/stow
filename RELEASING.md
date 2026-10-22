@@ -139,7 +139,10 @@ Check with `gh secret list -R skyswordw/stow` (names only; values can't be read 
 ### App Group Finder hand-off (#32)
 
 `App/Stow.entitlements` and `FinderSync/StowFinderSync.entitlements` both list
-`group.app.stow.Stow`. Team-signed builds share that container for the one-time Finder mailbox and
+`YNQ2233752.app.stow.Stow`, Team-ID-prefixed rather than `group.…`: Stow ships with Developer ID
+and no provisioning profile, and macOS only honours `group.` ids that a profile authorizes (otherwise
+a launch prompt or a refused launch). If the Team ID ever changes, update both entitlements and
+`AppGroup.teamID` in `Handoff/Handoff.swift`. Team-signed builds share that container for the one-time Finder mailbox and
 menu settings (`Handoff/`); ad-hoc / CI builds fall back to the private pasteboard because macOS
 only opens the group to binaries signed with a Team ID. `scripts/verify-app-bundle.sh` checks the
 group is on the app and the Finder extension in every mode.

@@ -131,17 +131,37 @@ struct HandoffTests {
         #expect(!FileManager.default.fileExists(atPath: file.path))
     }
 
-    @Test func defaultMailboxIsFileWhenContainerExistsElsePasteboard() {
+    @Test func defaultMailboxUsesTheGroupOnlyWhenWritable() {
         let mailbox = Handoff.defaultMailbox()
         if AppGroup.containerURL != nil {
-            #expect(mailbox is FileMailbox)
+            #expect(mailbox is GroupMailbox)
         } else {
             #expect(mailbox is PasteboardMailbox)
         }
     }
 
-    @Test func appGroupIdentifierMatchesEntitlements() {
-        #expect(AppGroup.identifier == "group.app.stow.Stow")
+    /// Developer ID builds have no provisioning profile, so the group must be Team-ID-prefixed.
+    @Test func appGroupIsTeamIDPrefixed() {
+        #expect(AppGroup.identifier == "YNQ2233752.app.stow.Stow")
+        #expect(AppGroup.identifier.hasPrefix(AppGroup.teamID + "."))
+        #expect(!AppGroup.identifier.hasPrefix("group."))
+    }
+
+    @Test func groupMailboxFindsPasteboardRequestsAndEmptiesBoth() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "stow-handoff-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fallback = MemoryMailbox()
+        let group = GroupMailbox(file: FileMailbox(root: root), fallback: fallback)
+        // The extension fell back to the pasteboard; the app still finds it, once.
+        let sent = try Handoff(mailbox: fallback).send(HandoffRequest(action: .open, paths: ["/a.zip"]))
+        let handoff = Handoff(mailbox: group)
+        #expect(try handoff.receive(sent).paths == ["/a.zip"])
+        #expect(throws: HandoffError.unknownToken) { try handoff.receive(sent) }
+        // Posted through the group: lands in the file, not the fallback.
+        let url = try handoff.send(HandoffRequest(action: .open, paths: ["/b.zip"]))
+        let token = try #require(Handoff.token(in: url))
+        #expect(FileManager.default.fileExists(atPath: root.appending(path: "handoff/\(token.value).json").path))
+        #expect(try handoff.receive(url).paths == ["/b.zip"])
     }
 }
 

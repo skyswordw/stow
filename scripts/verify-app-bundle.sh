@@ -87,12 +87,12 @@ fi
 
 
 # --- App Group hand-off (#32) ------------------------------------------------------------------
-# Stow.app and StowFinderSync share group.app.stow.Stow so the Finder mailbox can use the
+# Stow.app and StowFinderSync share YNQ2233752.app.stow.Stow so the Finder mailbox can use the
 # container (pasteboard remains the ad-hoc fallback when macOS won't open the group).
 if python3 - "$app" <<'PY'
 import plistlib, subprocess, sys
 app = sys.argv[1]
-want = "group.app.stow.Stow"
+want = "YNQ2233752.app.stow.Stow"
 problems = []
 for rel in ("", "Contents/PlugIns/StowFinderSync.appex"):
     path = app if not rel else f"{app}/{rel}"
@@ -107,7 +107,7 @@ for rel in ("", "Contents/PlugIns/StowFinderSync.appex"):
 for p in problems: print(p)
 sys.exit(1 if problems else 0)
 PY
-then ok "App Group group.app.stow.Stow on Stow.app and StowFinderSync"
+then ok "App Group YNQ2233752.app.stow.Stow on Stow.app and StowFinderSync"
 else fail "App Group hand-off entitlements (see above)"
 fi
 
