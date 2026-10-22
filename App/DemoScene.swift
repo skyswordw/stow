@@ -32,6 +32,7 @@ import SwiftUI
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
 /// `-nextSteps.hidden quickLook,extract` and `-nextSteps.shown NO` try other choices without saving them.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
+/// `-StowViewMode grid|list|columns` switches the view; `-StowScrollToEnd YES` scrolls to the last item.
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
 enum DemoScene {
@@ -321,6 +322,17 @@ enum DemoScene {
         }
 
         if scene == "open" { BrowseDemo.apply(to: app) }
+
+        // `-StowViewMode grid|list|columns` and `-StowScrollToEnd YES`: check what floats over the last row.
+        if let mode = defaults.string(forKey: "StowViewMode").flatMap(BrowserModel.ViewMode.init(rawValue:)) {
+            app.browser?.viewMode = mode
+        }
+        if defaults.bool(forKey: "StowScrollToEnd") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(700))
+                app.browser?.scrollTarget = app.browser?.visibleEntries.last?.id
+            }
+        }
 
         if defaults.object(forKey: "StowInspector") != nil {
             app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
