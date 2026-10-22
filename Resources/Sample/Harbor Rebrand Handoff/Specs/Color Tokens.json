@@ -1,0 +1,47 @@
+{
+  "harbor": {
+    "navy": {
+      "900": { "$type": "color", "$value": "#0E2133", "$description": "Text on light, backgrounds in dark mode" },
+      "800": { "$type": "color", "$value": "#173049", "$description": "The mark, headlines" },
+      "600": { "$type": "color", "$value": "#1E4867" },
+      "400": { "$type": "color", "$value": "#3B7F9C", "$description": "Links, the selected tab" }
+    },
+    "amber": {
+      "500": { "$type": "color", "$value": "#E2802F", "$description": "The one accent: primary buttons, the beam" },
+      "300": { "$type": "color", "$value": "#F2A65A", "$description": "Accent in dark mode" },
+      "100": { "$type": "color", "$value": "#FFD48F", "$description": "The lamp; never for text" }
+    },
+    "sand": {
+      "50": { "$type": "color", "$value": "#FFF6EA", "$description": "Page background, light" },
+      "200": { "$type": "color", "$value": "#E9D7C0" }
+    },
+    "status": {
+      "onTime": { "$type": "color", "$value": "#2F7D5B" },
+      "late": { "$type": "color", "$value": "#B5541C" },
+      "cancelled": { "$type": "color", "$value": "#A23B3B" }
+    }
+  },
+  "semantic": {
+    "background": {
+      "light": { "$type": "color", "$value": "{harbor.sand.50}" },
+      "dark": { "$type": "color", "$value": "#0B1824" }
+    },
+    "surface": {
+      "light": { "$type": "color", "$value": "#FFFFFF" },
+      "dark": { "$type": "color", "$value": "#13283B" }
+    },
+    "text": {
+      "light": { "$type": "color", "$value": "{harbor.navy.900}" },
+      "dark": { "$type": "color", "$value": "#EEF2F5" }
+    },
+    "accent": {
+      "light": { "$type": "color", "$value": "{harbor.amber.500}" },
+      "dark": { "$type": "color", "$value": "{harbor.amber.300}" }
+    }
+  },
+  "radius": {
+    "card": { "$type": "dimension", "$value": "16px" },
+    "button": { "$type": "dimension", "$value": "12px" },
+    "chip": { "$type": "dimension", "$value": "8px" }
+  }
+}

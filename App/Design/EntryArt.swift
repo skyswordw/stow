@@ -28,85 +28,9 @@ struct NativeIcon: View {
     }
 }
 
-/// Stand-in for an image's real thumbnail until extraction-to-memory is wired up.
-/// Deterministic per file name, from curated palettes so it never looks random.
-struct PhotoArt: View {
-    let seed: String
-
-    var body: some View {
-        var rng = SeededRandom(seed: seed)
-        let palette = Self.palettes[Int(rng.next() % UInt64(Self.palettes.count))]
-        let points: [SIMD2<Float>] = (0..<9).map { index in
-            let x = Float(index % 3) / 2, y = Float(index / 3) / 2
-            let interior = index == 4
-            return interior ? SIMD2(0.3 + rng.unit() * 0.4, 0.3 + rng.unit() * 0.4) : SIMD2(x, y)
-        }
-        let colors = (0..<9).map { palette[($0 + Int(rng.next() % 3)) % palette.count] }
-        return MeshGradient(width: 3, height: 3, points: points, colors: colors)
-    }
-
-    private static let palettes: [[Color]] = [
-        [Color(hex: 0xF6C89F), Color(hex: 0xE58E73), Color(hex: 0x7A6C9E), Color(hex: 0x2F3F6B)], // dawn
-        [Color(hex: 0xBFE3E0), Color(hex: 0x5EA9B8), Color(hex: 0x2B6F8F), Color(hex: 0x1C3A55)], // sea
-        [Color(hex: 0x1B2340), Color(hex: 0x37406B), Color(hex: 0xE6B85C), Color(hex: 0x0E1324)], // night
-        [Color(hex: 0xEFE3CF), Color(hex: 0xD8B98C), Color(hex: 0xA77B52), Color(hex: 0x5B4632)], // rope
-        [Color(hex: 0xD9E7D0), Color(hex: 0x8DB38B), Color(hex: 0x4E7D63), Color(hex: 0x23443A)], // coast
-    ]
-}
-
-/// Type specimen for fonts — shows the face instead of a generic icon.
-struct FontSpecimen: View {
-    let name: String
-    var compact = false
-
-    var body: some View {
-        let lower = name.lowercased()
-        let design: Font.Design = lower.contains("serif") && !lower.contains("sans") ? .serif : .default
-        let weight: Font.Weight = lower.contains("bold") ? .bold : .regular
-        VStack(spacing: Space.xs) {
-            Text("Aa")
-                .font(.system(size: compact ? 34 : 64, weight: weight, design: design))
-                .italic(lower.contains("italic"))
-            if !compact {
-                Text("Pack my box with five dozen jugs")
-                .font(.system(.caption, design: design, weight: weight))
-                .italic(lower.contains("italic"))
-                .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .textBackgroundColor))
-    }
-}
-
-/// A page with ruled lines — previews for text, data and documents.
-struct PageArt: View {
-    let seed: String
-    var monospaced = false
-
-    var body: some View {
-        var rng = SeededRandom(seed: seed)
-        let widths = (0..<11).map { _ in 0.45 + Double(rng.unit()) * 0.55 }
-        GeometryReader { proxy in
-            VStack(alignment: .leading, spacing: 7) {
-                Capsule().frame(width: proxy.size.width * 0.42, height: 7).opacity(0.55)
-                    .padding(.bottom, 4)
-                ForEach(widths.indices, id: \.self) { index in
-                    Capsule()
-                        .frame(width: (proxy.size.width - 36) * widths[index], height: monospaced ? 4 : 5)
-                        .padding(.leading, monospaced && index % 3 != 0 ? 14 : 0)
-                        .opacity(0.18)
-                }
-            }
-            .padding(18)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }
-        .foregroundStyle(.primary)
-        .background(.background)
-    }
-}
-
-/// One entry point for every place an entry is drawn.
+/// How the sample archive's entries are drawn: from the real files in Resources/Sample (see
+/// `SampleContent`). Anything without one — or a search result inside a real inner archive — shows
+/// the type's icon, never made-up art.
 struct EntryThumbnail: View {
     @Environment(\.colorSchemeContrast) private var contrast
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
@@ -117,53 +41,132 @@ struct EntryThumbnail: View {
 
     var body: some View {
         switch (style, entry.kind) {
-        case (.row, .image):
-            PhotoArt(seed: entry.name)
-                .clipShape(.rect(cornerRadius: 3))
-                .padding(1)
-        case (.row, _):
+        case (.row, .font), (.row, .text), (.row, .data):
             NativeIcon(type: entry.contentType)
-        case (.tile, .image), (.large, .image):
-            PhotoArt(seed: entry.name)
-                .clipShape(.rect(cornerRadius: style == .tile ? Radius.chip : Radius.card))
-                .overlay {
-                    RoundedRectangle(cornerRadius: style == .tile ? Radius.chip : Radius.card)
-                        .strokeBorder(.primary.opacity(0.08))
-                }
+        case (_, .font):
+            if let font = SampleContent.font(for: entry, size: style == .tile ? 34 : 64) {
+                fontSpecimen(font)
+            } else {
+                icon
+            }
+        case (_, .text), (_, .data):
+            if let text = SampleContent.text(for: entry) {
+                textPage(text)
+            } else {
+                icon
+            }
+        default:
+            if let image = SampleContent.image(for: entry, pixels: style == .row ? 64 : style == .tile ? 360 : 900) {
+                picture(image)
+            } else {
+                icon
+            }
+        }
+    }
+
+    @ViewBuilder private var icon: some View {
+        switch style {
+        case .row: NativeIcon(type: entry.contentType)
+        case .tile: NativeIcon(type: entry.contentType).padding(4)
+        case .large: NativeIcon(type: entry.contentType).frame(width: 112, height: 112).frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder private func picture(_ image: NSImage) -> some View {
+        let art = Image(nsImage: image).resizable().interpolation(.high)
+        switch (style, entry.kind) {
+        case (.row, .image):
+            art.aspectRatio(contentMode: .fit).clipShape(.rect(cornerRadius: 2)).padding(1)
+        case (.row, _):
+            art.aspectRatio(contentMode: .fit)
+        case (.tile, .app):
+            art.aspectRatio(contentMode: .fit).padding(4)
+        case (.large, .app):
+            art.aspectRatio(contentMode: .fit).frame(width: 112, height: 112).frame(maxWidth: .infinity, maxHeight: .infinity)
+        case (_, .image) where image.size.width >= image.size.height:
+            // Photos fill a 4:3 frame, like a contact sheet; screens and other tall art fit whole.
+            Color.clear
                 .aspectRatio(4 / 3, contentMode: .fit)
-        case (.large, .font):
-            card { FontSpecimen(name: entry.name) }
-        case (.tile, .font):
-            FontSpecimen(name: entry.name, compact: true)
+                .overlay { art.aspectRatio(contentMode: .fill) }
+                .clipShape(.rect(cornerRadius: radius))
+                .overlay { RoundedRectangle(cornerRadius: radius).strokeBorder(.primary.opacity(0.08)) }
+        case (_, .image), (.tile, .document), (.tile, .video):
+            art.aspectRatio(contentMode: .fit)
+                .clipShape(.rect(cornerRadius: style == .tile ? 4 : Radius.chip))
+                .overlay { RoundedRectangle(cornerRadius: style == .tile ? 4 : Radius.chip).strokeBorder(.primary.opacity(0.1)) }
+                .shadow(color: .black.opacity(0.12), radius: 1.5, y: 0.5)
+        case (_, .vector):
+            // Logos are drawn for a white page, in either appearance.
+            Color.white
+                .aspectRatio(4 / 3, contentMode: .fit)
+                .overlay { art.aspectRatio(contentMode: .fit).padding(style == .tile ? 6 : 28) }
+                .clipShape(.rect(cornerRadius: radius))
+                .overlay { RoundedRectangle(cornerRadius: radius).strokeBorder(.primary.opacity(contrastStyle.borderOpacity)) }
+        case (.large, .video):
+            card { art.aspectRatio(contentMode: .fill) }
+                .overlay(alignment: .bottomTrailing) {
+                    Label(RichPreviewView.clock(6), systemImage: "play.fill")
+                        .font(.caption2.weight(.semibold))
+                        .monospacedDigit()
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(.black.opacity(0.55), in: .capsule)
+                        .foregroundStyle(.white)
+                        .padding(6)
+                }
+        default:
+            card { art.aspectRatio(contentMode: .fill) }
+        }
+    }
+
+    private var radius: CGFloat { style == .tile ? Radius.chip : Radius.card }
+
+    @ViewBuilder private func fontSpecimen(_ font: CTFont) -> some View {
+        let specimen = VStack(spacing: Space.xs) {
+            Text("Aa").font(Font(font))
+            if style == .large {
+                Text("Pack my box with five dozen jugs")
+                    .font(Font(CTFontCreateCopyWithAttributes(font, 13, nil, nil)))
+                    .lineLimit(1)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(Space.s)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .textBackgroundColor))
+        if style == .large {
+            card { specimen }
+        } else {
+            specimen
                 .aspectRatio(4 / 3, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: Radius.chip))
                 .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(contrastStyle.borderOpacity)) }
-        case (.large, .text), (.large, .data):
-            card { PageArt(seed: entry.name, monospaced: entry.kind == .data) }
-        case (.large, .document):
-            card { PageArt(seed: entry.name) }
-        case (.large, .vector):
-            card {
-                ZStack {
-                    Color(nsColor: .textBackgroundColor)
-                    Image(systemName: "water.waves")
-                        .font(.system(size: 54, weight: .semibold))
-                        .foregroundStyle(.tint)
+        }
+    }
+
+    /// The file's own words on a page. A tile shows the whole page shrunk, like a Finder thumbnail.
+    @ViewBuilder private func textPage(_ text: String) -> some View {
+        let page = TextPage(text: text, markdown: (entry.name as NSString).pathExtension.lowercased() == "md")
+        if style == .large {
+            card { page }
+        } else {
+            Color(nsColor: .textBackgroundColor)
+                .aspectRatio(0.78, contentMode: .fit)
+                .overlay {
+                    GeometryReader { proxy in
+                        page.frame(width: 300, height: 385).scaleEffect(proxy.size.width / 300, anchor: .topLeading)
+                    }
                 }
-            }
-        case (.large, _):
-            NativeIcon(type: entry.contentType)
-                .frame(width: 112, height: 112)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case (.tile, _):
-            NativeIcon(type: entry.contentType)
-                .padding(4)
+                .clipShape(.rect(cornerRadius: 3))
+                .overlay { RoundedRectangle(cornerRadius: 3).strokeBorder(.primary.opacity(0.12)) }
+                .shadow(color: .black.opacity(0.12), radius: 1.5, y: 0.5)
         }
     }
 
     private func card(@ViewBuilder _ content: () -> some View) -> some View {
-        content()
+        Color.clear
             .aspectRatio(4 / 3, contentMode: .fit)
+            .overlay { content() }
             .clipShape(.rect(cornerRadius: Radius.card))
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.primary.opacity(contrastStyle.borderOpacity))
@@ -171,34 +174,29 @@ struct EntryThumbnail: View {
     }
 }
 
-// MARK: - Helpers
+/// A text file's first lines, set the way the hover preview sets them.
+private struct TextPage: View {
+    let text: String
+    let markdown: Bool
 
-/// SplitMix64 seeded from FNV-1a, so art is stable across launches (String.hashValue isn't).
-struct SeededRandom {
-    private var state: UInt64
-
-    init(seed: String) {
-        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
-        for byte in seed.utf8 { hash = (hash ^ UInt64(byte)) &* 0x100_0000_01b3 }
-        state = hash
-    }
-
-    mutating func next() -> UInt64 {
-        state &+= 0x9E37_79B9_7F4A_7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        return z ^ (z >> 31)
-    }
-
-    mutating func unit() -> Float { Float(next() % 10_000) / 10_000 }
-}
-
-extension Color {
-    init(hex: UInt32) {
-        self.init(.sRGB,
-                  red: Double((hex >> 16) & 0xFF) / 255,
-                  green: Double((hex >> 8) & 0xFF) / 255,
-                  blue: Double(hex & 0xFF) / 255)
+    var body: some View {
+        Group {
+            if markdown {
+                Text(RichPreviewView.markdown(text)).font(.system(size: 11)).lineSpacing(1.5)
+            } else {
+                Text(text.split(separator: "\n", omittingEmptySubsequences: false).prefix(40).joined(separator: "\n"))
+                    .font(.system(size: 10, design: .monospaced))
+                    .lineSpacing(2)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(Space.m)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .foregroundStyle(.primary)
+        .mask {
+            LinearGradient(stops: [.init(color: .black, location: 0.8), .init(color: .clear, location: 0.97)],
+                           startPoint: .top, endPoint: .bottom)
+        }
+        .background(Color(nsColor: .textBackgroundColor))
     }
 }

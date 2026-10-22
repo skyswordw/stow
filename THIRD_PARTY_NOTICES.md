@@ -66,3 +66,12 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
+
+## Sample archive: fonts and photos
+
+The sample archive Try the Sample opens (`Contents/Resources/Sample`) bundles two font families
+under the SIL Open Font License 1.1, unmodified: Atkinson Hyperlegible (Copyright 2020 Braille
+Institute of America, Inc.) and Instrument Serif (Copyright 2022 The Instrument Serif Project
+Authors). Their license texts ship next to them in `Sample/Licenses/`. Its five photos are by
+Bernard Spragg, dedicated to the public domain under CC0 1.0. `Resources/Sample/CREDITS.md`
+(also in the app) lists every file with its source and license.
