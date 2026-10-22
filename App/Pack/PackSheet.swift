@@ -234,6 +234,8 @@ struct PackSheet: View {
         options.split = options.format.supportsSplit ? SettingsKeys.splitSize() : .none
         // Design review: -StowPackDetails YES opens both disclosures.
         if UserDefaults.standard.bool(forKey: "StowPackDetails") { showDetails = true; showMore = true }
+        // Design review: -StowPackPassword YES starts with "with a password" (formats that allow one).
+        if UserDefaults.standard.bool(forKey: "StowPackPassword"), options.format.supportsPassword { options.usesPassword = true }
     }
 
     private func setAudience(_ audience: Audience) {
@@ -304,7 +306,9 @@ private struct Token<Items: View>: View {
 
     var body: some View {
         if isEnabled {
-            HStack(spacing: 1) {
+            // Punctuation sits against the chip's edge in sentence colour (-2 takes up the glyph's own
+            // left margin); being in the same row, it wraps with the chip and never starts a line.
+            HStack(spacing: -2) {
                 menu
                 if !suffix.isEmpty { Text(suffix) }
             }

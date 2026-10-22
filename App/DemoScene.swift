@@ -9,7 +9,7 @@ import SwiftUI
 /// grid, list, fonts, search, search-nested (results inside an inner archive; search-nested-many selects two), activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
-/// `PackPreferences` keys work as launch arguments too.
+/// `PackPreferences` keys work as launch arguments too; `-StowPackPassword YES` starts with “with a password”.
 /// quicklook (the Finder preview; `-StowPreview encrypted|slow`, or `-StowOpen <path>` for a real file),
 /// associations (Settings › File Types), integration (Settings › Integration; `-StowRepair YES`
 /// runs Repair for real).
