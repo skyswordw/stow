@@ -43,6 +43,7 @@ struct GeneralSettingsView: View {
                     }
                 }
             }
+            UpdateSettingsSection(updater: AppUpdater.shared)
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
@@ -57,6 +58,29 @@ struct GeneralSettingsView: View {
         case 60: String(localized: "After 1 minute")
         default: String(localized: "After 5 minutes")
         }
+    }
+}
+
+/// Sparkle's two choices (#35). Off, and dimmed, in builds that never check (Debug, ad-hoc, tests).
+private struct UpdateSettingsSection: View {
+    let updater: AppUpdater
+    var body: some View {
+        Section {
+            Toggle("Check for updates automatically", isOn: Binding(
+                get: { updater.automaticallyChecks }, set: { updater.setAutomaticallyChecks($0) }))
+            Toggle("Download and install updates automatically", isOn: Binding(
+                get: { updater.automaticallyDownloads }, set: { updater.setAutomaticallyDownloads($0) }))
+                .disabled(!updater.automaticallyChecks)
+        } header: {
+            Text("Updates")
+        } footer: {
+            if updater.isAvailable {
+                Text("An update waits until extracting or packing finishes before Stow restarts.")
+            } else {
+                Text("This build doesn’t check for updates. Signed releases from GitHub do.")
+            }
+        }
+        .disabled(!updater.isAvailable)
     }
 }
 
@@ -127,11 +151,7 @@ struct AdvancedSettingsView: View {
     @Environment(AppState.self) private var app
     @State private var usedBytes: Int64 = 0
     @State private var confirmsReset = false
-    private var busy: Bool {
-        if app.packing.isRunning || app.batch.isActive || app.isOpening { return true }
-        if case .running = app.browser?.activity?.phase { return true }
-        return false
-    }
+    private var busy: Bool { app.isBusy }
     var body: some View {
         Form {
             Section("Temporary files") {
@@ -159,6 +179,7 @@ struct AdvancedSettingsView: View {
             Button("Reset", role: .destructive) {
                 SettingsKeys.reset(in: .standard)
                 IntegrationSettings.shared.reloadPreferences()
+                AppUpdater.shared.reload()
                 SettingsAppearance.apply()
             }
         } message: {

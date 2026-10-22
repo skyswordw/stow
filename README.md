@@ -169,6 +169,16 @@ Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKe
 | `PackVolumeSize` | `0` | `0`, `100000000`, `700000000`, `4000000000` bytes |
 | `PackVerify` / `PackCPUCores` | `false` / `0` | 0 cores means all |
 | `FinderMenuOnExternalDrives` / `HideDockIconWithoutWindows` | `false` | |
+| `SUEnableAutomaticChecks` / `SUAutomaticallyUpdate` | `true` / `false` | Sparkle's own keys (General › Updates); reset falls back to Info.plist |
+
+**Updates:** Stow updates itself with [Sparkle](https://sparkle-project.org) 2 (Stow › Check for
+Updates…, and General › Updates in Settings). The feed is the `appcast.xml` on the latest
+*published* GitHub release, and each update DMG is EdDSA-signed with Stow's own key (public half
+`SUPublicEDKey` in `project.yml`) as well as Developer ID–signed and notarized. Stow stays
+sandboxed and without network access: Sparkle's downloader service fetches the feed and the update,
+and its installer service replaces the app; a restart into an update waits until extracting,
+packing or opening finishes (`App/Updates`). Debug, ad-hoc, test and `-Stow…` demo runs never
+start Sparkle, so they never touch the network or show an update prompt.
 
 ## Layout
 
@@ -181,6 +191,7 @@ Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKe
 | `App/Install` | App/font/package installers, folder grants, prompts, archive aftercare |
 | `App/Batch` | Batch extraction queue and its progress stack |
 | `App/Options` | Extraction and install settings views |
+| `App/Updates` | Sparkle updater, when it may run (`UpdatePolicy`), installs that wait for running tasks |
 | `Engine` | `StowEngine.xpc`: sandboxed service that drives `7zz` |
 | `Shared` | Compiled into both: XPC contract, 7-Zip driver and parser, path containment |
 | `App/Design` | Tokens (space, radius, motion), flow layout, thumbnails |
@@ -193,7 +204,7 @@ Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKe
 | `App/Welcome` | Empty state / drop target |
 | `website/` | Marketing site, deployed with the rendered docs to GitHub Pages (`scripts/build-site.py`, `.github/workflows/pages.yml`) |
 | `ROADMAP.md` | Follow-up plan: remaining features, design polish, release work, and tests not yet run |
-| `RELEASING.md` | Signed, notarized release builds: secrets, `scripts/package.sh`, the Release workflow |
+| `RELEASING.md` | Signed, notarized release builds and the Sparkle appcast: secrets, `scripts/package.sh`, `scripts/generate-appcast.sh`, the Release workflow |
 | `.claude/skills` | Project-level agent skills (design engineering, Apple design, Swift) — MIT, © Emil Kowalski |
 
 ## License

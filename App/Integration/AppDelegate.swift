@@ -27,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         DockPolicy.shared.install()
         IntegrationSettings.shared.publishFinderSettings()
+        // Starts Sparkle only in Developer ID release builds (UpdatePolicy); a relaunch into an
+        // update waits until nothing is running.
+        AppUpdater.shared.start { [weak self] in self?.app?.isBusy ?? false }
     }
 
     /// Stow keeps running without windows so Finder and Services actions don't wait for a launch.

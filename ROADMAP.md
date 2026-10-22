@@ -69,6 +69,10 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 - First-run onboarding: what Stow does, file associations, Finder extension, Tray — skippable,
   re-openable from Help.
 - Updates with Sparkle (appcast on GitHub Releases); installs wait until running tasks finish.
+  Done in #35: Sparkle 2.10 (sandboxed: installer + downloader XPC services, no network
+  entitlement), Stow › Check for Updates…, General › Updates, relaunch held while busy, appcast
+  signed by `scripts/generate-appcast.sh` in the Release workflow. Still to test: a real update
+  from one published release to the next (Tests #21).
 - Simplified Chinese localization via String Catalogs, with a layout check of every screen.
 - *Done when:* every setting key has a control; screenshots of every pane in both languages and
   themes.
@@ -107,7 +111,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | --- | --- |
 | Developer ID signing and notarization | Gatekeeper; also unlocks App Group containers (the Finder hand-off uses a private pasteboard because ad-hoc builds can't). Pipeline in place (#32): `scripts/package.sh`, `scripts/verify-app-bundle.sh` and the **Release** workflow sign inside-out, notarize and staple; see [RELEASING.md](RELEASING.md). Still to do: notarization secrets, the first notarized build on a clean Mac (Tests #17), the App Group hand-off |
 | Universal 2 build (arm64 + x86_64) | done (#33): Release builds `$(ARCHS_STANDARD)` for every target; CI's `universal` job builds Release and `scripts/check-universal.sh` fails unless the app, StowEngine.xpc, its 7zz and both extensions carry arm64 and x86_64, then runs the x86_64 7zz under Rosetta. A full x86_64 test run is a manual `workflow_dispatch` option |
-| Signed DMG + GitHub Releases + Sparkle appcast | first public download. DMG + draft GitHub release done in the **Release** workflow (#34); `scripts/generate-appcast.sh` is a hook until Sparkle (#35) |
+| Signed DMG + GitHub Releases + Sparkle appcast | first public download. The **Release** workflow (#34) builds the notarized DMG, signs it with Stow's EdDSA key and writes `appcast.xml` (`scripts/generate-appcast.sh`, #35), and attaches both to a draft release; the app's feed is `releases/latest/download/appcast.xml`, so an update reaches people when the draft is published |
 | Homebrew cask | template and tooling done (#36): `packaging/homebrew/stow.rb`, `scripts/render-cask.sh` and the `Homebrew cask` workflow fill in version + DMG checksum per release, audit, and install/uninstall once. Still to do: the first signed release DMG (#32, #34), then publish to a tap (or homebrew/cask under a non-conflicting token — `stow` is a homebrew/core formula) |
 | CI | `.github/workflows/ci.yml` builds and tests every push and PR to main on GitHub's `xcode-27` runner (preview image: macOS 27, Xcode 27). Fails if 7zz is missing or any test is skipped. Still to do: release builds, signing, and moving off the preview image once it is GA. |
 | Fuzzing | done (#37): `Tests/FuzzTests.swift` mutates ZIP, 7Z, TAR (.gz/.bz2/.xz), RAR 4/5 and DMG seeds (truncation, bit flips, header/trailer corruption, huge length fields, splices, zero runs) and checks that 7zz never crashes or hangs, the engine only fails cleanly and survives, and extraction stays inside its folder; plus libarchive's malformed-RAR regressions. ~15 mutants per seed on every CI run; `.github/workflows/fuzz.yml` runs hundreds weekly and on demand, keeping any failing input |
@@ -123,7 +127,7 @@ Everything marked ⬜ or 🎨 in [PARITY.md](PARITY.md):
 - Tray in the menu bar (auto-show, idle hide, pin, collect-into-folder, share, send to window, border colour)
 - Settings window and every Settings control (General, Packing defaults, volume size, CPU cores,
   hover toggle, password display, temp-file clean-up, reset, licence viewer)
-- Onboarding, Sparkle updates, Simplified Chinese
+- Onboarding, Simplified Chinese
 - Next Steps customisation and alternative-actions list
 - iCloud placeholders, Open Recent, search across nested archives
 - Reading files from other apps' containers
@@ -158,3 +162,4 @@ have **not** been done and must be before a 1.0:
 | 18 | Fuzzing malformed archives | automated (#37): a deterministic set on every CI run, a longer weekly run (`fuzz.yml`). Still open: a sustained multi-hour run with no findings, and coverage-guided fuzzing of Stow's own parsers (AppleDouble, tar headers) |
 | 19 | Website in Safari, Firefox and on real phones | checked in one desktop browser engine and a 375 px emulation |
 | 20 | CI | runs on GitHub's `xcode-27` runner (`.github/workflows/ci.yml`); ad-hoc signed, so signed-build behaviour is still item 17 |
+| 21 | Sparkle: a real update from one published release to the next (check, download through the downloader service, install outside the sandbox, relaunch waiting for a running extraction) | needs two published, notarized releases; CI checks signing, the bundle layout and the appcast signature only |

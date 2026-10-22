@@ -12,5 +12,13 @@
 	<true/>
 	<key>com.apple.security.files.user-selected.executable</key>
 	<true/>
+	<!-- Sparkle (#35): talks to its installer, which runs outside the sandbox. Xcode expands the
+	     bundle identifier (app.stow.Stow-spks / -spki). No network entitlement: Sparkle's
+	     downloader service fetches the appcast and the update. -->
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spks</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
+	</array>
 </dict>
 </plist>

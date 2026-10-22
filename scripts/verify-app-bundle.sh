@@ -3,8 +3,10 @@
 #
 #   scripts/verify-app-bundle.sh [--mode adhoc|signed|notarized] path/to/Stow.app [path/to/Stow.dmg]
 #
-# Every mode: the bundle layout (app, StowEngine.xpc + 7zz, Quick Look and Finder extensions),
-# Universal 2 binaries, App Sandbox on every executable we ship, no get-task-allow, and
+# Every mode: the bundle layout (app, StowEngine.xpc + 7zz, Quick Look and Finder extensions,
+# Sparkle.framework and its helpers), Universal 2 binaries, App Sandbox on every executable we
+# build (Sparkle's helpers run outside the sandbox by design), no get-task-allow, the Sparkle
+# configuration (feed, public key, installer service, mach-lookup exceptions), and
 # `codesign --verify --deep --strict`. The DMG, when given, must hold Stow.app and an
 # /Applications link.
 # signed:    also Developer ID authority, the expected Team ID (TEAM_ID env, if set), hardened
@@ -34,15 +36,54 @@ else
 fi
 rm -f /tmp/stow-universal.$$
 
-# Everything we sign: the app, its bundles and each 7zz.
+# Everything we sign: the app, its bundles, each 7zz and Sparkle's helpers.
+sparkle="$app/Contents/Frameworks/Sparkle.framework"
+sparkle_b="$sparkle/Versions/B"
 code=("$app")
-while IFS= read -r p; do code+=("$p"); done < <(find "$app/Contents" \( -type d \( -name '*.xpc' -o -name '*.appex' -o -name '*.framework' \) \) -o \( -type f -name 7zz \) | sort)
+while IFS= read -r p; do code+=("$p"); done < <(find "$app/Contents" \( -type d \( -name '*.xpc' -o -name '*.appex' -o -name '*.framework' -o -name '*.app' \) \) -o \( -type f \( -name 7zz -o -name Autoupdate \) \) | sort)
 for p in "$app/Contents/XPCServices/StowEngine.xpc" \
          "$app/Contents/XPCServices/StowEngine.xpc/Contents/MacOS/7zz" \
          "$app/Contents/PlugIns/StowQuickLook.appex" \
-         "$app/Contents/PlugIns/StowFinderSync.appex"; do
+         "$app/Contents/PlugIns/StowFinderSync.appex" \
+         "$sparkle" \
+         "$sparkle_b/XPCServices/Installer.xpc" \
+         "$sparkle_b/XPCServices/Downloader.xpc" \
+         "$sparkle_b/Autoupdate" \
+         "$sparkle_b/Updater.app"; do
   [[ -e $p ]] || fail "missing ${p#"$app"/}"
 done
+
+# --- Sparkle configuration (#35) -----------------------------------------------------------------
+if python3 - "$app" <<'PY'
+import base64, plistlib, subprocess, sys
+app = sys.argv[1]
+info = plistlib.load(open(f"{app}/Contents/Info.plist", "rb"))
+problems = []
+feed = info.get("SUFeedURL", "")
+if feed != "https://github.com/skyswordw/stow/releases/latest/download/appcast.xml":
+    problems.append(f"SUFeedURL is {feed!r}")
+try:
+    if len(base64.b64decode(info.get("SUPublicEDKey", ""), validate=True)) != 32: raise ValueError
+except Exception:
+    problems.append("SUPublicEDKey is not a 32-byte EdDSA public key")
+for key in ("SUEnableInstallerLauncherService", "SUEnableDownloaderService"):
+    if info.get(key) is not True: problems.append(f"{key} is not YES")
+if not str(info.get("CFBundleVersion", "")).replace(".", "").isdigit():
+    problems.append(f"CFBundleVersion {info.get('CFBundleVersion')!r} is not numeric")
+xml = subprocess.run(["codesign", "-d", "--entitlements", "-", "--xml", app], capture_output=True).stdout
+ents = plistlib.loads(xml) if xml.strip() else {}
+names = ents.get("com.apple.security.temporary-exception.mach-lookup.global-name", [])
+bundle = info.get("CFBundleIdentifier", "")
+for suffix in ("-spks", "-spki"):
+    if bundle + suffix not in names: problems.append(f"mach-lookup exception {bundle}{suffix} missing (has {names})")
+if ents.get("com.apple.security.network.client"):
+    problems.append("the app has com.apple.security.network.client; Sparkle's downloader service does the networking")
+for p in problems: print(p)
+sys.exit(1 if problems else 0)
+PY
+then ok "Sparkle: feed, public key, installer + downloader services, mach-lookup exceptions"
+else fail "Sparkle configuration (see above)"
+fi
 
 # --- Signatures --------------------------------------------------------------------------------
 if codesign --verify --deep --strict --verbose=2 "$app" 2>/tmp/stow-cs.$$; then
@@ -57,7 +98,8 @@ for p in "${code[@]}"; do
   info=$(codesign -dvvv "$p" 2>&1 || true)
   ents=$(codesign -d --entitlements - --xml "$p" 2>/dev/null || true)
   entfile=$(mktemp); printf '%s' "$ents" > "$entfile"
-  if [[ $p != *.framework ]]; then
+  # Sparkle's Installer, Downloader, Autoupdate and Updater run outside the sandbox (sandboxing guide).
+  if [[ $p != *.framework && $p != "$sparkle"/* ]]; then
     sandbox=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$entfile" 2>/dev/null || true)
     [[ $sandbox == true ]] || fail "$rel: App Sandbox entitlement missing"
   fi
