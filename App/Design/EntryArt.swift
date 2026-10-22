@@ -15,7 +15,7 @@ struct NativeIcon: View {
 
     /// Drawn once per type at 128 pt: a multi-resolution icon redrawn for every tile that scrolls
     /// into a 100,000-item grid is a dropped frame.
-    private static var bitmaps: [String: CGImage] = [:]
+    static var bitmaps: [String: CGImage] = [:] // demo scenes seed the sample app's icon
 
     static func bitmap(for type: UTType) -> CGImage {
         if let hit = bitmaps[type.identifier] { return hit }

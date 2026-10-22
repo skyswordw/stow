@@ -42,6 +42,8 @@ enum DemoScene {
         case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
         default: break
         }
+        // The sample's "Harbor Prototype.app" gets a real-looking icon (Design/DemoAppIcon.svg), not the generic one.
+        if let icon = NSImage(named: "DemoAppIcon")?.cgImage(forProposedRect: nil, context: nil, hints: nil) { NativeIcon.bitmaps["com.apple.application-bundle"] = icon }
 
         switch scene {
         case "onboarding":
@@ -215,6 +217,7 @@ enum DemoScene {
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
             app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailure(scene, name: SampleArchive.make().name))))
+        case "checkup": app.openArchive(named: SampleArchive.make().name); app.browser?.navigate(to: "Prototype") // just opened, nothing selected
         case "pack-failed":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .failed(demoFailure("pack-failed", name: "Harbor Handoff.zip")))
         case "empty-archive":
