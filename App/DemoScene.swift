@@ -19,6 +19,9 @@ import SwiftUI
 /// password (the sheet after a rejected password), extract-options, install-options, batch, conflict, signature-warning, replace-app.
 /// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, pack-failed-dmg, empty-archive, empty-folder, search-empty, tray-empty.
+/// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly,
+/// rename-archive (File › Rename Archive…), save-changes (closing with unsaved edits).
+/// Tray states: tray-collect (naming the folder for Collect into a Folder), tray-failed (a failure told inside the Tray).
 /// With `open`, `-StowRun extractAll|install|fonts|installer` runs that step once the archive is up
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
 /// glance (the compact window over the sample archive; `-StowGlanceEdge top|bottom|left|right|topLeft|…`
@@ -29,6 +32,7 @@ import SwiftUI
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
 /// `-nextSteps.hidden quickLook,extract` and `-nextSteps.shown NO` try other choices without saving them.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
+/// `-StowViewMode grid|list|columns` switches the view; `-StowScrollToEnd YES` scrolls to the last item.
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
 enum DemoScene {
@@ -51,8 +55,19 @@ enum DemoScene {
         case "settings":
             SettingsRouter.shared.pane = defaults.string(forKey: "StowSettingsPane").flatMap(SettingsPane.init(rawValue:)) ?? .general
             SettingsRouter.shared.open()
-        case "editing":
+        case "editing", "editing-saving", "editing-refused":
             BrowseDemo.editing(in: app)
+            if scene == "editing-saving" { app.browser?.editSession.showSavingForDemo(progress: 0.42) }
+            if scene == "editing-refused" { app.browser?.editSession.message = String(localized: "That name is already taken.") }
+        case "rename-archive", "save-changes":
+            // The prompts File › Rename Archive… and closing with unsaved edits show, on the editing scene.
+            BrowseDemo.editing(in: app)
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard let model = app.browser else { return }
+                let prompt: Prompt = scene == "rename-archive" ? .renameArchive(model.archive.name) : .saveChanges(model.archive.name)
+                _ = await Prompts.present(prompt, on: model.editingWindow)
+            }
         case "external":
             BrowseDemo.externalChange(in: app)
         case "checkup-format":
@@ -301,11 +316,34 @@ enum DemoScene {
             ]
             app.tray.selection = [app.tray.items[1].id, app.tray.items[2].id]
             app.tray.show()
+        case "tray-collect", "tray-failed":
+            app.tray.items = [
+                TrayItem(name: "Invoice October.pdf", size: 182_000),
+                TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
+                TrayItem(name: "Kickoff.key", size: 18_900_000),
+            ]
+            app.tray.show()
+            if scene == "tray-collect" {
+                app.tray.collectingName = String(localized: "New Folder")
+            } else {
+                app.tray.failure = Failure(String(localized: "This folder already has an item named “\(String(localized: "New Folder"))”."))
+            }
         default:
             break
         }
 
         if scene == "open" { BrowseDemo.apply(to: app) }
+
+        // `-StowViewMode grid|list|columns` and `-StowScrollToEnd YES`: check what floats over the last row.
+        if let mode = defaults.string(forKey: "StowViewMode").flatMap(BrowserModel.ViewMode.init(rawValue:)) {
+            app.browser?.viewMode = mode
+        }
+        if defaults.bool(forKey: "StowScrollToEnd") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(700))
+                app.browser?.scrollTarget = app.browser?.visibleEntries.last?.id
+            }
+        }
 
         if defaults.object(forKey: "StowInspector") != nil {
             app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
