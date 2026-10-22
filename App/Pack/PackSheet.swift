@@ -303,9 +303,13 @@ private struct Token<Items: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 1) {
-            if isEnabled { menu } else { fixed }
-            if !suffix.isEmpty { Text(suffix) }
+        if isEnabled {
+            HStack(spacing: 1) {
+                menu
+                if !suffix.isEmpty { Text(suffix) }
+            }
+        } else {
+            fixed
         }
     }
 
@@ -332,9 +336,10 @@ private struct Token<Items: View>: View {
     }
 
     /// A word this format decides ("as one file" for a DMG): plain sentence text, not a faded
-    /// button. The reason is in the tooltip and spoken after it.
+    /// button, with its punctuation attached in the same colour. The reason is in the tooltip
+    /// and spoken after it.
     private var fixed: some View {
-        Text(title)
+        Text(title + suffix)
             .foregroundStyle(contrastStyle.increased ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             .id(title)
             .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
