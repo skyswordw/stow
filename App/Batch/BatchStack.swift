@@ -45,7 +45,7 @@ struct BatchStack: View {
         }
         .padding(Space.m)
         .frame(width: 320)
-        .glassEffect(.regular, in: .rect(cornerRadius: Radius.panel))
+        .accessibleGlass(in: .rect(cornerRadius: Radius.panel))
     }
 
     private var header: String {
@@ -100,6 +100,7 @@ private struct BatchRow: View {
             switch job.phase {
             case .waiting, .running:
                 Button("Stop", systemImage: "xmark") { queue.cancel(job.id) }
+                    .accessibilityLabel(String(localized: "Stop"))
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
                     .help("Stop extracting “\(job.name)”")
@@ -108,10 +109,12 @@ private struct BatchRow: View {
                     Button(action.title, systemImage: action.symbol) { queue.follow(action, for: job.id) }
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
+                        .accessibilityLabel(action.title)
                         .help(action.title)
                 }
             case .done where !job.placed.isEmpty:
                 Button("Show in Finder", systemImage: "folder") { queue.showInFinder(job.id) }
+                    .accessibilityLabel(String(localized: "Show in Finder"))
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
                     .help("Show in Finder")
@@ -119,7 +122,7 @@ private struct BatchRow: View {
                 EmptyView()
             }
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .contextMenu {
             if case .failed(let failure) = job.phase {
                 Button("Copy Error Details (\(failure.code.description))") { ErrorReport.Copyable(failure).copy() }

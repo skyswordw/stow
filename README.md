@@ -193,6 +193,7 @@ Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKe
 | `App/Welcome` | Empty state / drop target |
 | `website/` | Marketing site, deployed with the rendered docs to GitHub Pages (`scripts/build-site.py`, `.github/workflows/pages.yml`) |
 | `ROADMAP.md` | Follow-up plan: remaining features, design polish, release work, and tests not yet run |
+| `RELEASING.md` | Signed, notarized release builds: secrets, `scripts/package.sh`, the Release workflow |
 | `.claude/skills` | Project-level agent skills (design engineering, Apple design, Swift) — MIT, © Emil Kowalski |
 
 ## License

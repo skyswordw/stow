@@ -37,7 +37,7 @@ struct PackSheet: View {
         }
         .padding(Space.xxl)
         .frame(minWidth: 580)
-        .animation(Motion.token, value: options)
+        .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.token, reduceMotion: reduceMotion), value: options)
         .onAppear(perform: restore)
         .onDisappear {
             if !handedOffCleanup, let directory = request.cleanupDirectory { try? FileManager.default.removeItem(at: directory) }
@@ -88,7 +88,8 @@ struct PackSheet: View {
                 Button("With a password") { options.usesPassword = true }
             }
         case .split:
-            Token(title: options.split.phrase, suffix: suffix) {
+            Token(title: options.split.phrase, suffix: suffix, isEnabled: options.format.supportsSplit,
+                  disabledHelp: String(localized: "A \(options.format.displayName) is always one file")) {
                 ForEach(SplitSize.allCases) { split in
                     Button(split.phrase.prefix(1).uppercased() + split.phrase.dropFirst()) { options.split = split }
                 }
@@ -114,7 +115,7 @@ struct PackSheet: View {
 
     private var passwordField: some View {
         HStack(spacing: Space.s) {
-            Image(systemName: "key.fill").foregroundStyle(.secondary)
+            Image(systemName: "key.fill").accessibilityHidden(true).foregroundStyle(.secondary)
             SecureField("Password", text: $password)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
@@ -123,7 +124,7 @@ struct PackSheet: View {
         }
         // Slides down from the sentence that asked for it; goes faster than it came.
         .transition(AnyTransition.asymmetric(insertion: reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)),
-                                removal: .opacity.animation(Motion.resolved(Motion.exit, reduceMotion: reduceMotion))))
+                                removal: .opacity.animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.exit, reduceMotion: reduceMotion))))
     }
 
     // MARK: More options
@@ -230,7 +231,7 @@ struct PackSheet: View {
         }
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
-        options.split = SettingsKeys.splitSize()
+        options.split = options.format.supportsSplit ? SettingsKeys.splitSize() : .none
         // Design review: -StowPackDetails YES opens both disclosures.
         if UserDefaults.standard.bool(forKey: "StowPackDetails") { showDetails = true; showMore = true }
     }
@@ -291,6 +292,8 @@ struct PackSheet: View {
 
 /// A sentence word you can change. Looks like text, behaves like a menu.
 private struct Token<Items: View>: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let title: String
     var suffix = ""
     var isEnabled = true
@@ -312,7 +315,7 @@ private struct Token<Items: View>: View {
         } label: {
             Text(title)
                 .fontWeight(.semibold)
-                .foregroundStyle(isEnabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
+                .foregroundStyle(isEnabled ? AnyShapeStyle(.tint) : contrastStyle.metadata)
                 .id(title)
                 // Blur-replace scales a little, so Reduce Motion gets the cross-fade alone.
                 .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
@@ -331,6 +334,8 @@ private struct Token<Items: View>: View {
 }
 
 private struct ReportView: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let report: PackReport
     let audience: Audience
     @Binding var overrides: [String: String]
@@ -386,9 +391,9 @@ private struct ReportView: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                             .help(rename.path)
-                        Image(systemName: "arrow.right")
+                        Image(systemName: "arrow.right").accessibilityHidden(true)
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(contrastStyle.metadata)
                         TextField(rename.suggested, text: binding(for: rename))
                             .textFieldStyle(.roundedBorder)
                     }

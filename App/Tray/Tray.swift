@@ -130,14 +130,14 @@ final class TrayController {
         panel.border = SettingsKeys.trayBorder()
         let final = frame()
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        panel.setFrame(reduceMotion ? final : final.offsetBy(dx: 0, dy: 16), display: false)
+        panel.setFrame(reduceMotion || Motion.byKeyboard ? final : final.offsetBy(dx: 0, dy: 16), display: false)
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         isShown = true
         touch()
         startIdleTimer()
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.28
+            context.duration = Motion.byKeyboard ? 0 : reduceMotion ? 0.15 : 0.28
             context.timingFunction = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1) // strong ease-out
             panel.animator().setFrame(final, display: true)
             panel.animator().alphaValue = 1
@@ -152,9 +152,9 @@ final class TrayController {
         if QLPreviewPanel.sharedPreviewPanelExists(), QLPreviewPanel.shared().isVisible { QLPreviewPanel.shared().orderOut(nil) }
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.18 // leaving is faster than arriving
+            context.duration = Motion.byKeyboard ? 0 : reduceMotion ? 0.1 : 0.18 // leaving is faster than arriving
             context.timingFunction = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1)
-            if !reduceMotion { panel.animator().setFrame(panel.frame.offsetBy(dx: 0, dy: 16), display: true) }
+            if !reduceMotion && !Motion.byKeyboard { panel.animator().setFrame(panel.frame.offsetBy(dx: 0, dy: 16), display: true) }
             panel.animator().alphaValue = 0
         } completionHandler: {
             panel.orderOut(nil)
@@ -476,6 +476,7 @@ struct TrayView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(SettingsKeys.trayBorder) private var borderName = TrayBorder.accent.rawValue
     @State private var isTargeted = false
+    @FocusState private var focusedRow: UUID?
 
     private var border: TrayBorder { TrayBorder(rawValue: borderName) ?? .accent }
 
@@ -489,7 +490,7 @@ struct TrayView: View {
             if !tray.items.isEmpty { footer }
         }
         .frame(width: 300, height: 440)
-        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .accessibleGlass(in: .rect(cornerRadius: 24))
         .overlay {
             RoundedRectangle(cornerRadius: 24)
                 .strokeBorder(border.color.opacity(isTargeted ? 1 : 0.45), lineWidth: isTargeted ? 2 : 1)
@@ -511,11 +512,13 @@ struct TrayView: View {
         HStack(spacing: Space.s) {
             if let title = tray.folderTitle {
                 Button("Back", systemImage: "chevron.left") { tray.goBack() }
+                    .accessibilityLabel(String(localized: "Back"))
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
-                Text(title).font(.headline).lineLimit(1).truncationMode(.middle)
+                    .help("See the previous place")
+                Text(title).font(.headline).lineLimit(1).truncationMode(.middle).accessibilityAddTraits(.isHeader)
             } else {
-                Text("Tray").font(.headline)
+                Text("Tray").font(.headline).accessibilityAddTraits(.isHeader)
                 if !tray.items.isEmpty {
                     Text("\(tray.items.count)")
                         .font(.caption.weight(.semibold))
@@ -531,13 +534,16 @@ struct TrayView: View {
                 Label("Keep Tray Open", systemImage: tray.isPinned ? "pin.fill" : "pin")
             }
             .toggleStyle(.button)
+            .accessibilityLabel(String(localized: "Keep Tray Open"))
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
             .help(tray.isPinned ? String(localized: "The Tray stays open") : String(localized: "Keep the Tray open"))
             Button("Close", systemImage: "xmark") { tray.hide() }
+                .accessibilityLabel(String(localized: "Close"))
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
                 .keyboardShortcut(.cancelAction)
+                .help("Close")
         }
         .padding(.horizontal, Space.l)
         .padding(.top, Space.l)
@@ -546,7 +552,7 @@ struct TrayView: View {
 
     private var empty: some View {
         VStack(spacing: Space.s) {
-            Image(systemName: "tray.and.arrow.down")
+            Image(systemName: "tray.and.arrow.down").accessibilityHidden(true)
                 .font(.system(size: 34, weight: .light))
                 .foregroundStyle(.secondary)
             Text(tray.folderTitle == nil ? LocalizedStringKey("Drop files here to gather them") : LocalizedStringKey("This folder is empty"))
@@ -586,7 +592,7 @@ struct TrayView: View {
             VStack(spacing: Space.xs) {
                 ForEach(tray.visibleItems) { item in
                     TrayRow(tray: tray, item: item, isSelected: tray.selection.contains(item.id),
-                            canRemove: tray.folderTitle == nil)
+                            canRemove: tray.folderTitle == nil, focusedRow: $focusedRow)
                 }
             }
             .padding(.horizontal, Space.s)
@@ -627,8 +633,11 @@ struct TrayView: View {
             .menuStyle(.button)
             .buttonStyle(.glass)
             .labelStyle(.iconOnly)
+            .accessibilityLabel(String(localized: "More"))
+            .help("More")
             .fixedSize()
             Button("Pack", systemImage: "archivebox") { tray.pack() }
+                .accessibilityLabel(String(localized: "Pack"))
                 .buttonStyle(.glassProminent)
         }
         .controlSize(.large)
@@ -637,15 +646,20 @@ struct TrayView: View {
 }
 
 private struct TrayRow: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let tray: TrayController
     let item: TrayItem
     let isSelected: Bool
     let canRemove: Bool
     @State private var isHovering = false
+    var focusedRow: FocusState<UUID?>.Binding
+    private var isFocused: Bool { focusedRow.wrappedValue == item.id }
 
     var body: some View {
         HStack(spacing: Space.s) {
             TrayThumbnail(item: item)
+                .accessibilityHidden(true)
                 .frame(width: 30, height: 30)
             VStack(alignment: .leading, spacing: 0) {
                 Text(item.name).font(.callout).lineLimit(1).truncationMode(.middle)
@@ -654,14 +668,16 @@ private struct TrayRow: View {
             }
             Spacer(minLength: 0)
             if item.isFolder {
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                Image(systemName: "chevron.right").accessibilityHidden(true).font(.caption).foregroundStyle(contrastStyle.metadata)
             }
             if canRemove {
                 Button("Remove", systemImage: "minus.circle.fill") { tray.remove(item) }
+                    .accessibilityLabel(String(localized: "Remove"))
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
-                    .opacity(isHovering ? 1 : 0)
+                    .opacity(isHovering || isFocused ? 1 : 0)
+                    .help("Remove")
             }
         }
         .padding(Space.s)
@@ -672,6 +688,27 @@ private struct TrayRow: View {
             isHovering = hovering
             if hovering { tray.hoveredRow = item.id } else if tray.hoveredRow == item.id { tray.hoveredRow = nil }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel([item.name, item.isFolder ? String(localized: "Folder") : item.size.bytes].joined(separator: ", "))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityAction { tray.open(item) }
+        // The hover-only Remove button is invisible to VoiceOver until hovered; offer it as an action.
+        .accessibilityActions {
+            if canRemove { Button("Remove") { tray.remove(item) } }
+        }
+        .focusable()
+        .focused(focusedRow, equals: item.id)
+        .onChange(of: isFocused) { _, focused in
+            if focused { tray.click(item, command: false, shift: false) }
+        }
+        .onKeyPress(keys: [.upArrow, .downArrow]) { press in
+            guard let index = tray.visibleItems.firstIndex(where: { $0.id == item.id }) else { return .ignored }
+            let next = min(max(index + (press.key == .upArrow ? -1 : 1), 0), tray.visibleItems.count - 1)
+            focusedRow.wrappedValue = tray.visibleItems[next].id
+            return .handled
+        }
+        .onKeyPress(.return) { tray.open(item); return .handled }
+        .onKeyPress(.space) { tray.quickLook(); return .handled }
         .onTapGesture(count: 2) { tray.open(item) }
         .simultaneousGesture(TapGesture().onEnded {
             let flags = NSEvent.modifierFlags

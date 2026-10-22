@@ -9,6 +9,8 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
     case copyTo(folder: String)
     case openInside
     case quickLook
+    /// The selection, packed into a new archive with the Pack sentence.
+    case pack
     case extract
 
     var id: Self { self }
@@ -21,6 +23,7 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         case .copyTo(let folder): String(localized: "Copy to “\((folder as NSString).lastPathComponent)”")
         case .openInside: String(localized: "Open Inside")
         case .quickLook: String(localized: "Quick Look")
+        case .pack: String(localized: "Pack…")
         case .extract: String(localized: "Extract")
         }
     }
@@ -33,6 +36,7 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         case .copyTo: "folder.badge.plus"
         case .openInside: "rectangle.stack"
         case .quickLook: "eye"
+        case .pack: "archivebox"
         case .extract: "arrow.down.to.line"
         }
     }
@@ -43,6 +47,7 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         case .installFonts, .moveToApplications, .openInstaller: .install
         case .copyTo: .copy
         case .openInside, .quickLook: .open
+        case .pack: .pack
         case .extract: .extract
         }
     }
@@ -54,6 +59,7 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         case .moveToApplications: String(localized: "Installing")
         case .copyTo: String(localized: "Copying")
         case .openInstaller, .openInside, .quickLook: String(localized: "Opening")
+        case .pack: String(localized: "Preparing")
         case .extract: String(localized: "Extracting")
         }
     }
@@ -65,33 +71,16 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         case .copyTo(let folder): String(localized: "Copied to \(FileManager.default.displayName(atPath: folder))")
         case .openInstaller: String(localized: "Opened in Installer")
         case .openInside, .quickLook: String(localized: "Opened")
+        case .pack: String(localized: "Ready to pack")
         case .extract: String(localized: "Extracted to Downloads")
         }
     }
 
     /// At most two suggestions, then Extract. Specific beats generic. `dropTargets` are a disk
-    /// image's "drag here" shortcuts (`DiskImageLayout`).
+    /// image's "drag here" shortcuts (`DiskImageLayout`). Next Steps itself lays out
+    /// `NextStepsSettings.layout(for:)`, which also offers Pack and honours Settings.
     static func suggestions(for entries: [ArchiveEntry], dropTargets: [DiskImageLayout.DropTarget] = []) -> [NextStep] {
-        guard !entries.isEmpty else { return [] }
-        let kinds = entries.map(\.kind)
-        var steps: [NextStep] = []
-
-        if kinds.allSatisfy({ $0 == .font }) {
-            steps.append(.installFonts(count: entries.count))
-        } else if entries.count == 1 {
-            switch kinds[0] {
-            case .app: steps.append(.moveToApplications)
-            case .installer: steps.append(.openInstaller)
-            case .archive: steps.append(.openInside)
-            default:
-                if let target = dropTargets.first(where: { $0.folder != "/Applications" }) {
-                    steps.append(.copyTo(folder: target.folder))
-                }
-            }
-        }
-        if kinds.contains(where: \.isPreviewable) {
-            steps.append(.quickLook)
-        }
-        return Array(steps.prefix(2)) + [.extract]
+        let steps = applicable(for: entries, dropTargets: dropTargets).filter { $0 != .pack && $0 != .extract }
+        return entries.isEmpty ? [] : Array(steps.prefix(2)) + [.extract]
     }
 }

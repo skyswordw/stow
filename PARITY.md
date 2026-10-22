@@ -33,14 +33,14 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Icon, list, **column** views | ✅ icons, list, columns (⌘1 ⌘2 ⌘3) | Column view has a preview column with the file's real content |
 | Folder navigation, back/forward history, Up One Level, path bar | ✅ | ⌘[ ⌘] ⌘↑ ⌘↓; going back selects where you came from; the path bar spans nested archives |
 | Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ✅ | Grid: arrows by row/column, ⇧ extends, ⌘/⇧ click, marquee (⇧/⌘ adds), type-to-select, Return opens, Space Quick Look. No animation on keyboard moves |
-| Archive search by name **or path**, background full-file index with progress | ✅ | Terms match anywhere in the path (“docs/ handoff”), case/accent/width-insensitive, name matches first. Index builds in the background in chunks; the search field reads “Indexing… 12,000 of 40,000” and results grow while you keep browsing. ⬜ search across nested archives |
+| Archive search by name **or path**, background full-file index with progress | ✅ | Terms match anywhere in the path (“docs/ handoff”), case/accent/width-insensitive, name matches first. Index builds in the background in chunks; the search field reads “Indexing… 12,000 of 40,000” and results grow while you keep browsing. ✅ search across nested archives: one level in, read once into the preview cache, matches listed as “Inner.7z/path”, Show opens the inner archive with the match selected; password-protected inner archives are skipped |
 | Nested archives opened in place, depth limit, encrypted nested containers | ✅ | Depth limit 8. Passwords through an injectable `PasswordHook` (wire to the password sheet when that branch merges); without it, “needs a password” is reported |
 | Archive details / inspector, archive overview | ✅ | ➕ Checkup; inspector shows real previews, several selected stack real thumbnails |
 | Show/hide macOS auxiliary items (__MACOSX, .DS_Store) | ✅ View › Show macOS Helper Items (⌘⇧.) | Hidden by default, dimmed when shown, never extracted |
 | Mixed / legacy filename encodings (GBK etc.), garbled-name repair | ✅ | ➕ Raw name bytes come from a second listing under a Latin-1 locale, so nothing is lost; each name is read in the encoding that suits it (mixed archives read right), a banner says how, and Read Names As… previews every encoding live. Extraction renames to the shown names |
 | Extension ≠ real format detection; ZIP with prepended/appended data; SFX RAR/7Z | ✅ | Checkup says it in words: “Named .zip, but it’s really 7Z”, “Self-extracting 7Z archive” (stub size, never run), extra data before/after the archive (left out when extracting). ZIP with raw prepended data whose offsets weren't adjusted opens only behind a program's extension (.exe) — that's 7-Zip's rule |
 | Lazy browsing of huge archives (browse before index finishes) | ✅ | 100,500 entries open in 2.8 s (Release; 7-Zip's own listing is ~0.9 s of that), browse at once while search indexes (0.18 s). Scrolling 100,000 items: grid median 4.0 ms / p95 6.3 ms of main-thread work per step, list median 5.3 ms / p95 8.2 ms (`-StowScrollBenchmark`). ⬜ stream the listing itself |
-| iCloud placeholders: wait for download, cancel | ⬜ | |
+| iCloud placeholders: wait for download, cancel | 🧪 (pending verification) | Placeholders (iCloud's not-downloaded status, or a File Provider's dataless file) are asked for, then a card shows the progress iCloud reports (a moving bar when it doesn't) with Cancel; opens when the file is here |
 | Open Recent menu, clear history | 🎨 recents are sample · ⬜ | |
 | Read-only preview of DMG/ISO (mount read-only, verify, skip installer extras like the Applications alias) | ✅ through the engine, no mounting (HFS+, APFS, ISO; zlib/LZFSE/LZMA) | ➕ nothing is attached, so nothing to detach or report busy; opens at the volume with the app selected; background art, volume icon and "drag here" shortcuts hidden and left out; checksums checked in the background; encrypted images explained with an Open in Finder way out; unfinished downloads caught |
 | Compressed tarballs; documents that are ZIPs | ✅ | ➕ .tar.gz/.tgz/.tar.xz/.tar.bz2/.tar.zst/.tar.lz… browse as the tar inside (two 7zz piped, nothing written to disk), so the inner-.tar fallback no longer shows for them. ➕ “Show Package Contents” on .docx/.xlsx/.pptx/.epub/.pages opens them as the ZIPs they are |
@@ -66,7 +66,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | After Extract All: keep / move archive to Trash / ask | ✅ with “Don’t ask again” | |
 | Auto-close window after extract / install | ✅ setting | |
 | Same-name folder conflicts: Merge / Keep Both; file Replace | ✅ Merge / Keep Both; Replace / Keep Both / Skip; “do the same for the rest” | ➕ replaced items go to the Trash; stopping undoes everything placed so far; apps are never merged |
-| Skip system metadata (__MACOSX, AppleDouble, .DS_Store, Thumbs.db, desktop.ini) while keeping dotfiles like .gitignore | ✅ setting, on by default | ➕ Finder tags, comments and other Mac details in AppleDouble are put back on the files |
+| Skip system metadata (__MACOSX, AppleDouble, .DS_Store, Thumbs.db, desktop.ini) while keeping dotfiles like .gitignore | ✅ setting, on by default | ➕ Finder tags, comments and other Mac details in AppleDouble are put back on the files, from every format a Mac writes them into (ZIP, 7Z, TAR and compressed TARs), also when extracting one folder |
 | Unsafe paths, special files (FIFO, sockets, devices), links | ✅ containment | ➕ explained in Checkup |
 | Password archives (incl. RAR), incorrect-password retry, CJK passwords (show-password for IME) | ✅ sheet with retry for opening (encrypted 7z file lists), extracting and nested archives; password kept in memory while the archive is open · 🧪 (pending verification) show-password-by-default setting | ZIP passwords outside ASCII get a warning when packing |
 | Batch extraction queue, stacked progress windows | ✅ File › Extract Archives… or drop several; compact progress stack | conflicts and keep/trash asked once per batch |
@@ -87,7 +87,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Verify integrity after creating | ✅ More Options | Failed test keeps nothing |
 | CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · 🧪 Settings UI (pending verification) | |
 | Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
-| Create disk image (DMG) | ⬜ | (string present in ArcZip; low priority) |
+| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | HFS+ via `hdiutil makehybrid` (no mounting, so it works in the sandbox), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); no password or split yet |
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.
@@ -115,7 +115,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Install fonts (OTF/TTF/TTC) to user library, replace existing | ✅ Replace / Skip | web fonts reported as not installable |
 | PKG: prepare safely, hand off to Installer | ✅ unpacked beside the archive, removed when Installer quits | |
 | After install: keep/trash archive, close window | ✅ | |
-| Alternative actions list; customise which actions show; restore suggestions | ⬜ | |
+| Alternative actions list; customise which actions show; restore suggestions | ✅ More menu (⋯) on Next Steps; Settings › Next Steps | every step that applies is in More with the menu bar's icons and keys, hidden ones included; show or hide each step, or Next Steps itself; Restore Defaults ➕ Pack… for a selection (off by default) |
 
 ## 7. Compact window (ArcZip “Mini”) → **Glance**
 
@@ -145,7 +145,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | File associations UI: choose formats, set/restore default app, report result | ✅ model + view · 🧪 Settings host (pending verification) | ➕ remembers each type's previous app; reports refusals and types macOS kept |
 | Launch at login, Dock icon hides with last window | ✅ (opt-in) | login item shows macOS's real status |
 | URL scheme for extension → app hand-off (one-time requests) | ✅ | ➕ 128-bit one-time tokens, 60 s, no paths in URLs |
-| Reading files dropped from other apps (WeChat etc.), permission guidance | ⬜ | |
+| Reading files dropped from other apps (WeChat etc.), permission guidance | 🧪 (pending verification) | ➕ promised drops (Mail attachments, chat files) are received into Stow's own folder, emptied at launch; unreadable files in another app's storage say which app and how to save a copy, with Show in Finder |
 
 ## 10. Settings, onboarding, maintenance
 

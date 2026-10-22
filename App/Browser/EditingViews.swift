@@ -34,6 +34,7 @@ private struct RenameField: NSViewRepresentable {
         field.isBezeled = true
         field.bezelStyle = .roundedBezel
         field.focusRingType = .default
+        field.setAccessibilityLabel(String(localized: "Rename"))
         DispatchQueue.main.async { [weak field] in
             guard let field, let window = field.window else { return }
             window.makeFirstResponder(field)
@@ -69,7 +70,7 @@ struct UnsavedChangesBar: View {
         }
         .disabled(model.editSession.isSaving)
         .padding(.horizontal, Space.m).padding(.vertical, Space.s)
-        .background(.bar)
+        .accessibleBar()
     }
 }
 
@@ -78,7 +79,7 @@ struct ExternalChangeBar: View {
     let model: BrowserModel
     var body: some View {
         HStack {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: "exclamationmark.triangle.fill").accessibilityHidden(true)
                 .foregroundStyle(.yellow)
             Text(EditSession.changedOnDiskSummary)
                 .font(.callout)
@@ -89,7 +90,7 @@ struct ExternalChangeBar: View {
         }
         .disabled(model.editSession.isSaving)
         .padding(.horizontal, Space.m).padding(.vertical, Space.s)
-        .background(.bar)
+        .accessibleBar()
     }
 }
 

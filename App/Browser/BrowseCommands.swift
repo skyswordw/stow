@@ -23,6 +23,12 @@ struct BrowseCommands: Commands {
                 Button("Extract and Repack as ZIP or 7Z…") { if let browser { app.extractAndRepack(browser) } }
             }
         }
+        CommandGroup(after: .newItem) {
+            // Next Steps' Extract, here too so ⌘E works with Next Steps turned off.
+            Button("Extract") { browser?.run(.extract) }
+                .keyboardShortcut("e")
+                .disabled(browser?.selection.isEmpty != false || browser?.activity != nil)
+        }
         CommandGroup(after: .pasteboard) {
             // Keep menu invocations available in read-only archives so they explain the refusal;
             // item context menus disable mutations and expose the same reason as help.

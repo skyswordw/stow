@@ -1,6 +1,486 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Copy to Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝到文件夹"
+          }
+        }
+      }
+    },
+    "Customize Next Steps…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义“下一步”…"
+          }
+        }
+      }
+    },
+    "For any selection: pack it into a new archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何所选项：压缩成新的压缩包"
+          }
+        }
+      }
+    },
+    "For any selection: the main button": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何所选项：主按钮"
+          }
+        }
+      }
+    },
+    "Install Fonts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装字体"
+          }
+        }
+      }
+    },
+    "More actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作"
+          }
+        }
+      }
+    },
+    "More actions for the selection": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项的更多操作"
+          }
+        }
+      }
+    },
+    "Next Steps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一步"
+          }
+        }
+      }
+    },
+    "Next Steps floats above the files you select and offers the right next step. When it’s off, every action is still in the menus.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“下一步”浮在你选择的文件上方，提供合适的下一步操作。关闭后，所有操作仍在菜单中。"
+          }
+        }
+      }
+    },
+    "Next Steps shows up to two suggestions beside Extract, most specific first. Steps you turn off stay in its More menu.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“下一步”在“解压缩”旁最多显示两个建议，最具体的排在前面。关闭的操作仍在它的“更多”菜单中。"
+          }
+        }
+      }
+    },
+    "Preparing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在准备"
+          }
+        }
+      }
+    },
+    "Ready to pack": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可以压缩了"
+          }
+        }
+      }
+    },
+    "Restore Defaults": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原默认设置"
+          }
+        }
+      }
+    },
+    "Show Next Steps when you select something": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择项目时显示“下一步”"
+          }
+        }
+      }
+    },
+    "Suggested Steps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议的操作"
+          }
+        }
+      }
+    },
+    "When a disk image says where an item goes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘映像指明项目的去处时"
+          }
+        }
+      }
+    },
+    "When an app is selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择 App 时"
+          }
+        }
+      }
+    },
+    "When an archive is selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择压缩包时"
+          }
+        }
+      }
+    },
+    "When an installer package is selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择安装包时"
+          }
+        }
+      }
+    },
+    "When everything selected is a font": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项全部是字体时"
+          }
+        }
+      }
+    },
+    "When something can be previewed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有可预览的项目时"
+          }
+        }
+      }
+    },
+    "%lld items inside other archives — open one to act on it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个项目位于其他压缩包中——打开压缩包后才能操作"
+          }
+        }
+      }
+    },
+    "Inside": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所在压缩包"
+          }
+        }
+      }
+    },
+    "Inside another archive — open it to preview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位于另一个压缩包中——打开它即可预览"
+          }
+        }
+      }
+    },
+    "Looking inside %lld more archives…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在查看另外 %lld 个压缩包…"
+          }
+        }
+      }
+    },
+    "Looking inside 1 more archive…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在查看另外 1 个压缩包…"
+          }
+        }
+      }
+    },
+    "Show in “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在“%@”中显示"
+          }
+        }
+      }
+    },
+    "in %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位于 %@"
+          }
+        }
+      }
+    },
+    "A %@ is always one file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 始终是单个文件"
+          }
+        }
+      }
+    },
+    "Couldn’t make the disk image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法制作磁盘映像"
+          }
+        }
+      }
+    },
+    "Double-clicking it shows the files in Finder; permissions and links stay. Windows and Linux need an extra app to open it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连按即可在“访达”中看到其中的文件，权限和链接都会保留。Windows 和 Linux 需要额外的应用才能打开。"
+          }
+        }
+      }
+    },
+    "Opens like a disk on any Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任何 Mac 上都能像磁盘一样打开"
+          }
+        }
+      }
+    },
+    "DingTalk": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钉钉"
+          }
+        }
+      }
+    },
+    "It’s kept in %@’s own storage, which macOS keeps private. In %@, save it to Downloads or drag it to the desktop, then open that copy in Stow.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它保存在 %1$@ 自己的存储空间中，macOS 不允许其他应用读取。请在 %2$@ 中将它存到“下载”文件夹或拖到桌面，然后在 Stow 中打开那个副本。"
+          }
+        }
+      }
+    },
+    "Lark": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飞书"
+          }
+        }
+      }
+    },
+    "Mail": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邮件"
+          }
+        }
+      }
+    },
+    "Messages": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信息"
+          }
+        }
+      }
+    },
+    "Photos": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片"
+          }
+        }
+      }
+    },
+    "QQ": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QQ"
+          }
+        }
+      }
+    },
+    "Stow isn’t allowed to read “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 无权读取“%@”"
+          }
+        }
+      }
+    },
+    "Telegram": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telegram"
+          }
+        }
+      }
+    },
+    "WeChat": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "微信"
+          }
+        }
+      }
+    },
+    "WeCom": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "企业微信"
+          }
+        }
+      }
+    },
+    "macOS didn’t give Stow access to it. Drag it onto Stow from Finder, or choose it with File › Open Archive…, and macOS lets Stow read it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 没有允许 Stow 访问它。请从访达把它拖到 Stow 上，或通过“文件 › 打开压缩包…”选择它，macOS 就会允许 Stow 读取。"
+          }
+        }
+      }
+    },
+    "Downloading “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下载“%@”"
+          }
+        }
+      }
+    },
+    "Downloading “%@” from iCloud": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在从 iCloud 下载“%@”"
+          }
+        }
+      }
+    },
+    "It isn’t on this Mac yet. Stow opens it as soon as the download finishes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它还不在这台 Mac 上。下载完成后，Stow 会立即打开它。"
+          }
+        }
+      }
+    },
+    "“%@” couldn’t be downloaded: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法下载“%1$@”：%2$@"
+          }
+        }
+      }
+    },
     "Couldn’t read the TAR to compress.": {
       "localizations": {
         "zh-Hans": {
@@ -1324,6 +1804,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%lld percent": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "百分之 %lld"
           }
         }
       }
@@ -3099,6 +3589,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "文件名也已加密。请在 Stow 中打开并输入密码以查看内容。"
+          }
+        }
+      }
+    },
+    "Every other step for the selection, and Customize Next Steps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项目的其他所有操作，以及“自定义‘下一步’”"
           }
         }
       }
@@ -5239,6 +5739,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "预览"
+          }
+        }
+      }
+    },
+    "Progress": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "进度"
           }
         }
       }
@@ -8211,16 +8721,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已替换"
-          }
-        }
-      }
-    },
-    "Add Files…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加文件…"
           }
         }
       }

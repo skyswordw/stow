@@ -77,17 +77,17 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 
 | Item | Notes |
 | --- | --- |
-| Next Steps: list of alternative actions, customise which show, restore suggestions | ArcZip "Flow" settings |
+| Next Steps: list of alternative actions, customise which show, restore suggestions | done (#20): a More menu (⋯) on the capsule lists every other step that applies; Settings › Next Steps shows or hides each step (or Next Steps itself) and restores the defaults |
 | Checkup: warn when the extension doesn't match the real format (ZIP with prepended data, SFX) | done (#16): Checkup names the real format, self-extracting stubs, and data before or after the archive |
-| iCloud placeholders: wait for download, cancel | `DownloadCheck` covers browser downloads only |
+| iCloud placeholders: wait for download, cancel | built (#18), pending a real iCloud check: opening a placeholder asks for the download, shows its progress and opens when it's here; Cancel or Escape stops waiting |
 | Open Recent menu with clear history | welcome window "Recent" still shows sample names |
-| Search across nested archives | today search covers the open level |
+| Search across nested archives | done (#21): search reads the archives inside the open one (one level, up to 40 archives / 512 MB each / 2 GB total), lists matches under the archive’s name, and Show opens it with the match selected; deeper levels: open the inner archive and search again |
 | Streaming listings beyond ~100k entries | 100,500 entries open in 2.8 s today |
-| Reading files dropped from other apps (e.g. WeChat) with permission guidance | |
+| Reading files dropped from other apps (e.g. WeChat) with permission guidance | built (#19), pending a real WeChat/Mail check: archives an app only promises during a drag are received first; a file macOS won't let Stow read gets plain words naming the app (`OPN-101`) and how to get a copy |
 | Error details with codes for bug reports | done (#14): every failure has a stable code (`EXT-120`, see [ERROR-CODES.md](ERROR-CODES.md)) and Copy Details |
-| Create disk images (DMG) | low priority |
+| Create disk images (DMG) | done (#23): Pack › DMG for Macs; hdiutil `makehybrid` (HFS+) then `convert` by level, one folder’s contents at the top like Finder; follow-ups: password (AES), APFS, custom window layout / Applications link |
 | TAR.ZST creation | done: 7-Zip writes the TAR, Stow's linked zstd 1.5.7 compresses it (Linux audience, splits into volumes, verified by 7-Zip) |
-| Restore Mac metadata on Stow's own extraction | done for `__MACOSX` AppleDouble; check Finder comments on every format |
+| Restore Mac metadata on Stow's own extraction | done (#17): Finder comments and tags come back from ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ/ZST, for Extract All, one file or one folder (`__MACOSX` and inline `._` companions). Not carried: disk images (7-Zip leaves out their attributes) and Linux `tar --xattrs` headers |
 
 ## Design polish (applies across waves)
 
@@ -97,7 +97,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Welcome window | Feels empty at large sizes: real Open Recent, a smaller drop target, a quieter title bar. |
 | Motion audit | Run the `review-animations` skill over every transition; enforce DESIGN.md (no animation on keyboard actions, exits faster than entrances, springs only where touched). |
 | Consistency | One progress capsule style for packing, extracting, installing and batch; one prompt style for conflicts, signatures and passwords. |
-| Accessibility | VoiceOver labels and rotor order on every screen; full keyboard path; Reduce Motion, Reduce Transparency and Increase Contrast checked per screen. |
+| Accessibility | done (#29): composed VoiceOver labels (grid, list, columns, Glance, Tray, nested search results, Next Steps summary), headers for the rotor, reading order sidebar → content → inspector → Next Steps, keyboard paths (Tray rows, onboarding, Quick Look); no animation for keyboard actions, solid surfaces under Reduce Transparency, stronger outlines and metadata under Increase Contrast. Manual VoiceOver checklist in #66 / #38 |
 | Empty and error states | Every failure says what happened and what to do, in plain words, with one action. |
 | Website | Real product video of Pack and Checkup; screenshots refreshed from the release build. |
 
@@ -105,12 +105,12 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 
 | Item | Why |
 | --- | --- |
-| Developer ID signing and notarization | Gatekeeper; also unlocks App Group containers (the Finder hand-off uses a private pasteboard because ad-hoc builds can't) |
-| Universal 2 build (arm64 + x86_64) | only Apple-silicon builds have been made |
-| Signed DMG + GitHub Releases + Sparkle appcast | first public download |
-| Homebrew cask | `brew install --cask stow` |
+| Developer ID signing and notarization | Gatekeeper; also unlocks App Group containers (the Finder hand-off uses a private pasteboard because ad-hoc builds can't). Pipeline in place (#32): `scripts/package.sh`, `scripts/verify-app-bundle.sh` and the **Release** workflow sign inside-out, notarize and staple; see [RELEASING.md](RELEASING.md). Still to do: notarization secrets, the first notarized build on a clean Mac (Tests #17), the App Group hand-off |
+| Universal 2 build (arm64 + x86_64) | done (#33): Release builds `$(ARCHS_STANDARD)` for every target; CI's `universal` job builds Release and `scripts/check-universal.sh` fails unless the app, StowEngine.xpc, its 7zz and both extensions carry arm64 and x86_64, then runs the x86_64 7zz under Rosetta. A full x86_64 test run is a manual `workflow_dispatch` option |
+| Signed DMG + GitHub Releases + Sparkle appcast | first public download. DMG + draft GitHub release done in the **Release** workflow (#34); `scripts/generate-appcast.sh` is a hook until Sparkle (#35) |
+| Homebrew cask | template and tooling done (#36): `packaging/homebrew/stow.rb`, `scripts/render-cask.sh` and the `Homebrew cask` workflow fill in version + DMG checksum per release, audit, and install/uninstall once. Still to do: the first signed release DMG (#32, #34), then publish to a tap (or homebrew/cask under a non-conflicting token — `stow` is a homebrew/core formula) |
 | CI | `.github/workflows/ci.yml` builds and tests every push and PR to main on GitHub's `xcode-27` runner (preview image: macOS 27, Xcode 27). Fails if 7zz is missing or any test is skipped. Still to do: release builds, signing, and moving off the preview image once it is GA. |
-| Fuzzing | malformed ZIP/7Z/RAR/TAR/DMG inputs against the engine (crash and containment) |
+| Fuzzing | done (#37): `Tests/FuzzTests.swift` mutates ZIP, 7Z, TAR (.gz/.bz2/.xz), RAR 4/5 and DMG seeds (truncation, bit flips, header/trailer corruption, huge length fields, splices, zero runs) and checks that 7zz never crashes or hangs, the engine only fails cleanly and survives, and extraction stays inside its folder; plus libarchive's malformed-RAR regressions. ~15 mutants per seed on every CI run; `.github/workflows/fuzz.yml` runs hundreds weekly and on demand, keeping any failing input |
 
 ---
 
@@ -152,9 +152,9 @@ have **not** been done and must be before a 1.0:
 | 12 | Archives of several GB, low disk space, and the engine's temporary copy while packing | packing needs space for the input plus the archive |
 | 13 | SMB/NAS and iCloud Drive locations (open, extract, pack, rename) | not tested |
 | 14 | Real-world corpus: multi-part RAR5, self-extracting EXE, ZIPs from Windows/Linux tools, legacy encodings beyond the fixtures | fixtures are synthetic |
-| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | not audited |
-| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | no hardware run |
+| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | automated parts covered (#29); the manual VoiceOver/keyboard/display-settings checklist is on #38 |
+| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | the universal Release build is checked in CI (#33) and the test suite passed as x86_64 under Rosetta, but the x86_64 7zz dies with "Illegal instruction" under Rosetta; nothing has run on real Intel hardware or on macOS 26.0 |
 | 17 | Signed/notarized build behaviour (Gatekeeper on extracted apps, extensions, App Group hand-off) | only ad-hoc builds exist |
-| 18 | Fuzzing malformed archives | not started |
+| 18 | Fuzzing malformed archives | automated (#37): a deterministic set on every CI run, a longer weekly run (`fuzz.yml`). Still open: a sustained multi-hour run with no findings, and coverage-guided fuzzing of Stow's own parsers (AppleDouble, tar headers) |
 | 19 | Website in Safari, Firefox and on real phones | checked in one desktop browser engine and a 375 px emulation |
 | 20 | CI | runs on GitHub's `xcode-27` runner (`.github/workflows/ci.yml`); ad-hoc signed, so signed-build behaviour is still item 17 |

@@ -1,0 +1,107 @@
+# Homebrew cask (#36). Renders packaging/homebrew/stow.rb with the version and DMG checksum of a
+# release, audits it, installs and uninstalls it once, and uploads the cask as an artifact.
+# It never pushes to a tap or to homebrew/homebrew-cask: a person commits the rendered file.
+# On pull requests it checks the template with a stand-in DMG (style + offline audit only).
+name: Homebrew cask
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the leading v (e.g. 1.0.0); the release must have Stow-<version>.dmg
+        required: true
+  pull_request:
+    paths:
+      - "packaging/homebrew/**"
+      - "scripts/render-cask.sh"
+      - ".github/workflows/homebrew-cask.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cask:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Render the cask
+        id: render
+        env:
+          EVENT: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          case "$EVENT" in
+            release) version=${RELEASE_TAG#v}; scripts/render-cask.sh "$version" --repo "$GITHUB_REPOSITORY" ;;
+            workflow_dispatch) version=${INPUT_VERSION#v}; scripts/render-cask.sh "$version" --repo "$GITHUB_REPOSITORY" ;;
+            *)
+              # No release exists yet (signing and the release DMG are #32/#34): a stand-in disk
+              # image proves the template renders; nothing is downloaded or installed.
+              version=0.1.0
+              mkdir -p build
+              mkdir -p build/dmg-src/Stow.app/Contents
+              hdiutil create -quiet -srcfolder build/dmg-src -volname Stow -format UDZO -ov build/Stow-$version.dmg
+              scripts/render-cask.sh "$version" --dmg build/Stow-$version.dmg
+              ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          cat build/homebrew/stow.rb
+
+      - name: Audit in a scratch tap
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          brew tap-new --no-git stow-ci/local
+          tap=$(brew --repository stow-ci/local)
+          mkdir -p "$tap/Casks"
+          cp build/homebrew/stow.rb "$tap/Casks/stow.rb"
+          brew style --cask stow-ci/local/stow
+          if [[ "$EVENT" == pull_request ]]; then
+            brew audit --cask stow-ci/local/stow
+          else
+            brew audit --cask --online stow-ci/local/stow
+          fi
+
+      - name: Install and uninstall once
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          set -euo pipefail
+          brew install --cask stow-ci/local/stow
+          test -d /Applications/Stow.app
+          codesign --verify --deep --strict /Applications/Stow.app
+          brew uninstall --cask --zap stow-ci/local/stow
+          test ! -e /Applications/Stow.app
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Rendered cask (version ${{ steps.render.outputs.version }})"
+            echo
+            echo '```ruby'
+            cat build/homebrew/stow.rb 2>/dev/null || echo "(not rendered)"
+            echo '```'
+            echo
+            echo "Commit it to the tap by hand; this workflow never publishes."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: homebrew-cask
+          path: build/homebrew/stow.rb
+          retention-days: 30
