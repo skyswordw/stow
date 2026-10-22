@@ -8,7 +8,9 @@
 #
 # Environment (all optional):
 #   VERSION            marketing version; default MARKETING_VERSION from project.yml
-#   BUILD_NUMBER       CFBundleVersion; default CURRENT_PROJECT_VERSION from project.yml
+#   BUILD_NUMBER       CFBundleVersion, what Sparkle compares (#35), so it must only go up between
+#                      releases; default the commit count of HEAD (`git rev-list --count`, monotonic on
+#                      main), else CURRENT_PROJECT_VERSION from project.yml in a shallow clone
 #   SIGN_IDENTITY      codesign identity (name or SHA-1). Unset: the first "Developer ID Application"
 #                      identity in the keychain search list, else ad-hoc. "-" forces an ad-hoc dry run.
 #   TEAM_ID            expected Team ID of the Developer ID identity (checked by the verify script)
@@ -29,7 +31,14 @@ die()  { if [[ -n "${GITHUB_ACTIONS:-}" ]]; then echo "::error::$*"; else echo "
 setting() { sed -n "s/^ *$1: *\"\{0,1\}\([^\"]*\)\"\{0,1\} *$/\1/p" project.yml | head -1; }
 VERSION=${VERSION:-$(setting MARKETING_VERSION)}
 VERSION=${VERSION#v}
-BUILD_NUMBER=${BUILD_NUMBER:-$(setting CURRENT_PROJECT_VERSION)}
+if [[ -z "${BUILD_NUMBER:-}" ]]; then
+  if [[ $(git rev-parse --is-shallow-repository 2>/dev/null || echo true) == false ]]; then
+    BUILD_NUMBER=$(git rev-list --count HEAD)
+  else
+    BUILD_NUMBER=$(setting CURRENT_PROJECT_VERSION)
+    warn "shallow or no git history: build number $BUILD_NUMBER from project.yml (pass BUILD_NUMBER for a real release)"
+  fi
+fi
 [[ $VERSION =~ ^[0-9]+(\.[0-9]+){1,3}([-.][0-9A-Za-z.]+)?$ ]] || die "bad VERSION '$VERSION'"
 [[ $BUILD_NUMBER =~ ^[0-9]+(\.[0-9]+)*$ ]] || die "bad BUILD_NUMBER '$BUILD_NUMBER'"
 OUT_DIR=${OUT_DIR:-build/release}
@@ -126,7 +135,23 @@ while IFS= read -r -d '' sz; do
 done < <(find "$APP" -type f -name 7zz -print0)
 # 2. Loose dylibs and frameworks, if any package ever embeds one.
 while IFS= read -r -d '' lib; do sign "$lib"; done < <(find "$APP" -type f -name '*.dylib' -print0)
-# 3. Bundles, deepest first (QuickLook's private StowEngine.xpc before the appex, the app last).
+# 3. Sparkle (#35), as sparkle-project.org/documentation/sandboxing prescribes: its helpers run
+#    outside Stow's sandbox, so they get no Stow entitlements; Downloader.xpc keeps the (empty)
+#    entitlements Sparkle ships. Helpers first, then the framework.
+sparkle="$APP/Contents/Frameworks/Sparkle.framework"
+if [[ -d $sparkle ]]; then
+  sv="$sparkle/Versions/$(readlink "$sparkle/Versions/Current")"
+  for helper in "$sv/XPCServices/Installer.xpc" "$sv/XPCServices/Downloader.xpc" "$sv/Autoupdate" "$sv/Updater.app"; do
+    [[ -e $helper ]] || die "Sparkle is missing ${helper#"$sparkle"/}"
+  done
+  sign "$sv/XPCServices/Installer.xpc"
+  sign "$sv/XPCServices/Downloader.xpc" --preserve-metadata=entitlements
+  sign "$sv/Autoupdate"
+  sign "$sv/Updater.app"
+  sign "$sparkle"
+  echo "    signed ${sparkle#"$OUT_DIR"/} (Installer.xpc, Downloader.xpc, Autoupdate, Updater.app)"
+fi
+# 4. Our bundles, deepest first (QuickLook's private StowEngine.xpc before the appex, the app last).
 i=0
 while IFS= read -r bundle; do
   i=$((i + 1))
@@ -135,7 +160,7 @@ while IFS= read -r bundle; do
     *) entitlements_of "$bundle" "$ent_dir/$i.plist"; sign "$bundle" --entitlements "$ent_dir/$i.plist" ;;
   esac
   echo "    signed ${bundle#"$OUT_DIR"/}"
-done < <(find "$APP/Contents" -type d \( -name '*.xpc' -o -name '*.appex' -o -name '*.framework' -o -name '*.app' \) \
+done < <(find "$APP/Contents" -path "$sparkle" -prune -o -type d \( -name '*.xpc' -o -name '*.appex' -o -name '*.framework' -o -name '*.app' \) -print \
            | awk -F/ '{ print NF "\t" $0 }' | sort -rn | cut -f2-)
 entitlements_of "$APP" "$ent_dir/app.plist"
 sign "$APP" --entitlements "$ent_dir/app.plist"

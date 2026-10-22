@@ -47,6 +47,14 @@ final class AppState {
                                                queue: .main) { _ in MainActor.assumeIsolated { PackageHandoff.removeAll() } }
     }
 
+    /// Extracting, packing, opening or a browser action is running. Updates wait for it (#35), and
+    /// Settings holds off cleaning temporary files.
+    var isBusy: Bool {
+        if packing.isRunning || batch.isActive || isOpening { return true }
+        if case .running = browser?.activity?.phase { return true }
+        return false
+    }
+
     /// Lists a real archive through the engine and shows it in the browser.
     func open(_ url: URL) {
         guard !isOpening else { return }
@@ -358,6 +366,11 @@ struct StowCommands: Commands {
     let app: AppState
 
     var body: some Commands {
+        // Sparkle (#35). Read here, in the Commands body, so the item enables once the updater starts.
+        CommandGroup(after: .appInfo) {
+            Button("Check for Updates…") { AppUpdater.shared.checkForUpdates() }
+                .disabled(!AppUpdater.shared.isAvailable)
+        }
         CommandGroup(replacing: .newItem) {
             Button("New Archive…") { app.chooseFilesToPack() }
                 .keyboardShortcut("n")

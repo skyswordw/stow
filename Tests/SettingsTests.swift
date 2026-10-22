@@ -21,7 +21,7 @@ struct SettingsTests {
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
                 "browse.hoverPreviews", "password.showByDefault", "glance.openFromFinder", "glance.pinned",
                 "tray.menuBarIcon", "tray.showWhileDragging", "tray.idleSeconds", "tray.border", "tray.pinned",
-                "nextSteps.shown", "nextSteps.hidden",
+                "nextSteps.shown", "nextSteps.hidden", "SUEnableAutomaticChecks", "SUAutomaticallyUpdate",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]
             let keys = SettingsKeys.resettable.map(\.key)

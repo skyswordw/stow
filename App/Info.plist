@@ -181,6 +181,18 @@
 			</array>
 		</dict>
 	</array>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUEnableDownloaderService</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUEnableSystemProfiling</key>
+	<false/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/skyswordw/stow/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>w/8KK7rFz8EqDr/3GTf/oncwRrzfnsh1Jucno8bdKMo=</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>

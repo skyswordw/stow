@@ -30,6 +30,12 @@ packages:
   zstd:
     url: https://github.com/facebook/zstd
     exactVersion: 1.5.7
+  # Sparkle (MIT) for in-app updates (#35): a prebuilt XCFramework, pinned. Its helpers (Installer
+  # and Downloader XPC services, Autoupdate, Updater.app) sit inside Sparkle.framework; package.sh
+  # signs them inside-out. scripts/generate-appcast.sh uses this release's sign_update.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
 targets:
   Stow:
     type: application
@@ -57,6 +63,7 @@ targets:
       - target: StowFinderSync
       - package: zstd
         product: libzstd
+      - package: Sparkle
     # Merged with the generated Info.plist. Every type here mirrors Shared/ArchiveTypes.swift
     # (a test checks); the second document type is Alternate so Stow never takes over disk images
     # or installers unless people choose it in File Types.
@@ -64,6 +71,18 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleLocalizations: [en, zh-Hans]
+        # Sparkle (#35, App/Updates/). The feed is the appcast.xml attached to the latest *published*
+        # GitHub release, so drafts never reach anyone. SUPublicEDKey is the public half of Stow's own
+        # EdDSA key; the private half is only the SPARKLE_ED_PRIVATE_KEY Actions secret.
+        # Sandboxed: the installer launcher service (+ the mach-lookup exceptions in Stow.entitlements)
+        # installs outside the sandbox, and the downloader service keeps Stow itself off the network.
+        SUFeedURL: https://github.com/skyswordw/stow/releases/latest/download/appcast.xml
+        SUPublicEDKey: "w/8KK7rFz8EqDr/3GTf/oncwRrzfnsh1Jucno8bdKMo="
+        SUEnableInstallerLauncherService: true
+        SUEnableDownloaderService: true
+        SUEnableAutomaticChecks: true
+        # Update checks never send a system profile.
+        SUEnableSystemProfiling: false
         # Only ever carries a one-time token from the Finder extension — see Handoff/Handoff.swift.
         CFBundleURLTypes:
           - CFBundleURLName: app.stow.handoff

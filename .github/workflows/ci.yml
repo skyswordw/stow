@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # The total this branch reports (341 after the accessibility pass). Raise it when tests are added;
+          # The total this branch reports (350 after Sparkle updates, #35). Raise it when tests are added;
           # a lower total means suites went missing.
-          MIN_TESTS: "341"
+          MIN_TESTS: "350"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
@@ -203,6 +203,18 @@ jobs:
           SIGN_IDENTITY=- PREBUILT_APP=build/DerivedData/Build/Products/Release/Stow.app \
             OUT_DIR=build/package-dry-run scripts/package.sh
 
+      # #35: the appcast path without Stow's key. A throwaway EdDSA key signs the dry-run DMG with
+      # Sparkle's sign_update; CryptoKit checks the signature and the feed must be well-formed.
+      - name: Appcast dry run (throwaway key)
+        run: |
+          set -euo pipefail
+          key=$(head -c 32 /dev/urandom | base64)
+          echo "::add-mask::$key"
+          dmg=$(ls build/package-dry-run/Stow-*-unsigned.dmg)
+          DRY_RUN=1 REQUIRE_APPCAST=1 SPARKLE_ED_PRIVATE_KEY="$key" scripts/generate-appcast.sh "$dmg"
+          cat build/package-dry-run/appcast.xml
+          xmllint --noout build/package-dry-run/appcast.xml
+
       # Informational: Rosetta is not an Intel Mac. 7-Zip's x86_64 build picks code paths from CPUID,
       # and Rosetta doesn't run all of them, so a failure here is a warning; real Intel hardware is
       # ROADMAP Tests #16.
@@ -259,5 +271,6 @@ jobs:
             build/*.log
             build/Stow-x86_64.xcresult
             build/package-dry-run/*.dmg
+            build/package-dry-run/appcast.xml
           retention-days: 14
 

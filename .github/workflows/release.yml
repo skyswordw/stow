@@ -7,8 +7,10 @@
 #   signing      DEVELOPER_ID_P12_BASE64, DEVELOPER_ID_P12_PASSWORD, DEVELOPER_ID_IDENTITY,
 #                APPLE_TEAM_ID, KEYCHAIN_PASSWORD
 #   notarization ASC_API_KEY_ID, ASC_API_ISSUER_ID, ASC_API_KEY_P8_BASE64
+#   updates      SPARKLE_ED_PRIVATE_KEY (Stow's own EdDSA key; the public half is SUPublicEDKey)
 # Missing signing secrets → an ad-hoc dry run; missing notarization secrets → signed, not
-# notarized, and no draft release. Pull requests always get the ad-hoc dry run (no secrets used).
+# notarized, and no draft release; missing SPARKLE_ED_PRIVATE_KEY → no appcast.xml on the draft.
+# Pull requests always get the ad-hoc dry run (no secrets used).
 name: Release
 
 on:
@@ -18,7 +20,7 @@ on:
         description: Version without the leading v (e.g. 0.1.0). Empty = MARKETING_VERSION from project.yml
         required: false
       build-number:
-        description: CFBundleVersion. Empty = this workflow's run number
+        description: CFBundleVersion (Sparkle compares it; must exceed the last release's). Empty = commit count of the ref
         required: false
       draft-release:
         description: Attach a notarized DMG to a DRAFT release v<version> (never published)
@@ -51,6 +53,8 @@ jobs:
       XCODE_APP: /Applications/Xcode_27.app
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the build number is the commit count
 
       - name: Select Xcode
         run: |
@@ -70,7 +74,11 @@ jobs:
           elif [[ -n "$INPUT_VERSION" ]]; then version=${INPUT_VERSION#v}
           else version=$(sed -n 's/^ *MARKETING_VERSION: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' project.yml | head -1); fi
           [[ $version =~ ^[0-9]+(\.[0-9]+){1,3}([-.][0-9A-Za-z.]+)?$ ]] || { echo "::error::bad version '$version'"; exit 1; }
-          build=${INPUT_BUILD:-$GITHUB_RUN_NUMBER}
+          # Sparkle offers an update only when CFBundleVersion goes up. The commit count only grows on
+          # main and is reproducible locally (package.sh uses the same); generate-appcast.sh also
+          # refuses a build number that isn't above the published appcast's.
+          build=${INPUT_BUILD:-$(git rev-list --count HEAD)}
+          [[ $build =~ ^[0-9]+$ ]] || { echo "::error::bad build number '$build'"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "build=$build" >> "$GITHUB_OUTPUT"
           echo "Stow $version ($build)"
@@ -208,11 +216,20 @@ jobs:
           scripts/package.sh
           cat build/release/package.env >> "$GITHUB_OUTPUT"
 
-      # Hook for #35: skips (exit 0) until Sparkle and Stow's own EdDSA key (SPARKLE_ED_PRIVATE_KEY,
-      # not created yet) exist. Never reuse another app's Sparkle key.
-      - name: Sparkle appcast (hook for #35)
+      # #35: signs the notarized DMG with Stow's own EdDSA key and writes build/release/appcast.xml,
+      # which the draft release carries. Skips (with a notice) when SPARKLE_ED_PRIVATE_KEY is unset;
+      # with the key, any problem (wrong key for SUPublicEDKey, build number not above the published
+      # appcast's) fails the run. The key only reaches this step, on stdin of sign_update.
+      - name: Sparkle appcast
+        id: appcast
         if: ${{ steps.package.outputs.mode == 'notarized' }}
-        run: scripts/generate-appcast.sh "${{ steps.package.outputs.dmg }}"
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          DMG: ${{ steps.package.outputs.dmg }}
+        run: |
+          set -euo pipefail
+          scripts/generate-appcast.sh "$DMG"
+          if [[ -f build/release/appcast.xml ]]; then echo "made=true" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/upload-artifact@v6
         if: always()
@@ -258,10 +275,14 @@ jobs:
         env:
           MODE: ${{ steps.package.outputs.mode }}
           VERSION: ${{ steps.version.outputs.version }}
+          BUILD: ${{ steps.version.outputs.build }}
           DMG: ${{ steps.package.outputs.dmg }}
+          APPCAST: ${{ steps.appcast.outputs.made }}
         run: |
           {
-            echo "### Stow $VERSION — ${MODE:-failed}"
+            echo "### Stow $VERSION ($BUILD) — ${MODE:-failed}"
+            if [[ "$APPCAST" == true ]]; then echo "Sparkle appcast.xml signed (on the draft release when one is made; it reaches people only once the release is published)."
+            elif [[ "$MODE" == notarized ]]; then echo "No appcast.xml (SPARKLE_ED_PRIVATE_KEY not set): Stow can't offer this release as an update."; fi
             case "$MODE" in
               notarized) echo "Signed, notarized and stapled. Draft release only when requested; nothing is published." ;;
               signed)    echo "Developer ID signed but **not notarized** (App Store Connect API key secrets missing). Not for distribution." ;;

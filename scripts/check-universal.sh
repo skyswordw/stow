@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Asserts that every Mach-O binary inside a built Stow.app (the app, StowEngine.xpc and its 7zz,
-# the Quick Look and Finder extensions, any embedded frameworks) carries both arm64 and x86_64.
+# the Quick Look and Finder extensions, Sparkle.framework and its helpers) carries both arm64 and x86_64.
 # Usage: scripts/check-universal.sh path/to/Stow.app   (macOS only: needs file(1) and lipo)
 set -euo pipefail
 
@@ -31,7 +31,12 @@ for expected in Contents/MacOS/Stow \
                 Contents/XPCServices/StowEngine.xpc/Contents/MacOS/StowEngine \
                 Contents/XPCServices/StowEngine.xpc/Contents/MacOS/7zz \
                 Contents/PlugIns/StowQuickLook.appex/Contents/MacOS/StowQuickLook \
-                Contents/PlugIns/StowFinderSync.appex/Contents/MacOS/StowFinderSync; do
+                Contents/PlugIns/StowFinderSync.appex/Contents/MacOS/StowFinderSync \
+                Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle \
+                Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate \
+                Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater \
+                Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer \
+                Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader; do
   [[ -x "$app/$expected" ]] || { echo "::error::$expected is missing from the bundle"; failed=$((failed + 1)); }
 done
 

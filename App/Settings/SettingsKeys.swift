@@ -16,6 +16,9 @@ nonisolated enum SettingsKeys {
     static let trayPinned = "tray.pinned"
     static let nextStepsShown = "nextSteps.shown"
     static let nextStepsHidden = "nextSteps.hidden"
+    /// Sparkle reads and writes these itself; Stow only resets them.
+    static let updatesAutomaticallyCheck = "SUEnableAutomaticChecks"
+    static let updatesAutomaticallyDownload = "SUAutomaticallyUpdate"
 
     enum Appearance: String, CaseIterable, Sendable { case system, light, dark }
     enum DefaultValue: Equatable, Sendable {
@@ -63,7 +66,10 @@ nonisolated enum SettingsKeys {
         .init(key: trayBorder, defaultValue: .string(TrayBorder.accent.rawValue)),
         .init(key: trayPinned, defaultValue: .bool(false)),
         .init(key: nextStepsShown, defaultValue: .bool(true)),
-        .init(key: nextStepsHidden, defaultValue: .string(NextStepsSettings.encode(NextStepsSettings.defaultHidden)))
+        .init(key: nextStepsHidden, defaultValue: .string(NextStepsSettings.encode(NextStepsSettings.defaultHidden))),
+        // Sparkle's own keys (#35): resetting falls back to Info.plist (check daily, ask before installing).
+        .init(key: updatesAutomaticallyCheck, defaultValue: .bool(true)),
+        .init(key: updatesAutomaticallyDownload, defaultValue: .bool(false))
     ] + Audience.allCases.map {
         Entry(key: "PackLevel.\($0.rawValue)", defaultValue: .integer(Int64(CompressionLevel.balanced.rawValue)))
     }

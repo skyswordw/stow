@@ -156,7 +156,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Password field: show by default (for CJK input) | 🧪 pending verification | |
 | Advanced: temp-file usage & cleanup, reset all preferences | 🧪 pending verification | |
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |
-| Updates: automatic check, install after tasks finish | ⬜ | |
+| Updates: automatic check, install after tasks finish | 🧪 pending verification | Sparkle 2.10 (#35): Check for Updates…, General › Updates (check / download automatically), relaunch held until running tasks finish; appcast on GitHub Releases. First real update needs two published releases |
 | Open-source licence viewer | 🧪 pending verification | |
 | Native dialogs, detailed error codes + request IDs for support | ✅ codes + Copy Details | Stable `AREA-NNN` codes ([ERROR-CODES.md](ERROR-CODES.md)) on every failure card, failed capsule and batch row (right-click); Copy Details copies code, what people saw, the error's own words and domain/code chain, Stow and macOS versions and the time. No request IDs: Stow has no server to correlate them with |
 
