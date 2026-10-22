@@ -9336,6 +9336,26 @@
           }
         }
       }
+    },
+    "Extracting…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在解压缩…"
+          }
+        }
+      }
+    },
+    "This sample file has no content to preview.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个示例文件没有可预览的内容。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -805,8 +805,6 @@ final class BrowserModel {
     func toggleQuickLook() {
         if quickLook.isVisible {
             quickLook.close()
-        } else if archive.source == nil {
-            if !selection.isEmpty { run(.quickLook) }
         } else if !selection.isEmpty {
             quickLook.show()
         }
@@ -933,6 +931,11 @@ final class BrowserModel {
         lastRun = { [weak self] in self?.run(step, on: again) }
         guard archive.source != nil else {
             if step == .pack { return packSample(items) }
+            // The sample's files are in the app: Quick Look shows them for real.
+            if step == .quickLook {
+                if let entries { select(Set(entries.map(\.id))) }
+                return quickLook.show()
+            }
             simulate(step, itemCount: items.count)
             return
         }
