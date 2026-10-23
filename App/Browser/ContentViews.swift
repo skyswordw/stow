@@ -194,7 +194,10 @@ private struct GridTile: View {
             }
         }
         .contentShape(.rect)
-        .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
+        // The explicit label already describes the tile. Do not also merge its children:
+        // SwiftUI can recursively resolve the merged label when AX activates a selected tile.
+        // Keep the native rename field exposed while editing.
+        .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .ignore)
         .accessibilityLabel(model.accessibilityLabel(for: entry))
         .accessibilityAction { model.select([entry.id]); model.open(entry) }
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
