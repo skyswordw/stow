@@ -73,7 +73,8 @@ struct StreamingListingTests {
         #expect(!first.isEmpty)
         #expect(parser.takeEntries().isEmpty)
         parser.consume(data.suffix(from: data.count / 2))
-        let final = try #require(parser.finish())
+        let finished = parser.finish()
+        let final = try #require(finished)
         let rest = parser.takeEntries()
         #expect(first + rest == final.listing.entries)
         #expect(final.legacy == [4])
@@ -90,7 +91,8 @@ struct StreamingListingTests {
             #expect(chunk.count == 16)
             entries += chunk
         }
-        let final = try #require(parser.finish())
+        let finished = parser.finish()
+        let final = try #require(finished)
         let remainder = parser.takeEntries()
         #expect(remainder.count == 13)
         #expect(entries + remainder == final.listing.entries)
@@ -116,7 +118,8 @@ struct StreamingListingTests {
             parser.consume(bytes.subdata(in: start..<min(start + 4_096, bytes.count)))
             entries += parser.takeEntries()
         }
-        let final = try #require(parser.finish())
+        let finished = parser.finish()
+        let final = try #require(finished)
         entries += parser.takeEntries()
         #expect(entries == final.listing.entries)
         #expect(entries == SevenZip.parseListing(text)?.entries)
