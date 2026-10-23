@@ -133,8 +133,8 @@ for p in "${code[@]}"; do
     fail "$rel: has get-task-allow (notarization rejects it)"
   fi
   rm -f "$entfile"
-  grep -q 'flags=.*runtime' <<<"$info" || fail "$rel: hardened runtime is off"
   if [[ $mode != adhoc ]]; then
+    grep -q 'flags=.*runtime' <<<"$info" || fail "$rel: hardened runtime is off"
     grep -q '^Authority=Developer ID Application:' <<<"$info" || fail "$rel: not signed with a Developer ID Application certificate"
     grep -q '^Timestamp=' <<<"$info" || fail "$rel: no secure timestamp"
     if [[ -n $TEAM_ID ]]; then

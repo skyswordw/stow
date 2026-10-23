@@ -32,6 +32,7 @@ on:
     paths:
       - ".github/workflows/release.yml"
       - "scripts/package.sh"
+      - "scripts/smoke-test-app.py"
       - "scripts/verify-app-bundle.sh"
       - "scripts/generate-appcast.sh"
       - "project.yml"

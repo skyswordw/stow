@@ -117,7 +117,10 @@ sign() { # <path> [extra codesign args…]
   if (( signed )); then
     codesign --force --sign "$SIGN_IDENTITY" ${keychain_args[@]+"${keychain_args[@]}"} --options runtime --timestamp "$@" "$path"
   else
-    codesign --force --sign - --options runtime --timestamp=none "$@" "$path"
+    # Ad-hoc code has no Team ID. Hardened runtime's library validation therefore rejects even
+    # an ad-hoc Sparkle signed alongside the app. This local/CI artifact is never distributed;
+    # Developer ID releases above always retain hardened runtime and library validation.
+    codesign --force --sign - --options 0 --timestamp=none "$@" "$path"
   fi
 }
 # Entitlements Xcode gave a bundle (ENABLE_APP_SANDBOX and friends), minus debug-only keys.
@@ -208,6 +211,7 @@ fi
 # --- Verify ------------------------------------------------------------------------------------
 mode=adhoc; (( signed )) && mode=signed; (( notarize )) && mode=notarized
 TEAM_ID="$TEAM_ID" scripts/verify-app-bundle.sh --mode "$mode" "$APP" "$DMG"
+python3 scripts/smoke-test-app.py "$APP"
 
 (cd "$OUT_DIR" && shasum -a 256 "$(basename "$DMG")" > "$(basename "$DMG").sha256")
 {
