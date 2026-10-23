@@ -63,6 +63,8 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
 
     func close() {
         guard isVisible else { return }
+        loads?.cancel()
+        loads = nil
         panel?.orderOut(nil)
     }
 
@@ -102,7 +104,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
                 guard let model, !Task.isCancelled else { return }
                 let url: URL
                 do throws(EngineError) {
-                    url = try await model.previews.file(for: item.entry, in: archive)
+                    url = try await model.previewFile(for: item.entry, in: archive)
                 } catch {
                     guard !Task.isCancelled, let self else { return }
                     item.url = Self.statusPage(for: item.entry, status: Self.message(for: error))

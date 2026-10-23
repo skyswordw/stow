@@ -196,6 +196,7 @@ struct GlanceView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigation) { ArchiveUnlockControl(model: model) }
         ToolbarItem(placement: .navigation) {
             ControlGroup {
                 Button("Back", systemImage: "chevron.left") { model.goBack() }

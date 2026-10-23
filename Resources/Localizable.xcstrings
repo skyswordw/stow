@@ -1,6 +1,96 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Unlock": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解锁"
+          }
+        }
+      }
+    },
+    "Its files are encrypted. Enter the password to preview or extract them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件内容已加密。请输入密码以预览或解压。"
+          }
+        }
+      }
+    },
+    "Enter Password…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入密码…"
+          }
+        }
+      }
+    },
+    "Cancel Unlocking": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消解锁"
+          }
+        }
+      }
+    },
+    "Checking the password — click to cancel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在验证密码，点击可取消"
+          }
+        }
+      }
+    },
+    "Unlock Archive…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解锁压缩包…"
+          }
+        }
+      }
+    },
+    "Password Available": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码可用"
+          }
+        }
+      }
+    },
+    "Enter the archive’s password to preview or extract files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入压缩包密码以预览或解压文件"
+          }
+        }
+      }
+    },
+    "A password is available for this archive. Individual files may still ask for a different password.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已有此压缩包的密码。个别文件可能需要其他密码。"
+          }
+        }
+      }
+    },
     "%lld%% larger": {
       "localizations": {
         "zh-Hans": {

@@ -52,7 +52,7 @@ final class AppState {
     /// Extracting, packing, opening or a browser action is running. Updates wait for it (#35), and
     /// Settings holds off cleaning temporary files.
     var isBusy: Bool {
-        if packing.isRunning || batch.isActive || isOpening { return true }
+        if packing.isRunning || batch.isActive || isOpening || browser?.isUnlocking == true || passwords.question != nil { return true }
         if case .running = browser?.activity?.phase { return true }
         return false
     }

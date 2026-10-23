@@ -10,7 +10,7 @@ import Foundation
 @Observable
 final class PasswordPrompt {
     struct Question: Identifiable, Equatable {
-        enum Purpose { case open, extract }
+        enum Purpose { case open, extract, unlock }
 
         let id = UUID()
         let archiveName: String
@@ -60,6 +60,7 @@ final class PasswordPrompt {
         while true {
             do {
                 let value = try await operation(password)
+                if Task.isCancelled { throw EngineError(.cancelled) }
                 if let password, let vaultURL {
                     ArchivePasswordVault.remember(password, for: vaultURL)
                 }

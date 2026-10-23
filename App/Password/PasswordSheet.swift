@@ -36,7 +36,7 @@ struct PasswordSheet: View {
         } buttons: {
             Button("Cancel", role: .cancel) { answer(nil) }
                 .keyboardShortcut(.cancelAction)
-            Button(question.purpose == .open ? String(localized: "Open") : String(localized: "Extract"), action: submit)
+            Button(submitTitle, action: submit)
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.glassProminent)
                 .disabled(password.isEmpty)
@@ -48,6 +48,15 @@ struct PasswordSheet: View {
         switch question.purpose {
         case .open: String(localized: "Its list of files is encrypted. Enter the password to see what’s inside.")
         case .extract: String(localized: "Its files are encrypted. Enter the password to extract them.")
+        case .unlock: String(localized: "Its files are encrypted. Enter the password to preview or extract them.")
+        }
+    }
+
+    private var submitTitle: String {
+        switch question.purpose {
+        case .open: String(localized: "Open")
+        case .extract: String(localized: "Extract")
+        case .unlock: String(localized: "Unlock")
         }
     }
 

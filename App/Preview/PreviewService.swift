@@ -35,6 +35,14 @@ final class PreviewService {
     private var batchTask: Task<[String: URL], Never>?
     private var batchArchive: Archive.ID?
 
+    func passwordDidChange() {
+        failed.removeAll()
+        batchTask?.cancel()
+        batchTask = nil
+        batch = []
+        batchArchive = nil
+    }
+
     init(cache: PreviewCache = PreviewCache()) {
         self.cache = cache
         thumbnails.countLimit = 2_000
@@ -99,7 +107,7 @@ final class PreviewService {
             let password = password(archive)
             batchTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(25))
-                guard let self else { return [:] }
+                guard !Task.isCancelled, let self else { return [:] }
                 let entries = batch
                 batch = []
                 batchTask = nil
@@ -121,12 +129,13 @@ final class PreviewService {
 
     /// The entry on disk, extracting it if needed (Space, Open, nested archives).
     func file(for entry: ArchiveEntry, in archive: Archive,
+              using passwordOverride: String? = nil,
               onProgress: (@Sendable (Double) -> Void)? = nil) async throws(EngineError) -> URL {
         if let url = stagedSource(entry, archive) { return url }
         if let (original, base) = originalFile(entry, archive) {
-            return try await cache.file(for: original, in: base, password: password(archive), onProgress: onProgress)
+            return try await cache.file(for: original, in: base, password: passwordOverride ?? password(archive), onProgress: onProgress)
         }
-        return try await cache.file(for: entry, in: archive, password: password(archive), onProgress: onProgress)
+        return try await cache.file(for: entry, in: archive, password: passwordOverride ?? password(archive), onProgress: onProgress)
     }
 
     // MARK: - Rich previews
