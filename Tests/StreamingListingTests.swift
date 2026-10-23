@@ -138,53 +138,28 @@ struct StreamingListingTests {
     }
 
     @Test func cancellingAfterFirstChunkStopsRunningProcess() async throws {
+        // Bundled 7zz only (sandbox forbids compiling helpers). Cancel from the first chunk
+        // callback so the listing Task cannot finish the rest of a large archive first.
+        let sevenZip = try #require(SevenZip.bundled())
         let folder = try TemporaryFolder()
         defer { folder.cleanUp() }
-        // A real Mach-O (not a shebang script): posix_spawn with CLOEXEC_DEFAULT runs binaries
-        // reliably; cancellation must SIGTERM this PID rather than waiting out its sleep.
-        let output = "--\nType = tar\n\n----------\n"
-            + (0..<2_050).map { "Path = item-\($0)\nSize = 0\n\n" }.joined()
-        let fixture = folder.url.appending(path: "output.txt")
-        try output.write(to: fixture, atomically: true, encoding: .utf8)
-        let source = folder.url.appending(path: "slow-list.c")
-        let executable = folder.url.appending(path: "slow-list")
-        try """
-            #include <fcntl.h>
-            #include <stdio.h>
-            #include <stdlib.h>
-            #include <unistd.h>
-            int main(int argc, char **argv) {
-                const char *path = argc > 1 ? argv[argc - 1] : NULL;
-                if (!path) return 2;
-                int fd = open(path, O_RDONLY);
-                if (fd < 0) return 3;
-                char buf[4096];
-                ssize_t n;
-                while ((n = read(fd, buf, sizeof buf)) > 0) {
-                    if (fwrite(buf, 1, (size_t)n, stdout) != (size_t)n) return 4;
-                }
-                close(fd);
-                fflush(stdout);
-                sleep(30);
-                return 0;
-            }
-            """.write(to: source, atomically: true, encoding: .utf8)
-        let compiled = try Process.run(URL(filePath: "/usr/bin/cc"),
-                                     arguments: ["-Os", "-o", executable.path, source.path])
-        compiled.waitUntilExit()
-        try #require(compiled.terminationStatus == 0)
+        let archive = folder.url.appending(path: "big.tar")
+        try StreamingListingBenchmark.tar((0..<50_000).map { "Folder \($0 / 200)/Item \($0 % 200).txt" })
+            .write(to: archive)
         let (chunks, continuation) = AsyncStream<Int>.makeStream()
+        let listingTask = Mutex<Task<ArchiveListing, any Error>?>(nil)
         let task = Task {
             defer { continuation.finish() }
-            return try await SevenZip(executable: executable).list(.file(fixture)) {
-                continuation.yield($0.count)
+            return try await sevenZip.list(.file(archive)) { entries in
+                continuation.yield(entries.count)
+                listingTask.withLock { $0 }?.cancel()
             }
         }
+        listingTask.withLock { $0 = task }
         var iterator = chunks.makeAsyncIterator()
         let first = await iterator.next()
         #expect(first == 2_048)
         let start = ContinuousClock.now
-        task.cancel()
         do {
             _ = try await task.value
             Issue.record("Cancelled listing succeeded")
