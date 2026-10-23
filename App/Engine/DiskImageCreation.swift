@@ -95,11 +95,10 @@ enum DiskImageCreation {
                 if password != nil {
                     // Never fall back to an unencrypted image when the user asked for a password.
                     // Prefer hdiutil's own message when it said something useful.
-                    let detail = error.message?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let detail, !detail.isEmpty {
-                        throw EngineError(.failed, detail)
-                    }
-                    throw EngineError(.failed, String(localized: "Couldn’t make an encrypted disk image here. Try again outside a sandboxed build, or pack without a password."))
+                    let detail = error.message.trimmingCharacters(in: .whitespacesAndNewlines)
+                    throw EngineError(.failed, detail.isEmpty
+                        ? String(localized: "Couldn’t make an encrypted disk image here. Try again outside a sandboxed build, or pack without a password.")
+                        : detail)
                 }
                 // APFS without password: fall back to HFS+ hybrid so Pack still succeeds.
             }
@@ -235,17 +234,22 @@ private nonisolated final class RunningTool: @unchecked Sendable {
         if let password {
             let pipe = Pipe()
             inputPipe = pipe
-            // create -encryption reads the passphrase twice for confirmation.
-            let line = password + "\n"
-            passwordData = Data((confirmPassword ? line + line : line).utf8)
+            // -stdinpass reads a null-terminated passphrase (man hdiutil). A trailing
+            // newline would become part of the password. create may ask twice to confirm.
+            var data = Data(password.utf8)
+            data.append(0)
+            if confirmPassword {
+                data.append(Data(password.utf8))
+                data.append(0)
+            }
+            passwordData = data
             process.standardInput = pipe
         } else {
             inputPipe = nil
             passwordData = nil
             process.standardInput = FileHandle.nullDevice
         }
-
-                errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let chunk = handle.availableData
             if chunk.isEmpty {
                 handle.readabilityHandler = nil
@@ -261,7 +265,7 @@ private nonisolated final class RunningTool: @unchecked Sendable {
             do {
                 try process.run()
                 if let passwordData, let inputPipe {
-                    // Write then close so hdiutil sees EOF after the password line.
+                    // Write the null-terminated passphrase(s), then close so hdiutil sees EOF.
                     try inputPipe.fileHandleForWriting.write(contentsOf: passwordData)
                     try inputPipe.fileHandleForWriting.close()
                 }
