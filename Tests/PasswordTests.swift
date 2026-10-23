@@ -206,9 +206,12 @@ struct EncryptedArchiveTests {
         let prompt = PasswordPrompt()
         model.passwords = PasswordHook(prompt: prompt)
 
+        let app = AppState()
+        app.browser = model
         model.unlockArchive()
         let first = try await nextQuestion(from: prompt)
         #expect(first.purpose == .unlock)
+        #expect(app.isBusy)
         #expect(model.level.password == nil && model.previewRevision == 0)
         prompt.answer("guess", to: first.id)
         let retry = try await nextQuestion(from: prompt, after: first)
@@ -219,7 +222,7 @@ struct EncryptedArchiveTests {
         #expect(model.level.password == "swordfish")
         #expect(model.archive.source?.password == "swordfish")
         #expect(model.level.savedArchive.source?.password == "swordfish")
-        #expect(model.previewRevision == 1 && model.activity == nil)
+        #expect(model.previewRevision == 1 && model.activity == nil && !app.isBusy)
         let entry = try #require(model.archive.entry(at: "Docs/secret.txt"))
         let preview = try await model.previewFile(for: entry, in: model.archive)
         #expect(try String(contentsOf: preview, encoding: .utf8) == "top secret")
