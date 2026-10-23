@@ -6,7 +6,7 @@ import Testing
 struct ArchivePasswordVaultTests {
     /// Isolates the shared vault store and the remember-passwords preference for one test.
     private func withVault<T>(_ body: (MemoryArchivePasswordStore, UserDefaults, URL) throws -> T) throws -> T {
-        let folder = try TemporaryFolder()
+        let folder = try VaultableFolder()
         defer { folder.cleanUp() }
         let archive = folder.url.appending(path: "locked.7z")
         try Data("archive-bytes".utf8).write(to: archive)
@@ -32,7 +32,7 @@ struct ArchivePasswordVaultTests {
     }
 
     @Test func identityUsesPathSizeAndDate() throws {
-        let folder = try TemporaryFolder()
+        let folder = try VaultableFolder()
         defer { folder.cleanUp() }
         let url = folder.url.appending(path: "notes.zip")
         try Data("hello".utf8).write(to: url)
@@ -106,7 +106,7 @@ struct ArchivePasswordVaultTests {
 @MainActor
 struct PasswordPromptVaultTests {
     @Test func recallsSavedPasswordWithoutAsking() async throws {
-        let folder = try TemporaryFolder()
+        let folder = try VaultableFolder()
         defer { folder.cleanUp() }
         let archive = folder.url.appending(path: "locked.7z")
         try Data("bytes".utf8).write(to: archive)
@@ -133,7 +133,7 @@ struct PasswordPromptVaultTests {
     }
 
     @Test func savesSuccessfulPasswordWhenVaultIsOn() async throws {
-        let folder = try TemporaryFolder()
+        let folder = try VaultableFolder()
         defer { folder.cleanUp() }
         let archive = folder.url.appending(path: "locked.7z")
         try Data("bytes".utf8).write(to: archive)
@@ -164,7 +164,7 @@ struct PasswordPromptVaultTests {
     }
 
     @Test func dropsRejectedVaultPasswordAndAsksAgain() async throws {
-        let folder = try TemporaryFolder()
+        let folder = try VaultableFolder()
         defer { folder.cleanUp() }
         let archive = folder.url.appending(path: "locked.7z")
         try Data("bytes".utf8).write(to: archive)
@@ -197,6 +197,30 @@ struct PasswordPromptVaultTests {
         prompt.answer("swordfish", to: question.id)
         #expect(try await task.value.password == "swordfish")
         #expect(ArchivePasswordVault.recalled(for: archive) == "swordfish")
+    }
+}
+
+/// A directory outside `temporaryDirectory` so archives are vaultable (#76).
+///
+/// `TemporaryFolder` lives under the process temp root, which `ArchivePasswordIdentity`
+/// deliberately skips (preview / received-file drops). Tests that exercise remember/recall
+/// need a stable path — the sandboxed Caches directory is writable and vaultable.
+private struct VaultableFolder {
+    let url: URL
+
+    init() throws {
+        guard let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            throw EngineError(.failed, "Caches directory is unavailable")
+        }
+        url = caches.appending(path: "StowVaultTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        // Sanity: a regression that put vaultable tests back under temp would hang CI
+        // (`retrying` waits forever when remember/recall silently no-op).
+        precondition(ArchivePasswordIdentity.isVaultable(url.appending(path: "probe.zip")))
+    }
+
+    func cleanUp() {
+        try? FileManager.default.removeItem(at: url)
     }
 }
 
