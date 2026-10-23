@@ -151,30 +151,34 @@ enum DiskImageCreation {
     /// APFS via create -srcfolder. Attaches briefly; fails inside the App Sandbox.
     private static func createAPFS(from volume: URL, named volumeName: String, into image: URL,
                                    level: CompressionLevel, password: String?) async throws(EngineError) {
-        var arguments = ["create", "-quiet", "-ov", "-volname", volumeName, "-srcfolder", volume.path,
-                         "-fs", "APFS"] + imageFormat(for: level)
+        // Encryption options before -srcfolder / -o so hdiutil always applies them.
+        var arguments = ["create", "-quiet", "-ov"]
         if password != nil {
             arguments += ["-encryption", "AES-256", "-stdinpass"]
         }
-        arguments += ["-o", image.path]
+        arguments += ["-volname", volumeName, "-srcfolder", volume.path, "-fs", "APFS"]
+        arguments += imageFormat(for: level)
+        arguments += [image.path]
         try await run(arguments, password: password)
     }
 
     private static func convert(_ raw: URL, into image: URL, level: CompressionLevel,
                                 password: String?) async throws(EngineError) {
-        var arguments = ["convert", "-quiet", raw.path] + imageFormat(for: level)
+        var arguments = ["convert", "-quiet"]
         if password != nil {
             arguments += ["-encryption", "AES-256", "-stdinpass"]
         }
-        arguments += ["-o", image.path]
+        arguments += imageFormat(for: level)
+        arguments += [raw.path, "-o", image.path]
         try await run(arguments, password: password)
     }
 
     private static func verify(_ image: URL, password: String?) async throws(EngineError) {
-        var arguments = ["verify", "-quiet", image.path]
+        var arguments = ["verify", "-quiet"]
         if password != nil {
             arguments += ["-stdinpass"]
         }
+        arguments += [image.path]
         try await run(arguments, password: password)
     }
 
@@ -240,8 +244,8 @@ private nonisolated final class RunningTool: @unchecked Sendable {
                 try process.run()
                 if let passwordData, let inputPipe {
                     // Write then close so hdiutil sees EOF after the password line.
-                    inputPipe.fileHandleForWriting.write(passwordData)
-                    try? inputPipe.fileHandleForWriting.close()
+                    try inputPipe.fileHandleForWriting.write(contentsOf: passwordData)
+                    try inputPipe.fileHandleForWriting.close()
                 }
             } catch {
                 process.terminationHandler = nil
