@@ -94,6 +94,11 @@ enum DiskImageCreation {
                 try? FileManager.default.removeItem(at: image)
                 if password != nil {
                     // Never fall back to an unencrypted image when the user asked for a password.
+                    // Prefer hdiutil's own message when it said something useful.
+                    let detail = error.message?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let detail, !detail.isEmpty {
+                        throw EngineError(.failed, detail)
+                    }
                     throw EngineError(.failed, String(localized: "Couldn’t make an encrypted disk image here. Try again outside a sandboxed build, or pack without a password."))
                 }
                 // APFS without password: fall back to HFS+ hybrid so Pack still succeeds.
@@ -170,7 +175,8 @@ enum DiskImageCreation {
         arguments += ["-volname", volumeName, "-srcfolder", volume.path, "-fs", fs]
         arguments += imageFormat(for: level)
         arguments += [image.path]
-        try await run(arguments, password: password)
+        // create -encryption prompts for the passphrase twice (confirm) even on a pipe.
+        try await run(arguments, password: password, confirmPassword: password != nil)
     }
 
     private static func convert(_ raw: URL, into image: URL, level: CompressionLevel) async throws(EngineError) {
@@ -190,8 +196,10 @@ enum DiskImageCreation {
     }
 
     /// Runs hdiutil; cancelling the task stops it. A password, when given, goes on stdin only.
-    private static func run(_ arguments: [String], password: String? = nil) async throws(EngineError) {
-        let process = RunningTool(hdiutil, arguments, password: password)
+    /// `confirmPassword` sends it twice — required by `hdiutil create -encryption`.
+    private static func run(_ arguments: [String], password: String? = nil,
+                            confirmPassword: Bool = false) async throws(EngineError) {
+        let process = RunningTool(hdiutil, arguments, password: password, confirmPassword: confirmPassword)
         let status: Int32
         do {
             status = try await withTaskCancellationHandler {
@@ -219,7 +227,7 @@ private nonisolated final class RunningTool: @unchecked Sendable {
     private let collected = Mutex(Data())
     private let passwordData: Data?
 
-    init(_ executable: URL, _ arguments: [String], password: String? = nil) {
+    init(_ executable: URL, _ arguments: [String], password: String? = nil, confirmPassword: Bool = false) {
         process.executableURL = executable
         process.arguments = arguments
         process.standardOutput = FileHandle.nullDevice
@@ -227,14 +235,17 @@ private nonisolated final class RunningTool: @unchecked Sendable {
         if let password {
             let pipe = Pipe()
             inputPipe = pipe
-            passwordData = Data((password + "\n").utf8)
+            // create -encryption reads the passphrase twice for confirmation.
+            let line = password + "\n"
+            passwordData = Data((confirmPassword ? line + line : line).utf8)
             process.standardInput = pipe
         } else {
             inputPipe = nil
             passwordData = nil
             process.standardInput = FileHandle.nullDevice
         }
-        errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+
+                errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let chunk = handle.availableData
             if chunk.isEmpty {
                 handle.readabilityHandler = nil
