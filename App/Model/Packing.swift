@@ -488,20 +488,13 @@ nonisolated enum Compatibility {
                     detail: String(localized: "Apps disagree on accented and non-Latin characters in ZIP passwords. Choose 7Z to keep this one.")
                 ))
             }
-            switch options.format {
-            case .sevenZip:
+            if options.format == .sevenZip {
                 notes.append(.init(
                     tone: .fine,
                     title: String(localized: "Contents and file names are encrypted"),
                     detail: String(localized: "Without the password, nobody can see what’s inside.")
                 ))
-            case .dmg:
-                notes.append(.init(
-                    tone: .fine,
-                    title: String(localized: "Contents are encrypted with AES-256"),
-                    detail: String(localized: "Finder asks for the password when the disk is opened. The password never appears on the command line.")
-                ))
-            default:
+            } else {
                 notes.append(.init(
                     tone: .fine,
                     title: String(localized: "Contents are encrypted with AES-256"),

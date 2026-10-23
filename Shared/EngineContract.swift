@@ -148,8 +148,8 @@ nonisolated enum PackFormat: String, Codable, CaseIterable, Identifiable, Sendab
         }
     }
 
-    /// ZIP, 7Z, and DMG (AES-256 via diskutil image --stdinpassphrase; #77).
-    var supportsPassword: Bool { self == .zip || self == .sevenZip || self == .dmg }
+    /// ZIP and 7Z. DMG AES packing is deferred (#77): MediaKit attach is blocked in the App Sandbox.
+    var supportsPassword: Bool { self == .zip || self == .sevenZip }
     var isCompressed: Bool { self != .tar }
     /// A disk image is always one file.
     var supportsSplit: Bool { self != .dmg }
@@ -193,7 +193,7 @@ nonisolated struct CreateRequest: Codable, Sendable {
     var archiveName: String
     var format: PackFormat
     var level: CompressionLevel = .balanced
-    /// ZIP: AES-256. 7Z: AES-256 with file names encrypted too. DMG: AES-256 via diskutil image --encrypt.
+    /// ZIP: AES-256. 7Z: AES-256 with file names encrypted too. DMG ignores this (password packing deferred).
     var password: String?
     /// Bytes per volume; nil for one file.
     var volumeSize: Int64?

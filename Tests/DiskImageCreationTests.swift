@@ -30,11 +30,11 @@ struct DiskImageCreationTests {
         #expect(DiskImageCreation.volumeName(for: "  ") == "Disk Image")
     }
 
-    @Test func dmgIsForMacsSupportsPasswordAndAlwaysOneFile() {
+    @Test func dmgIsForMacsClearsPasswordAndAlwaysOneFile() {
         #expect(Audience.mac.formats == [.zip, .sevenZip, .dmg])
         #expect(Audience.allCases.filter { $0.formats.contains(.dmg) } == [.mac])
         #expect(PackFormat.dmg.fileExtension == "dmg" && PackFormat.dmg.displayName == "DMG")
-        #expect(!PackFormat.dmg.supportsSplit && PackFormat.dmg.supportsPassword && PackFormat.dmg.isCompressed)
+        #expect(!PackFormat.dmg.supportsSplit && !PackFormat.dmg.supportsPassword && PackFormat.dmg.isCompressed)
 
         var options = PackOptions()
         options.setAudience(.mac)
@@ -44,7 +44,7 @@ struct DiskImageCreationTests {
         options.diskImageApplicationsLink = true
         options.setFormat(.dmg)
         #expect(options.split == .none)
-        #expect(options.usesPassword)
+        #expect(!options.usesPassword) // AES DMG packing deferred (sandbox)
         #expect(options.diskImageFilesystem == .apfs && options.diskImageApplicationsLink)
         // Back to Windows: DMG isn't offered there, so ZIP; DMG-only options clear.
         options.setAudience(.windows)

@@ -54,79 +54,6 @@ private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, pa
     return (result, report)
 }
 
-/// Quiet verify; returns whether hdiutil exited 0 (optionally feeding a password on stdin).
-private func diskImageVerifySucceeds(_ url: URL, password: String?) -> Bool {
-    let process = Process()
-    process.executableURL = URL(filePath: "/usr/bin/hdiutil")
-    var arguments = ["verify", "-quiet"]
-    if password != nil { arguments.append("-stdinpass") }
-    arguments.append(url.path)
-    process.arguments = arguments
-    process.standardOutput = FileHandle.nullDevice
-    process.standardError = FileHandle.nullDevice
-    if let password {
-        let pipe = Pipe()
-        process.standardInput = pipe
-        do {
-            try process.run()
-            var data = Data(password.utf8)
-            data.append(0)
-            pipe.fileHandleForWriting.write(data)
-            try? pipe.fileHandleForWriting.close()
-        } catch { return false }
-    } else {
-        process.standardInput = FileHandle.nullDevice
-        do { try process.run() } catch { return false }
-    }
-    process.waitUntilExit()
-    return process.terminationStatus == 0
-}
-
-/// `hdiutil isencrypted` prints YES/NO (exit 0 either way when the image is readable).
-private func diskImageIsEncrypted(_ url: URL) throws -> Bool {
-    let process = Process()
-    process.executableURL = URL(filePath: "/usr/bin/hdiutil")
-    process.arguments = ["isencrypted", url.path]
-    let out = Pipe()
-    let err = Pipe()
-    process.standardOutput = out
-    process.standardError = err
-    try process.run()
-    process.waitUntilExit()
-    let text = String(decoding: out.fileHandleForReading.readDataToEndOfFile()
-        + err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-    if text.uppercased().hasPrefix("YES") { return true }
-    if text.uppercased().hasPrefix("NO") { return false }
-    // Older hosts: fall back to imageinfo plist / dump.
-    let info = Process()
-    info.executableURL = URL(filePath: "/usr/bin/hdiutil")
-    info.arguments = ["imageinfo", "-plist", url.path]
-    let infoOut = Pipe()
-    info.standardOutput = infoOut
-    info.standardError = FileHandle.nullDevice
-    try info.run()
-    info.waitUntilExit()
-    let data = infoOut.fileHandleForReading.readDataToEndOfFile()
-    let dump = String(decoding: data, as: UTF8.self)
-    if dump.localizedCaseInsensitiveContains("encrypted") &&
-        (dump.contains("<true/>") || dump.contains("<true></true>") || dump.localizedCaseInsensitiveContains("AES")) {
-        return true
-    }
-    // macOS 27: diskutil image info reports "Is Encrypted: 1".
-    let diskutil = Process()
-    diskutil.executableURL = URL(filePath: "/usr/sbin/diskutil")
-    diskutil.arguments = ["image", "info", url.path]
-    let diskOut = Pipe()
-    diskutil.standardOutput = diskOut
-    diskutil.standardError = FileHandle.nullDevice
-    do { try diskutil.run() } catch { return false }
-    diskutil.waitUntilExit()
-    let diskText = String(decoding: diskOut.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-    if diskText.range(of: #"Is Encrypted:\s*1"#, options: .regularExpression) != nil { return true }
-    if diskText.range(of: #"Is Encrypted:\s*0"#, options: .regularExpression) != nil { return false }
-    return false
-}
 
 @Suite("Packing", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
 @MainActor
@@ -183,23 +110,15 @@ struct PackingTests {
         #expect(!top.contains("Applications")) // hidden as installer layout
     }
 
-    /// #77: AES password via diskutil --stdinpassphrase; image is encrypted; verify needs the password.
-    @Test func diskImageWithPassword() async throws {
-        let tree = try SourceTree()
-        defer { tree.cleanUp() }
-        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
-
-        let password = "correct-horse"
-        let (result, report) = try await pack(tree, audience: .mac, format: .dmg, password: password,
-                                              verify: true, into: out)
-        #expect(result.report.verified)
-        #expect(report.notes.contains { $0.title == "Contents are encrypted with AES-256" })
-        #expect(try diskImageIsEncrypted(result.placed[0]),
-                "hdiutil isencrypted should report YES for a password-protected DMG")
-        #expect(!diskImageVerifySucceeds(result.placed[0], password: nil),
-                "verify without a password should fail on an encrypted DMG")
-        #expect(diskImageVerifySucceeds(result.placed[0], password: password))
+    /// #77: Pack › DMG does not offer a password (AES packing deferred — sandbox blocks MediaKit).
+    @Test func diskImageDoesNotOfferPassword() {
+        #expect(!PackFormat.dmg.supportsPassword)
+        var options = PackOptions()
+        options.setAudience(.mac)
+        options.setFormat(.dmg)
+        options.usesPassword = true
+        options.setFormat(.dmg) // re-assert: switching to DMG clears password
+        #expect(!options.usesPassword)
     }
 
     /// #77: APFS option still produces a browsable DMG (APFS when allowed, else HFS+ fallback).
