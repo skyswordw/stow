@@ -57,7 +57,7 @@ nonisolated protocol ArchivePasswordStoring: Sendable {
 
 /// Opt-in Keychain-backed archive passwords (#76). Off by default — when off, behaviour matches
 /// session-only memory on `ArchiveSource`. Passwords leave the process only into the user's
-/// Keychain (main app only; not the XPC or Finder extension).
+/// Keychain under this app's default access (main app only; not the XPC or Finder extension).
 nonisolated enum ArchivePasswordVault {
     /// Product store. Tests replace this with `MemoryArchivePasswordStore`.
     nonisolated(unsafe) static var store: any ArchivePasswordStoring = KeychainArchivePasswordStore()
@@ -137,12 +137,13 @@ nonisolated final class MemoryArchivePasswordStore: ArchivePasswordStoring, @unc
 
 // MARK: - Keychain
 
-/// Generic passwords under `service`, keyed by the identity digest. Access group is app-only
-/// (`…Stow.archive-password`), not the App Group shared with Finder Sync.
+/// Generic passwords under `service`, keyed by the identity digest.
+///
+/// No custom Keychain access group: the sandboxed app's default Keychain is already
+/// process-scoped, Finder Sync never sees these items, and a `keychain-access-groups`
+/// entitlement breaks ad-hoc CI launches (RunningBoard error 5).
 nonisolated struct KeychainArchivePasswordStore: ArchivePasswordStoring {
     static let service = "app.stow.Stow.archive-password"
-    /// Distinct from the App Group id so Finder Sync never sees these items.
-    static let accessGroup = "\(AppGroup.teamID).app.stow.Stow.archive-password"
 
     func password(for identity: ArchivePasswordIdentity) -> String? {
         var query: [String: Any] = baseQuery(account: identity.account)
@@ -174,8 +175,7 @@ nonisolated struct KeychainArchivePasswordStore: ArchivePasswordStoring {
     func wipe() throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecAttrAccessGroup as String: Self.accessGroup
+            kSecAttrService as String: Self.service
         ]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw KeychainError(status) }
@@ -185,7 +185,6 @@ nonisolated struct KeychainArchivePasswordStore: ArchivePasswordStoring {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: Self.service,
-            kSecAttrAccessGroup as String: Self.accessGroup,
             kSecMatchLimit as String: kSecMatchLimitAll,
             kSecReturnAttributes as String: true
         ]
@@ -206,8 +205,7 @@ nonisolated struct KeychainArchivePasswordStore: ArchivePasswordStoring {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: Self.service,
-            kSecAttrAccount as String: account,
-            kSecAttrAccessGroup as String: Self.accessGroup
+            kSecAttrAccount as String: account
         ]
     }
 

@@ -19,14 +19,6 @@
 	<array>
 		<string>YNQ2233752.app.stow.Stow</string>
 	</array>
-	<!-- Archive password vault (#76): app-only access group, not the App Group shared with
-	     Finder Sync. Passwords never go to the XPC. Hard-code the Team ID the same way as
-	     application-groups — $(AppIdentifierPrefix) expands empty under ad-hoc CI signing and
-	     then RunningBoard refuses to launch the test host. -->
-	<key>keychain-access-groups</key>
-	<array>
-		<string>YNQ2233752.app.stow.Stow.archive-password</string>
-	</array>
 	<!-- Sparkle (#35): talks to its installer, which runs outside the sandbox. Xcode expands the
 	     bundle identifier (app.stow.Stow-spks / -spki). No network entitlement: Sparkle's
 	     downloader service fetches the appcast and the update. -->
