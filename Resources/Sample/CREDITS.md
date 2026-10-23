@@ -58,3 +58,8 @@ above:
 The sample's other entries have no files here. `Prototype/Harbor Prototype.app` shows the lighthouse
 icon from the app's asset catalog (`Design/DemoAppIcon.svg`). The installer, the audio and the inner
 7Z archive show their system icons, as real ones would.
+
+## Website hover-demo thumbnails
+
+The thumbnails under `website/assets/demo/` are crops of the same CC0 photos listed above and
+the first page of `Specs/Brand Guidelines.pdf`. They introduce no new licenses.
