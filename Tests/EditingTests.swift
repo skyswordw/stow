@@ -67,7 +67,7 @@ struct EditPlanTests {
                                             .delete(paths: ["folder/b"]), .rename(from: "a", to: "c")]
         let request = EditRequest(operationID: "edit", format: .zip, operations: operations, password: "pw")
         let decoded = try JSONDecoder.engine.decode(EditRequest.self, from: JSONEncoder.engine.encode(request))
-        #expect(decoded.version == 4)
+        #expect(decoded.version == 5)
         #expect(decoded.operations == operations)
         #expect(decoded.encryptNewItems && decoded.verify)
         let report = EditReport(size: 42, verified: true, listing: listing)

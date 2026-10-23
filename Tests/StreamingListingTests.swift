@@ -140,15 +140,39 @@ struct StreamingListingTests {
     @Test func cancellingAfterFirstChunkStopsRunningProcess() async throws {
         let folder = try TemporaryFolder()
         defer { folder.cleanUp() }
-        let executable = folder.url.appending(path: "slow-list")
-        // exec keeps the sleeper at the spawned PID; cancellation must terminate that PID.
+        // A real Mach-O (not a shebang script): posix_spawn with CLOEXEC_DEFAULT runs binaries
+        // reliably; cancellation must SIGTERM this PID rather than waiting out its sleep.
         let output = "--\nType = tar\n\n----------\n"
             + (0..<2_050).map { "Path = item-\($0)\nSize = 0\n\n" }.joined()
-        let fixture = folder.url.appending(path: "output")
+        let fixture = folder.url.appending(path: "output.txt")
         try output.write(to: fixture, atomically: true, encoding: .utf8)
-        try ("#!/bin/sh\ncat '" + fixture.path + "'\nexec /bin/sleep 30\n")
-            .write(to: executable, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+        let source = folder.url.appending(path: "slow-list.c")
+        let executable = folder.url.appending(path: "slow-list")
+        try """
+            #include <fcntl.h>
+            #include <stdio.h>
+            #include <stdlib.h>
+            #include <unistd.h>
+            int main(int argc, char **argv) {
+                const char *path = argc > 1 ? argv[argc - 1] : NULL;
+                if (!path) return 2;
+                int fd = open(path, O_RDONLY);
+                if (fd < 0) return 3;
+                char buf[4096];
+                ssize_t n;
+                while ((n = read(fd, buf, sizeof buf)) > 0) {
+                    if (fwrite(buf, 1, (size_t)n, stdout) != (size_t)n) return 4;
+                }
+                close(fd);
+                fflush(stdout);
+                sleep(30);
+                return 0;
+            }
+            """.write(to: source, atomically: true, encoding: .utf8)
+        let compiled = try Process.run(URL(filePath: "/usr/bin/cc"),
+                                     arguments: ["-Os", "-o", executable.path, source.path])
+        compiled.waitUntilExit()
+        try #require(compiled.terminationStatus == 0)
         let (chunks, continuation) = AsyncStream<Int>.makeStream()
         let task = Task {
             defer { continuation.finish() }
