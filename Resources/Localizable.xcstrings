@@ -1,6 +1,26 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Colourful Glance window controls" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glance 窗口彩色控制按钮"
+          }
+        }
+      }
+    },
+    "Use red for Close, yellow for Pin on Top, and green for Open in Full Window" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用红色表示关闭，黄色表示置顶，绿色表示在完整窗口中打开"
+          }
+        }
+      }
+    },
     "Listing… %@" : {
       "localizations" : {
         "zh-Hans" : {

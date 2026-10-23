@@ -13,7 +13,7 @@ points and English UI strings. No code was decompiled or run.
 | --- | --- | --- |
 | Engine | Bundled official `7zz` + ZIPFoundation | Bundled official `7zz` (pinned, checksum-verified) |
 | Parsing process | `ArcZipArchiveService.xpc` (no sandbox entitlements) | `StowEngine.xpc`, **sandboxed**, gets a read-only file handle, never a path |
-| Main app | **Not sandboxed**; onboarding asks for Full Disk Access | Sandboxed, user-selected files only. Finder actions ask once per folder (security-scoped bookmark, README › Sandbox and Finder actions); install to /Applications still needs a decision |
+| Main app | **Not sandboxed**; onboarding asks for Full Disk Access | Sandboxed, user-selected files only. Finder actions ask once per folder (security-scoped bookmark, README › Sandbox and Finder actions); installs use a one-time folder grant |
 | Extensions | Finder Sync (`com.apple.FinderSync`), Quick Look preview (zip/7z/tar only) | Both; Quick Look covers all 34 registered types and runs its own sandboxed engine copy |
 | Services menu | 5 Finder services | Same set |
 | Updates | Sparkle | Sparkle (open-source appcast on GitHub Releases) |
@@ -21,7 +21,7 @@ points and English UI strings. No code was decompiled or run.
 | Languages | English, Simplified Chinese | English, Simplified Chinese at launch (String Catalog) |
 | OS | macOS 14+ | macOS 26+ (decision recorded in README) |
 
-Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending verification · ⬜ not started · ➕ Stow goes further
+Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending verification · ⏳ deferred · ⬜ not started · ➕ Stow goes further
 
 ---
 
@@ -34,14 +34,14 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Folder navigation, back/forward history, Up One Level, path bar | ✅ | ⌘[ ⌘] ⌘↑ ⌘↓; going back selects where you came from; the path bar spans nested archives |
 | Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ✅ | Grid: arrows by row/column, ⇧ extends, ⌘/⇧ click, marquee (⇧/⌘ adds), type-to-select, Return opens, Space Quick Look. No animation on keyboard moves |
 | Archive search by name **or path**, background full-file index with progress | ✅ | Terms match anywhere in the path (“docs/ handoff”), case/accent/width-insensitive, name matches first. Index builds in the background in chunks; the search field reads “Indexing… 12,000 of 40,000” and results grow while you keep browsing. ✅ search across nested archives: one level in, read once into the preview cache, matches listed as “Inner.7z/path”, Show opens the inner archive with the match selected; password-protected inner archives are skipped |
-| Nested archives opened in place, depth limit, encrypted nested containers | ✅ | Depth limit 8. Passwords through an injectable `PasswordHook` (wire to the password sheet when that branch merges); without it, “needs a password” is reported |
+| Nested archives opened in place, depth limit, encrypted nested containers | ✅ | Depth limit 8. Passwords use the shared password sheet through an injectable `PasswordHook`; without a hook, “needs a password” is reported |
 | Archive details / inspector, archive overview | ✅ | ➕ Checkup; inspector shows real previews, several selected stack real thumbnails |
 | Show/hide macOS auxiliary items (__MACOSX, .DS_Store) | ✅ View › Show macOS Helper Items (⌘⇧.) | Hidden by default, dimmed when shown, never extracted |
 | Mixed / legacy filename encodings (GBK etc.), garbled-name repair | ✅ | ➕ Raw name bytes come from a second listing under a Latin-1 locale, so nothing is lost; each name is read in the encoding that suits it (mixed archives read right), a banner says how, and Read Names As… previews every encoding live. Extraction renames to the shown names |
 | Extension ≠ real format detection; ZIP with prepended/appended data; SFX RAR/7Z | ✅ | Checkup says it in words: “Named .zip, but it’s really 7Z”, “Self-extracting 7Z archive” (stub size, never run), extra data before/after the archive (left out when extracting). ZIP with raw prepended data whose offsets weren't adjusted opens only behind a program's extension (.exe) — that's 7-Zip's rule |
 | Lazy browsing of huge archives (browse before index finishes) | ✅ | 100,500 entries open in 2.8 s (Release; 7-Zip's own listing is ~0.9 s of that), browse at once while search indexes (0.18 s). Scrolling 100,000 items: grid median 4.0 ms / p95 6.3 ms of main-thread work per step, list median 5.3 ms / p95 8.2 ms (`-StowScrollBenchmark`). ✅ streaming listing chunks over XPC (#78): first rows before the final reply; cancel stops 7zz. See StreamingListingBenchmark for 100k first-chunk / complete timings (macOS run required) |
 | iCloud placeholders: wait for download, cancel | 🧪 (pending verification) | Placeholders (iCloud's not-downloaded status, or a File Provider's dataless file) are asked for, then a card shows the progress iCloud reports (a moving bar when it doesn't) with Cancel; opens when the file is here |
-| Open Recent menu, clear history | 🎨 recents are sample · ⬜ | |
+| Open Recent menu, clear history | ✅ (#83) | Welcome and File › Open Recent share real security-scoped bookmark history and Clear; missing/trashed files are hidden, not forgotten. Sample entries only via `-StowScene recents` → `recents.preview(...)` for screenshots |
 | Read-only preview of DMG/ISO (mount read-only, verify, skip installer extras like the Applications alias) | ✅ through the engine, no mounting (HFS+, APFS, ISO; zlib/LZFSE/LZMA) | ➕ nothing is attached, so nothing to detach or report busy; opens at the volume with the app selected; background art, volume icon and "drag here" shortcuts hidden and left out; checksums checked in the background; encrypted images explained with an Open in Finder way out; unfinished downloads caught |
 | Compressed tarballs; documents that are ZIPs | ✅ | ➕ .tar.gz/.tgz/.tar.xz/.tar.bz2/.tar.zst/.tar.lz… browse as the tar inside (two 7zz piped, nothing written to disk), so the inner-.tar fallback no longer shows for them. ➕ “Show Package Contents” on .docx/.xlsx/.pptx/.epub/.pages opens them as the ZIPs they are |
 
@@ -53,7 +53,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | ✅ previews · 🧪 Settings toggle (pending verification) | Real content read from the archive: images (downsampled), PDF/Office/others (Quick Look), Markdown (rendered), CSV (table), code/logs (monospaced, unwrapped), fonts (the real face), audio (artwork, title, length), video (a frame, length). ➕ 450 ms, then neighbours open instantly |
 | Thumbnails in icon view | ✅ | Quick Look thumbnails, only for tiles on screen, batched into one engine trip; files over 48 MB keep their icon |
 | Quick Look extension for archives in Finder | ✅ | ➕ all 34 types, not just zip/7z/tar; one-line Checkup, encryption, sizes; 3 s timeout with fallbacks; Open in Stow. .tar.xz/.tar.gz show the inner .tar until tarballs are unwrapped |
-| Encrypted entries: preview after unlock | ✅ with the hook | Previews use the password that opened a nested archive; for the outer archive, once the password branch stores it |
+| Encrypted entries: preview after unlock | ✅ | Previews use the password that opened the outer or nested archive; passwords stay in memory while open, with optional Keychain storage |
 | Extract to temp & open with default app | ✅ | Open / double-click / ⌘↓. Files land read-only in a per-window cache (512 MB, least recently used first, keyed by archive identity + entry path + date), removed on close and quit, swept at launch |
 | Drag out to Finder | ✅ | `NSFilePromiseProvider` per item; extracted only when dropped, through the usual staging and no-clobber placement, progress in Next Steps |
 
@@ -82,12 +82,12 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Compression levels: Store, Fastest, Fast, Balanced, Maximum, Smallest (LZMA2 solid block sizes, store incompressible files) | ✅ More Options | -mx 0/1/3/5/7/9 with 7-Zip's solid-block defaults; ZIP stores incompressible files per entry |
 | Each preset remembers its level; default preset & level in Settings | ✅ remembered · 🧪 Settings UI (pending verification) | Last audience is remembered too |
 | Windows filename check with editable suggested names | ✅ | ➕ clashes after renaming (incl. case-only) are numbered; edited names are made safe too |
-| AES encryption (ZIP), header/filename encryption (7Z), AES-256 disk images (DMG); ZIP passwords ASCII-only warning | ✅ ZIP/7Z · ⏳ DMG | Password goes to 7-Zip on stdin, never argv. DMG AES packing deferred: sandbox blocks MediaKit attach (#77) |
+| AES encryption (ZIP), header/filename encryption (7Z), AES-256 disk images (DMG); ZIP passwords ASCII-only warning | ✅ ZIP/7Z · ⏳ DMG (#84) | Password goes to 7-Zip on stdin, never argv. DMG AES packing deferred: sandbox blocks MediaKit attach (#84, following #77) |
 | Split volumes, default volume size | ✅ 100 MB / 700 MB / 4 GB · 🧪 default in Settings (pending verification) | `Name.7z.001…`; Archive Utility can't open split ZIPs |
 | Verify integrity after creating | ✅ More Options | Failed test keeps nothing |
 | CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · 🧪 Settings UI (pending verification) | |
 | Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
-| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | Default HFS+ via `hdiutil makehybrid` (no mounting, sandbox-safe), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); optional APFS with HFS+ fallback; Applications → /Applications shortcut (#77). No split. Deferred: AES password (sandbox MediaKit), Finder window chrome (`.DS_Store` / background) |
+| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | Default HFS+ via `hdiutil makehybrid` (no mounting, sandbox-safe), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); optional APFS with HFS+ fallback; Applications → /Applications shortcut (#77). No split. ⏳ AES password (#84; sandbox MediaKit), Finder window chrome (#85; `.DS_Store` / background) |
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.
@@ -125,7 +125,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Pin on top | ✅ | remembered |
 | Switch Glance ↔ full window keeping location, selection, history | ✅ | one shared browser; ⌥⌘G |
 | Default to Glance when opening from Finder/Quick Look | ✅ | Settings › General |
-| Liquid Glass / classic material; colourful window controls option | ✅ glass, solid under Reduce Transparency | ⬜ colourful window controls option |
+| Liquid Glass / classic material; colourful window controls option | ✅ | Glass, solid under Reduce Transparency; optional red Close / yellow Pin / green Open in Full Window controls (#86), off by default in Settings › General. Replaces the traffic lights and plain pin/expand controls while on |
 
 ## 8. Collecting files (ArcZip “File Box / Shelf”) → **Tray**
 
@@ -152,11 +152,11 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | General: appearance (light/dark/auto), default view, CPU cores | 🧪 pending verification | |
-| Compression defaults, Extraction defaults, Flow, Box, Mini panes | ⬜ | |
+| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Next Steps panes; Glance and Tray controls live in General |
 | Password field: show by default (for CJK input) | 🧪 pending verification | |
 | Advanced: temp-file usage & cleanup, reset all preferences | 🧪 pending verification | |
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |
-| Updates: automatic check, install after tasks finish | 🧪 pending verification | Sparkle 2.10 (#35): Check for Updates…, General › Updates (check / download automatically), relaunch held until running tasks finish; appcast on GitHub Releases. First real update needs two published releases |
+| Updates: automatic check, install after tasks finish | 🧪 pending verification | Sparkle 2.10 (#35): Check for Updates…, General › Updates (check / download automatically), relaunch held until running tasks finish. Notarized v0.1.0 and v0.1.1 shipped on GitHub Releases with appcasts; the live update/relaunch hand-test remains (ROADMAP Tests #21) |
 | Open-source licence viewer | 🧪 pending verification | |
 | Native dialogs, detailed error codes + request IDs for support | ✅ codes + Copy Details | Stable `AREA-NNN` codes ([ERROR-CODES.md](ERROR-CODES.md)) on every failure card, failed capsule and batch row (right-click); Copy Details copies code, what people saw, the error's own words and domain/code chain, Stow and macOS versions and the time. No request IDs: Stow has no server to correlate them with |
 

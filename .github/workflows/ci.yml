@@ -116,8 +116,8 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # The total this branch reports (377 after Keychain vault #76 + richer DMG packing #77). Raise it when tests are added;
-          # a lower total means suites went missing.
+          # 385 after streaming listings (#82); colourful Glance controls (#86) extend existing tests.
+          # Raise it when test methods are added; a lower total means suites went missing.
           MIN_TESTS: "385"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 

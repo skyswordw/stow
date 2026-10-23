@@ -19,7 +19,8 @@ struct SettingsTests {
                 "install.afterInstall", "install.removeQuarantine", "PackAudience", "PackVerify",
                 "PackCPUCores", "FinderMenuOnExternalDrives", "HideDockIconWithoutWindows",
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
-                "browse.hoverPreviews", "password.showByDefault", "password.rememberInKeychain", "glance.openFromFinder", "glance.pinned",
+                "browse.hoverPreviews", "password.showByDefault", "password.rememberInKeychain",
+                "glance.openFromFinder", "glance.pinned", "glance.colourfulControls",
                 "tray.menuBarIcon", "tray.showWhileDragging", "tray.idleSeconds", "tray.border", "tray.pinned",
                 "nextSteps.shown", "nextSteps.hidden", "SUEnableAutomaticChecks", "SUAutomaticallyUpdate",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
@@ -38,6 +39,7 @@ struct SettingsTests {
             #expect(SettingsKeys.flag(SettingsKeys.hoverPreviews, in: store))
             #expect(!SettingsKeys.flag(SettingsKeys.showPassword, in: store))
             #expect(!SettingsKeys.flag(SettingsKeys.rememberPasswords, in: store))
+            #expect(!SettingsKeys.flag(SettingsKeys.glanceColourfulControls, in: store))
             #expect(SettingsKeys.flag(SettingsKeys.trayMenuBarIcon, in: store))
             #expect(SettingsKeys.flag(SettingsKeys.trayShowWhileDragging, in: store))
             #expect(!SettingsKeys.flag(SettingsKeys.trayPinned, in: store))
@@ -85,11 +87,13 @@ struct SettingsTests {
             store.set(-42, forKey: SettingsKeys.volumeSize)
             store.set("invalid", forKey: SettingsKeys.hoverPreviews)
             store.set(17, forKey: SettingsKeys.showPassword)
+            store.set("invalid", forKey: SettingsKeys.glanceColourfulControls)
             #expect(SettingsKeys.appearance(in: store) == .system)
             #expect(SettingsKeys.browserView(in: store) == .grid)
             #expect(SettingsKeys.splitSize(in: store) == .none)
             #expect(SettingsKeys.flag(SettingsKeys.hoverPreviews, in: store))
             #expect(!SettingsKeys.flag(SettingsKeys.showPassword, in: store))
+            #expect(!SettingsKeys.flag(SettingsKeys.glanceColourfulControls, in: store))
             store.set("not a size", forKey: SettingsKeys.volumeSize)
             #expect(SettingsKeys.splitSize(in: store) == .none)
             store.set("dark", forKey: SettingsKeys.appearance)
@@ -97,11 +101,13 @@ struct SettingsTests {
             store.set(SplitSize.mb700.rawValue, forKey: SettingsKeys.volumeSize)
             store.set(false, forKey: SettingsKeys.hoverPreviews)
             store.set(true, forKey: SettingsKeys.showPassword)
+            store.set(true, forKey: SettingsKeys.glanceColourfulControls)
             #expect(SettingsKeys.appearance(in: store) == .dark)
             #expect(SettingsKeys.browserView(in: store) == .columns)
             #expect(SettingsKeys.splitSize(in: store) == .mb700)
             #expect(!SettingsKeys.flag(SettingsKeys.hoverPreviews, in: store))
             #expect(SettingsKeys.flag(SettingsKeys.showPassword, in: store))
+            #expect(SettingsKeys.flag(SettingsKeys.glanceColourfulControls, in: store))
         }
     }
 }
