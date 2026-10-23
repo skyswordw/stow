@@ -69,7 +69,9 @@ private func diskImageVerifySucceeds(_ url: URL, password: String?) -> Bool {
         process.standardInput = pipe
         do {
             try process.run()
-            pipe.fileHandleForWriting.write(Data((password + "\n").utf8))
+            var data = Data(password.utf8)
+            data.append(0)
+            pipe.fileHandleForWriting.write(data)
             try? pipe.fileHandleForWriting.close()
         } catch { return false }
     } else {
@@ -111,6 +113,18 @@ private func diskImageIsEncrypted(_ url: URL) throws -> Bool {
         (dump.contains("<true/>") || dump.contains("<true></true>") || dump.localizedCaseInsensitiveContains("AES")) {
         return true
     }
+    // macOS 27: diskutil image info reports "Is Encrypted: 1".
+    let diskutil = Process()
+    diskutil.executableURL = URL(filePath: "/usr/sbin/diskutil")
+    diskutil.arguments = ["image", "info", url.path]
+    let diskOut = Pipe()
+    diskutil.standardOutput = diskOut
+    diskutil.standardError = FileHandle.nullDevice
+    do { try diskutil.run() } catch { return false }
+    diskutil.waitUntilExit()
+    let diskText = String(decoding: diskOut.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+    if diskText.range(of: #"Is Encrypted:\s*1"#, options: .regularExpression) != nil { return true }
+    if diskText.range(of: #"Is Encrypted:\s*0"#, options: .regularExpression) != nil { return false }
     return false
 }
 
