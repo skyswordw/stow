@@ -82,6 +82,22 @@ struct PasswordPromptTests {
         prompt.answer("right", to: second.id)
         #expect(try await task.value.password == "right")
     }
+
+    @Test func cancelledReadsDoNotAcceptALateSuccessfulPassword() async {
+        let direct = Task {
+            try await prompt.retrying("locked.zip", for: .unlock, known: "swordfish") { _ in 42 }
+        }
+        direct.cancel()
+        await #expect(throws: EngineError(.cancelled)) { try await direct.value }
+
+        let hook = PasswordHook(prompt: prompt)
+        let throughHook = Task {
+            try await hook.retrying("locked.zip", for: .unlock, known: "swordfish") { _ in 42 }
+        }
+        throughHook.cancel()
+        await #expect(throws: EngineError(.cancelled)) { try await throughHook.value }
+        #expect(prompt.question == nil)
+    }
 }
 
 /// Encrypted archives made by the bundled `7zz`, opened and extracted through the sandboxed engine.

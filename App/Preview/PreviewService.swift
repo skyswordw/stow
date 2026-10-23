@@ -107,7 +107,7 @@ final class PreviewService {
             let password = password(archive)
             batchTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(25))
-                guard let self else { return [:] }
+                guard !Task.isCancelled, let self else { return [:] }
                 let entries = batch
                 batch = []
                 batchTask = nil

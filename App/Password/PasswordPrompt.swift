@@ -60,6 +60,7 @@ final class PasswordPrompt {
         while true {
             do {
                 let value = try await operation(password)
+                if Task.isCancelled { throw EngineError(.cancelled) }
                 if let password, let vaultURL {
                     ArchivePasswordVault.remember(password, for: vaultURL)
                 }
