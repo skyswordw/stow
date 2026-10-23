@@ -29,6 +29,8 @@ struct NextStepsSettingsView: View {
                                 .accessibilityHidden(true)
                         }
                     }
+                    .accessibilityLabel(kind.title)
+                    .accessibilityHint(kind.when)
                 }
                 .disabled(!isShown)
             } header: {

@@ -222,7 +222,7 @@ private struct ArchiveSummary: View {
                 (String(localized: "Files"), archive.files.count.formatted()),
                 (String(localized: "Unpacked"), archive.totalSize.bytes),
                 (String(localized: "Packed"), archive.packedSize.bytes),
-                (String(localized: "Encryption"), archive.isEncrypted ? "AES-256" : String(localized: "None")),
+                (String(localized: "Encryption"), archive.isEncrypted ? String(localized: "Encrypted") : String(localized: "None")),
             ])
 
             VStack(alignment: .leading, spacing: Space.m) {

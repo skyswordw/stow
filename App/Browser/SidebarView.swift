@@ -134,13 +134,20 @@ struct CompressionBar: View {
     let total: Int64
 
     private var fraction: Double { total > 0 ? Double(packed) / Double(total) : 1 }
+    private var sizeChange: String {
+        if fraction > 1 {
+            String(localized: "\(Int(((fraction - 1) * 100).rounded()))% larger")
+        } else {
+            String(localized: "\(Int(((1 - fraction) * 100).rounded()))% smaller")
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule().fill(.quaternary)
-                    Capsule().fill(.tint).frame(width: proxy.size.width * fraction)
+                    Capsule().fill(.tint).frame(width: proxy.size.width * min(max(fraction, 0), 1))
                 }
             }
             .frame(height: 4)
@@ -149,12 +156,12 @@ struct CompressionBar: View {
                     Text("\(packed.bytes) packed")
                         .fixedSize()
                     Spacer()
-                    Text("\(Int(((1 - fraction) * 100).rounded()))% smaller")
+                    Text(sizeChange)
                         .fixedSize()
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(packed.bytes) packed")
-                    Text("\(Int(((1 - fraction) * 100).rounded()))% smaller")
+                    Text(sizeChange)
                 }
                 .fixedSize(horizontal: false, vertical: true)
             }

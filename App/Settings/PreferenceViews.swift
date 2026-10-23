@@ -29,6 +29,11 @@ struct GeneralSettingsView: View {
                 Text("All").tag(0)
                 ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
             }
+            Section("App Language") {
+                Text("To use English or Simplified Chinese just for Stow, open System Settings → General → Language & Region → Applications. Add Stow and choose its language. Quit and reopen Stow after your current tasks and unsaved changes are finished.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
             Section("Tray") {
                 Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
                 Toggle("Show Tray while dragging files", isOn: $trayWhileDragging)
@@ -49,8 +54,6 @@ struct GeneralSettingsView: View {
             UpdateSettingsSection(updater: AppUpdater.shared)
         }
         .formStyle(.grouped)
-        .scrollDisabled(true)
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     private static func idleTitle(_ seconds: Int) -> String {
@@ -186,8 +189,6 @@ struct PasswordSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .scrollDisabled(entries.count > 6)
-        .fixedSize(horizontal: false, vertical: entries.count <= 6)
         .onAppear(perform: reload)
         .onChange(of: remember) { reload() }
         .alert("Remove all saved passwords?", isPresented: $confirmsWipe) {

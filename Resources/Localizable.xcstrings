@@ -1,6 +1,46 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%lld%% larger": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增大 %lld%%"
+          }
+        }
+      }
+    },
+    "App Language": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用语言"
+          }
+        }
+      }
+    },
+    "Repair Finder Menu": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修复访达菜单"
+          }
+        }
+      }
+    },
+    "To use English or Simplified Chinese just for Stow, open System Settings → General → Language & Region → Applications. Add Stow and choose its language. Quit and reopen Stow after your current tasks and unsaved changes are finished.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如需仅为 Stow 使用英语或简体中文，请打开“系统设置”→“通用”→“语言与地区”→“应用程序”，添加 Stow 并选择语言。请先完成当前任务、保存修改，再退出并重新打开 Stow。"
+          }
+        }
+      }
+    },
     "Colourful Glance window controls" : {
       "localizations" : {
         "zh-Hans" : {

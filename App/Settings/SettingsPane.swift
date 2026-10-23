@@ -36,6 +36,8 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
     /// `nil` lets short panes size the window to their content.
     var fixedHeight: CGFloat? {
         switch self {
+        case .general: 700
+        case .passwords: 560
         case .fileTypes: 620
         case .licenses: 560
         default: nil
