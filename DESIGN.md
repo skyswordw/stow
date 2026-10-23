@@ -2,6 +2,10 @@
 
 > Working name. Check trademarks before launch.
 
+**Ownership:** Claude Code owns UI visual design and motion. Codex provides interaction
+intent and functional constraints; see [AGENTS.md](AGENTS.md) and the
+[current handoff](Handoff/ui-motion-claude-code.md).
+
 Stow is an archive tool for macOS. The design goal is not "a nicer file list". It is an app that
 answers the three questions people actually have when they meet an archive:
 
