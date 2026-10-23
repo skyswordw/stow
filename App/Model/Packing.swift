@@ -199,6 +199,10 @@ nonisolated struct PackOptions: Equatable, Sendable {
     var split: SplitSize = .none
     var level: CompressionLevel = .balanced
     var verify = false
+    /// DMG only (#77). HFS+ hybrid by default; APFS when the system allows.
+    var diskImageFilesystem: DiskImageFilesystem = .hfsPlus
+    /// DMG only (#77). Adds an Applications → /Applications shortcut.
+    var diskImageApplicationsLink = false
 
     /// Keeps format and password consistent when the audience changes.
     mutating func setAudience(_ newValue: Audience) {
@@ -206,12 +210,20 @@ nonisolated struct PackOptions: Equatable, Sendable {
         if !newValue.formats.contains(format) { format = newValue.formats[0] }
         if !format.supportsPassword { usesPassword = false }
         if !format.supportsSplit { split = .none }
+        if format != .dmg {
+            diskImageFilesystem = .hfsPlus
+            diskImageApplicationsLink = false
+        }
     }
 
     mutating func setFormat(_ newValue: PackFormat) {
         format = newValue
         if !newValue.supportsPassword { usesPassword = false }
         if !newValue.supportsSplit { split = .none }
+        if newValue != .dmg {
+            diskImageFilesystem = .hfsPlus
+            diskImageApplicationsLink = false
+        }
     }
 }
 
@@ -426,6 +438,20 @@ nonisolated enum Compatibility {
                 title: String(localized: "Opens like a disk on any Mac"),
                 detail: String(localized: "Double-clicking it shows the files in Finder; permissions and links stay. Windows and Linux need an extra app to open it.")
             ))
+            if options.diskImageFilesystem == .apfs {
+                notes.append(.init(
+                    tone: .info,
+                    title: String(localized: "APFS when the system allows"),
+                    detail: String(localized: "Falls back to HFS+ if making an APFS image isn’t possible here (for example in the App Sandbox).")
+                ))
+            }
+            if options.diskImageApplicationsLink {
+                notes.append(.init(
+                    tone: .fine,
+                    title: String(localized: "Includes an Applications shortcut"),
+                    detail: String(localized: "People can drag apps onto it in Finder. Stow hides the shortcut when browsing and offers install into /Applications.")
+                ))
+            }
         case (.mac, .zip):
             notes.append(.init(
                 tone: .fine,
@@ -462,13 +488,26 @@ nonisolated enum Compatibility {
                     detail: String(localized: "Apps disagree on accented and non-Latin characters in ZIP passwords. Choose 7Z to keep this one.")
                 ))
             }
-            notes.append(.init(
-                tone: .fine,
-                title: options.format == .sevenZip ? String(localized: "Contents and file names are encrypted") : String(localized: "Contents are encrypted with AES-256"),
-                detail: options.format == .sevenZip
-                    ? String(localized: "Without the password, nobody can see what’s inside.")
-                    : String(localized: "File names stay visible. Choose 7Z to hide them too.")
-            ))
+            switch options.format {
+            case .sevenZip:
+                notes.append(.init(
+                    tone: .fine,
+                    title: String(localized: "Contents and file names are encrypted"),
+                    detail: String(localized: "Without the password, nobody can see what’s inside.")
+                ))
+            case .dmg:
+                notes.append(.init(
+                    tone: .fine,
+                    title: String(localized: "Contents are encrypted with AES-256"),
+                    detail: String(localized: "Finder asks for the password when the disk is opened. The password never appears on the command line.")
+                ))
+            default:
+                notes.append(.init(
+                    tone: .fine,
+                    title: String(localized: "Contents are encrypted with AES-256"),
+                    detail: String(localized: "File names stay visible. Choose 7Z to hide them too.")
+                ))
+            }
         }
         return notes
     }

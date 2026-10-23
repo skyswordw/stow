@@ -154,6 +154,30 @@ struct PackSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                if options.format == .dmg {
+                    LabeledContent("Disk format") {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Picker("Disk format", selection: $options.diskImageFilesystem) {
+                                ForEach(DiskImageFilesystem.allCases) { Text($0.title).tag($0) }
+                            }
+                            .labelsHidden()
+                            .fixedSize()
+                            Text(options.diskImageFilesystem.detail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    LabeledContent("Layout") {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
+                            Text(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
                 LabeledContent("Verify") {
                     Toggle("Test every file once it’s packed", isOn: $options.verify)
                 }
@@ -277,7 +301,9 @@ struct PackSheet: View {
                 volumeSize: options.split == .none ? nil : options.split.rawValue,
                 keepsMacMetadata: keepsMetadata,
                 verify: options.verify,
-                threads: PackPreferences.threads
+                threads: PackPreferences.threads,
+                diskImageFilesystem: format == .dmg ? options.diskImageFilesystem : .hfsPlus,
+                diskImageApplicationsLink: format == .dmg && options.diskImageApplicationsLink
             )
             handedOffCleanup = true
             app.packing.start(.init(items: report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,

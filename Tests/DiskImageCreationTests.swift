@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Stow
 
-/// Issue #23: packing as a DMG for Macs.
+/// Issue #23 / #77: packing as a DMG for Macs.
 @MainActor
 struct DiskImageCreationTests {
     private func item(_ path: String) -> TreeStream.Item {
@@ -30,24 +30,44 @@ struct DiskImageCreationTests {
         #expect(DiskImageCreation.volumeName(for: "  ") == "Disk Image")
     }
 
-    @Test func dmgIsForMacsAndAlwaysOneFile() {
+    @Test func dmgIsForMacsSupportsPasswordAndAlwaysOneFile() {
         #expect(Audience.mac.formats == [.zip, .sevenZip, .dmg])
         #expect(Audience.allCases.filter { $0.formats.contains(.dmg) } == [.mac])
         #expect(PackFormat.dmg.fileExtension == "dmg" && PackFormat.dmg.displayName == "DMG")
-        #expect(!PackFormat.dmg.supportsSplit && !PackFormat.dmg.supportsPassword && PackFormat.dmg.isCompressed)
+        #expect(!PackFormat.dmg.supportsSplit && PackFormat.dmg.supportsPassword && PackFormat.dmg.isCompressed)
 
         var options = PackOptions()
         options.setAudience(.mac)
         options.usesPassword = true
         options.split = .mb100
+        options.diskImageFilesystem = .apfs
+        options.diskImageApplicationsLink = true
         options.setFormat(.dmg)
-        #expect(options.split == .none && !options.usesPassword)
-        // Back to Windows: DMG isn't offered there, so ZIP.
+        #expect(options.split == .none)
+        #expect(options.usesPassword)
+        #expect(options.diskImageFilesystem == .apfs && options.diskImageApplicationsLink)
+        // Back to Windows: DMG isn't offered there, so ZIP; DMG-only options clear.
         options.setAudience(.windows)
         #expect(options.format == .zip)
+        #expect(options.diskImageFilesystem == .hfsPlus && !options.diskImageApplicationsLink)
         // The engine is never asked to make one.
         let request = CreateRequest(operationID: "x", archiveName: "P", format: .dmg)
         #expect(SevenZip.createSteps(for: request, archive: URL(filePath: "/tmp/P.dmg"), input: URL(filePath: "/tmp/in"),
                                      work: URL(filePath: "/tmp/work")).isEmpty)
+    }
+
+    @Test func applicationsShortcutSkipsWhenNameTaken() {
+        #expect(!DiskImageCreation.applicationsNameTaken(in: ["README.md", "Docs/a.txt"]))
+        #expect(DiskImageCreation.applicationsNameTaken(in: ["Applications"]))
+        #expect(DiskImageCreation.applicationsNameTaken(in: ["README.md", "Applications"]))
+        #expect(!DiskImageCreation.applicationsNameTaken(in: ["Apps/Applications"]))
+        #expect(!DiskImageCreation.applicationsNameTaken(in: ["Applications/nested"]))
+    }
+
+    @Test func filesystemTitlesAndDetails() {
+        #expect(DiskImageFilesystem.hfsPlus.title == "HFS+")
+        #expect(DiskImageFilesystem.apfs.title == "APFS")
+        #expect(!DiskImageFilesystem.hfsPlus.detail.isEmpty)
+        #expect(DiskImageFilesystem.apfs.detail.contains("HFS+"))
     }
 }

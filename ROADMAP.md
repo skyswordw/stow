@@ -89,7 +89,7 @@ with the full test suite and light/dark screenshot review (as wave 1 was).
 | Streaming listings beyond ~100k entries | 100,500 entries open in 2.8 s today |
 | Reading files dropped from other apps (e.g. WeChat) with permission guidance | built (#19), pending a real WeChat/Mail check: archives an app only promises during a drag are received first; a file macOS won't let Stow read gets plain words naming the app (`OPN-101`) and how to get a copy |
 | Error details with codes for bug reports | done (#14): every failure has a stable code (`EXT-120`, see [ERROR-CODES.md](ERROR-CODES.md)) and Copy Details |
-| Create disk images (DMG) | done (#23): Pack › DMG for Macs; hdiutil `makehybrid` (HFS+) then `convert` by level, one folder’s contents at the top like Finder; follow-ups: password (AES), APFS, custom window layout / Applications link |
+| Create disk images (DMG) | done (#23, #77): Pack › DMG for Macs; default HFS+ `makehybrid` then `convert` by level; optional AES-256 password (`-stdinpass`), APFS via `create -srcfolder` with HFS+ fallback when the sandbox blocks it, and an Applications → /Applications shortcut for drag-to-install. Deferred: Finder window chrome (`.DS_Store` / background art) |
 | TAR.ZST creation | done: 7-Zip writes the TAR, Stow's linked zstd 1.5.7 compresses it (Linux audience, splits into volumes, verified by 7-Zip) |
 | Restore Mac metadata on Stow's own extraction | done (#17): Finder comments and tags come back from ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ/ZST, for Extract All, one file or one folder (`__MACOSX` and inline `._` companions). Not carried: disk images (7-Zip leaves out their attributes) and Linux `tar --xattrs` headers |
 

@@ -9356,6 +9356,116 @@
           }
         }
       }
+    },
+    "Disk format": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘格式"
+          }
+        }
+      }
+    },
+    "Layout": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "布局"
+          }
+        }
+      }
+    },
+    "Applications shortcut": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用程序快捷方式"
+          }
+        }
+      }
+    },
+    "Adds a link to /Applications so people can drag apps in Finder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加指向 /Applications 的链接，方便在 Finder 里拖放安装。"
+          }
+        }
+      }
+    },
+    "APFS when the system allows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统允许时使用 APFS"
+          }
+        }
+      }
+    },
+    "Falls back to HFS+ if making an APFS image isn’t possible here (for example in the App Sandbox).": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "若此处无法制作 APFS 映像（例如在 App 沙盒中），会回退到 HFS+。"
+          }
+        }
+      }
+    },
+    "Includes an Applications shortcut": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含应用程序快捷方式"
+          }
+        }
+      }
+    },
+    "People can drag apps onto it in Finder. Stow hides the shortcut when browsing and offers install into /Applications.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "别人可在 Finder 里把 App 拖到上面。Stow 浏览时会隐藏该快捷方式，并提供安装到 /Applications。"
+          }
+        }
+      }
+    },
+    "Finder asks for the password when the disk is opened. The password never appears on the command line.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开磁盘时 Finder 会询问密码。密码不会出现在命令行参数里。"
+          }
+        }
+      }
+    },
+    "Works on every Mac. Made without mounting, so it works in the sandbox.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "适用于每台 Mac。制作时无需挂载，因此可在沙盒中使用。"
+          }
+        }
+      }
+    },
+    "Modern Macs. Falls back to HFS+ if the system can’t make an APFS image here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面向较新的 Mac。若系统无法在此制作 APFS 映像，会回退到 HFS+。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

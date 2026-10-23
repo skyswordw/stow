@@ -82,12 +82,12 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Compression levels: Store, Fastest, Fast, Balanced, Maximum, Smallest (LZMA2 solid block sizes, store incompressible files) | ✅ More Options | -mx 0/1/3/5/7/9 with 7-Zip's solid-block defaults; ZIP stores incompressible files per entry |
 | Each preset remembers its level; default preset & level in Settings | ✅ remembered · 🧪 Settings UI (pending verification) | Last audience is remembered too |
 | Windows filename check with editable suggested names | ✅ | ➕ clashes after renaming (incl. case-only) are numbered; edited names are made safe too |
-| AES encryption (ZIP), header/filename encryption (7Z); ZIP passwords ASCII-only warning | ✅ | Password goes to 7-Zip on stdin, never argv |
+| AES encryption (ZIP), header/filename encryption (7Z), AES-256 disk images (DMG); ZIP passwords ASCII-only warning | ✅ | Password goes to 7-Zip / hdiutil on stdin, never argv (#77 for DMG) |
 | Split volumes, default volume size | ✅ 100 MB / 700 MB / 4 GB · 🧪 default in Settings (pending verification) | `Name.7z.001…`; Archive Utility can't open split ZIPs |
 | Verify integrity after creating | ✅ More Options | Failed test keeps nothing |
 | CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · 🧪 Settings UI (pending verification) | |
 | Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
-| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | HFS+ via `hdiutil makehybrid` (no mounting, so it works in the sandbox), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); no password or split yet |
+| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | Default HFS+ via `hdiutil makehybrid` (no mounting, sandbox-safe), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); optional AES-256 password (`-stdinpass`), APFS option with HFS+ fallback, Applications → /Applications shortcut (#77). No split (a disk is one file). Finder window chrome (`.DS_Store` / background) still deferred |
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.

@@ -32,20 +32,51 @@ private struct SourceTree {
 private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, password: String? = nil,
                   volumeSize: Int64? = nil, verify: Bool = false, overrides: [String: String] = [:],
                   conflict: ArchiveCreation.Conflict = .keepBoth,
+                  diskImageFilesystem: DiskImageFilesystem = .hfsPlus,
+                  diskImageApplicationsLink: Bool = false,
                   into destination: URL) async throws -> (ArchiveCreation.Result, PackReport) {
     let request = PackRequest.collect([tree.project])
     var options = PackOptions()
     options.setAudience(audience)
     options.setFormat(format)
     options.usesPassword = password != nil
+    options.diskImageFilesystem = diskImageFilesystem
+    options.diskImageApplicationsLink = diskImageApplicationsLink
     let report = Compatibility.report(for: request.files, options: options, password: password ?? "", overrides: overrides)
     let metadata = audience.keepsMacMetadata && format == .zip
     let create = CreateRequest(operationID: UUID().uuidString, archiveName: "Project", format: format,
-                               password: password, volumeSize: volumeSize, keepsMacMetadata: metadata, verify: verify)
+                               password: password, volumeSize: volumeSize, keepsMacMetadata: metadata, verify: verify,
+                               diskImageFilesystem: format == .dmg ? diskImageFilesystem : .hfsPlus,
+                               diskImageApplicationsLink: format == .dmg && diskImageApplicationsLink)
     let result = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes, attributes: metadata,
                                                request: create, named: "Project", in: destination,
                                                conflict: conflict) { _ in }
     return (result, report)
+}
+
+/// Reads whether hdiutil considers the image encrypted (plist keys vary by macOS).
+private func diskImageIsEncrypted(_ url: URL) throws -> Bool {
+    let process = Process()
+    process.executableURL = URL(filePath: "/usr/bin/hdiutil")
+    process.arguments = ["imageinfo", "-plist", url.path]
+    let out = Pipe()
+    process.standardOutput = out
+    process.standardError = FileHandle.nullDevice
+    try process.run()
+    process.waitUntilExit()
+    guard process.terminationStatus == 0 else { return false }
+    let data = out.fileHandleForReading.readDataToEndOfFile()
+    guard let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
+        return false
+    }
+    if let flag = plist["Encrypted"] as? Bool { return flag }
+    if let flag = plist["encrypted"] as? Bool { return flag }
+    if let properties = plist["Properties"] as? [String: Any] {
+        if let flag = properties["Encrypted"] as? Bool { return flag }
+        if let flag = properties["encrypted"] as? Bool { return flag }
+    }
+    // Fallback: string search in the plist dump.
+    return String(decoding: data, as: UTF8.self).localizedCaseInsensitiveContains("Encrypted</key><true")
 }
 
 @Suite("Packing", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
@@ -81,6 +112,60 @@ struct PackingTests {
         let mode = try FileManager.default.attributesOfItem(atPath: folder.appending(path: "run.sh").path)[.posixPermissions] as? Int
         #expect(mode == 0o755)
         #expect(try FileManager.default.destinationOfSymbolicLink(atPath: folder.appending(path: "link").path) == "README.md")
+    }
+
+    /// #77: Applications shortcut becomes a drop target; content still extracts.
+    @Test func diskImageWithApplicationsShortcut() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, report) = try await pack(tree, audience: .mac, format: .dmg, verify: true,
+                                              diskImageApplicationsLink: true, into: out)
+        #expect(report.notes.contains { $0.title == "Includes an Applications shortcut" })
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        let archive = Archive(listing: listing, url: result.placed[0])
+        #expect(archive.dropTargets.contains { $0.folder == "/Applications" },
+                "dropTargets=\(archive.dropTargets) entries=\(listing.entries.map(\.path))")
+        #expect(archive.installerExtras.contains { $0.hasSuffix("Applications") })
+        let top = Set(archive.children(of: archive.volumeRoot).map(\.name))
+        #expect(top.isSuperset(of: ["README.md", "Docs", "run.sh"]))
+        #expect(!top.contains("Applications")) // hidden as installer layout
+    }
+
+    /// #77: AES password via -stdinpass; imageinfo reports encrypted; verify round-trips with the password.
+    @Test func diskImageWithPassword() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let password = "correct-horse"
+        let (result, report) = try await pack(tree, audience: .mac, format: .dmg, password: password,
+                                              verify: true, into: out)
+        #expect(result.report.verified)
+        #expect(report.notes.contains { $0.title == "Contents are encrypted with AES-256" })
+        #expect(try diskImageIsEncrypted(result.placed[0]))
+    }
+
+    /// #77: APFS option still produces a browsable DMG (APFS when allowed, else HFS+ fallback).
+    @Test func diskImageAPFSOptionRoundTrips() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, report) = try await pack(tree, audience: .mac, format: .dmg, verify: true,
+                                              diskImageFilesystem: .apfs, diskImageApplicationsLink: true, into: out)
+        #expect(result.report.verified)
+        #expect(report.notes.contains { $0.title == "APFS when the system allows" })
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        let archive = Archive(listing: listing, url: result.placed[0])
+        #expect(archive.format == .dmg)
+        #expect(archive.dropTargets.contains { $0.folder == "/Applications" })
+        let top = Set(archive.children(of: archive.volumeRoot).map(\.name))
+        #expect(top.contains("README.md"))
     }
 
     /// DMG has its own test below: a disk's layout differs (one folder's contents at the top).

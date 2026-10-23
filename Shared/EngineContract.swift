@@ -148,7 +148,8 @@ nonisolated enum PackFormat: String, Codable, CaseIterable, Identifiable, Sendab
         }
     }
 
-    var supportsPassword: Bool { self == .zip || self == .sevenZip }
+    /// ZIP, 7Z, and DMG (AES-256 via hdiutil -stdinpass; #77).
+    var supportsPassword: Bool { self == .zip || self == .sevenZip || self == .dmg }
     var isCompressed: Bool { self != .tar }
     /// A disk image is always one file.
     var supportsSplit: Bool { self != .dmg }
@@ -161,6 +162,30 @@ nonisolated enum CompressionLevel: Int, Codable, CaseIterable, Identifiable, Sen
     var id: Self { self }
 }
 
+/// File system for Pack › DMG (#77). Default keeps the HFS+ hybrid path from #23.
+nonisolated enum DiskImageFilesystem: String, Codable, CaseIterable, Identifiable, Sendable {
+    case hfsPlus
+    case apfs
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .hfsPlus: "HFS+"
+        case .apfs: "APFS"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .hfsPlus:
+            String(localized: "Works on every Mac. Made without mounting, so it works in the sandbox.")
+        case .apfs:
+            String(localized: "Modern Macs. Falls back to HFS+ if the system can’t make an APFS image here.")
+        }
+    }
+}
+
 nonisolated struct CreateRequest: Codable, Sendable {
     var version = EngineContract.version
     var operationID: String
@@ -168,7 +193,7 @@ nonisolated struct CreateRequest: Codable, Sendable {
     var archiveName: String
     var format: PackFormat
     var level: CompressionLevel = .balanced
-    /// ZIP: AES-256. 7Z: AES-256 with file names encrypted too.
+    /// ZIP: AES-256. 7Z: AES-256 with file names encrypted too. DMG: AES-256 via hdiutil -stdinpass.
     var password: String?
     /// Bytes per volume; nil for one file.
     var volumeSize: Int64?
@@ -178,6 +203,10 @@ nonisolated struct CreateRequest: Codable, Sendable {
     var verify = false
     /// Compression threads; nil lets 7-Zip use every core.
     var threads: Int?
+    /// DMG only (#77). Default is the HFS+ hybrid path from #23.
+    var diskImageFilesystem: DiskImageFilesystem = .hfsPlus
+    /// DMG only (#77). Adds `Applications → /Applications` for drag-to-install.
+    var diskImageApplicationsLink = false
 }
 
 nonisolated struct CreateReport: Codable, Sendable {
