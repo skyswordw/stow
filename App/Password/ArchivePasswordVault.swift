@@ -19,11 +19,14 @@ nonisolated struct ArchivePasswordIdentity: Hashable, Sendable {
     /// temporary preview / received-file folders).
     static func make(url: URL) -> ArchivePasswordIdentity? {
         guard isVaultable(url) else { return nil }
-        let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isRegularFileKey])
-        guard values?.isRegularFile != false else { return nil }
         let path = url.standardizedFileURL.resolvingSymlinksInPath().path
-        let size = Int64(values?.fileSize ?? 0)
-        let modified = values?.contentModificationDate?.timeIntervalSince1970 ?? 0
+        // Prefer FileManager attributes over URL resourceValues: the latter can return a
+        // cached size/mtime after an in-place rewrite, so a replaced archive would keep
+        // the old Keychain entry.
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: path) else { return nil }
+        if let type = attrs[.type] as? FileAttributeType, type != .typeRegular { return nil }
+        let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
+        let modified = (attrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
         let digest = SHA256.hash(data: Data("\(path)|\(size)|\(modified)".utf8))
             .map { String(format: "%02x", $0) }.joined()
         return ArchivePasswordIdentity(account: digest, path: path, size: size, modified: modified)

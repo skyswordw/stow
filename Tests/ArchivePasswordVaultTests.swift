@@ -43,8 +43,10 @@ struct ArchivePasswordVaultTests {
         #expect(first.path == url.standardizedFileURL.resolvingSymlinksInPath().path)
 
         try Data("hello!".utf8).write(to: url) // size change → new identity
-        let changed = try #require(ArchivePasswordIdentity.make(url: url))
+        // Fresh URL so the test isn't fooled by any residual URL-level cache.
+        let changed = try #require(ArchivePasswordIdentity.make(url: URL(fileURLWithPath: url.path)))
         #expect(changed.account != first.account)
+        #expect(changed.size != first.size)
     }
 
     @Test func temporaryPathsAreNotVaultable() throws {
