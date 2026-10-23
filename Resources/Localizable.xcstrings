@@ -9476,6 +9476,96 @@
           }
         }
       }
+    },
+    "If this unlocks it, Stow saves the password in your Keychain for next time.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果密码正确，Stow 会把它保存在你的钥匙串里，下次打开不用再输入。"
+          }
+        }
+      }
+    },
+    "Remember passwords in Keychain": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在钥匙串中记住密码"
+          }
+        }
+      }
+    },
+    "When on, a password that unlocks an archive is saved in your Keychain — nowhere else, and only this app can read it. When off, Stow keeps passwords only while the archive is open.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后，成功解锁压缩包的密码会存进你的钥匙串——只存在那里，也只有本 App 能读。关闭后，密码仅在压缩包打开期间保留在内存中。"
+          }
+        }
+      }
+    },
+    "No saved passwords yet": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有已保存的密码"
+          }
+        }
+      }
+    },
+    "Remove All Saved Passwords…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除全部已保存密码…"
+          }
+        }
+      }
+    },
+    "Saved passwords": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存的密码"
+          }
+        }
+      }
+    },
+    "Remove all saved passwords?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除全部已保存的密码？"
+          }
+        }
+      }
+    },
+    "Remove All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部清除"
+          }
+        }
+      }
+    },
+    "Stow forgets every archive password stored in your Keychain. Archives already open keep their passwords until you close them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 会忘掉钥匙串里保存的所有压缩包密码。已经打开的压缩包仍会保留密码，直到你关闭它们。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

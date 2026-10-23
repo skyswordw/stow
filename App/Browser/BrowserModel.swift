@@ -1041,7 +1041,8 @@ final class BrowserModel {
             let options = Extraction.Options.current(resolve: ConflictPolicy().resolver)
             // Encrypted contents only need the password now; one that worked before is tried first.
             let (result, password) = try await passwords.retrying(archive.name, for: .extract,
-                                                                  known: archive.source?.password) { password in
+                                                                  known: archive.source?.password,
+                                                                  vaultURL: archive.source?.url) { password in
                 var attempt = archive
                 attempt.source?.password = password
                 return try await Extraction.run(attempt, selection: selection, to: destination, options: options,
@@ -1229,7 +1230,8 @@ final class BrowserModel {
         activityTask = Task { [weak self, passwords] in
             do throws(EngineError) {
                 let (staged, password) = try await passwords.retrying(archive.name, for: .extract,
-                                                                      known: archive.source?.password) { password in
+                                                                      known: archive.source?.password,
+                                                                      vaultURL: archive.source?.url) { password in
                     var attempt = archive
                     attempt.source?.password = password
                     return try await Extraction.stage(attempt, selection: entries, near: FileManager.default.temporaryDirectory,

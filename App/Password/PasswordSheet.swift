@@ -10,7 +10,7 @@ struct PasswordSheet: View {
 
     var body: some View {
         PromptCard(symbol: "lock.fill", title: String(localized: "“\(question.archiveName)” is locked"),
-                   message: explanation, footnote: String(localized: "Stow keeps it only while this archive is open.")) {
+                   message: explanation, footnote: footnote) {
             VStack(alignment: .leading, spacing: Space.s) {
                 Group {
                     if showsPassword {
@@ -48,6 +48,14 @@ struct PasswordSheet: View {
         switch question.purpose {
         case .open: String(localized: "Its list of files is encrypted. Enter the password to see what’s inside.")
         case .extract: String(localized: "Its files are encrypted. Enter the password to extract them.")
+        }
+    }
+
+    private var footnote: String {
+        if ArchivePasswordVault.isEnabled {
+            String(localized: "If this unlocks it, Stow saves the password in your Keychain for next time.")
+        } else {
+            String(localized: "Stow keeps it only while this archive is open.")
         }
     }
 

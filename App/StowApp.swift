@@ -80,7 +80,7 @@ final class AppState {
                 let password: String?
                 do {
                     // 7z archives with an encrypted file list need the password just to be listed.
-                    (listing, password) = try await passwords.retrying(url.lastPathComponent, for: .open) { password in
+                    (listing, password) = try await passwords.retrying(url.lastPathComponent, for: .open, vaultURL: url) { password in
                         try await ArchiveEngine.shared.list(url, password: password)
                     }
                 } catch {
@@ -158,7 +158,8 @@ final class AppState {
         Task {
             do {
                 let archive = model.archive
-                let (staged, password) = try await model.passwords.retrying(archive.name, for: .extract, known: model.level.password) { password in
+                let (staged, password) = try await model.passwords.retrying(archive.name, for: .extract, known: model.level.password,
+                                                                            vaultURL: archive.source?.url) { password in
                     var input = archive
                     input.source?.password = password
                     return try await Extraction.stage(input, selection: nil, near: FileManager.default.temporaryDirectory,
