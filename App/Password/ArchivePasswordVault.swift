@@ -172,17 +172,17 @@ nonisolated struct KeychainArchivePasswordStore: ArchivePasswordStoring {
     }
 
     func wipe() throws {
-        var query: [String: Any] = [
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service
+            kSecAttrService as String: Self.service,
+            kSecAttrAccessGroup as String: Self.accessGroup
         ]
-        query[kSecAttrAccessGroup as String] = Self.accessGroup
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw KeychainError(status) }
     }
 
     func entries() -> [ArchivePasswordEntry] {
-        var query: [String: Any] = [
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: Self.service,
             kSecAttrAccessGroup as String: Self.accessGroup,

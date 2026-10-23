@@ -78,24 +78,26 @@ struct ArchivePasswordVaultTests {
 
     @Test func facadeRespectsOptInToggle() throws {
         try withVault { store, _, archive in
+            let identity = try #require(ArchivePasswordIdentity.make(url: archive))
             ArchivePasswordVault.remember("swordfish", for: archive)
-            #expect(store.password(for: try #require(ArchivePasswordIdentity.make(url: archive))) == "swordfish")
+            #expect(store.password(for: identity) == "swordfish")
             #expect(ArchivePasswordVault.recalled(for: archive) == "swordfish")
 
             UserDefaults.standard.set(false, forKey: SettingsKeys.rememberPasswords)
             #expect(ArchivePasswordVault.recalled(for: archive) == nil)
             ArchivePasswordVault.remember("ignored", for: archive)
             // Store still has the earlier value; disabled vault neither reads nor overwrites.
-            #expect(store.password(for: try #require(ArchivePasswordIdentity.make(url: archive))) == "swordfish")
+            #expect(store.password(for: identity) == "swordfish")
         }
     }
 
     @Test func forgetAfterRejectedRecall() throws {
         try withVault { store, _, archive in
+            let identity = try #require(ArchivePasswordIdentity.make(url: archive))
             ArchivePasswordVault.remember("old", for: archive)
             #expect(ArchivePasswordVault.recalled(for: archive) == "old")
             ArchivePasswordVault.forget(url: archive)
-            #expect(store.password(for: try #require(ArchivePasswordIdentity.make(url: archive))) == nil)
+            #expect(store.password(for: identity) == nil)
         }
     }
 }
