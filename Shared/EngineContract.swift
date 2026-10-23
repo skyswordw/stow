@@ -15,7 +15,8 @@ nonisolated enum EngineContract {
     static let serviceName = "app.stow.Stow.Engine"
     /// 2: `create`.
     /// 3: `edit`, `sendFile`.
-    static let version = 4
+    /// 5: streaming list chunks.
+    static let version = 5
 }
 
 @objc(StowEngineProtocol)
@@ -52,19 +53,25 @@ nonisolated protocol EngineXPCProtocol {
     /// Deletes an extraction's output.
     func discard(operation: String)
 
-    /// Stops a running extraction; its reply arrives with `EngineFailure.cancelled`.
+    /// Stops a running listing, extraction or creation; its reply arrives with `EngineFailure.cancelled`.
     func cancel(operation: String)
 }
 
 /// Exported by the app on the same connection so the engine can report progress.
 @objc(StowEngineClientProtocol)
 nonisolated protocol EngineClientXPCProtocol {
+    func operation(_ id: String, didListChunk data: Data)
     func operation(_ id: String, didProgress fraction: Double)
 }
 
 // MARK: - Payloads
 
+nonisolated struct ListChunk: Codable, Sendable {
+    var entries: [ListedEntry]
+}
+
 nonisolated struct ListRequest: Codable, Sendable {
+    var operationID: String
     var version = EngineContract.version
     var password: String?
 }

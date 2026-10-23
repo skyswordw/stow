@@ -11,13 +11,34 @@ final class ArchiveEngine {
     private let progress = ProgressRouter()
 
     func list(_ archive: URL, password: String? = nil) async throws(EngineError) -> ArchiveListing {
-        let request = try encode(ListRequest(password: password))
+        try await list(archive, password: password, onChunk: { _ in })
+    }
+
+    func list(_ archive: URL, password: String? = nil,
+              onChunk: @escaping @Sendable ([ListedEntry]) -> Void) async throws(EngineError) -> ArchiveListing {
+        if Task.isCancelled { throw EngineError(.cancelled) }
+        let id = UUID().uuidString
+        let request = try encode(ListRequest(operationID: id, password: password))
         let handle = try Self.open(archive)
         defer { try? handle.close() }
-        let reply = try await call { proxy, reply in
-            proxy.listArchive(handle, named: archive.lastPathComponent, request: request, reply: reply)
-        }
-        return try decode(ArchiveListing.self, from: reply)
+        progress.registerList(id, onChunk)
+        defer { progress.removeList(id) }
+        let connection = XPCConnection(try await verifiedConnection())
+        let file = SendableHandle(handle)
+        let name = archive.lastPathComponent
+        do {
+            let reply = try await withTaskCancellationHandler {
+                try await Self.call(on: connection) { proxy, once in
+                    proxy.listArchive(file.handle, named: name, request: request) { data, error in
+                        Self.resume(once, data, error)
+                    }
+                    // The request must precede cancel even when already cancelled at entry.
+                    if Task.isCancelled { proxy.cancel(operation: id) }
+                }
+            } onCancel: { connection.proxy?.cancel(operation: id) }
+            if Task.isCancelled { throw EngineError(.cancelled) }
+            return try decode(ArchiveListing.self, from: reply)
+        } catch { throw EngineError(error) }
     }
 
     /// An extraction waiting inside the engine: `receive` it, then `discard` it.
@@ -376,6 +397,19 @@ private nonisolated struct SendableHandle: @unchecked Sendable {
 
 /// Receives the engine's progress callbacks (on an XPC queue) and forwards them per operation.
 private nonisolated final class ProgressRouter: NSObject, EngineClientXPCProtocol, Sendable {
+    private let lists = Mutex<[String: @Sendable ([ListedEntry]) -> Void]>([:])
+
+    func registerList(_ id: String, _ handler: @escaping @Sendable ([ListedEntry]) -> Void) {
+        lists.withLock { $0[id] = handler }
+    }
+
+    func removeList(_ id: String) { _ = lists.withLock { $0.removeValue(forKey: id) } }
+
+    func operation(_ id: String, didListChunk data: Data) {
+        guard let chunk = try? JSONDecoder.engine.decode(ListChunk.self, from: data) else { return }
+        lists.withLock { $0[id] }?(chunk.entries)
+    }
+
     private let handlers = Mutex<[String: @Sendable (Double) -> Void]>([:])
 
     func register(_ id: String, _ handler: @escaping @Sendable (Double) -> Void) {

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import Synchronization
 @testable import Stow
 
 /// Issue #22: 7-Zip's listing is parsed as it arrives, in chunks cut anywhere.
@@ -64,6 +65,139 @@ struct StreamingListingTests {
         #expect(parser.finish()?.listing.entries.count == 45)
     }
 
+    @Test func drainPreservesFinalListingAndLegacyIndices() throws {
+        var parser = SevenZip.ListingParser()
+        let data = Data(Self.output.utf8)
+        parser.consume(data.prefix(data.count / 2))
+        let first = parser.takeEntries()
+        #expect(!first.isEmpty)
+        #expect(parser.takeEntries().isEmpty)
+        parser.consume(data.suffix(from: data.count / 2))
+        let finished = parser.finish()
+        let final = try #require(finished)
+        let rest = parser.takeEntries()
+        #expect(first + rest == final.listing.entries)
+        #expect(final.legacy == [4])
+        #expect(parser.takeEntries().isEmpty)
+    }
+
+    @Test func chunkBoundariesAndFinalRemainder() throws {
+        var parser = SevenZip.ListingParser()
+        parser.consume(Data(Self.output.utf8))
+        var entries: [ListedEntry] = []
+        while true {
+            let chunk = parser.takeEntries(minimum: 16)
+            if chunk.isEmpty { break }
+            #expect(chunk.count == 16)
+            entries += chunk
+        }
+        let finished = parser.finish()
+        let final = try #require(finished)
+        let remainder = parser.takeEntries()
+        #expect(remainder.count == 13)
+        #expect(entries + remainder == final.listing.entries)
+    }
+
+    @Test func chunksRoundTripOverTheWire() throws {
+        let entries = try #require(SevenZip.parseListingFast(Self.output)).listing.entries
+        let data = try JSONEncoder.engine.encode(ListChunk(entries: entries))
+        #expect(try JSONDecoder.engine.decode(ListChunk.self, from: data).entries == entries)
+        let request = ListRequest(operationID: "list-test", password: "secret")
+        let decoded = try JSONDecoder.engine.decode(ListRequest.self, from: JSONEncoder.engine.encode(request))
+        #expect(decoded.operationID == request.operationID)
+        #expect(decoded.version == 5)
+    }
+
+    @Test func drainingLargeFixtureMatchesFullParse() throws {
+        let text = "--\nType = tar\nPhysical Size = 123\n\n----------\n"
+            + (0..<10_003).map { "Path = Folder/item-\($0)\nSize = 0\n\n" }.joined()
+        var parser = SevenZip.ListingParser()
+        var entries: [ListedEntry] = []
+        let bytes = Data(text.utf8)
+        for start in stride(from: 0, to: bytes.count, by: 4_096) {
+            parser.consume(bytes.subdata(in: start..<min(start + 4_096, bytes.count)))
+            entries += parser.takeEntries()
+        }
+        let finished = parser.finish()
+        let final = try #require(finished)
+        entries += parser.takeEntries()
+        #expect(entries == final.listing.entries)
+        #expect(entries == SevenZip.parseListing(text)?.entries)
+    }
+
+    @Test func cancelledListDoesNotLaunch() async {
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await SevenZip(executable: URL(filePath: "/missing-7zz"))
+                .list(.file(URL(filePath: "/missing.tar")))
+        }
+        do {
+            _ = try await task.value
+            Issue.record("Cancelled listing succeeded")
+        } catch { #expect((error as? EngineError)?.failure == .cancelled) }
+    }
+
+    @Test func cancellingAfterFirstChunkStopsRunningProcess() async throws {
+        // Bundled 7zz only (sandbox forbids compiling helpers). Cancel from the first chunk
+        // callback so the listing Task cannot finish the rest of a large archive first.
+        let sevenZip = try #require(SevenZip.bundled())
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let archive = folder.url.appending(path: "big.tar")
+        try StreamingListingBenchmark.tar((0..<50_000).map { "Folder \($0 / 200)/Item \($0 % 200).txt" })
+            .write(to: archive)
+        let (chunks, continuation) = AsyncStream<Int>.makeStream()
+        let listingTask = Mutex<Task<ArchiveListing, any Error>?>(nil)
+        let task = Task {
+            defer { continuation.finish() }
+            return try await sevenZip.list(.file(archive)) { entries in
+                continuation.yield(entries.count)
+                listingTask.withLock { $0 }?.cancel()
+            }
+        }
+        listingTask.withLock { $0 = task }
+        var iterator = chunks.makeAsyncIterator()
+        let first = await iterator.next()
+        #expect(first == 2_048)
+        let start = ContinuousClock.now
+        do {
+            _ = try await task.value
+            Issue.record("Cancelled listing succeeded")
+        } catch { #expect((error as? EngineError)?.failure == .cancelled) }
+        #expect(ContinuousClock.now - start < .seconds(5))
+    }
+
+    @Test func partialBrowserKeepsFolderAndSelectionUntilFinalListing() {
+        let url = URL(filePath: "/tmp/streaming-browser-test.zip")
+        let first = ArchiveListing(type: "zip", entries: [
+            ListedEntry(path: "Docs/a.txt", isFolder: false, size: 1)
+        ])
+        let browser = BrowserModel(archive: Archive(listing: first, url: url), isListing: true)
+        browser.navigate(to: "Docs", selecting: ["Docs/a.txt"])
+        var final = first
+        final.entries.append(ListedEntry(path: "Docs/b.txt", isFolder: false, size: 2))
+        browser.applyListing(Archive(listing: final, url: url), complete: true)
+        #expect(!browser.isListing)
+        #expect(browser.folder == "Docs")
+        #expect(browser.selection == ["Docs/a.txt"])
+        #expect(browser.archive.files.count == 2)
+        #expect(browser.editSession.base.entries == final.entries)
+    }
+
+    @Test func provisionalBrowserCannotStageEdits() {
+        let listing = ArchiveListing(type: "zip", entries: [
+            ListedEntry(path: "a.txt", isFolder: false, size: 1)
+        ])
+        let browser = BrowserModel(archive: Archive(listing: listing, url: URL(filePath: "/tmp/provisional.zip")),
+                                   isListing: true)
+        #expect(browser.indexingProgress != nil)
+        #expect(browser.level.indexed == 0)
+        browser.editSession.delete(["a.txt"])
+        #expect(!browser.editSession.isEdited)
+        browser.applyListing(Archive(listing: listing, url: URL(filePath: "/tmp/provisional.zip")), complete: true)
+        #expect(!browser.editSession.isListing)
+    }
+
     @Test func otherFormatsGiveUpAtTheHeader() {
         let text = "--\nPath = a.gz\nType = gzip\n\n----------\nPath = a\nSize = 3\n\n"
         var parser = SevenZip.ListingParser()
@@ -96,7 +230,26 @@ struct StreamingListingBenchmark {
         var before: ArchiveListing!
         var after: ArchiveListing!
         let parsedAfter = try await clock.measure { before = try await sevenZip.list(.file(zip), streamed: false) }
-        let parsedWhile = try await clock.measure { after = try await sevenZip.list(.file(zip)) }
+        let fullReply = try await clock.measure { before = try await sevenZip.list(.file(zip)) }
+        let firstChunk = Mutex<Duration?>(nil)
+        let firstModel = Mutex<Duration?>(nil)
+        let received = Mutex<[ListedEntry]>([])
+        let started = ContinuousClock.now
+        let parsedWhile = try await clock.measure {
+            after = try await sevenZip.list(.file(zip)) { entries in
+                firstChunk.withLock { if $0 == nil { $0 = ContinuousClock.now - started } }
+                if firstModel.withLock({ $0 == nil }) {
+                    let wire = try! JSONEncoder.engine.encode(ListChunk(entries: entries))
+                    let chunk = try! JSONDecoder.engine.decode(ListChunk.self, from: wire)
+                    _ = Archive(listing: ArchiveListing(type: "tar", entries: chunk.entries), url: zip)
+                    firstModel.withLock { $0 = ContinuousClock.now - started }
+                }
+                received.withLock { $0.append(contentsOf: entries) }
+            }
+        }
+        print("100k streaming listing: first chunk \(String(describing: firstChunk.withLock { $0 })); complete \(parsedWhile)")
+        #expect(received.withLock { $0 } == after.entries)
+        #expect(try #require(firstChunk.withLock { $0 }) < parsedWhile)
         var wire = Data()
         let encode = try clock.measure { wire = try JSONEncoder.engine.encode(after) }
         let decode = try clock.measure { _ = try JSONDecoder.engine.decode(ArchiveListing.self, from: wire) }
@@ -104,6 +257,11 @@ struct StreamingListingBenchmark {
         print("100k-entry TAR listing — fixture \(write); parsed after 7-Zip \(parsedAfter), parsed while it lists \(parsedWhile); "
               + "XPC JSON encode \(encode), decode \(decode) (\(wire.count / 1_000_000) MB); browser model \(model)")
 
+        print("100k before first browser model: \(fullReply + encode + decode + model); "
+              + "after first chunk: \(String(describing: firstChunk.withLock { $0 })); "
+              + "after first chunk wire + model: \(String(describing: firstModel.withLock { $0 })); "
+              + "after authoritative model: \(parsedWhile + encode + decode + model). "
+              + "Run -StowScrollBenchmark for unchanged grid/list scrolling.")
         #expect(after.entries == before.entries)
         #expect(after.entries.count == 100_000)
         #expect(parsedWhile < .seconds(30) && parsedAfter < .seconds(30))

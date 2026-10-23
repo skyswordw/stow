@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Listing… %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在列出… %@"
+          }
+        }
+      }
+    },
     "Try again. Your files weren’t changed.": {
       "localizations": {
         "zh-Hans": {
