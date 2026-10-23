@@ -12,6 +12,8 @@ struct IntegrationView: View {
                 LabeledContent {
                     Button("Repair…") { Task { await settings.repairFinderExtension() } }
                         .disabled(settings.isRepairing)
+                        .accessibilityLabel(String(localized: "Repair Finder Menu"))
+                        .accessibilityHint(settings.finderExtensionEnabled ? String(localized: "Finder menu is on") : String(localized: "Finder menu is off"))
                 } label: {
                     Label {
                         VStack(alignment: .leading, spacing: 2) {
@@ -51,6 +53,8 @@ struct IntegrationView: View {
                             .foregroundStyle(settings.loginItemError == nil ? .secondary : Color.red)
                     }
                 }
+                .accessibilityLabel(String(localized: "Open Stow at login"))
+                .accessibilityHint(settings.loginItemSummary)
                 if settings.loginItemStatus == .requiresApproval {
                     Button("Open Login Items Settings") { settings.openLoginItemsSettings() }
                 }
@@ -62,6 +66,8 @@ struct IntegrationView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityLabel(String(localized: "Hide Dock icon when no windows are open"))
+                .accessibilityHint(String(localized: "Stow keeps running for Finder and Services actions. Open Stow from Finder or Spotlight to bring it back."))
             } header: {
                 Text("Startup").accessibilityAddTraits(.isHeader)
             }
