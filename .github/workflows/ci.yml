@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 385 after streaming listings (#82); colourful Glance controls (#86) extend existing tests.
+          # 389 after explicit unlock and password-aware preview coverage (#90).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "385"
+          MIN_TESTS: "389"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

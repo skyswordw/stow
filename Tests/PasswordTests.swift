@@ -197,6 +197,106 @@ struct EncryptedArchiveTests {
         #expect(!app.isOpening)
         #expect(app.browser == nil && app.openFailure == nil)
     }
+
+    @Test(arguments: ["unlock.zip", "unlock.7z"])
+    func manualUnlockVerifiesDataAndRefreshesPreviews(name: String) async throws {
+        defer { folder.cleanUp() }
+        let url = try makeArchive(name, name.hasSuffix(".zip") ? ["-mem=AES256"] : [])
+        let model = BrowserModel(archive: Archive(listing: try await ArchiveEngine.shared.list(url), url: url))
+        let prompt = PasswordPrompt()
+        model.passwords = PasswordHook(prompt: prompt)
+
+        model.unlockArchive()
+        let first = try await nextQuestion(from: prompt)
+        #expect(first.purpose == .unlock)
+        #expect(model.level.password == nil && model.previewRevision == 0)
+        prompt.answer("guess", to: first.id)
+        let retry = try await nextQuestion(from: prompt, after: first)
+        #expect(retry.isRetry && model.level.password == nil)
+        prompt.answer("swordfish", to: retry.id)
+        try await waitForUnlock(model)
+
+        #expect(model.level.password == "swordfish")
+        #expect(model.archive.source?.password == "swordfish")
+        #expect(model.level.savedArchive.source?.password == "swordfish")
+        #expect(model.previewRevision == 1 && model.activity == nil)
+        let entry = try #require(model.archive.entry(at: "Docs/secret.txt"))
+        let preview = try await model.previewFile(for: entry, in: model.archive)
+        #expect(try String(contentsOf: preview, encoding: .utf8) == "top secret")
+        #expect(prompt.question == nil)
+
+        let destination = try makeDestination()
+        _ = try await Extraction.run(model.archive, selection: nil, to: destination) { _ in }
+        #expect(try String(contentsOf: destination.appending(path: "Docs/secret.txt"), encoding: .utf8) == "top secret")
+    }
+
+    @Test func cancellingManualUnlockKeepsTheArchiveLocked() async throws {
+        defer { folder.cleanUp() }
+        let url = try makeArchive("cancel.zip", ["-mem=AES256"])
+        let model = BrowserModel(archive: Archive(listing: try await ArchiveEngine.shared.list(url), url: url))
+        let prompt = PasswordPrompt()
+        model.passwords = PasswordHook(prompt: prompt)
+        model.unlockArchive()
+        _ = try await nextQuestion(from: prompt)
+        model.cancelUnlocking()
+        try await waitForUnlock(model)
+        #expect(prompt.question == nil)
+        #expect(model.level.password == nil && model.archive.source?.password == nil)
+        #expect(model.activity == nil && model.previewRevision == 0)
+    }
+
+    @Test func quickLookCanAskForThePasswordWithoutExtractingFirst() async throws {
+        defer { folder.cleanUp() }
+        let url = try makeArchive("preview.zip", ["-mem=AES256"])
+        let model = BrowserModel(archive: Archive(listing: try await ArchiveEngine.shared.list(url), url: url))
+        let prompt = PasswordPrompt()
+        model.passwords = PasswordHook(prompt: prompt)
+        let entry = try #require(model.archive.entry(at: "Docs/secret.txt"))
+        model.select([entry.id])
+        model.quickLook.reload()
+        let item = try #require(model.quickLook.entries.first)
+        let question = try await nextQuestion(from: prompt)
+        #expect(question.purpose == .unlock && item.isPending)
+        prompt.answer("swordfish", to: question.id)
+        let deadline = ContinuousClock.now + .seconds(20)
+        while item.isPending, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(!item.isPending)
+        let preview = try #require(item.url)
+        #expect(try String(contentsOf: preview, encoding: .utf8) == "top secret")
+        #expect(model.level.password == "swordfish")
+    }
+
+    @Test func manualUnlockDoesNotVerifyAgainstAPlaintextEntry() async throws {
+        defer { folder.cleanUp() }
+        let url = try makeArchive("mixed.zip", ["-mem=ZipCrypto"])
+        try Data().write(to: folder.url.appending(path: "plain.txt"))
+        let add = Process()
+        add.executableURL = SevenZip.bundled()!.executable
+        add.arguments = ["a", "-bso0", url.path, "plain.txt"]
+        add.currentDirectoryURL = folder.url
+        try add.run()
+        add.waitUntilExit()
+        try #require(add.terminationStatus == 0)
+        let listing = try await ArchiveEngine.shared.list(url)
+        #expect(listing.entries.contains { $0.path == "plain.txt" && !$0.isEncrypted })
+        let model = BrowserModel(archive: Archive(listing: listing, url: url))
+        let prompt = PasswordPrompt()
+        model.passwords = PasswordHook(prompt: prompt)
+        model.unlockArchive()
+        let first = try await nextQuestion(from: prompt)
+        prompt.answer("guess", to: first.id)
+        let retry = try await nextQuestion(from: prompt, after: first)
+        #expect(retry.isRetry && model.level.password == nil)
+        prompt.answer("swordfish", to: retry.id)
+        try await waitForUnlock(model)
+        #expect(model.level.password == "swordfish" && model.activity == nil)
+    }
+
+    private func waitForUnlock(_ model: BrowserModel) async throws {
+        let deadline = ContinuousClock.now + .seconds(20)
+        while model.isUnlocking, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+        try #require(!model.isUnlocking)
+    }
 }
 
 /// Waits for `prompt` to ask something other than `previous`.

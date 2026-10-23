@@ -150,6 +150,8 @@ struct BrowserView: View {
 
         ToolbarSpacer(.fixed)
 
+        ToolbarItem(placement: .navigation) { ArchiveUnlockControl(model: model) }
+
         ToolbarItem {
             Button("Tray", systemImage: "tray") { app.tray.toggle() }
                 .accessibilityLabel(String(localized: "Tray"))

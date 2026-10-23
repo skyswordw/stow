@@ -104,6 +104,9 @@ final class BrowserModel {
     let quickLook = QuickLookController()
     let dragOut = DragOutController()
     var passwords: PasswordHook = .none
+    private(set) var isUnlocking = false
+    private(set) var previewRevision = 0
+    private var unlockTask: Task<Void, Never>?
 
     private var positions: [ArchiveEntry.ID: Int] = [:]
     private var searchResults: [ArchiveEntry] = []
@@ -854,7 +857,7 @@ final class BrowserModel {
             do {
                 var urls: [URL] = []
                 for entry in files {
-                    urls.append(try await previews.file(for: entry, in: archive) { fraction in
+                    urls.append(try await previewFile(for: entry, in: archive) { fraction in
                         Task { @MainActor in self.advance(to: fraction) }
                     })
                 }
@@ -884,7 +887,7 @@ final class BrowserModel {
             guard let self else { return }
             activity = Activity(step: .openInside, itemCount: 1, phase: .running(0))
             do {
-                let url = try await previews.file(for: entry, in: archive) { fraction in
+                let url = try await previewFile(for: entry, in: archive) { fraction in
                     Task { @MainActor in self.advance(to: fraction * 0.9) }
                 }
                 previews.cache.pin(url)
@@ -1123,8 +1126,67 @@ final class BrowserModel {
 
     /// A password that worked stays with the open archive (memory only) for later steps and previews.
     private func rememberPassword(_ password: String) {
-        archive.source?.password = password
-        if levels.count == 1 { level.password = password }
+        rememberPassword(password, in: level)
+    }
+
+    private func rememberPassword(_ password: String, in target: Level) {
+        let changed = target.password != password
+        target.password = password
+        target.archive.source?.password = password
+        target.savedArchive.source?.password = password
+        if changed {
+            previews.passwordDidChange()
+            previewRevision += 1
+        }
+    }
+
+    /// User-requested previews may ask; background thumbnails and hover previews never do.
+    func previewFile(for entry: ArchiveEntry, in archive: Archive,
+                     onProgress: (@Sendable (Double) -> Void)? = nil) async throws(EngineError) -> URL {
+        let target = levels.first { $0.archive.id == archive.id }
+        let (url, password) = try await passwords.retrying(archive.name, for: .unlock,
+                                                          known: target?.password ?? archive.source?.password,
+                                                          vaultURL: archive.source?.url) { password in
+            try await self.previews.file(for: entry, in: archive, using: password, onProgress: onProgress)
+        }
+        if !Task.isCancelled, let password, let target { rememberPassword(password, in: target) }
+        return url
+    }
+
+    /// Verify actual encrypted data: listing an ordinary ZIP doesn't test its password.
+    /// Read one encrypted file inside the engine and discard its output, without writing to a
+    /// user destination. A requested file takes precedence for ZIPs with different passwords.
+    func unlockArchive(for entry: ArchiveEntry? = nil) {
+        let target = level
+        guard !isUnlocking, !isListing, let source = target.savedArchive.source,
+              target.savedArchive.isEncrypted else { return }
+        let encrypted = source.listing?.entries.filter { $0.isEncrypted && !$0.isFolder && !$0.isSymlink } ?? []
+        let path = entry.flatMap { source.storedPaths[$0.path]?.first }
+            ?? encrypted.min(by: { $0.size < $1.size })?.path
+        guard let path else { return }
+        isUnlocking = true
+        unlockTask = Task { [weak self] in
+            guard let self else { return }
+            defer { isUnlocking = false; unlockTask = nil }
+            do {
+                let (_, password) = try await passwords.retrying(target.archive.name, for: .unlock,
+                                                                  known: target.password, vaultURL: source.url) { password in
+                    guard password != nil else { throw EngineError(.passwordRequired) }
+                    let output = try await ArchiveEngine.shared.extract(source.url, paths: [path], password: password,
+                                                                         excludeMacHelperFiles: false) { _ in }
+                    ArchiveEngine.shared.discard(output)
+                }
+                guard !Task.isCancelled, let password else { return }
+                rememberPassword(password, in: target)
+                quickLook.selectionChanged()
+            } catch {
+                if !Task.isCancelled { report(error, step: .quickLook, count: 1, name: target.archive.name) }
+            }
+        }
+    }
+
+    func cancelUnlocking() {
+        unlockTask?.cancel()
     }
 
     /// Where an app goes: the disk image's own "drag to Applications" shortcut, or /Applications.

@@ -97,6 +97,12 @@ enum DemoScene {
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
+        case "encrypted":
+            var archive = SampleArchive.make()
+            archive.isEncrypted = true
+            archive.checkup = []
+            app.browser = BrowserModel(archive: archive)
+            app.browser?.folder = "Photos"
         case "list", "a11y-contrast", "a11y-solid":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.viewMode = .list

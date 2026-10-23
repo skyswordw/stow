@@ -28,7 +28,7 @@ struct LiveThumbnail: View {
             }
         }
         // Only tiles on screen exist, so only they ask; scrolling away cancels the request.
-        .task(id: "\(archive.id)\(entry.id)") {
+        .task(id: "\(archive.id)\(entry.id)\(model.previewRevision)") {
             guard archive.source != nil, PreviewService.wantsThumbnail(entry) else { return }
             image = nil
             if let thumbnail = await model.previews.thumbnail(for: entry, in: archive, side: side) {
@@ -53,12 +53,12 @@ struct RichPreviewView: View {
     init(entry: ArchiveEntry, model: BrowserModel, preview: RichPreview? = nil) {
         self.entry = entry
         self.model = model
-        _loaded = State(initialValue: preview.map { ("\(model.archive.id)\(entry.id)", $0) })
+        _loaded = State(initialValue: preview.map { ("\(model.archive.id)\(entry.id)\(model.previewRevision)", $0) })
     }
 
     var body: some View {
         let archive = model.archive
-        let id = "\(archive.id)\(entry.id)"
+        let id = "\(archive.id)\(entry.id)\(model.previewRevision)"
         ZStack {
             if archive.source == nil {
                 EntryThumbnail(entry: entry, style: .large)
@@ -193,6 +193,10 @@ struct RichPreviewView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                }
+                if reason == String(localized: "Locked — needs the archive’s password") {
+                    Button("Enter Password…", systemImage: "lock.fill") { model.unlockArchive(for: entry) }
+                        .disabled(model.isUnlocking)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
