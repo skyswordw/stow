@@ -1,7 +1,7 @@
 import Foundation
 import Synchronization
 
-/// Makes a DMG the way Finder's "New Image from Folder" does (issue #23), with the system's hdiutil:
+/// Makes a DMG the way Finder's "New Image from Folder" does (issue #23), with the system's tools:
 ///
 /// 1. The items are cloned into a staging folder on the destination's volume, laid out as they'll
 ///    appear on the disk. With one folder chosen, its contents sit at the top, the way Finder does it.
@@ -12,14 +12,15 @@ import Synchronization
 ///    App Sandbox doesn't allow — so unencrypted packing stays on the hybrid path.
 /// 4. Optional APFS (#77): tries `hdiutil create -fs APFS -srcfolder`. When that fails (typical in
 ///    the App Sandbox), falls back to the HFS+ hybrid path so packing still succeeds.
-/// 5. Optional AES-256 password (#77): uses `create -srcfolder -encryption AES-256 -stdinpass`
-///    (password never on argv). `convert` after makehybrid does not apply encryption, so a password
-///    always takes the create path; if the sandbox refuses it, packing fails with a clear message
-///    instead of writing an unencrypted image.
+/// 5. Optional AES-256 password (#77): on macOS 27+, `hdiutil create -encryption` fails with
+///    "Device not configured"; use `diskutil image create from --encrypt --stdinpassphrase`
+///    instead (password on stdin only, never argv). Encrypted images are APFS. If that fails
+///    (sandbox), packing fails with a clear message instead of writing an unencrypted image.
 /// 6. `hdiutil verify` checks it when asked (also via stdin when encrypted).
 /// 7. It moves into place with the same no-clobber rename as every archive.
 enum DiskImageCreation {
     static let hdiutil = URL(filePath: "/usr/bin/hdiutil")
+    static let diskutil = URL(filePath: "/usr/sbin/diskutil")
 
     /// hdiutil's image format (and options) for a compression level.
     static func imageFormat(for level: CompressionLevel) -> [String] {
@@ -29,6 +30,16 @@ enum DiskImageCreation {
         case .balanced: ["-format", "UDZO"]
         case .maximum: ["-format", "ULFO"]
         case .smallest: ["-format", "ULMO"]
+        }
+    }
+
+    /// `diskutil image create from --format` value for a compression level (no zlib-level key).
+    static func diskutilFormat(for level: CompressionLevel) -> String {
+        switch level {
+        case .store: "UDRO"
+        case .fastest, .fast, .balanced: "UDZO"
+        case .maximum: "ULFO"
+        case .smallest: "ULMO"
         }
     }
 
@@ -79,32 +90,35 @@ enum DiskImageCreation {
         if Task.isCancelled { throw EngineError(.cancelled) }
         onProgress(0.3)
 
-        // Password-protected images need `create -srcfolder` (convert after makehybrid does not
-        // apply AES). That attaches briefly, so the App Sandbox may refuse it — fail clearly
-        // rather than shipping an unencrypted DMG. Unencrypted keeps the hybrid path (#23).
-        let needsCreate = password != nil || wantAPFS
+        // Password → diskutil image (macOS 27: hdiutil create -encryption is broken).
+        // APFS without password → hdiutil create -srcfolder, with hybrid fallback.
+        // Unencrypted HFS+ stays on makehybrid (#23).
         var usedCreate = false
-        if needsCreate {
+        if let password {
             do {
-                try await createFromFolder(volume, named: volumeName, into: image, level: request.level,
-                                           filesystem: wantAPFS ? .apfs : .hfsPlus, password: password)
+                try await createEncrypted(volume, named: volumeName, into: image, level: request.level,
+                                          password: password)
                 usedCreate = true
             } catch let error as EngineError {
                 if error.failure == .cancelled { throw error }
                 try? FileManager.default.removeItem(at: image)
-                if password != nil {
-                    // Never fall back to an unencrypted image when the user asked for a password.
-                    // Prefer hdiutil's own message when it said something useful.
-                    let detail = error.message.trimmingCharacters(in: .whitespacesAndNewlines)
-                    throw EngineError(.failed, detail.isEmpty
-                        ? String(localized: "Couldn’t make an encrypted disk image here. Try again outside a sandboxed build, or pack without a password.")
-                        : detail)
-                }
-                // APFS without password: fall back to HFS+ hybrid so Pack still succeeds.
+                let detail = error.message.trimmingCharacters(in: .whitespacesAndNewlines)
+                throw EngineError(.failed, detail.isEmpty
+                    ? String(localized: "Couldn’t make an encrypted disk image here. Try again outside a sandboxed build, or pack without a password.")
+                    : detail)
+            }
+        } else if wantAPFS {
+            do {
+                try await createAPFS(volume, named: volumeName, into: image, level: request.level)
+                usedCreate = true
+            } catch let error as EngineError {
+                if error.failure == .cancelled { throw error }
+                try? FileManager.default.removeItem(at: image)
+                // Fall back to HFS+ hybrid so Pack still succeeds.
             }
         }
         if !usedCreate {
-            try await run(["makehybrid", "-quiet", "-hfs", "-hfs-volume-name", volumeName,
+            try await run(hdiutil, ["makehybrid", "-quiet", "-hfs", "-hfs-volume-name", volumeName,
                            "-default-volume-name", volumeName, "-o", raw.path, volume.path])
             onProgress(0.6)
             try await convert(raw, into: image, level: request.level)
@@ -162,29 +176,36 @@ enum DiskImageCreation {
         }
     }
 
-    /// `hdiutil create -srcfolder`. Attaches briefly; fails inside the App Sandbox.
-    private static func createFromFolder(_ volume: URL, named volumeName: String, into image: URL,
-                                         level: CompressionLevel, filesystem: DiskImageFilesystem,
-                                         password: String?) async throws(EngineError) {
-        // Skip -quiet when encrypting so a failure surfaces hdiutil's reason on stderr.
-        var arguments = password == nil ? ["create", "-quiet", "-ov"] : ["create", "-ov"]
-        if password != nil {
-            arguments += ["-encryption", "AES-256", "-stdinpass"]
-        }
-        let fs = filesystem == .apfs ? "APFS" : "HFS+"
-        arguments += ["-volname", volumeName, "-srcfolder", volume.path, "-fs", fs]
+    /// Encrypted DMG via `diskutil image create from --encrypt` (AES-256). On macOS 27,
+    /// `hdiutil create -encryption` fails with "Device not configured".
+    private static func createEncrypted(_ volume: URL, named volumeName: String, into image: URL,
+                                        level: CompressionLevel, password: String) async throws(EngineError) {
+        let arguments = [
+            "image", "create", "from",
+            "--encrypt", "--stdinpassphrase",
+            "--volumeName", volumeName,
+            "--format", diskutilFormat(for: level),
+            volume.path, image.path,
+        ]
+        // diskutil expects the passphrase as UTF-8 on stdin (EOF-terminated), not NUL-terminated.
+        try await run(diskutil, arguments, password: password, nullTerminatePassword: false)
+    }
+
+    /// Unencrypted APFS via `hdiutil create -srcfolder`. Attaches briefly; fails in the App Sandbox.
+    private static func createAPFS(_ volume: URL, named volumeName: String, into image: URL,
+                                   level: CompressionLevel) async throws(EngineError) {
+        var arguments = ["create", "-quiet", "-ov", "-volname", volumeName,
+                         "-srcfolder", volume.path, "-fs", "APFS"]
         arguments += imageFormat(for: level)
         arguments += [image.path]
-        // -stdinpass on a pipe: one null-terminated passphrase (man hdiutil). Double
-        // prompt is only for a tty using readpassphrase(3).
-        try await run(arguments, password: password)
+        try await run(hdiutil, arguments)
     }
 
     private static func convert(_ raw: URL, into image: URL, level: CompressionLevel) async throws(EngineError) {
         var arguments = ["convert", "-quiet"]
         arguments += imageFormat(for: level)
         arguments += [raw.path, "-o", image.path]
-        try await run(arguments)
+        try await run(hdiutil, arguments)
     }
 
     private static func verify(_ image: URL, password: String?) async throws(EngineError) {
@@ -193,13 +214,15 @@ enum DiskImageCreation {
             arguments += ["-stdinpass"]
         }
         arguments += [image.path]
-        try await run(arguments, password: password)
+        // hdiutil -stdinpass: null-terminated passphrase.
+        try await run(hdiutil, arguments, password: password, nullTerminatePassword: true)
     }
 
-    /// Runs hdiutil; cancelling the task stops it. A password, when given, goes on stdin only
-    /// as a null-terminated passphrase (`-stdinpass`).
-    private static func run(_ arguments: [String], password: String? = nil) async throws(EngineError) {
-        let process = RunningTool(hdiutil, arguments, password: password)
+    /// Runs hdiutil or diskutil. A password, when given, goes on stdin only.
+    private static func run(_ executable: URL, _ arguments: [String], password: String? = nil,
+                            nullTerminatePassword: Bool = true) async throws(EngineError) {
+        let process = RunningTool(executable, arguments, password: password,
+                                  nullTerminatePassword: nullTerminatePassword)
         let status: Int32
         do {
             status = try await withTaskCancellationHandler {
@@ -212,8 +235,10 @@ enum DiskImageCreation {
         }
         if Task.isCancelled { throw EngineError(.cancelled) }
         guard status == 0 else {
+            let tool = executable.lastPathComponent
             let message = process.errors.trimmingCharacters(in: .whitespacesAndNewlines)
-            let detail = message.isEmpty ? "hdiutil \(arguments[0]) exited with \(status)" : "hdiutil \(arguments[0]): \(message)"
+            let verb = arguments.first ?? tool
+            let detail = message.isEmpty ? "\(tool) \(verb) exited with \(status)" : "\(tool) \(verb): \(message)"
             throw EngineError(.failed, String(localized: "Couldn’t make the disk image") + " (" + detail + ")")
         }
     }
@@ -227,7 +252,8 @@ private nonisolated final class RunningTool: @unchecked Sendable {
     private let collected = Mutex(Data())
     private let passwordData: Data?
 
-    init(_ executable: URL, _ arguments: [String], password: String? = nil) {
+    init(_ executable: URL, _ arguments: [String], password: String? = nil,
+         nullTerminatePassword: Bool = true) {
         process.executableURL = executable
         process.arguments = arguments
         process.standardOutput = FileHandle.nullDevice
@@ -235,10 +261,10 @@ private nonisolated final class RunningTool: @unchecked Sendable {
         if let password {
             let pipe = Pipe()
             inputPipe = pipe
-            // -stdinpass reads a null-terminated passphrase (man hdiutil). A trailing
-            // newline would become part of the password — send UTF-8 bytes + NUL only.
+            // hdiutil -stdinpass: null-terminated. diskutil --stdinpassphrase: UTF-8 + EOF
+            // (printf '%s'), no NUL and no trailing newline.
             var data = Data(password.utf8)
-            data.append(0)
+            if nullTerminatePassword { data.append(0) }
             passwordData = data
             process.standardInput = pipe
         } else {

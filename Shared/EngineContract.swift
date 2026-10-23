@@ -148,7 +148,7 @@ nonisolated enum PackFormat: String, Codable, CaseIterable, Identifiable, Sendab
         }
     }
 
-    /// ZIP, 7Z, and DMG (AES-256 via hdiutil -stdinpass; #77).
+    /// ZIP, 7Z, and DMG (AES-256 via diskutil image --stdinpassphrase; #77).
     var supportsPassword: Bool { self == .zip || self == .sevenZip || self == .dmg }
     var isCompressed: Bool { self != .tar }
     /// A disk image is always one file.
@@ -193,7 +193,7 @@ nonisolated struct CreateRequest: Codable, Sendable {
     var archiveName: String
     var format: PackFormat
     var level: CompressionLevel = .balanced
-    /// ZIP: AES-256. 7Z: AES-256 with file names encrypted too. DMG: AES-256 via hdiutil -stdinpass.
+    /// ZIP: AES-256. 7Z: AES-256 with file names encrypted too. DMG: AES-256 via diskutil image --encrypt.
     var password: String?
     /// Bytes per volume; nil for one file.
     var volumeSize: Int64?

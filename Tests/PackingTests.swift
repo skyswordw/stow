@@ -169,7 +169,7 @@ struct PackingTests {
         #expect(!top.contains("Applications")) // hidden as installer layout
     }
 
-    /// #77: AES password via -stdinpass; image is encrypted; verify needs the password.
+    /// #77: AES password via diskutil --stdinpassphrase; image is encrypted; verify needs the password.
     @Test func diskImageWithPassword() async throws {
         let tree = try SourceTree()
         defer { tree.cleanUp() }
