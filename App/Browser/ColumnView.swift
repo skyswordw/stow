@@ -157,7 +157,10 @@ private struct Row: View {
         .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
         .accessibilityLabel(model.accessibilityLabel(for: entry))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
-        .accessibilityAction { model.select([entry.id]); model.open(entry) }
+        .accessibilityAction {
+            // Finish AX activation before selection changes the element's traits and opens a sheet.
+            DispatchQueue.main.async { model.select([entry.id]); model.open(entry) }
+        }
     }
 }
 
