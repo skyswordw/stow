@@ -536,11 +536,11 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
 <!-- ───────── Hero ───────── -->
 <section class="hero" style="padding-bottom:0">
   <div class="wrap">
-    <span class="eyebrow">Made for macOS 26 and Liquid Glass</span>
+    <span class="eyebrow">Made for Mac. Designed with Liquid Glass.</span>
     <h1>Archives, opened <em>with care.</em></h1>
     <p class="lede">See what’s inside, know it’s safe, and take the next step — without extracting a thing. Packing for someone else? Stow makes sure it opens on their computer too.</p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="#download">Get Stow</a>
+      <a class="btn btn-primary" href="{{REPO_URL}}/releases/latest">Download for Mac</a>
       <a class="btn btn-ghost" href="{{REPO_URL}}">Read the source</a>
     </div>
     <p class="hero-meta">Free and open source (GPL-3.0) · No ads, no accounts · Nothing leaves your Mac</p>
@@ -916,7 +916,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       <h2>Questions</h2>
     </div>
     <div class="faq reveal">
-      <details><summary>Where do I download it?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">There’s no signed download yet. Today you can <a class="link" href="docs/readme.html#build--run">build Stow from source</a> on macOS 26 with Xcode. Signed, notarized releases are next on the <a class="link" href="docs/roadmap.html#release-engineering">roadmap</a>.</div></details>
+      <details><summary>Where do I download it?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">Download the signed, notarized DMG from the <a class="link" href="{{REPO_URL}}/releases/latest">latest GitHub release</a>, then drag Stow to Applications. These are early releases for macOS 26 or later, on Apple silicon and Intel Macs. You can also <a class="link" href="docs/readme.html#build--run">build from source</a>.</div></details>
       <details><summary>Will Stow change my original archive?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">Never by browsing, previewing or extracting. Changes happen only when you edit and save — and they’re written to a staging copy first, so a cancel or an error leaves the original exactly as it was.</div></details>
       <details><summary>Can it create RAR files?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">No — RAR creation is licensed by its authors. Stow opens and extracts RAR 4 and 5 (including encrypted and multi-part ones). To pack, ZIP works everywhere and 7Z compresses harder.</div></details>
       <details><summary>What does “for Windows PCs” actually change?<span class="pm" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span></summary><div class="a">It replaces characters Windows rejects (like “:” or “?”), renames reserved names such as “aux”, stores accents the way Windows expects, and leaves out “.DS_Store” and other Finder files. You see every change before packing; your originals stay as they are.</div></details>
@@ -933,10 +933,10 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
     <h2>Open your next archive<br>with Stow.</h2>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="docs/readme.html#build--run">Build from source</a>
+      <a class="btn btn-primary" href="{{REPO_URL}}/releases/latest">Download for Mac</a>
       <a class="btn btn-ghost" href="{{REPO_URL}}">Read the source</a>
     </div>
-    <p class="hero-meta">macOS 26 or later · Signed downloads are on the <a class="link" href="docs/roadmap.html#release-engineering">roadmap</a></p>
+    <p class="hero-meta">Early release · macOS 26 or later · Signed and notarized</p>
   </div>
 </section>
 </main>
