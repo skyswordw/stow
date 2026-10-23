@@ -63,6 +63,8 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
 
     func close() {
         guard isVisible else { return }
+        loads?.cancel()
+        loads = nil
         panel?.orderOut(nil)
     }
 

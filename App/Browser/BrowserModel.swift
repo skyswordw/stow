@@ -108,6 +108,8 @@ final class BrowserModel {
     private(set) var previewRevision = 0
     private var unlockTask: Task<Void, Never>?
 
+    isolated deinit { unlockTask?.cancel() }
+
     private var positions: [ArchiveEntry.ID: Int] = [:]
     private var searchResults: [ArchiveEntry] = []
     /// Results that sit inside an inner archive, by the id they show under.
@@ -1165,9 +1167,8 @@ final class BrowserModel {
             ?? encrypted.min(by: { $0.size < $1.size })?.path
         guard let path else { return }
         isUnlocking = true
-        unlockTask = Task { [weak self] in
-            guard let self else { return }
-            defer { isUnlocking = false; unlockTask = nil }
+        unlockTask = Task { [weak self, passwords] in
+            defer { self?.isUnlocking = false; self?.unlockTask = nil }
             do {
                 let (_, password) = try await passwords.retrying(target.archive.name, for: .unlock,
                                                                   known: target.password, vaultURL: source.url) { password in
@@ -1176,11 +1177,11 @@ final class BrowserModel {
                                                                          excludeMacHelperFiles: false) { _ in }
                     ArchiveEngine.shared.discard(output)
                 }
-                guard !Task.isCancelled, let password else { return }
+                guard !Task.isCancelled, let password, let self else { return }
                 rememberPassword(password, in: target)
                 quickLook.selectionChanged()
             } catch {
-                if !Task.isCancelled { report(error, step: .quickLook, count: 1, name: target.archive.name) }
+                if !Task.isCancelled { self?.report(error, step: .quickLook, count: 1, name: target.archive.name) }
             }
         }
     }
