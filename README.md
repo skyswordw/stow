@@ -144,9 +144,9 @@ Stow stays sandboxed (user-selected files only) and asks for the narrowest acces
 extension and Tray (⌥⌘T). Skip or Get Started finishes it; Help › Welcome to Stow reopens it.
 Resetting preferences keeps first-run completion remembered.
 
-Stow has a Settings window (⌘,) with General, Extraction, Installing, Packing, Previews,
-Passwords, File Types, Integration, Advanced and Licenses panes. Glance and Tray settings
-panes are not available yet. The host lives in `App/Settings` and reuses the extraction and
+Stow has a Settings window (⌘,) with General, Extraction, Installing, Packing, Next Steps, Previews,
+Passwords, File Types, Integration, Advanced and Licenses panes. Glance and Tray controls live
+in General. The host lives in `App/Settings` and reuses the extraction and
 installing forms in `App/Options`. Advanced can clean preview caches and reset preferences.
 
 Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKeys`):
@@ -164,6 +164,7 @@ Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKe
 | `browse.defaultView` | `grid` | `grid`, `list`, `columns` |
 | `browse.hoverPreviews` | `true` | |
 | `password.showByDefault` | `false` | |
+| `glance.colourfulControls` | `false` | Red Close, yellow Pin and green Open in Full Window controls |
 | `PackAudience` | `windows` | `windows`, `mac`, `linux`, `web` |
 | `PackLevel.<audience>` | `5` (Balanced) | One compression level per audience |
 | `PackVolumeSize` | `0` | `0`, `100000000`, `700000000`, `4000000000` bytes |
