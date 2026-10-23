@@ -6,6 +6,7 @@ struct GlanceRoot: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulControls = false
     @State private var settled = true
 
     var body: some View {
@@ -22,6 +23,8 @@ struct GlanceRoot: View {
         .opacity(settled ? 1 : 0)
         .frame(minWidth: GlancePlacement.minimumSize.width, minHeight: GlancePlacement.minimumSize.height)
         .background { background.ignoresSafeArea() }
+        .toolbar { windowControls }
+        .onChange(of: colourfulControls) { glance.updateWindowControls() }
         .onChange(of: glance.appearance) {
             // Spatial and rare: the content springs out of the pointer (DESIGN.md › Motion).
             var start = Transaction()
@@ -68,6 +71,54 @@ struct GlanceRoot: View {
         case .glass: Rectangle().fill(.clear).accessibleGlass(in: .rect)
         case .solid: Color(nsColor: .windowBackgroundColor)
         }
+    }
+
+    @ToolbarContentBuilder
+    private var windowControls: some ToolbarContent {
+        if colourfulControls {
+            ToolbarItem(placement: .navigation) {
+                HStack(spacing: Space.xs) {
+                    Button("Close", systemImage: "xmark") { glance.close() }
+                        .tint(.red)
+                        .accessibilityLabel(String(localized: "Close"))
+                        .help("Close")
+                    Button(glance.isPinned ? String(localized: "Unpin") : String(localized: "Pin on Top"),
+                           systemImage: glance.isPinned ? "pin.fill" : "pin") { glance.isPinned.toggle() }
+                        .tint(.yellow)
+                        .accessibilityAddTraits(glance.isPinned ? .isSelected : [])
+                        .help(pinHelp)
+                    Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
+                        .tint(.green)
+                        .accessibilityLabel(String(localized: "Open in Full Window"))
+                        .help("Show this archive in the full window — same folder, selection and history")
+                }
+                .labelStyle(.iconOnly)
+                // System buttons also respect Reduce Transparency.
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.circle)
+                .controlSize(.small)
+            }
+        } else {
+            ToolbarItem {
+                Toggle(isOn: Binding(get: { glance.isPinned }, set: { glance.isPinned = $0 })) {
+                    Label(glance.isPinned ? String(localized: "Unpin") : String(localized: "Pin on Top"),
+                          systemImage: glance.isPinned ? "pin.fill" : "pin")
+                }
+                .toggleStyle(.button)
+                .help(pinHelp)
+            }
+
+            ToolbarItem {
+                Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
+                    .accessibilityLabel(String(localized: "Open in Full Window"))
+                    .help("Show this archive in the full window — same folder, selection and history")
+            }
+        }
+    }
+
+    private var pinHelp: String {
+        glance.isPinned ? String(localized: "Stop keeping Glance above other windows")
+                        : String(localized: "Keep Glance above other windows")
     }
 }
 
@@ -157,22 +208,6 @@ struct GlanceView: View {
                     .help("See the next place")
             }
             .controlGroupStyle(.navigation)
-        }
-
-        ToolbarItem {
-            Toggle(isOn: Binding(get: { glance.isPinned }, set: { glance.isPinned = $0 })) {
-                Label(glance.isPinned ? String(localized: "Unpin") : String(localized: "Pin on Top"),
-                      systemImage: glance.isPinned ? "pin.fill" : "pin")
-            }
-            .toggleStyle(.button)
-            .help(glance.isPinned ? String(localized: "Stop keeping Glance above other windows")
-                                  : String(localized: "Keep Glance above other windows"))
-        }
-
-        ToolbarItem {
-            Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
-                .accessibilityLabel(String(localized: "Open in Full Window"))
-                .help("Show this archive in the full window — same folder, selection and history")
         }
     }
 }

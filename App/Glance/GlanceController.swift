@@ -201,6 +201,16 @@ final class GlanceController: NSObject, NSWindowDelegate {
             NSApp.activate()
             window.makeKeyAndOrderFront(nil)
         }
+        // Apply after SwiftUI has installed the toolbar, including when the window is recreated.
+        updateWindowControls()
+    }
+
+    /// The coloured toolbar replaces the traffic lights; switching off restores the usual chrome.
+    func updateWindowControls() {
+        let colourful = SettingsKeys.flag(SettingsKeys.glanceColourfulControls)
+        for button: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
+            window?.standardWindowButton(button)?.isHidden = colourful
+        }
     }
 
     /// Closes Glance; the archive stays open, like closing the full window.

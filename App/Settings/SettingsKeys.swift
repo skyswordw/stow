@@ -11,6 +11,7 @@ nonisolated enum SettingsKeys {
     static let rememberPasswords = "password.rememberInKeychain"
     static let openInGlance = "glance.openFromFinder"
     static let glancePinned = "glance.pinned"
+    static let glanceColourfulControls = "glance.colourfulControls"
     static let trayMenuBarIcon = "tray.menuBarIcon"
     static let trayShowWhileDragging = "tray.showWhileDragging"
     static let trayIdleSeconds = "tray.idleSeconds"
@@ -63,6 +64,7 @@ nonisolated enum SettingsKeys {
         .init(key: rememberPasswords, defaultValue: .bool(false)),
         .init(key: openInGlance, defaultValue: .bool(false)),
         .init(key: glancePinned, defaultValue: .bool(false)),
+        .init(key: glanceColourfulControls, defaultValue: .bool(false)),
         .init(key: trayMenuBarIcon, defaultValue: .bool(true)),
         .init(key: trayShowWhileDragging, defaultValue: .bool(true)),
         .init(key: trayIdleSeconds, defaultValue: .integer(30)),
