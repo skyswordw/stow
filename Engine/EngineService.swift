@@ -39,15 +39,32 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
 
     func listArchive(_ archive: FileHandle, named name: String, request: Data,
                      reply: @escaping @Sendable (Data?, NSError?) -> Void) {
+        let decoded: ListRequest
+        do { decoded = try Self.decode(ListRequest.self, from: request) }
+        catch {
+            try? archive.close()
+            reply(nil, EngineError(error).nsError)
+            return
+        }
         let archive = SendableHandle(archive)
-        Task {
-            do {
-                let request = try Self.decode(ListRequest.self, from: request)
-                let listing = try await Self.sevenZip().list(.descriptor(archive.handle, name: name),
-                                                             password: request.password)
-                reply(try JSONEncoder.engine.encode(listing), nil)
-            } catch {
-                reply(nil, EngineError(error).nsError)
+        let id = decoded.operationID
+        let client = client
+        running.withLock { running in
+            running[id] = Task {
+                defer {
+                    try? archive.handle.close()
+                    _ = self.running.withLock { $0.removeValue(forKey: id) }
+                }
+                do {
+                    let listing = try await Self.sevenZip().list(.descriptor(archive.handle, name: name),
+                                                                 password: decoded.password) {
+                        client.listChunk(id, $0)
+                    }
+                    if Task.isCancelled { throw EngineError(.cancelled) }
+                    reply(try JSONEncoder.engine.encode(listing), nil)
+                } catch {
+                    reply(nil, EngineError(error).nsError)
+                }
             }
         }
     }
@@ -425,6 +442,12 @@ private final class ClientProxy: @unchecked Sendable {
     private let proxy: EngineClientXPCProtocol?
 
     init(_ proxy: EngineClientXPCProtocol?) { self.proxy = proxy }
+
+    func listChunk(_ id: String, _ entries: [ListedEntry]) {
+        if let data = try? JSONEncoder.engine.encode(ListChunk(entries: entries)) {
+            proxy?.operation(id, didListChunk: data)
+        }
+    }
 
     func progress(_ id: String, _ fraction: Double) {
         proxy?.operation(id, didProgress: fraction)

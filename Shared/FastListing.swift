@@ -40,6 +40,7 @@ nonisolated extension SevenZip {
 
         func consume(_ chunk: Data) { parser.withLock { $0.consume(chunk) } }
         func finish() -> (listing: ArchiveListing, legacy: [Int])? { parser.withLock { $0.finish() } }
+        func takeEntries(minimum: Int = 1) -> [ListedEntry] { parser.withLock { $0.takeEntries(minimum: minimum) } }
     }
 
     /// Reads `7zz l -slt` as it arrives (issue #22): feed each chunk of output to `consume` while
@@ -52,6 +53,7 @@ nonisolated extension SevenZip {
         private var archiveFields: [String: String] = [:]
         private var entries: [ListedEntry] = []
         private var legacy: [Int] = []
+        private var delivered = 0
         private var current = Fields()
         private var hasFields = false
         private var section = 0 // 0: preamble, 1: archive properties ("--"), 2: entries ("----------")
@@ -86,6 +88,15 @@ nonisolated extension SevenZip {
                 }
                 carry.append(contentsOf: bytes[(last + 1)...])
             }
+        }
+
+        /// Drains completed entries without losing the authoritative listing or legacy indices.
+        mutating func takeEntries(minimum: Int = 1) -> [ListedEntry] {
+            precondition(minimum > 0)
+            guard entries.count - delivered >= minimum else { return [] }
+            let end = minimum > 1 ? delivered + minimum : entries.count
+            defer { delivered = end }
+            return Array(entries[delivered..<end])
         }
 
         /// The listing, once the output has ended.

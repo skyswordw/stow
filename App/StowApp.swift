@@ -21,6 +21,8 @@ final class AppState {
     var isChoosingArchive = false
     var isChoosingBatch = false
     private(set) var isOpening = false
+    private var openingTask: Task<Void, Never>?
+    private var openingID = UUID()
     var openFailure: OpenFailure?
     /// A cloud placeholder being downloaded before it opens.
     var cloudDownload: CloudDownload?
@@ -57,11 +59,13 @@ final class AppState {
 
     /// Lists a real archive through the engine and shows it in the browser.
     func open(_ url: URL) {
-        guard !isOpening else { return }
+        cancelOpening()
+        let id = UUID()
+        openingID = id
         isOpening = true
         let scoped = url.startAccessingSecurityScopedResource()
-        Task {
-            defer { isOpening = false }
+        openingTask = Task {
+            defer { if openingID == id { isOpening = false; openingTask = nil } }
             do {
                 if let browser, !(await browser.confirmDiscardingEdits()) {
                     if scoped { url.stopAccessingSecurityScopedResource() }
@@ -81,23 +85,26 @@ final class AppState {
                 do {
                     // 7z archives with an encrypted file list need the password just to be listed.
                     (listing, password) = try await passwords.retrying(url.lastPathComponent, for: .open, vaultURL: url) { password in
-                        try await ArchiveEngine.shared.list(url, password: password)
+                        try await self.listForBrowser(url, password: password, id: id)
                     }
                 } catch {
                     throw DiskImageCheck.explain(EngineError(error), for: url)
                 }
                 var archive = await Self.makeArchive(listing, url: url)
+                if Task.isCancelled { throw EngineError(.cancelled) }
                 archive.source?.password = password
                 releaseScope()
                 scopedURL = scoped ? url : nil
                 // Files received from a drag (Mail, chat apps) live in a folder Stow empties at launch.
                 if !OtherAppFiles.isReceived(url) { recents.add(url) }
-                browser = makeBrowser(archive)
+                if browser?.isListing == true { browser?.applyListing(archive, complete: true) }
+                else { browser = makeBrowser(archive) }
                 browser?.verifyDiskImage()
             } catch {
-                let error = EngineError(error)
+                let error = error is CancellationError ? EngineError(.cancelled) : EngineError(error)
+                if openingID == id, browser?.isListing == true { browser = nil }
                 if scoped { url.stopAccessingSecurityScopedResource() }
-                if error.failure != .cancelled {
+                if openingID == id, error.failure != .cancelled {
                     var failure = Failure(error, .open, name: url.lastPathComponent)
                     // Disk images Stow can't read (encrypted, unusual formats) can still be opened by macOS.
                     if DiskImageCheck.isDiskImage(url), failure.kind == .notAnArchive || failure.kind == .other {
@@ -110,6 +117,47 @@ final class AppState {
                 }
             }
         }
+    }
+
+    func cancelOpening() {
+        openingTask?.cancel()
+        openingTask = nil
+        openingID = UUID()
+        isOpening = false
+        if browser?.isListing == true { browser = nil }
+    }
+
+    /// One ordered consumer keeps chunks and model construction out of independent callback tasks.
+    private func listForBrowser(_ url: URL, password: String?, id: UUID) async throws -> ArchiveListing {
+        let (chunks, continuation) = AsyncStream<[ListedEntry]>.makeStream()
+        let listing = Task {
+            defer { continuation.finish() }
+            return try await ArchiveEngine.shared.list(url, password: password) {
+                continuation.yield($0)
+            }
+        }
+        defer { listing.cancel() }
+        return try await withTaskCancellationHandler {
+            var entries: [ListedEntry] = []
+            var nextCount = 2_048
+            for await chunk in chunks {
+                if Task.isCancelled { throw EngineError(.cancelled) }
+                entries.append(contentsOf: chunk)
+                guard entries.count >= nextCount else { continue }
+                // Geometric snapshots bound total entries rebuilt to O(n), rather than O(n²).
+                nextCount = entries.count * 2
+                let partial = ArchiveListing(type: url.pathExtension, entries: entries)
+                var archive = await Self.makeArchive(partial, url: url)
+                if Task.isCancelled { throw EngineError(.cancelled) }
+                guard openingID == id else { throw EngineError(.cancelled) }
+                archive.source?.password = password
+                if browser?.isListing == true { browser?.applyListing(archive, complete: false) }
+                else {
+                    browser = makeBrowser(archive, isListing: true)
+                }
+            }
+            return try await listing.value
+        } onCancel: { listing.cancel() }
     }
 
     /// An iCloud (or other cloud) placeholder comes down first, with its progress on screen and
@@ -154,7 +202,7 @@ final class AppState {
 
     func extractAndRepack(_ model: BrowserModel) {
         // Snapshot/sample scenes must never start extraction or packing work.
-        guard model.archive.source != nil else { return }
+        guard !model.isListing, model.archive.source != nil else { return }
         Task {
             do {
                 let archive = model.archive
@@ -211,12 +259,13 @@ final class AppState {
 
     /// Sample data for design review and the "Try the Sample" button.
     func openArchive(named name: String) {
+        cancelOpening()
         releaseScope()
         browser = makeBrowser(SampleArchive.make(named: name))
     }
 
-    private func makeBrowser(_ archive: Archive) -> BrowserModel {
-        let model = BrowserModel(archive: archive)
+    private func makeBrowser(_ archive: Archive, isListing: Bool = false) -> BrowserModel {
+        let model = BrowserModel(archive: archive, isListing: isListing)
         model.passwords = PasswordHook(prompt: passwords)
         model.onArchiveGone = { [weak self] in self?.closeArchive() }
         model.onCloseWindow = { [weak self] in self?.closeWindow() }
@@ -230,6 +279,7 @@ final class AppState {
 
     /// "Close the window after Extract All or an install": the archive closes with it.
     func closeWindow() {
+        cancelOpening()
         glance.close()
         NSApp.windows.first { !($0 is NSPanel) && $0.isVisible && $0.sheetParent == nil }?.performClose(nil)
     }
@@ -245,6 +295,7 @@ final class AppState {
     func closeArchive() {
         Task {
             guard await browser?.confirmDiscardingEdits() ?? true else { return }
+            cancelOpening()
             releaseScope()
             browser = nil
         }
@@ -300,6 +351,7 @@ struct RootView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
+    @State private var rootWindow: NSWindow?
 
     var body: some View {
         @Bindable var app = app
@@ -313,6 +365,11 @@ struct RootView: View {
                     .navigationTitle("Stow")
                     .safeAreaInset(edge: .bottom, spacing: 0) { packActivity }
             }
+        }
+        .background { WindowReader { rootWindow = $0 } }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
+            guard let window = notification.object as? NSWindow, window === rootWindow else { return }
+            app.cancelOpening()
         }
         .sheet(item: $app.packRequest) { PackSheet(request: $0).environment(app) }
         // A second importer on the same view would be ignored, so this one sits on a background.

@@ -36,16 +36,36 @@ nonisolated struct SevenZip: Sendable {
 
     /// `streamed` (the default) parses 7-Zip's output while it lists (#22); false parses it after,
     /// the way Stow did before, for the benchmark in PerformanceTests.
-    func list(_ archive: ArchiveInput, password: String? = nil, streamed: Bool = true) async throws(EngineError) -> ArchiveListing {
+    func list(_ archive: ArchiveInput, password: String? = nil, streamed: Bool = true,
+              onEntries: (@Sendable ([ListedEntry]) -> Void)? = nil) async throws(EngineError) -> ArchiveListing {
+        if Task.isCancelled { throw EngineError(.cancelled) }
         let input = try Prepared(archive)
         defer { input.cleanUp() }
         let stream = ListingStream()
+        let cancelled = Mutex(false)
         var onOutput: (@Sendable (Data) -> Void)?
         if streamed {
-            onOutput = { @Sendable chunk in stream.consume(chunk) }
+            onOutput = { @Sendable chunk in
+                guard !cancelled.withLock({ $0 }) else { return }
+                stream.consume(chunk)
+                if let onEntries {
+                    while !cancelled.withLock({ $0 }) {
+                        let entries = stream.takeEntries(minimum: 2_048)
+                        guard !entries.isEmpty else { break }
+                        onEntries(entries)
+                    }
+                }
+            }
         }
-        let result = try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor, password: password,
-                                   onOutput: onOutput)
+        let result: RunResult
+        do {
+            result = try await withTaskCancellationHandler {
+                try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor,
+                              password: password, onOutput: onOutput)
+            } onCancel: {
+                cancelled.withLock { $0 = true }
+            }
+        } catch { throw EngineError(error) }
         try Self.check(result)
         let fast = streamed ? stream.finish() : Self.parseListingFast(result.output)
         guard var listing = fast?.listing ?? Self.parseListing(result.output) else {
@@ -54,8 +74,15 @@ nonisolated struct SevenZip: Sendable {
         if Self.isTarball(name: (input.path as NSString).lastPathComponent),
            let entries = try? await tarballEntries(path: input.path, descriptor: input.descriptor) {
             listing.entries = entries // still "gzip", "xz"…: the format reads as TAR.GZ, TAR.XZ
+            if Task.isCancelled { throw EngineError(.cancelled) }
+            onEntries?(entries)
             return listing
         }
+        if let onEntries {
+            let remaining = streamed && fast != nil ? stream.takeEntries() : listing.entries
+            if !remaining.isEmpty { onEntries(remaining) }
+        }
+        if Task.isCancelled { throw EngineError(.cancelled) }
         let legacy = fast?.legacy ?? []
         if !legacy.isEmpty {
             // Under a Latin-1 locale 7-Zip maps each byte of an unflagged name to the character with

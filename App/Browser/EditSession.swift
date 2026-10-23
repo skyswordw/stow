@@ -17,6 +17,8 @@ final class EditSession {
     private(set) var url: URL?
     private(set) var name: String
     let format: EditableFormat?
+    /// Provisional listings must never become an edit base.
+    var isListing = false
     /// True once the file on disk no longer matches `identity` (watcher or a failed Save).
     private(set) var changedOnDisk = false
     var displayedPaths: [String: String] = [:]
@@ -118,6 +120,7 @@ final class EditSession {
     }
 
     @discardableResult func requireEditable() -> Bool {
+        guard !isListing else { return false }
         guard format != nil else { showsReadOnly = true; return false }
         return !isSaving
     }
@@ -353,6 +356,7 @@ final class EditSession {
 
     /// Renames the archive file itself (including on SMB/NAS once the parent folder is writable).
     @discardableResult func renameArchive(to newName: String) async -> Bool {
+        guard !isListing else { return false }
         guard !isSaving, let url else { return false }
         let parent = url.deletingLastPathComponent()
         guard await FolderAccess.shared.writableFolder(

@@ -118,8 +118,14 @@ final class BrowserModel {
     private var lastRun: (() -> Void)?
     private var typeahead = (text: "", at: Date.distantPast)
 
-    init(archive: Archive, previews: PreviewService = PreviewService()) {
+    private(set) var isListing = false
+    private(set) var listedCount = 0
+
+    init(archive: Archive, previews: PreviewService = PreviewService(), isListing: Bool = false) {
+        self.isListing = isListing
+        listedCount = archive.source?.listing?.entries.count ?? archive.entries.count
         let root = Level(archive: archive, password: archive.source?.password)
+        root.edits.isListing = isListing
         levels = [root]
         self.previews = previews
         // A disk image opens at its volume, with the one thing to install already selected.
@@ -143,7 +149,25 @@ final class BrowserModel {
         }
         refresh()
         if let suggested = Self.suggestedSelection(in: archive) { select([suggested]) }
-        startIndexing(root)
+        if !isListing { startIndexing(root) }
+    }
+
+    /// Keep navigation and selection while replacing provisional metadata with the final listing.
+    func applyListing(_ archive: Archive, complete: Bool) {
+        let oldFolder = folder
+        let oldSelection = selection
+        let root = Level(archive: archive, password: archive.source?.password)
+        root.edits.isListing = !complete
+        levels = [root]
+        isListing = !complete
+        listedCount = archive.source?.listing?.entries.count ?? archive.entries.count
+        connectEdits(root)
+        folder = oldFolder.isEmpty || archive.entry(at: oldFolder) != nil ? oldFolder : archive.volumeRoot
+        history = [Location(levels: levels, folder: folder)]
+        historyIndex = 0
+        selection = oldSelection.filter { archive.entry(at: $0) != nil }
+        refresh()
+        if complete { startIndexing(root) }
     }
 
     var editSession: EditSession { level.edits }
@@ -218,11 +242,13 @@ final class BrowserModel {
     }
 
     func chooseAddFiles() {
+        guard !isListing else { return }
         guard editSession.requireEditable() else { return }
         Task { editSession.add(await PackDestination.chooseSources(forAdding: true), into: folder) }
     }
 
     func beginRename(_ entry: ArchiveEntry) {
+        guard !isListing else { return }
         guard editSession.requireEditable() else { return }
         if let reason = editSession.refusal(for: [entry.path]) { editSession.message = reason; return }
         renamingPath = entry.path
@@ -230,6 +256,7 @@ final class BrowserModel {
     }
 
     func commitRename() {
+        guard !isListing else { return }
         guard let path = renamingPath else { return }
         let parent = ArchiveEntry.parent(of: path)
         let newPath = parent.isEmpty ? renameText : parent + "/" + renameText
@@ -238,6 +265,7 @@ final class BrowserModel {
     }
 
     func chooseReplacement(_ entry: ArchiveEntry) {
+        guard !isListing else { return }
         guard editSession.requireEditable() else { return }
         Task {
             let panel = NSOpenPanel()
@@ -345,6 +373,7 @@ final class BrowserModel {
 
     /// Renames the archive file on disk (File › Rename Archive…), including SMB/NAS after a folder grant.
     @discardableResult func renameArchive() async -> Bool {
+        guard !isListing else { return false }
         guard levels.count == 1, archive.source?.url != nil else { return false }
         let prompt = Prompt.renameArchive(archive.name)
         let answer = await Prompts.present(prompt, on: editingWindow)
@@ -452,6 +481,7 @@ final class BrowserModel {
 
     /// "Indexing… 12,000 of 40,000" while a big archive's search index builds.
     var indexingProgress: String? {
+        if isListing { return String(localized: "Listing… \(listedCount.formatted())") }
         let search = level.search
         if isSearching, let nested = level.nested, nested.isLoading {
             return nested.pending == 1 ? String(localized: "Looking inside 1 more archive…")
@@ -470,6 +500,7 @@ final class BrowserModel {
     }
 
     private func runSearch() {
+        guard !isListing else { return }
         searchTask?.cancel()
         guard isSearching else {
             searchResults = []
@@ -838,6 +869,7 @@ final class BrowserModel {
 
     /// Opens an archive inside this one in place; the path bar shows the chain.
     func openInside(_ entry: ArchiveEntry, revealing target: ArchiveEntry? = nil) {
+        guard !isListing else { return }
         guard archive.source != nil else { return run(.openInside, on: [entry]) }
         guard levels.count < Self.maxDepth else {
             activity = Activity(step: .openInside, itemCount: 1,
@@ -924,6 +956,7 @@ final class BrowserModel {
 
     /// Runs a Next Step on the selection (or on `entries`); Extract with nothing selected extracts all.
     func run(_ step: NextStep, on entries: [ArchiveEntry]? = nil) {
+        guard !isListing else { return }
         // Only results inside other archives are selected: nothing here to act on, and not "everything".
         if entries == nil, selectedEntries.isEmpty, !selection.isEmpty { return }
         let items = entries ?? (selectedEntries.isEmpty ? archive.files : selectedEntries)
@@ -954,6 +987,7 @@ final class BrowserModel {
     }
 
     func extractAll() {
+        guard !isListing else { return }
         lastRun = { [weak self] in self?.extractAll() }
         if archive.source != nil {
             extract(nil)
