@@ -1,15 +1,24 @@
 import Foundation
 import Synchronization
 
-/// Makes a DMG the way Finder's "New Image from Folder" does (issue #23), with the system's hdiutil:
+/// Makes a DMG the way Finder's "New Image from Folder" does (issue #23 / #77), with the system's tools:
 ///
 /// 1. The items are cloned into a staging folder on the destination's volume, laid out as they'll
 ///    appear on the disk. With one folder chosen, its contents sit at the top, the way Finder does it.
-/// 2. `hdiutil makehybrid -hfs` writes an HFS+ image of that folder without mounting anything.
-///    `hdiutil create -srcfolder` mounts a scratch image, which the sandbox doesn't allow.
-/// 3. `hdiutil convert` compresses it (the level picks the method), and `hdiutil verify` checks it
-///    when asked.
-/// 4. It moves into place with the same no-clobber rename as every archive.
+/// 2. Optional drag-to-install layout (#77) adds an `Applications → /Applications` symlink so Next
+///    Steps can offer "drag here" installs the same way it does for developer DMGs.
+/// 3. Default: `hdiutil makehybrid -hfs` writes an HFS+ image without mounting, then `convert`
+///    compresses by level. `create -srcfolder` mounts a scratch image, which the App Sandbox
+///    doesn't allow — so unencrypted packing stays on the hybrid path.
+/// 4. Optional APFS (#77): tries `hdiutil create -fs APFS -srcfolder`. When that fails (typical in
+///    the App Sandbox), falls back to the HFS+ hybrid path so packing still succeeds.
+/// 5. `hdiutil verify` checks it when asked.
+/// 6. It moves into place with the same no-clobber rename as every archive.
+///
+/// AES password packing is deferred: on macOS 27 both `hdiutil create -encryption` ("Device not
+/// configured") and `diskutil image create from --encrypt` (MediaKit / EPERM) fail inside the App
+/// Sandbox. Shipping a password control that always fails would be worse than leaving it off until
+/// there is a sandbox-safe path.
 enum DiskImageCreation {
     static let hdiutil = URL(filePath: "/usr/bin/hdiutil")
 
@@ -42,6 +51,12 @@ enum DiskImageCreation {
         }
     }
 
+    /// True when staging already has something named Applications (file, folder, or link).
+    nonisolated static func applicationsNameTaken(in stagedPaths: [String]) -> Bool {
+        stagedPaths.contains { ($0 as NSString).lastPathComponent == "Applications" && !$0.contains("/") }
+            || stagedPaths.contains("Applications")
+    }
+
     static func run(_ items: [TreeStream.Item], request: CreateRequest, named name: String, in destination: URL,
                     conflict: ArchiveCreation.Conflict,
                     onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> ArchiveCreation.Result {
@@ -57,19 +72,38 @@ enum DiskImageCreation {
         let raw = staging.appending(path: "raw.dmg")
         let image = staging.appending(path: "image.dmg")
         let volumeName = volumeName(for: request.archiveName)
+        let wantAPFS = request.diskImageFilesystem == .apfs
 
         onProgress(0.02)
-        try await stage(items, in: volume)
+        try await stage(items, in: volume, applicationsLink: request.diskImageApplicationsLink)
         if Task.isCancelled { throw EngineError(.cancelled) }
         onProgress(0.3)
-        try await run(["makehybrid", "-quiet", "-hfs", "-hfs-volume-name", volumeName,
-                       "-default-volume-name", volumeName, "-o", raw.path, volume.path])
-        onProgress(0.6)
-        try await run(["convert", "-quiet", raw.path] + imageFormat(for: request.level) + ["-o", image.path])
+
+        // APFS → hdiutil create -srcfolder, with hybrid fallback.
+        // Unencrypted HFS+ stays on makehybrid (#23).
+        var usedCreate = false
+        if wantAPFS {
+            do {
+                try await createAPFS(volume, named: volumeName, into: image, level: request.level)
+                usedCreate = true
+            } catch let error as EngineError {
+                if error.failure == .cancelled { throw error }
+                try? FileManager.default.removeItem(at: image)
+                // Fall back to HFS+ hybrid so Pack still succeeds.
+            }
+        }
+        if !usedCreate {
+            try await run(hdiutil, ["makehybrid", "-quiet", "-hfs", "-hfs-volume-name", volumeName,
+                           "-default-volume-name", volumeName, "-o", raw.path, volume.path])
+            onProgress(0.6)
+            try await convert(raw, into: image, level: request.level)
+        }
+        onProgress(0.75)
+
         var verified = false
         if request.verify {
             onProgress(0.85)
-            try await run(["verify", "-quiet", image.path])
+            try await verify(image)
             verified = true
         }
         let size = (try? image.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0
@@ -81,13 +115,15 @@ enum DiskImageCreation {
     }
 
     /// Clones (APFS) or copies each item into `folder` at its place on the disk. Links stay links,
-    /// folders keep their permissions, files their attributes.
+    /// folders keep their permissions, files their attributes. Optional Applications shortcut last.
     @concurrent
-    nonisolated static func stage(_ items: [TreeStream.Item], in folder: URL) async throws(EngineError) {
+    nonisolated static func stage(_ items: [TreeStream.Item], in folder: URL,
+                                  applicationsLink: Bool = false) async throws(EngineError) {
         let manager = FileManager.default
         do {
             try manager.createDirectory(at: folder, withIntermediateDirectories: true)
-            for (item, path) in layout(items) {
+            let placed = layout(items)
+            for (item, path) in placed {
                 if Task.isCancelled { throw EngineError(.cancelled) }
                 let target = folder.appending(path: path)
                 try manager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -104,6 +140,10 @@ enum DiskImageCreation {
                     try manager.copyItem(at: item.source, to: target)
                 }
             }
+            if applicationsLink, !applicationsNameTaken(in: placed.map(\.path)) {
+                let link = folder.appending(path: "Applications")
+                try manager.createSymbolicLink(atPath: link.path, withDestinationPath: "/Applications")
+            }
         } catch let error as EngineError {
             throw error
         } catch {
@@ -111,9 +151,30 @@ enum DiskImageCreation {
         }
     }
 
-    /// Runs hdiutil; cancelling the task stops it.
-    private static func run(_ arguments: [String]) async throws(EngineError) {
-        let process = RunningTool(hdiutil, arguments)
+    /// Unencrypted APFS via `hdiutil create -srcfolder`. Attaches briefly; fails in the App Sandbox.
+    private static func createAPFS(_ volume: URL, named volumeName: String, into image: URL,
+                                   level: CompressionLevel) async throws(EngineError) {
+        var arguments = ["create", "-quiet", "-ov", "-volname", volumeName,
+                         "-srcfolder", volume.path, "-fs", "APFS"]
+        arguments += imageFormat(for: level)
+        arguments += [image.path]
+        try await run(hdiutil, arguments)
+    }
+
+    private static func convert(_ raw: URL, into image: URL, level: CompressionLevel) async throws(EngineError) {
+        var arguments = ["convert", "-quiet"]
+        arguments += imageFormat(for: level)
+        arguments += [raw.path, "-o", image.path]
+        try await run(hdiutil, arguments)
+    }
+
+    private static func verify(_ image: URL) async throws(EngineError) {
+        try await run(hdiutil, ["verify", "-quiet", image.path])
+    }
+
+    /// Runs hdiutil. Cancelling the task stops it.
+    private static func run(_ executable: URL, _ arguments: [String]) async throws(EngineError) {
+        let process = RunningTool(executable, arguments)
         let status: Int32
         do {
             status = try await withTaskCancellationHandler {
@@ -126,8 +187,10 @@ enum DiskImageCreation {
         }
         if Task.isCancelled { throw EngineError(.cancelled) }
         guard status == 0 else {
+            let tool = executable.lastPathComponent
             let message = process.errors.trimmingCharacters(in: .whitespacesAndNewlines)
-            let detail = message.isEmpty ? "hdiutil \(arguments[0]) exited with \(status)" : "hdiutil \(arguments[0]): \(message)"
+            let verb = arguments.first ?? tool
+            let detail = message.isEmpty ? "\(tool) \(verb) exited with \(status)" : "\(tool) \(verb): \(message)"
             throw EngineError(.failed, String(localized: "Couldn’t make the disk image") + " (" + detail + ")")
         }
     }
@@ -142,9 +205,9 @@ private nonisolated final class RunningTool: @unchecked Sendable {
     init(_ executable: URL, _ arguments: [String]) {
         process.executableURL = executable
         process.arguments = arguments
-        process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         process.standardError = errorPipe
+        process.standardInput = FileHandle.nullDevice
         errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let chunk = handle.availableData
             if chunk.isEmpty {

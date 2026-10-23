@@ -32,21 +32,28 @@ private struct SourceTree {
 private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, password: String? = nil,
                   volumeSize: Int64? = nil, verify: Bool = false, overrides: [String: String] = [:],
                   conflict: ArchiveCreation.Conflict = .keepBoth,
+                  diskImageFilesystem: DiskImageFilesystem = .hfsPlus,
+                  diskImageApplicationsLink: Bool = false,
                   into destination: URL) async throws -> (ArchiveCreation.Result, PackReport) {
     let request = PackRequest.collect([tree.project])
     var options = PackOptions()
     options.setAudience(audience)
     options.setFormat(format)
     options.usesPassword = password != nil
+    options.diskImageFilesystem = diskImageFilesystem
+    options.diskImageApplicationsLink = diskImageApplicationsLink
     let report = Compatibility.report(for: request.files, options: options, password: password ?? "", overrides: overrides)
     let metadata = audience.keepsMacMetadata && format == .zip
     let create = CreateRequest(operationID: UUID().uuidString, archiveName: "Project", format: format,
-                               password: password, volumeSize: volumeSize, keepsMacMetadata: metadata, verify: verify)
+                               password: password, volumeSize: volumeSize, keepsMacMetadata: metadata, verify: verify,
+                               diskImageFilesystem: format == .dmg ? diskImageFilesystem : .hfsPlus,
+                               diskImageApplicationsLink: format == .dmg && diskImageApplicationsLink)
     let result = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes, attributes: metadata,
                                                request: create, named: "Project", in: destination,
                                                conflict: conflict) { _ in }
     return (result, report)
 }
+
 
 @Suite("Packing", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
 @MainActor
@@ -81,6 +88,56 @@ struct PackingTests {
         let mode = try FileManager.default.attributesOfItem(atPath: folder.appending(path: "run.sh").path)[.posixPermissions] as? Int
         #expect(mode == 0o755)
         #expect(try FileManager.default.destinationOfSymbolicLink(atPath: folder.appending(path: "link").path) == "README.md")
+    }
+
+    /// #77: Applications shortcut becomes a drop target; content still extracts.
+    @Test func diskImageWithApplicationsShortcut() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, report) = try await pack(tree, audience: .mac, format: .dmg, verify: true,
+                                              diskImageApplicationsLink: true, into: out)
+        #expect(report.notes.contains { $0.title == "Includes an Applications shortcut" })
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        let archive = Archive(listing: listing, url: result.placed[0])
+        #expect(archive.dropTargets.contains { $0.folder == "/Applications" },
+                "dropTargets=\(archive.dropTargets) entries=\(listing.entries.map(\.path))")
+        #expect(archive.installerExtras.contains { $0.hasSuffix("Applications") })
+        let top = Set(archive.children(of: archive.volumeRoot).map(\.name))
+        #expect(top.isSuperset(of: ["README.md", "Docs", "run.sh"]))
+        #expect(!top.contains("Applications")) // hidden as installer layout
+    }
+
+    /// #77: Pack › DMG does not offer a password (AES packing deferred — sandbox blocks MediaKit).
+    @Test func diskImageDoesNotOfferPassword() {
+        #expect(!PackFormat.dmg.supportsPassword)
+        var options = PackOptions()
+        options.setAudience(.mac)
+        options.setFormat(.dmg)
+        options.usesPassword = true
+        options.setFormat(.dmg) // re-assert: switching to DMG clears password
+        #expect(!options.usesPassword)
+    }
+
+    /// #77: APFS option still produces a browsable DMG (APFS when allowed, else HFS+ fallback).
+    @Test func diskImageAPFSOptionRoundTrips() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, report) = try await pack(tree, audience: .mac, format: .dmg, verify: true,
+                                              diskImageFilesystem: .apfs, diskImageApplicationsLink: true, into: out)
+        #expect(result.report.verified)
+        #expect(report.notes.contains { $0.title == "APFS when the system allows" })
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        let archive = Archive(listing: listing, url: result.placed[0])
+        #expect(archive.format == .dmg)
+        #expect(archive.dropTargets.contains { $0.folder == "/Applications" })
+        let top = Set(archive.children(of: archive.volumeRoot).map(\.name))
+        #expect(top.contains("README.md"))
     }
 
     /// DMG has its own test below: a disk's layout differs (one folder's contents at the top).
