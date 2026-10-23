@@ -166,7 +166,8 @@ enum DiskImageCreation {
     private static func createFromFolder(_ volume: URL, named volumeName: String, into image: URL,
                                          level: CompressionLevel, filesystem: DiskImageFilesystem,
                                          password: String?) async throws(EngineError) {
-        var arguments = ["create", "-quiet", "-ov"]
+        // Skip -quiet when encrypting so a failure surfaces hdiutil's reason on stderr.
+        var arguments = password == nil ? ["create", "-quiet", "-ov"] : ["create", "-ov"]
         if password != nil {
             arguments += ["-encryption", "AES-256", "-stdinpass"]
         }
@@ -174,8 +175,9 @@ enum DiskImageCreation {
         arguments += ["-volname", volumeName, "-srcfolder", volume.path, "-fs", fs]
         arguments += imageFormat(for: level)
         arguments += [image.path]
-        // create -encryption prompts for the passphrase twice (confirm) even on a pipe.
-        try await run(arguments, password: password, confirmPassword: password != nil)
+        // -stdinpass on a pipe: one null-terminated passphrase (man hdiutil). Double
+        // prompt is only for a tty using readpassphrase(3).
+        try await run(arguments, password: password)
     }
 
     private static func convert(_ raw: URL, into image: URL, level: CompressionLevel) async throws(EngineError) {
@@ -194,11 +196,10 @@ enum DiskImageCreation {
         try await run(arguments, password: password)
     }
 
-    /// Runs hdiutil; cancelling the task stops it. A password, when given, goes on stdin only.
-    /// `confirmPassword` sends it twice — required by `hdiutil create -encryption`.
-    private static func run(_ arguments: [String], password: String? = nil,
-                            confirmPassword: Bool = false) async throws(EngineError) {
-        let process = RunningTool(hdiutil, arguments, password: password, confirmPassword: confirmPassword)
+    /// Runs hdiutil; cancelling the task stops it. A password, when given, goes on stdin only
+    /// as a null-terminated passphrase (`-stdinpass`).
+    private static func run(_ arguments: [String], password: String? = nil) async throws(EngineError) {
+        let process = RunningTool(hdiutil, arguments, password: password)
         let status: Int32
         do {
             status = try await withTaskCancellationHandler {
@@ -226,7 +227,7 @@ private nonisolated final class RunningTool: @unchecked Sendable {
     private let collected = Mutex(Data())
     private let passwordData: Data?
 
-    init(_ executable: URL, _ arguments: [String], password: String? = nil, confirmPassword: Bool = false) {
+    init(_ executable: URL, _ arguments: [String], password: String? = nil) {
         process.executableURL = executable
         process.arguments = arguments
         process.standardOutput = FileHandle.nullDevice
@@ -235,13 +236,9 @@ private nonisolated final class RunningTool: @unchecked Sendable {
             let pipe = Pipe()
             inputPipe = pipe
             // -stdinpass reads a null-terminated passphrase (man hdiutil). A trailing
-            // newline would become part of the password. create may ask twice to confirm.
+            // newline would become part of the password — send UTF-8 bytes + NUL only.
             var data = Data(password.utf8)
             data.append(0)
-            if confirmPassword {
-                data.append(Data(password.utf8))
-                data.append(0)
-            }
             passwordData = data
             process.standardInput = pipe
         } else {
