@@ -51,7 +51,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
     var entries: [Item] { items }
 
     func show() {
-        reload()
+        reload(startLoading: false)
         guard !items.isEmpty, let panel else { return }
         if panel.dataSource !== self {
             panel.dataSource = self
@@ -59,6 +59,9 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         }
         panel.makeKeyAndOrderFront(nil)
         panel.reloadData()
+        // Taking control of the system panel can end its previous controller's session.
+        // Start reads only after that handoff, so it cannot cancel a new password request.
+        loadPendingItems()
     }
 
     func close() {
@@ -76,7 +79,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
     }
 
     /// Rebuilds the items from the browser's selection and starts extracting what isn't on disk yet.
-    func reload() {
+    func reload(startLoading: Bool = true) {
         guard let model else { return }
         loads?.cancel()
         pinned.forEach { model.previews.cache.unpin($0) }
@@ -96,6 +99,12 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
             }
             return Item(entry: entry, url: Self.statusPage(for: entry, status: String(localized: "Extracting…")), isPending: true)
         }
+        if startLoading { loadPendingItems() }
+    }
+
+    private func loadPendingItems() {
+        guard let model else { return }
+        let archive = model.archive
         let wanted = items.filter(\.isPending)
         guard !wanted.isEmpty else { return }
         loads = Task { [weak self, weak model] in
