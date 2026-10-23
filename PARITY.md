@@ -87,7 +87,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | Verify integrity after creating | ✅ More Options | Failed test keeps nothing |
 | CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · 🧪 Settings UI (pending verification) | |
 | Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
-| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | Default HFS+ via `hdiutil makehybrid` (no mounting, sandbox-safe), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); optional AES-256 password (`-stdinpass`), APFS option with HFS+ fallback, Applications → /Applications shortcut (#77). No split (a disk is one file). Finder window chrome (`.DS_Store` / background) still deferred |
+| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | Default HFS+ via `hdiutil makehybrid` (no mounting, sandbox-safe), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); optional AES-256 password via `create -srcfolder -stdinpass` (fails clearly in the App Sandbox rather than writing an unencrypted image), APFS option with HFS+ fallback, Applications → /Applications shortcut (#77). No split (a disk is one file). Finder window chrome (`.DS_Store` / background) still deferred |
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.

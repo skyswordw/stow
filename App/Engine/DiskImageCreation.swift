@@ -7,12 +7,15 @@ import Synchronization
 ///    appear on the disk. With one folder chosen, its contents sit at the top, the way Finder does it.
 /// 2. Optional drag-to-install layout (#77) adds an `Applications → /Applications` symlink so Next
 ///    Steps can offer "drag here" installs the same way it does for developer DMGs.
-/// 3. Default path: `hdiutil makehybrid -hfs` writes an HFS+ image without mounting anything.
-///    `hdiutil create -srcfolder` mounts a scratch image, which the sandbox doesn't allow.
+/// 3. Default (no password): `hdiutil makehybrid -hfs` writes an HFS+ image without mounting,
+///    then `convert` compresses by level. `create -srcfolder` mounts a scratch image, which the
+///    App Sandbox doesn't allow — so unencrypted packing stays on the hybrid path.
 /// 4. Optional APFS (#77): tries `hdiutil create -fs APFS -srcfolder`. When that fails (typical in
 ///    the App Sandbox), falls back to the HFS+ hybrid path so packing still succeeds.
-/// 5. `hdiutil convert` compresses by level; optional AES-256 encryption (#77) uses `-stdinpass` so
-///    the password never appears on argv.
+/// 5. Optional AES-256 password (#77): uses `create -srcfolder -encryption AES-256 -stdinpass`
+///    (password never on argv). `convert` after makehybrid does not apply encryption, so a password
+///    always takes the create path; if the sandbox refuses it, packing fails with a clear message
+///    instead of writing an unencrypted image.
 /// 6. `hdiutil verify` checks it when asked (also via stdin when encrypted).
 /// 7. It moves into place with the same no-clobber rename as every archive.
 enum DiskImageCreation {
@@ -76,26 +79,33 @@ enum DiskImageCreation {
         if Task.isCancelled { throw EngineError(.cancelled) }
         onProgress(0.3)
 
-        var usedAPFS = false
-        if wantAPFS {
+        // Password-protected images need `create -srcfolder` (convert after makehybrid does not
+        // apply AES). That attaches briefly, so the App Sandbox may refuse it — fail clearly
+        // rather than shipping an unencrypted DMG. Unencrypted keeps the hybrid path (#23).
+        let needsCreate = password != nil || wantAPFS
+        var usedCreate = false
+        if needsCreate {
             do {
-                try await createAPFS(from: volume, named: volumeName, into: image, level: request.level, password: password)
-                usedAPFS = true
+                try await createFromFolder(volume, named: volumeName, into: image, level: request.level,
+                                           filesystem: wantAPFS ? .apfs : .hfsPlus, password: password)
+                usedCreate = true
             } catch let error as EngineError {
                 if error.failure == .cancelled { throw error }
-                // Sandbox and some hosts refuse create -srcfolder (it attaches a scratch image).
-                // Fall back to the hybrid path so Pack still produces a usable DMG.
                 try? FileManager.default.removeItem(at: image)
-                usedAPFS = false
+                if password != nil {
+                    // Never fall back to an unencrypted image when the user asked for a password.
+                    throw EngineError(.failed, String(localized: "Couldn’t make an encrypted disk image here. Try again outside a sandboxed build, or pack without a password."))
+                }
+                // APFS without password: fall back to HFS+ hybrid so Pack still succeeds.
             }
         }
-        if !usedAPFS {
+        if !usedCreate {
             try await run(["makehybrid", "-quiet", "-hfs", "-hfs-volume-name", volumeName,
                            "-default-volume-name", volumeName, "-o", raw.path, volume.path])
             onProgress(0.6)
-            try await convert(raw, into: image, level: request.level, password: password)
+            try await convert(raw, into: image, level: request.level)
         }
-        onProgress(usedAPFS ? 0.75 : 0.75)
+        onProgress(0.75)
 
         var verified = false
         if request.verify {
@@ -148,29 +158,26 @@ enum DiskImageCreation {
         }
     }
 
-    /// APFS via create -srcfolder. Attaches briefly; fails inside the App Sandbox.
-    private static func createAPFS(from volume: URL, named volumeName: String, into image: URL,
-                                   level: CompressionLevel, password: String?) async throws(EngineError) {
-        // Encryption options before -srcfolder / -o so hdiutil always applies them.
+    /// `hdiutil create -srcfolder`. Attaches briefly; fails inside the App Sandbox.
+    private static func createFromFolder(_ volume: URL, named volumeName: String, into image: URL,
+                                         level: CompressionLevel, filesystem: DiskImageFilesystem,
+                                         password: String?) async throws(EngineError) {
         var arguments = ["create", "-quiet", "-ov"]
         if password != nil {
             arguments += ["-encryption", "AES-256", "-stdinpass"]
         }
-        arguments += ["-volname", volumeName, "-srcfolder", volume.path, "-fs", "APFS"]
+        let fs = filesystem == .apfs ? "APFS" : "HFS+"
+        arguments += ["-volname", volumeName, "-srcfolder", volume.path, "-fs", fs]
         arguments += imageFormat(for: level)
         arguments += [image.path]
         try await run(arguments, password: password)
     }
 
-    private static func convert(_ raw: URL, into image: URL, level: CompressionLevel,
-                                password: String?) async throws(EngineError) {
+    private static func convert(_ raw: URL, into image: URL, level: CompressionLevel) async throws(EngineError) {
         var arguments = ["convert", "-quiet"]
-        if password != nil {
-            arguments += ["-encryption", "AES-256", "-stdinpass"]
-        }
         arguments += imageFormat(for: level)
         arguments += [raw.path, "-o", image.path]
-        try await run(arguments, password: password)
+        try await run(arguments)
     }
 
     private static func verify(_ image: URL, password: String?) async throws(EngineError) {

@@ -9466,6 +9466,16 @@
           }
         }
       }
+    },
+    "Couldn’t make an encrypted disk image here. Try again outside a sandboxed build, or pack without a password.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此处无法制作加密磁盘映像。请在非沙盒构建中重试，或不使用密码打包。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
