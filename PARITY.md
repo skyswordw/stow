@@ -7,7 +7,15 @@ and free — there is no Free/Pro split, so every row below ships to everyone.
 static look at the notarized ArcZip 1.1.1 (222) bundle — its `Info.plist`s, entitlements, extension
 points and English UI strings. No code was decompiled or run.
 
-**Current native evidence (2026-10-23):** see the [ArcZip 1.1.4 comparison](Handoff/arczip-1.1.4-native-audit.md). It records confirmed failures in nested opening/search, split archive reopening, explicit helper extraction, native Save/Undo and compressed TAR statistics. Implementation checkmarks below do not override those observed failures. ArcZip Pro operations and signed-system integration have explicit coverage limits.
+**Current native evidence (2026-10-23):** the [initial comparison](Handoff/arczip-1.1.4-native-audit.md),
+[Pro trial comparison](Handoff/arczip-pro-trial-native-audit.md) and
+[remaining native verification](Handoff/arczip-remaining-native-verification.md) distinguish
+baseline failures from exact-build fixes. Nested reads/Save, helper extraction, TAR statistics,
+split reopening, installation recovery, Save Copy, window identity and search coverage have
+additional native acceptance evidence. Undo (#113) and full Browser AX failure-state recursion
+(#93) remain open despite earlier partial merges. Direct x86_64 7-Zip execution under Rosetta
+also fails (#144). Implementation checkmarks do not override these failures or the report's
+hardware, signing, drag and hover limits.
 
 The [Pro trial comparison](Handoff/arczip-pro-trial-native-audit.md) adds actual search,
 rename/undo/redo/save, Windows-purpose ZIP creation, encrypted 7Z interoperability and Open File
