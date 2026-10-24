@@ -8,7 +8,6 @@
   the surrounding code's conventions. Apply this rule to new work and substantive updates.
 - Keep user-facing translations in their intended languages. Preserve original quotations,
   logs, and filenames when they are needed as evidence.
-- Match the user's preferred language in direct conversation.
 
 ## Ownership
 
