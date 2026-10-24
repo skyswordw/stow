@@ -259,7 +259,7 @@ struct EditSessionTests {
         delegate.attach(window, model: model)
         model.folder = "Photos"
         model.selection = ["Photos/a.txt"]
-        model.editSession.rename("Photos/b.txt", to: "Photos/pending.txt")
+        model.editSession.rename("Photos/b.txt", to: "pending.txt")
         #expect(await model.editSession.renameArchive(to: "Harbor Renamed.zip"))
         #expect(window.representedURL == directory.appending(path: "Harbor Renamed.zip"))
         #expect(model.editSession.isEdited)
