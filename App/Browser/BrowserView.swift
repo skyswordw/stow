@@ -60,8 +60,6 @@ struct BrowserView: View {
             model.select([])
             return .handled
         }
-        // SwiftUI responders and AppKit’s window delegate must resolve the same history.
-        .environment(\.undoManager, model.editingUndoManager as UndoManager?)
         .onChange(of: model.selection) { model.quickLook.selectionChanged() }
         .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
         .sheet(item: Binding(get: { model.editSession.notice }, set: { model.editSession.notice = $0 })) { notice in
