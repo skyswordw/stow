@@ -77,6 +77,12 @@ nonisolated enum TrayRules {
         return urls.filter { seen.insert($0.standardizedFileURL.path).inserted }
     }
 
+    /// The items a drop or Add Files… named, whether they were just added or already on the Tray.
+    static func matching(_ urls: [URL], in items: [TrayItem]) -> Set<UUID> {
+        let paths = Set(urls.map { $0.standardizedFileURL.path })
+        return Set(items.filter { $0.url.map { paths.contains($0.standardizedFileURL.path) } ?? false }.map(\.id))
+    }
+
     /// Click selection, Finder style: plain replaces, ⌘ toggles, ⇧ extends from the anchor.
     static func select(_ id: UUID, in order: [UUID], current: Set<UUID>, anchor: UUID?,
                        command: Bool, shift: Bool) -> (selection: Set<UUID>, anchor: UUID?) {

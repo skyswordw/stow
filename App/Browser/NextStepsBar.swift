@@ -32,7 +32,7 @@ struct NextStepsBar: View {
             if let activity = model.activity {
                 ActivityCapsule(phase: activity.phase,
                                 title: activity.phase == .done ? activity.doneTitle
-                                    : String(localized: "\(activity.step.progressTitle) \(activity.itemCount) items"),
+                                    : activity.step.progressTitle(itemCount: activity.itemCount, name: activity.name),
                                 glass: glass,
                                 stop: model.archive.source != nil ? { model.cancelActivity() } : nil,
                                 stopHelp: String(localized: "Stop — nothing is left half-extracted"),

@@ -17,7 +17,9 @@ import SwiftUI
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
 /// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
-/// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app.
+/// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
+/// install-running (an app part-way into Applications), install-app-open (refused: the installed copy is open, INS-181),
+/// tray-arrived (rows pointed out after a drop), tray-collect-taken (Collect into a Folder with a name that's taken).
 /// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, pack-failed-dmg, empty-archive, empty-folder, search-empty, tray-empty.
 /// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly,
@@ -249,6 +251,14 @@ enum DemoScene {
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
             app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailure(scene, name: SampleArchive.make().name))))
+        case "install-running", "install-app-open":
+            // An app part-way into Applications, or refused because the installed copy is open (INS-181).
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.folder = "Prototype"
+            app.browser?.selection = ["Prototype/Harbor Prototype.app"]
+            let phase: ActivityPhase = scene == "install-running" ? .running(0.42)
+                : .failed(Failure(Installer.RunningApp(name: "Harbor Prototype"), .install, name: "Harbor Prototype"))
+            app.browser?.previewActivity(.init(step: .moveToApplications, itemCount: 1, phase: phase, name: "Harbor Prototype"))
         case "checkup": app.openArchive(named: SampleArchive.make().name); app.browser?.navigate(to: "Prototype") // just opened, nothing selected
         case "pack-failed":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .failed(demoFailure("pack-failed", name: "Harbor Handoff.zip")))
@@ -329,17 +339,29 @@ enum DemoScene {
             ]
             app.tray.selection = [app.tray.items[1].id, app.tray.items[2].id]
             app.tray.show()
-        case "tray-collect", "tray-failed":
+        case "tray-arrived":
+            // Three rows just dropped; the last is already on the Tray and was dropped again.
+            app.tray.items = [
+                TrayItem(name: "Invoice October.pdf", size: 182_000),
+                TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
+                TrayItem(name: "Kickoff.key", size: 18_900_000),
+                TrayItem(name: "budget-2027.numbers", size: 412_000),
+                TrayItem(name: "Brand Assets.zip", size: 26_400_000),
+            ]
+            app.tray.showArrivalForDemo(Set(app.tray.items.suffix(3).map(\.id)))
+            app.tray.show()
+        case "tray-collect", "tray-failed", "tray-collect-taken":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
                 TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
                 TrayItem(name: "Kickoff.key", size: 18_900_000),
             ]
             app.tray.show()
-            if scene == "tray-collect" {
-                app.tray.collectingName = String(localized: "New Folder")
-            } else {
-                app.tray.failure = Failure(String(localized: "This folder already has an item named “\(String(localized: "New Folder"))”."))
+            switch scene {
+            case "tray-collect": app.tray.collectingName = String(localized: "New Folder")
+            case "tray-collect-taken": app.tray.showCollectProblemForDemo(String(localized: "New Folder"))
+            // A copy that failed part-way: the footer's failure card.
+            default: app.tray.failure = Failure(NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)), .copy, name: "Kickoff.key")
             }
         default:
             break

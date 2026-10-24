@@ -64,6 +64,17 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         }
     }
 
+    /// The running capsule's words: the thing's name when one thing is being installed or opened
+    /// ("Installing “Harbor Prototype”"), otherwise the verb and a count.
+    func progressTitle(itemCount: Int, name: String?) -> String {
+        guard let name else { return String(localized: "\(progressTitle) \(itemCount) items") }
+        return switch self {
+        case .installFonts, .moveToApplications: String(localized: "Installing “\(name)”")
+        case .openInstaller: String(localized: "Opening “\(name)” in Installer")
+        default: String(localized: "\(progressTitle) \(itemCount) items")
+        }
+    }
+
     var doneTitle: String {
         switch self {
         case .installFonts(let count): count == 1 ? String(localized: "Font installed") : String(localized: "\(count) fonts installed")

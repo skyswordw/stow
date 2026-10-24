@@ -23,7 +23,13 @@ final class TrayController {
     /// Something that went wrong, told inside the Tray (it has no window to hang a sheet on).
     var failure: Failure?
     /// The folder name being typed for Collect into a Folder; nil when not asking.
-    var collectingName: String?
+    var collectingName: String? { didSet { if collectingName != oldValue { collectProblem = nil } } }
+    /// Why that name can't be used, said under the field so the question stays open.
+    private(set) var collectProblem: String?
+    /// Rows a drop (or Add Files…) just named — new ones and ones already on the Tray — so the
+    /// view can point them out for a moment. Cleared by itself.
+    private(set) var arrived: Set<UUID> = []
+    @ObservationIgnored private var arrivalTask: Task<Void, Never>?
     weak var app: AppState?
 
     @ObservationIgnored private var panel: TrayPanel?
@@ -230,6 +236,37 @@ final class TrayController {
         let fresh = TrayRules.newURLs(urls, existing: items.compactMap(\.url))
         items += fresh.map(TrayItem.init(url:))
         if !path.isEmpty { path = [] }
+        pointOut(TrayRules.matching(urls, in: items), added: fresh.count)
+    }
+
+    /// Marks the rows that just arrived and lets them go after a moment, fading out like any
+    /// status change (DESIGN.md › Motion). Rows dropped a second time are marked too: that is
+    /// the answer to "did it go in?" when nothing new was added.
+    private func pointOut(_ ids: Set<UUID>, added: Int) {
+        guard !ids.isEmpty else { return }
+        arrived = ids
+        let already = ids.count - added
+        let announcement = switch (added, already) {
+        case (0, _): String(localized: "Already on the Tray")
+        case (_, 0): String(localized: "Added \(added) items to the Tray")
+        default: String(localized: "Added \(added) items to the Tray, \(already) already there")
+        }
+        AccessibilityNotification.Announcement(announcement).post()
+        arrivalTask?.cancel()
+        arrivalTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled, let self else { return }
+            withAnimation(Motion.current(Motion.status)) { self.arrived = [] }
+        }
+    }
+
+    /// Design review: rows pointed out as if just dropped, held until the scene is captured.
+    func showArrivalForDemo(_ ids: Set<UUID>) { arrived = ids }
+
+    /// Design review: the folder-name question answered with a name that's taken.
+    func showCollectProblemForDemo(_ name: String) {
+        collectingName = name
+        collectProblem = String(localized: "This folder already has an item named “\(name)”.")
     }
 
     func remove(_ item: TrayItem) {
@@ -323,22 +360,29 @@ final class TrayController {
     /// folder on the Tray in their place. Copies, never moves: the originals stay where they were.
     func collectIntoFolder() async {
         guard let typed = collectingName else { return }
-        collectingName = nil
         let chosen = targets.filter { $0.url != nil }
         let urls = chosen.compactMap(\.url)
-        guard let parent = TrayRules.collectionParent(for: urls) else { return }
+        guard let parent = TrayRules.collectionParent(for: urls) else { collectingName = nil; return }
         let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A name that can't be used is answered under the field, which keeps what was typed.
         guard !name.isEmpty, !name.contains("/") else {
-            failure = Failure(String(localized: "Enter a name without a slash."))
+            collectProblem = String(localized: "Enter a name without a slash.")
             return
         }
+        guard !FileManager.default.fileExists(atPath: parent.appending(path: name).path) else {
+            collectProblem = String(localized: "This folder already has an item named “\(name)”.")
+            return
+        }
+        collectingName = nil
         guard let folder = await FolderAccess.shared.writableFolder(
             parent, for: .explained(String(localized: "Stow needs access to this folder to collect the Tray’s items into it.")))
         else { return }
         let destination = folder.appending(path: name, directoryHint: .isDirectory)
         do {
+            // Only knowable once the folder is readable: ask again, with what was typed.
             guard !FileManager.default.fileExists(atPath: destination.path) else {
-                failure = Failure(String(localized: "This folder already has an item named “\(name)”."))
+                collectingName = typed
+                collectProblem = String(localized: "This folder already has an item named “\(name)”.")
                 return
             }
             try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
@@ -526,6 +570,12 @@ struct TrayView: View {
             if hasFooter { footer }
         }
         .frame(width: Self.size.width, height: Self.size.height)
+        // The whole panel takes the drop, so letting go over the header or footer still lands;
+        // the card is what lights up.
+        .dropDestination(for: URL.self) { urls, _ in
+            tray.add(urls)
+            return true
+        } isTargeted: { isTargeted = $0; tray.touch() }
         .accessibleGlass(in: RoundedRectangle(cornerRadius: Self.radius))
         .overlay {
             RoundedRectangle(cornerRadius: Self.radius)
@@ -613,10 +663,6 @@ struct TrayView: View {
         }
         .scaleEffect(isTargeted && !reduceMotion ? 1.015 : 1)
         .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: isTargeted)
-        .dropDestination(for: URL.self) { urls, _ in
-            tray.add(urls)
-            return true
-        } isTargeted: { isTargeted = $0; tray.touch() }
     }
 
     private var empty: some View {
@@ -657,14 +703,23 @@ struct TrayView: View {
     }
 
     private var list: some View {
-        ScrollView {
-            VStack(spacing: 2) {
-                ForEach(tray.visibleItems) { item in
-                    TrayRow(tray: tray, item: item, isSelected: tray.selection.contains(item.id),
-                            canRemove: tray.folderTitle == nil, focusedRow: $focusedRow)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 2) {
+                    ForEach(tray.visibleItems) { item in
+                        TrayRow(tray: tray, item: item, isSelected: tray.selection.contains(item.id),
+                                hasArrived: tray.arrived.contains(item.id),
+                                canRemove: tray.folderTitle == nil, focusedRow: $focusedRow)
+                    }
                 }
+                .padding(Space.xs)
             }
-            .padding(Space.xs)
+            // What a drop added may be below the fold: bring the last of it into view.
+            .onChange(of: tray.arrived) { _, arrived in
+                guard let last = tray.visibleItems.last(where: { arrived.contains($0.id) }) else { return }
+                // Scrolling is movement: none under Reduce Motion.
+                withAnimation(reduceMotion ? nil : Motion.current(Motion.status)) { proxy.scrollTo(last.id) }
+            }
         }
         .contextMenu { actionsMenu }
     }
@@ -764,6 +819,13 @@ struct TrayView: View {
             TextField("Folder name", text: Binding(get: { tray.collectingName ?? "" }, set: { tray.collectingName = $0 }))
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { Task { await tray.collectIntoFolder() } }
+            // Right under the field it is about, like the password sheet's.
+            if let problem = tray.collectProblem {
+                Label(problem, systemImage: "exclamationmark.triangle.fill")
+                    .symbolRenderingMode(.multicolor)
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(spacing: Space.s) {
                 Spacer(minLength: 0)
                 Button("Cancel", role: .cancel) { tray.collectingName = nil }
@@ -783,6 +845,8 @@ private struct TrayRow: View {
     let tray: TrayController
     let item: TrayItem
     let isSelected: Bool
+    /// Just dropped (or dropped again): ringed in the accent for a moment.
+    let hasArrived: Bool
     let canRemove: Bool
     @State private var isHovering = false
     var focusedRow: FocusState<UUID?>.Binding
@@ -813,8 +877,17 @@ private struct TrayRow: View {
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 6)
-        .background(isSelected ? AnyShapeStyle(.tint.opacity(0.2)) : AnyShapeStyle(.primary.opacity(isHovering ? 0.05 : 0)),
+        .background(isSelected ? AnyShapeStyle(.tint.opacity(0.2))
+                        : hasArrived ? AnyShapeStyle(.tint.opacity(0.08))
+                        : AnyShapeStyle(.primary.opacity(isHovering ? 0.05 : 0)),
                     in: .rect(cornerRadius: Radius.chip))
+        // A ring rather than a fill, so it never reads as a selection.
+        .overlay {
+            RoundedRectangle(cornerRadius: Radius.chip)
+                .strokeBorder(.tint, lineWidth: 1.5)
+                .opacity(hasArrived ? 1 : 0)
+                .allowsHitTesting(false)
+        }
         .contentShape(.rect)
         .onHover { hovering in
             isHovering = hovering
