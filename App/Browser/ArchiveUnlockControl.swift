@@ -37,7 +37,7 @@ struct ArchiveUnlockControl: View {
                     ProgressView().controlSize(.small)
                 }
             }
-            .help("Checking the password — click to cancel")
+            .help("Unlocking — click to cancel")
         case .locked:
             Button(String(localized: "Unlock Archive…"), systemImage: "lock.fill") { model.unlockArchive() }
                 .help("Enter the archive’s password to preview or extract files")
@@ -77,11 +77,11 @@ struct ArchiveLockRow: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(state == .locked && model.isListing)
-                    .accessibilityLabel(state == .checking ? String(localized: "Checking password…")
+                    .accessibilityLabel(state == .checking ? String(localized: "Unlocking…")
                                         : String(localized: "Encrypted"))
                     .accessibilityValue(state == .checking ? "" : String(localized: "File names are visible; contents need the password."))
                     .accessibilityHint(state == .checking ? String(localized: "Cancel Unlocking") : String(localized: "Enter Password…"))
-                    .help(state == .checking ? String(localized: "Checking the password — click to cancel")
+                    .help(state == .checking ? String(localized: "Unlocking — click to cancel")
                           : String(localized: "File names are visible; contents need the password."))
                 }
             }
@@ -107,13 +107,13 @@ struct ArchiveLockRow: View {
             .accessibilityHidden(true)
 
             // A narrow sidebar keeps the action and drops the word: the lock already says “encrypted”.
-            // Checking keeps its Cancel and shortens the words instead. Every option has content
+            // Unlocking keeps its Cancel; its word is already short. Every option has content
             // for every state: an empty one would always "fit" and blank the line.
             ViewThatFits(in: .horizontal) {
                 labelled(title(state), action: action(state))
                 switch state {
                 case .locked: labelled(nil, action: action(state))
-                case .checking: labelled(String(localized: "Checking…"), action: action(state))
+                case .checking: labelled(title(state), action: action(state))
                 case .passwordAvailable: labelled(title(state), action: nil)
                 }
                 // Last resort, narrower than any sidebar allows: one truncating line.
@@ -159,7 +159,7 @@ struct ArchiveLockRow: View {
     private func title(_ state: ArchiveLockState) -> String {
         switch state {
         case .locked: String(localized: "Encrypted")
-        case .checking: String(localized: "Checking password…")
+        case .checking: String(localized: "Unlocking…")
         case .passwordAvailable: String(localized: "Password available")
         }
     }
