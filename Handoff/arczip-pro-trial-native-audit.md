@@ -28,6 +28,8 @@ No purchase, license change, or account credential operation was performed.
 | Undo / Redo | ArcZip offered **Undo Rename**. Undo restored `old.txt` and disabled Save; Command-Shift-Z restored `renamed.txt` and enabled Save. Stow baseline still disabled Undo/Redo after the corresponding rename. Evidence added to [#113](https://github.com/skyswordw/stow/issues/113). |
 | Save ZIP edits | ArcZip Save succeeded; independent ZIP validation found no CRC error, exact original text under `renamed.txt`, the other file and empty folder preserved. Stow baseline still failed opening internal `.stow-saving` with EPERM, retained its edit plan, and preserved the original hash. Evidence added to [#114](https://github.com/skyswordw/stow/issues/114). |
 | Windows purpose + compression level | ArcZip switched from Balanced to Smaller and prompted for `CON.txt` → `CON-file.txt` and `question?.txt` → `question-.txt`. It produced a valid ZIP with exact input bytes and unchanged source names. Stow's matching purpose workflow passed in the earlier audit. |
+| Linux TAR creation | ArcZip's Linux and Servers / TAR choice showed Store Only and disabled password protection with an explicit explanation. It created a TAR containing the exact 41-byte `add.txt`, independently checked with Python's TAR reader. |
+| Encrypted ZIP creation | ArcZip created a password-protected ZIP from the same 41-byte text. Independent 7-Zip integrity testing and streaming decryption passed with exact source bytes. This session did not establish its ZIP encryption algorithm or a native Stow read of this particular ZIP. |
 | Encrypted 7Z creation | ArcZip created a single-volume 7Z with Fastest (store), a synthetic password, and encrypted filenames. Independent 7-Zip reported `Copy 7zAES`, `Everything is Ok`, and 105,000,000 unpacked bytes. |
 | Cross-app encrypted read | Stow prompted for the ArcZip-created archive's encrypted file list, unlocked it, and extracted `split-input.bin`. SHA-256 exactly matched the 105,000,000-byte input. No Keychain credential was saved. |
 | Encrypted split creation | ArcZip's same input with encrypted filenames and **100 MB** volumes failed with `File operation failed: 分卷临时文件超出登记目录或所有权不一致`. No final volume or partial output remained in the chosen output folder. Turning off splitting produced the valid single-volume archive above. This is a limitation observed in the comparison app, not a new Stow defect. Stow's existing valid-volume reopening failure remains [#116](https://github.com/skyswordw/stow/issues/116). |
@@ -51,10 +53,17 @@ and **Search 9 files** after the first unchanged Unicode query completed. Its ap
 `/tmp/stow-pro-audit-b83de40/DerivedData/Build/Products/Debug/Stow.app`; signature and process path
 were verified. This local fix verification is distinct from the CI baseline above.
 
+The broader local run did **not** pass: 392 tests / 68 suites reported 97 issues, predominantly
+engine input-open EPERM failures under `stow-in-*`. A separate six-test Extraction suite on
+unmodified main `b83de40` also failed with five issues, including the same temporary-input EPERM.
+This establishes a pre-existing local sandbox problem; it does not turn the full run green or
+replace CI. The attempted single-method baseline filter selected zero tests and was discarded;
+the six-test suite is the actual baseline evidence. See #112/#114 and candidate PR #123.
+
 ## Remaining comparison scope
 
 - Pro hover-preview timing/high-resolution behavior, all compression algorithms/levels,
-  additional purpose permutations, TAR creation, encrypted ZIP creation, and split ZIP creation.
+  additional purpose permutations, and split ZIP creation.
 - ArcZip editing add/replace/delete, save failure/cancel/external-change handling, and broader
   undo sequences. This session established its actual rename/undo/redo/save flow only.
 - Real Box drag-in, item navigation, duplicate handling and processing; matched Finder drag-out,
