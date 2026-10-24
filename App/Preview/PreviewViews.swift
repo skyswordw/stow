@@ -204,14 +204,19 @@ struct RichPreviewView: View {
     }
 
     private func page(@ViewBuilder _ content: () -> some View) -> some View {
-        content()
-            .foregroundStyle(.primary)
+        // The card takes exactly the space it's offered. Long text hangs below it and is cut off,
+        // instead of stretching the card past its frame and spilling over the views around it.
+        Color.clear
+            .overlay(alignment: .top) {
+                content()
+                    .foregroundStyle(.primary)
+            }
+            .clipped()
             .mask {
                 // The page runs on past the card; fade the words out rather than cut a line in half.
                 LinearGradient(stops: [.init(color: .black, location: 0.8), .init(color: .clear, location: 0.97)],
                                startPoint: .top, endPoint: .bottom)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Color(nsColor: .textBackgroundColor))
             .clipShape(.rect(cornerRadius: Radius.chip))
             .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(contrastStyle.borderOpacity)) }
