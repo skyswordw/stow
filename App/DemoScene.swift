@@ -17,7 +17,11 @@ import SwiftUI
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
 /// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
-/// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app.
+/// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
+/// install-running (an app part-way into Applications), install-app-open (refused: the installed copy is open, INS-181),
+/// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop),
+/// tray-collect (Collect into a Folder, items from one folder), tray-collect-mixed (from three: people choose where),
+/// tray-collect-taken (a name that's taken), tray-collected (after a real collect: where it went).
 /// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, pack-failed-dmg, empty-archive, empty-folder, search-empty, tray-empty.
 /// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly,
@@ -249,6 +253,14 @@ enum DemoScene {
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
             app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailure(scene, name: SampleArchive.make().name))))
+        case "install-running", "install-app-open":
+            // An app part-way into Applications, or refused because the installed copy is open (INS-181).
+            app.openArchive(named: SampleArchive.make().name)
+            app.browser?.folder = "Prototype"
+            app.browser?.selection = ["Prototype/Harbor Prototype.app"]
+            let phase: ActivityPhase = scene == "install-running" ? .running(0.42)
+                : .failed(Failure(Installer.RunningApp(name: "Harbor Prototype"), .install, name: "Harbor Prototype"))
+            app.browser?.previewActivity(.init(step: .moveToApplications, itemCount: 1, phase: phase, name: "Harbor Prototype"))
         case "checkup": app.openArchive(named: SampleArchive.make().name); app.browser?.navigate(to: "Prototype") // just opened, nothing selected
         case "pack-failed":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .failed(demoFailure("pack-failed", name: "Harbor Handoff.zip")))
@@ -329,17 +341,67 @@ enum DemoScene {
             ]
             app.tray.selection = [app.tray.items[1].id, app.tray.items[2].id]
             app.tray.show()
-        case "tray-collect", "tray-failed":
+        case "tray-files":
+            // Real files on disk, so the rows show what Finder would: text, an image, a PDF, a ZIP, a folder.
+            let folder = FileManager.default.temporaryDirectory.appending(path: "Demo Tray Files", directoryHint: .isDirectory)
+            try? FileManager.default.removeItem(at: folder)
+            try? FileManager.default.createDirectory(at: folder.appending(path: "Site Photos"), withIntermediateDirectories: true)
+            let note = folder.appending(path: "Notes.txt"), short = folder.appending(path: "File 01.txt")
+            try? Data("Kickoff notes\n\n- Agree the scope\n- Book the photographer\n- Send the brand kit\n".utf8).write(to: note)
+            try? Data("01\n".utf8).write(to: short)
+            let picture = folder.appending(path: "Pier at Dawn.png")
+            let image = NSImage(size: CGSize(width: 240, height: 160), flipped: false) { rect in
+                NSGradient(starting: .systemOrange, ending: .systemIndigo)?.draw(in: rect, angle: 90)
+                return true
+            }
+            if let tiff = image.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: picture)
+            }
+            let pdf = folder.appending(path: "Invoice October.pdf")
+            let page = NSTextView(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+            page.string = "Invoice October\n\nHarbor Studio\n\n3 × Brand workshop\nTotal 4,200"
+            try? page.dataWithPDF(inside: page.bounds).write(to: pdf)
+            let zip = folder.appending(path: "Brand Assets.zip")
+            try? Data([0x50, 0x4B, 0x05, 0x06] + [UInt8](repeating: 0, count: 18)).write(to: zip)
+            app.tray.add([note, short, picture, pdf, zip, folder.appending(path: "Site Photos")])
+            app.tray.showArrivalForDemo([])
+            app.tray.show()
+        case "tray-arrived":
+            // Three rows just dropped; the last is already on the Tray and was dropped again.
+            app.tray.items = [
+                TrayItem(name: "Invoice October.pdf", size: 182_000),
+                TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
+                TrayItem(name: "Kickoff.key", size: 18_900_000),
+                TrayItem(name: "budget-2027.numbers", size: 412_000),
+                TrayItem(name: "Brand Assets.zip", size: 26_400_000),
+            ]
+            app.tray.showArrivalForDemo(Set(app.tray.items.suffix(3).map(\.id)))
+            app.tray.show()
+        case "tray-failed":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
                 TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
                 TrayItem(name: "Kickoff.key", size: 18_900_000),
             ]
             app.tray.show()
-            if scene == "tray-collect" {
-                app.tray.collectingName = String(localized: "New Folder")
-            } else {
-                app.tray.failure = Failure(String(localized: "This folder already has an item named “\(String(localized: "New Folder"))”."))
+            // A copy that failed part-way: the footer's failure card.
+            app.tray.failure = Failure(NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)), .copy, name: "Kickoff.key")
+        case "tray-collect", "tray-collect-taken", "tray-collect-mixed", "tray-collected":
+            // Real files, so the Where rule runs: one folder (it's the default), or three (people choose).
+            let layout: [(String, [String])] = scene == "tray-collect-mixed"
+                ? [("Invoices", ["Invoice October.pdf"]), ("Photos", ["Pier at Dawn.jpg", "Lighthouse.jpg"]), ("Kickoff", ["Kickoff.key"])]
+                : [("Kickoff", ["Invoice October.pdf", "Pier at Dawn.jpg", "Kickoff.key"])]
+            let urls = demoTrayFiles(layout, taken: scene == "tray-collect-taken" ? String(localized: "New Folder") : nil)
+            app.tray.items = []
+            app.tray.add(urls)
+            app.tray.showArrivalForDemo([])
+            app.tray.show()
+            // The scenes ignore any folder remembered on this Mac, so they look the same everywhere.
+            app.tray.beginCollecting(remembered: nil)
+            switch scene {
+            case "tray-collect-taken": app.tray.showCollectProblemForDemo(String(localized: "New Folder"))
+            case "tray-collected": Task { await app.tray.collectIntoFolder() }
+            default: break
             }
         default:
             break
@@ -406,6 +468,28 @@ enum DemoScene {
                 exit(0) // terminate(_:) waits on open sheets; this is a screenshot run.
             }
         }
+    }
+
+    /// Real files for the Tray's Collect scenes, in folders inside the sandbox's temporary
+    /// directory (made fresh each run). `taken` puts an item of that name in the first folder.
+    private static func demoTrayFiles(_ layout: [(String, [String])], taken: String?) -> [URL] {
+        let base = FileManager.default.temporaryDirectory.appending(path: "Demo Tray", directoryHint: .isDirectory)
+        try? FileManager.default.removeItem(at: base)
+        var urls: [URL] = []
+        for (folder, names) in layout {
+            let dir = base.appending(path: folder, directoryHint: .isDirectory)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            for name in names {
+                let url = dir.appending(path: name)
+                FileManager.default.createFile(atPath: url.path, contents: Data(name.utf8))
+                urls.append(url)
+            }
+        }
+        if let taken, let first = layout.first {
+            try? FileManager.default.createDirectory(at: base.appending(path: "\(first.0)/\(taken)", directoryHint: .isDirectory),
+                                                     withIntermediateDirectories: true)
+        }
+        return urls
     }
 
     /// The error scenes' failures, made from the errors the engine and the file system really throw.

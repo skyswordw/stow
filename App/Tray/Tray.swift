@@ -23,7 +23,26 @@ final class TrayController {
     /// Something that went wrong, told inside the Tray (it has no window to hang a sheet on).
     var failure: Failure?
     /// The folder name being typed for Collect into a Folder; nil when not asking.
-    var collectingName: String?
+    var collectingName: String? { didSet { if collectingName != oldValue { collectProblem = nil } } }
+    /// Why that name can't be used, said under the field so the question stays open.
+    private(set) var collectProblem: String?
+    /// The folder the new folder goes in, shown in the question's Where menu. Nil until people
+    /// choose, when the items come from several folders and nothing was chosen for a mix before.
+    private(set) var collectDestination: URL?
+    /// The folder Collect just made, so the summary can say where it went; cleared by the next action.
+    private(set) var collected: URL?
+    /// Rows a drop (or Add Files…) just named — new ones and ones already on the Tray — so the
+    /// view can point them out for a moment. Cleared by itself.
+    private(set) var arrived: Set<UUID> = []
+    @ObservationIgnored private var arrivalTask: Task<Void, Never>?
+    /// The Tray's own history: Remove and Clear Tray can be undone (⌘Z) while the Tray is in front.
+    /// Its own, so ⌘Z in the Tray never reaches an archive's staged edits.
+    /// Each removal is one step, grouped here rather than by event, so two quick removals never undo together.
+    let undoManager: UndoManager = {
+        let manager = UndoManager()
+        manager.groupsByEvent = false
+        return manager
+    }()
     weak var app: AppState?
 
     @ObservationIgnored private var panel: TrayPanel?
@@ -35,6 +54,11 @@ final class TrayController {
     @ObservationIgnored private var idleTimer: Timer?
     @ObservationIgnored private var lastActivity = Date()
     @ObservationIgnored private var rowMonitor: Any?
+    @ObservationIgnored private var moveObserver: (any NSObjectProtocol)?
+    /// Where people dragged the Tray to, if they did; it comes back out there until Stow quits.
+    @ObservationIgnored private var placedFrame: CGRect?
+    /// True while Stow itself positions the panel, so that move isn't taken as the person's.
+    @ObservationIgnored private var isPlacing = false
     @ObservationIgnored private var press: (point: NSPoint, id: UUID)?
     @ObservationIgnored private var dragStarted = false
     /// The row under the pointer, as rows report it (multi-item drag out starts from here).
@@ -139,8 +163,11 @@ final class TrayController {
         let panel = panel ?? makePanel()
         self.panel = panel
         panel.border = SettingsKeys.trayBorder()
+        isPlacing = true
         panel.setFrame(frame(), display: false)
-        edge = statusItem?.button?.window == nil ? .trailing : .top
+        isPlacing = false
+        // Moved by hand, it grows from its own middle; otherwise from the menu bar or screen edge.
+        edge = placedFrame != nil ? .center : statusItem?.button?.window == nil ? .trailing : .top
         isShown = true
         touch()
         startIdleTimer()
@@ -164,6 +191,7 @@ final class TrayController {
         idleTimer?.invalidate()
         idleTimer = nil
         collectingName = nil
+        collected = nil
         if QLPreviewPanel.sharedPreviewPanelExists(), QLPreviewPanel.shared().isVisible { QLPreviewPanel.shared().orderOut(nil) }
         // Esc and ⌥⌘T: gone at once. Otherwise `Motion.exit`, quicker than it came.
         guard let animation = Motion.presence(false, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) else {
@@ -180,7 +208,19 @@ final class TrayController {
     /// Under the menu-bar icon when there is one, otherwise at the right edge of the screen; the
     /// window is larger by the margin its shadow is drawn in.
     private func frame() -> CGRect {
-        contentFrame().insetBy(dx: -TrayView.shadowMargin, dy: -TrayView.shadowMargin)
+        if let placedFrame, let kept = Self.onScreen(placedFrame) { return kept }
+        return contentFrame().insetBy(dx: -TrayView.shadowMargin, dy: -TrayView.shadowMargin)
+    }
+
+    /// The frame pulled back inside the screen it's mostly on (its shadow margin may overhang);
+    /// nil when that screen has gone.
+    private static func onScreen(_ frame: CGRect) -> CGRect? {
+        guard let visible = NSScreen.screens.first(where: { $0.visibleFrame.intersects(frame) })?.visibleFrame else { return nil }
+        let margin = TrayView.shadowMargin
+        var kept = frame
+        kept.origin.x = min(max(kept.minX, visible.minX - margin), visible.maxX - kept.width + margin)
+        kept.origin.y = min(max(kept.minY, visible.minY - margin), visible.maxY - kept.height + margin)
+        return kept
     }
 
     private func contentFrame() -> CGRect {
@@ -230,28 +270,113 @@ final class TrayController {
         let fresh = TrayRules.newURLs(urls, existing: items.compactMap(\.url))
         items += fresh.map(TrayItem.init(url:))
         if !path.isEmpty { path = [] }
+        collected = nil
+        pointOut(TrayRules.matching(urls, in: items), added: fresh.count)
     }
 
+    /// Marks the rows that just arrived and lets them go after a moment, fading out like any
+    /// status change (DESIGN.md › Motion). Rows dropped a second time are marked too: that is
+    /// the answer to "did it go in?" when nothing new was added.
+    private func pointOut(_ ids: Set<UUID>, added: Int) {
+        guard !ids.isEmpty else { return }
+        let already = ids.count - added
+        let announcement = switch (added, already) {
+        case (0, _): String(localized: "Already on the Tray")
+        case (_, 0): String(localized: "Added \(added) items to the Tray")
+        default: String(localized: "Added \(added) items to the Tray, \(already) already there")
+        }
+        mark(ids, announcing: announcement)
+    }
+
+    private func mark(_ ids: Set<UUID>, announcing announcement: String) {
+        arrived = ids
+        AccessibilityNotification.Announcement(announcement).post()
+        arrivalTask?.cancel()
+        arrivalTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled, let self else { return }
+            withAnimation(Motion.current(Motion.status)) { self.arrived = [] }
+        }
+    }
+
+    /// Design review: rows pointed out as if just dropped, held until the scene is captured.
+    func showArrivalForDemo(_ ids: Set<UUID>) { arrived = ids }
+
+    /// Design review: the folder-name question answered with a name that's taken.
+    func showCollectProblemForDemo(_ name: String) {
+        collectingName = name
+        collectProblem = String(localized: "This folder already has an item named “\(name)”.")
+    }
+
+    /// A row's own ⓧ: that row only, whatever else is selected.
     func remove(_ item: TrayItem) {
-        items.removeAll { $0.id == item.id }
-        selection.remove(item.id)
+        takeOff([item.id], actionName: String(localized: "Remove from Tray"))
     }
 
+    /// Remove from Tray (right-click and More menus): everything selected. Nothing selected, nothing removed (Clear
+    /// Tray is for all of it). The files themselves never move.
     func removeSelected() {
-        guard path.isEmpty else { return }
-        items.removeAll { selection.contains($0.id) }
-        selection = []
+        guard path.isEmpty, !selection.isEmpty else { return }
+        takeOff(selection, actionName: String(localized: "Remove from Tray"))
     }
 
     func clear() {
-        items = []
         path = []
-        selection = []
+        takeOff(Set(items.map(\.id)), actionName: String(localized: "Clear Tray"))
+    }
+
+    /// Takes rows off the Tray and registers putting them back, so ⌘Z restores them in place.
+    private func takeOff(_ ids: Set<UUID>, actionName: String) {
+        let removed = items.enumerated().filter { ids.contains($0.element.id) }.map { (index: $0.offset, item: $0.element) }
+        guard !removed.isEmpty else { return }
+        let selected = selection
+        items.removeAll { ids.contains($0.id) }
+        selection.subtract(ids)
+        collected = nil
+        registerUndo(actionName) { tray in
+            tray.putBack(removed, selection: selected.intersection(ids), actionName: actionName)
+        }
+    }
+
+    /// One undo step. While undoing or redoing, the manager is already collecting the inverse step.
+    private func registerUndo(_ actionName: String, _ handler: @escaping (TrayController) -> Void) {
+        let grouping = !undoManager.isUndoing && !undoManager.isRedoing
+        if grouping { undoManager.beginUndoGrouping() }
+        undoManager.registerUndo(withTarget: self, handler: handler)
+        undoManager.setActionName(actionName)
+        if grouping { undoManager.endUndoGrouping() }
+    }
+
+    /// Undo: the rows return where they were (a file dropped again since isn't doubled), ringed
+    /// like a drop, and the step can be redone.
+    private func putBack(_ removed: [(index: Int, item: TrayItem)], selection restored: Set<UUID>, actionName: String) {
+        let present = Set(items.compactMap { $0.url?.standardizedFileURL.path })
+        var back: [TrayItem] = []
+        for entry in removed.sorted(by: { $0.index < $1.index }) {
+            if let path = entry.item.url?.standardizedFileURL.path, present.contains(path) { continue }
+            items.insert(entry.item, at: min(entry.index, items.count))
+            back.append(entry.item)
+        }
+        let ids = Set(back.map(\.id))
+        selection = restored.intersection(ids)
+        registerUndo(actionName) { tray in tray.takeOff(ids, actionName: actionName) }
+        guard !ids.isEmpty else { return }
+        mark(ids, announcing: String(localized: "Put back on the Tray"))
+    }
+
+    /// Right-click or ⌃-click on a row: the menu acts on that row. Selected already, the whole
+    /// selection stays; otherwise the row becomes the selection first, as in Finder.
+    func selectForMenu(_ id: UUID) {
+        guard !selection.contains(id) else { return }
+        selection = [id]
+        anchor = id
+        collected = nil
     }
 
     func click(_ item: TrayItem, command: Bool, shift: Bool) {
         let result = TrayRules.select(item.id, in: visibleItems.map(\.id), current: selection, anchor: anchor,
                                       command: command, shift: shift)
+        collected = nil
         selection = result.selection
         anchor = result.anchor
         touch()
@@ -307,38 +432,100 @@ final class TrayController {
         app?.system.perform(.extractHere, on: archives)
     }
 
-    /// Asks for the folder's name inside the Tray, starting from "New Folder" (or the first free variant).
-    func beginCollecting() {
-        guard let parent = TrayRules.collectionParent(for: targetURLs) else { return }
+    /// Asks for the folder's name and where it goes, inside the Tray. Where follows
+    /// `GatherDestination`: the items' own folder when they share one, otherwise the folder last
+    /// chosen for a mix, otherwise nothing until people choose.
+    func beginCollecting(remembered: URL? = GatherDestination.remembered()) {
+        let urls = targetURLs
+        guard !urls.isEmpty else { return }
         failure = nil
-        collectingName = TrayRules.freeName(String(localized: "New Folder"), in: parent)
+        collected = nil
+        collectDestination = GatherDestination.suggestion(for: urls, remembered: remembered)
+        collectingName = suggestedName(in: collectDestination)
         panel?.makeKey()
         touch()
     }
 
-    /// Where the new folder goes, for the question's wording.
-    var collectionNeighbour: String? { targets.first?.name }
+    /// "New Folder", or the first free variant once there's a folder to check.
+    private func suggestedName(in folder: URL?) -> String {
+        let base = String(localized: "New Folder")
+        return folder.map { TrayRules.freeName(base, in: $0) } ?? base
+    }
 
-    /// Copies the items into a new folder beside the first one, named by people, and puts that
+    /// The folders the items come from, for the Where menu.
+    var collectSources: [GatherDestination.Source] { GatherDestination.sources(of: targetURLs) }
+
+    /// Other places offered in the Where menu: the folder last chosen for a mix, Desktop and
+    /// Downloads, leaving out any already listed as a source.
+    var collectPlaces: [URL] {
+        let listed = Set(collectSources.map(\.folder.standardizedFileURL.path))
+        var seen = listed
+        let home = FolderAccess.home
+        let candidates = [GatherDestination.remembered(), home.appending(path: "Desktop", directoryHint: .isDirectory),
+                          home.appending(path: "Downloads", directoryHint: .isDirectory)].compactMap { $0 }
+        return candidates.filter { seen.insert($0.standardizedFileURL.path).inserted }
+    }
+
+    var collectsFromSeveralFolders: Bool { collectSources.count > 1 }
+
+    /// Picks where the new folder goes. A name Stow suggested follows the folder ("New Folder 2"
+    /// if that one has a "New Folder"); a name people typed stays.
+    func chooseCollectDestination(_ folder: URL) {
+        let typed = collectingName
+        let suggested = typed == suggestedName(in: collectDestination)
+        collectDestination = folder
+        if suggested { collectingName = suggestedName(in: folder) }
+        collectProblem = nil
+        touch()
+    }
+
+    /// The Where menu's Other…: any folder, from an Open panel (which also lets Stow write there).
+    func chooseOtherCollectDestination() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.directoryURL = collectDestination
+        panel.prompt = String(localized: "Choose")
+        panel.message = String(localized: "Choose where the new folder goes.")
+        NSApp.activate()
+        if panel.runModal() == .OK, let url = panel.url { chooseCollectDestination(url) }
+        self.panel?.makeKey()
+    }
+
+    /// Copies the items into a new folder where people chose, named by them, and puts that
     /// folder on the Tray in their place. Copies, never moves: the originals stay where they were.
     func collectIntoFolder() async {
         guard let typed = collectingName else { return }
-        collectingName = nil
         let chosen = targets.filter { $0.url != nil }
         let urls = chosen.compactMap(\.url)
-        guard let parent = TrayRules.collectionParent(for: urls) else { return }
-        let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty, !name.contains("/") else {
-            failure = Failure(String(localized: "Enter a name without a slash."))
+        guard !urls.isEmpty else { collectingName = nil; return }
+        // Return in the name field before a folder was chosen: say what's missing, keep the question.
+        guard let parent = collectDestination else {
+            collectProblem = String(localized: "Choose where the new folder goes.")
             return
         }
+        let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A name that can't be used is answered under the field, which keeps what was typed.
+        guard !name.isEmpty, !name.contains("/") else {
+            collectProblem = String(localized: "Enter a name without a slash.")
+            return
+        }
+        guard !FileManager.default.fileExists(atPath: parent.appending(path: name).path) else {
+            collectProblem = String(localized: "This folder already has an item named “\(name)”.")
+            return
+        }
+        collectingName = nil
         guard let folder = await FolderAccess.shared.writableFolder(
             parent, for: .explained(String(localized: "Stow needs access to this folder to collect the Tray’s items into it.")))
         else { return }
         let destination = folder.appending(path: name, directoryHint: .isDirectory)
         do {
+            // Only knowable once the folder is readable: ask again, with what was typed.
             guard !FileManager.default.fileExists(atPath: destination.path) else {
-                failure = Failure(String(localized: "This folder already has an item named “\(name)”."))
+                collectingName = typed
+                collectDestination = folder
+                collectProblem = String(localized: "This folder already has an item named “\(name)”.")
                 return
             }
             try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
@@ -349,11 +536,26 @@ final class TrayController {
             failure = Failure(EngineError(error).message)
             return
         }
+        // The folder actually used: people may pick another one in the access panel.
+        GatherDestination.remember(folder, for: urls)
         let ids = Set(chosen.map(\.id))
         path = []
         items.removeAll { ids.contains($0.id) }
-        items.append(TrayItem(url: destination))
+        let made = TrayItem(url: destination)
+        items.append(made)
         selection = []
+        withAnimation(Motion.current(Motion.status)) { collected = destination }
+        mark([made.id], announcing: Self.collectedTitle(destination))
+    }
+
+    /// "Collected in “Desktop”" — the folder the new folder went in.
+    static func collectedTitle(_ made: URL) -> String {
+        String(localized: "Collected in “\(FileManager.default.displayName(atPath: made.deletingLastPathComponent().path))”")
+    }
+
+    func revealCollected() {
+        guard let collected else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([collected])
     }
 
     func share(from view: NSView?) {
@@ -406,16 +608,25 @@ final class TrayController {
         // key, which showed as square corners behind the rounded panel.
         panel.hasShadow = false
         panel.hidesOnDeactivate = false
-        let host = NSHostingView(rootView: TrayView(tray: self).environment(app ?? AppState()))
+        let host = TrayHostingView(rootView: TrayView(tray: self).environment(app ?? AppState()))
         host.sizingOptions = []
+        host.trayUndoManager = undoManager
         panel.contentView = host
+        panel.trayUndoManager = undoManager
         installRowDrag(in: panel)
+        moveObserver = NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: panel,
+                                                              queue: .main) { [weak self, weak panel] _ in
+            MainActor.assumeIsolated {
+                guard let self, let panel, !self.isPlacing else { return }
+                self.placedFrame = panel.frame
+            }
+        }
         return panel
     }
 
     /// Dragging any selected row drags every selected item out (files are real, so plain URLs).
     private func installRowDrag(in panel: TrayPanel) {
-        rowMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self, weak panel] event in
+        rowMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown]) { [weak self, weak panel] event in
             let box = TrayEventBox(event: event)
             return MainActor.assumeIsolated {
                 TrayEventBox(event: self?.handleRow(box.event, in: panel) ?? box.event)
@@ -426,6 +637,10 @@ final class TrayController {
     private func handleRow(_ event: NSEvent?, in panel: TrayPanel?) -> NSEvent? {
         guard let event, let panel, event.window === panel else { return event }
         switch event.type {
+        case .rightMouseDown:
+            if let hoveredRow { selectForMenu(hoveredRow) }
+        case .leftMouseDown where event.modifierFlags.contains(.control):
+            if let hoveredRow { selectForMenu(hoveredRow) }
         case .leftMouseDown:
             press = hoveredRow.map { (event.locationInWindow, $0) }
             dragStarted = false
@@ -469,8 +684,25 @@ private final class StatusTarget: NSObject {
 final class TrayPanel: NSPanel, QLPreviewPanelDataSource, NSDraggingSource {
     nonisolated(unsafe) var previewURLs: [URL] = []
     var border: TrayBorder = .accent
+    var trayUndoManager: UndoManager?
 
     override var canBecomeKey: Bool { true }
+    override var undoManager: UndoManager? { trayUndoManager ?? super.undoManager }
+
+    private var editingText: NSTextView? {
+        (firstResponder as? NSTextView).flatMap { $0.isEditable ? $0 : nil }
+    }
+
+    /// ⌘Z and ⇧⌘Z go straight to the Tray's own history (outside a text field), whichever
+    /// responder SwiftUI has made first.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        if editingText == nil, event.charactersIgnoringModifiers?.lowercased() == "z", let undo = trayUndoManager {
+            if modifiers == .command { if undo.canUndo { undo.undo() }; return true }
+            if modifiers == [.command, .shift] { if undo.canRedo { undo.redo() }; return true }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
 
     nonisolated override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
     nonisolated override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
@@ -495,6 +727,13 @@ final class TrayPanel: NSPanel, QLPreviewPanelDataSource, NSDraggingSource {
 }
 
 private struct TrayPreviewBox: @unchecked Sendable { let panel: QLPreviewPanel? }
+
+/// The Tray's content view hands Edit › Undo the Tray's history, so the menu reads
+/// "Undo Remove from Tray" while the Tray is in front.
+final class TrayHostingView<Content: View>: NSHostingView<Content> {
+    var trayUndoManager: UndoManager?
+    override var undoManager: UndoManager? { trayUndoManager ?? super.undoManager }
+}
 
 // MARK: - View
 
@@ -526,6 +765,12 @@ struct TrayView: View {
             if hasFooter { footer }
         }
         .frame(width: Self.size.width, height: Self.size.height)
+        // The whole panel takes the drop, so letting go over the header or footer still lands;
+        // the card is what lights up.
+        .dropDestination(for: URL.self) { urls, _ in
+            tray.add(urls)
+            return true
+        } isTargeted: { isTargeted = $0; tray.touch() }
         .accessibleGlass(in: RoundedRectangle(cornerRadius: Self.radius))
         .overlay {
             RoundedRectangle(cornerRadius: Self.radius)
@@ -542,7 +787,6 @@ struct TrayView: View {
         .padding(Self.shadowMargin)
         .onHover { tray.isHovered = $0 }
         .onKeyPress(.space) { tray.quickLook(); return .handled }
-        .onKeyPress(.delete) { tray.removeSelected(); return .handled }
     }
 
 
@@ -589,6 +833,12 @@ struct TrayView: View {
         .padding(.horizontal, Space.l)
         .padding(.top, Space.m)
         .padding(.bottom, Space.s)
+        // The header is the Tray's title bar: drag it to move the panel. The buttons in it keep
+        // their clicks. (SwiftUI never passes a background drag to AppKit, so
+        // `isMovableByWindowBackground` alone doesn't move it.)
+        .contentShape(.rect)
+        .gesture(WindowDragGesture())
+        .allowsWindowActivationEvents(true)
     }
 
     // MARK: Card
@@ -613,10 +863,6 @@ struct TrayView: View {
         }
         .scaleEffect(isTargeted && !reduceMotion ? 1.015 : 1)
         .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: isTargeted)
-        .dropDestination(for: URL.self) { urls, _ in
-            tray.add(urls)
-            return true
-        } isTargeted: { isTargeted = $0; tray.touch() }
     }
 
     private var empty: some View {
@@ -657,16 +903,39 @@ struct TrayView: View {
     }
 
     private var list: some View {
-        ScrollView {
-            VStack(spacing: 2) {
-                ForEach(tray.visibleItems) { item in
-                    TrayRow(tray: tray, item: item, isSelected: tray.selection.contains(item.id),
-                            canRemove: tray.folderTitle == nil, focusedRow: $focusedRow)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 2) {
+                    ForEach(tray.visibleItems) { item in
+                        TrayRow(tray: tray, item: item, isSelected: tray.selection.contains(item.id),
+                                hasArrived: tray.arrived.contains(item.id),
+                                canRemove: tray.folderTitle == nil, focusedRow: $focusedRow)
+                    }
                 }
+                .padding(Space.xs)
             }
-            .padding(Space.xs)
+            // What a drop added may be below the fold: bring the last of it into view.
+            .onChange(of: tray.arrived) { _, arrived in
+                guard let last = tray.visibleItems.last(where: { arrived.contains($0.id) }) else { return }
+                // Scrolling is movement: none under Reduce Motion.
+                withAnimation(reduceMotion ? nil : Motion.current(Motion.status)) { proxy.scrollTo(last.id) }
+            }
         }
-        .contextMenu { actionsMenu }
+        .contextMenu {
+            actionsMenu
+            Divider()
+            // No count here: the menu can be built before a right-click's new selection is drawn.
+            removeButton(counted: false)
+        }
+    }
+
+    /// Removes the selection from the Tray (the files stay). A menu command, with no key of its own.
+    private func removeButton(counted: Bool) -> some View {
+        let count = tray.selection.count
+        return Button(counted && count > 1 ? String(localized: "Remove \(count) Items from Tray") : String(localized: "Remove from Tray")) {
+            tray.removeSelected()
+        }
+        .disabled(tray.selection.isEmpty || tray.folderTitle != nil)
     }
 
     @ViewBuilder private var actionsMenu: some View {
@@ -706,6 +975,15 @@ struct TrayView: View {
     }
 
     private var summary: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            if let made = tray.collected {
+                collectedNote(made).transition(.opacity)
+            }
+            summaryRow
+        }
+    }
+
+    private var summaryRow: some View {
         HStack(spacing: Space.s) {
             VStack(alignment: .leading, spacing: 0) {
                 Group {
@@ -727,6 +1005,7 @@ struct TrayView: View {
             Menu {
                 actionsMenu
                 Divider()
+                removeButton(counted: true)
                 Button("Clear Tray") { tray.clear() }
             } label: {
                 Label("More", systemImage: "ellipsis")
@@ -754,16 +1033,39 @@ struct TrayView: View {
         VStack(alignment: .leading, spacing: Space.s) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Collect into a Folder").font(.headline)
-                if let neighbour = tray.collectionNeighbour {
-                    Text("Copies go in a new folder beside “\(neighbour)”. The originals stay put.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                Text("Stow puts copies in a new folder. The originals stay where they are.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // Name, then Where, as a Save dialog asks them.
+            Grid(alignment: .leading, horizontalSpacing: Space.s, verticalSpacing: Space.s) {
+                GridRow {
+                    Text("Name").font(.callout).foregroundStyle(.secondary).gridColumnAlignment(.trailing)
+                    TextField("Folder name", text: Binding(get: { tray.collectingName ?? "" }, set: { tray.collectingName = $0 }))
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel(String(localized: "Folder name"))
+                        .onSubmit { Task { await tray.collectIntoFolder() } }
+                }
+                GridRow {
+                    Text("Where").font(.callout).foregroundStyle(.secondary)
+                    whereMenu
                 }
             }
-            TextField("Folder name", text: Binding(get: { tray.collectingName ?? "" }, set: { tray.collectingName = $0 }))
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { Task { await tray.collectIntoFolder() } }
+            // Items from several folders and nothing chosen yet: say why Stow is asking.
+            if tray.collectDestination == nil, tray.collectsFromSeveralFolders {
+                Text("These come from \(tray.collectSources.count) folders. Choose where the new folder goes.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // Right under the fields it is about, like the password sheet's.
+            if let problem = tray.collectProblem {
+                Label(problem, systemImage: "exclamationmark.triangle.fill")
+                    .symbolRenderingMode(.multicolor)
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(spacing: Space.s) {
                 Spacer(minLength: 0)
                 Button("Cancel", role: .cancel) { tray.collectingName = nil }
@@ -771,9 +1073,68 @@ struct TrayView: View {
                 Button("Collect") { Task { await tray.collectIntoFolder() } }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
-                    .disabled((tray.collectingName ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled((tray.collectingName ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+                              || tray.collectDestination == nil)
             }
         }
+    }
+
+    /// The folders the items come from first (with how many each), then other likely places,
+    /// then any folder. The chosen one is ticked; each shows its path, so two "Photos" differ.
+    private var whereMenu: some View {
+        Menu {
+            Section {
+                ForEach(tray.collectSources, id: \.folder) { source in
+                    destinationChoice(source.folder, detail: String(localized: "\(source.count) items"))
+                }
+            }
+            if !tray.collectPlaces.isEmpty {
+                Section {
+                    ForEach(tray.collectPlaces, id: \.self) { folder in destinationChoice(folder, detail: nil) }
+                }
+            }
+            Divider()
+            Button("Other…") { tray.chooseOtherCollectDestination() }
+        } label: {
+            Label(tray.collectDestination.map(Self.folderName) ?? String(localized: "Choose a Folder…"), systemImage: "folder")
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .help(tray.collectDestination.map(GatherDestination.abbreviated) ?? "")
+        .accessibilityLabel(String(localized: "Where"))
+        .accessibilityValue(tray.collectDestination.map(Self.folderName) ?? String(localized: "Not chosen"))
+    }
+
+    private func destinationChoice(_ folder: URL, detail: String?) -> some View {
+        let chosen = tray.collectDestination?.standardizedFileURL.path == folder.standardizedFileURL.path
+        let path = GatherDestination.abbreviated(folder)
+        return Toggle(isOn: Binding(get: { chosen }, set: { _ in tray.chooseCollectDestination(folder) })) {
+            Text(Self.folderName(folder))
+            Text(detail.map { "\(path) · \($0)" } ?? path)
+        }
+    }
+
+    private static func folderName(_ folder: URL) -> String {
+        FileManager.default.displayName(atPath: folder.path)
+    }
+
+    /// After Collect: where the new folder went, and a way to see it. Gone with the next action.
+    private func collectedNote(_ made: URL) -> some View {
+        HStack(spacing: Space.s) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .accessibilityHidden(true)
+            Text(TrayController.collectedTitle(made))
+                .fontWeight(.medium)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: Space.xs)
+            Button("Show in Finder") { tray.revealCollected() }
+                .buttonStyle(.link)
+        }
+        .font(.callout)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -783,6 +1144,8 @@ private struct TrayRow: View {
     let tray: TrayController
     let item: TrayItem
     let isSelected: Bool
+    /// Just dropped (or dropped again): ringed in the accent for a moment.
+    let hasArrived: Bool
     let canRemove: Bool
     @State private var isHovering = false
     var focusedRow: FocusState<UUID?>.Binding
@@ -813,8 +1176,18 @@ private struct TrayRow: View {
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 6)
-        .background(isSelected ? AnyShapeStyle(.tint.opacity(0.2)) : AnyShapeStyle(.primary.opacity(isHovering ? 0.05 : 0)),
+        .background(isSelected ? AnyShapeStyle(.tint.opacity(0.2))
+                        : hasArrived ? AnyShapeStyle(.tint.opacity(0.08))
+                        : AnyShapeStyle(.primary.opacity(isHovering ? 0.05 : 0)),
                     in: .rect(cornerRadius: Radius.chip))
+        // A ring rather than a fill, so it never reads as a selection.
+        .overlay {
+            RoundedRectangle(cornerRadius: Radius.chip)
+                .strokeBorder(.tint, lineWidth: 1.5)
+                // A selected row already stands out; a ring on top of the fill is one edge too many.
+                .opacity(hasArrived && !isSelected ? 1 : 0)
+                .allowsHitTesting(false)
+        }
         .contentShape(.rect)
         .onHover { hovering in
             isHovering = hovering
@@ -829,14 +1202,22 @@ private struct TrayRow: View {
             if canRemove { Button("Remove") { tray.remove(item) } }
         }
         .focusable()
+        // The selection shows which row the keyboard is on, as in Finder's lists. The system ring
+        // also landed on every clicked row, a heavy second outline around the selection.
+        .focusEffectDisabled()
         .focused(focusedRow, equals: item.id)
         .onChange(of: isFocused) { _, focused in
-            if focused { tray.click(item, command: false, shift: false) }
+            // Tab onto a row selects it. A click selects through the tap gesture below, which knows
+            // about ⌘ and ⇧; selecting here as well turned every ⌘-click back into a plain click.
+            guard focused, Motion.byKeyboard, !tray.selection.contains(item.id) else { return }
+            tray.click(item, command: false, shift: false)
         }
         .onKeyPress(keys: [.upArrow, .downArrow]) { press in
             guard let index = tray.visibleItems.firstIndex(where: { $0.id == item.id }) else { return .ignored }
-            let next = min(max(index + (press.key == .upArrow ? -1 : 1), 0), tray.visibleItems.count - 1)
-            focusedRow.wrappedValue = tray.visibleItems[next].id
+            let next = tray.visibleItems[min(max(index + (press.key == .upArrow ? -1 : 1), 0), tray.visibleItems.count - 1)]
+            // Arrows select the next row, and ⇧-arrows extend the selection to it, as in Finder.
+            tray.click(next, command: false, shift: press.modifiers.contains(.shift))
+            focusedRow.wrappedValue = next.id
             return .handled
         }
         .onKeyPress(.return) { tray.open(item); return .handled }
@@ -849,7 +1230,7 @@ private struct TrayRow: View {
     }
 }
 
-/// A real file's Finder thumbnail when one exists, its icon otherwise.
+/// A picture or video's Finder thumbnail; every other real file's Finder icon; the type's icon for samples.
 private struct TrayThumbnail: View {
     let item: TrayItem
     @State private var image: NSImage?
@@ -863,9 +1244,18 @@ private struct TrayThumbnail: View {
             }
         }
         .task(id: item.url) {
-            guard let url = item.url, !item.isFolder else { return }
-            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 60, height: 60),
-                                                       scale: NSScreen.main?.backingScaleFactor ?? 2, representationTypes: .thumbnail)
+            guard let url = item.url else { return }
+            // At 28 pt only a picture or a video says anything as a preview; a page of text or a PDF
+            // is a white square. Everything else gets its Finder icon: the type's badge, an app's
+            // own icon, a folder's custom icon.
+            guard !item.isFolder, item.contentType.conforms(to: .image) || item.contentType.conforms(to: .movie) else {
+                image = NSWorkspace.shared.icon(forFile: url.path)
+                return
+            }
+            // Decorated as Finder draws it, with an edge and shadow around the picture.
+            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 28, height: 28),
+                                                       scale: NSScreen.main?.backingScaleFactor ?? 2, representationTypes: .all)
+            request.iconMode = true
             if let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) {
                 image = thumbnail.nsImage
             }
