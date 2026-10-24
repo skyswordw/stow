@@ -499,6 +499,25 @@ final class BrowserModel {
         return nestedHits[id]
     }
 
+    /// Completed nested inspection only; never present partial coverage as complete.
+    var searchOmissions: [NestedSearchOmission] {
+        guard isSearching, let nested = level.nested, !nested.isLoading else { return [] }
+        return nested.omissions.sorted { $0.container.path < $1.container.path }
+    }
+
+    var searchCoverageSummary: String? {
+        let count = searchOmissions.count
+        guard count > 0 else { return nil }
+        return count == 1 ? String(localized: "1 inner archive was not searched.")
+            : String(localized: "\(count) inner archives were not searched.")
+    }
+
+    /// Locating is deliberately separate from opening: no password UI or extraction here.
+    func locateSearchOmission(_ omission: NestedSearchOmission) {
+        guard searchOmissions.contains(omission) else { return }
+        navigate(to: omission.container.parent, selecting: [omission.container.id])
+    }
+
     /// "Indexing… 12,000 of 40,000" while a big archive's search index builds.
     var indexingProgress: String? {
         if isListing { return String(localized: "Listing… \(listedCount.formatted())") }
