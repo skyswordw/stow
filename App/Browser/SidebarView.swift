@@ -58,10 +58,10 @@ struct ArchiveCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(.primary)
                     ViewThatFits(in: .horizontal) {
-                        Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
+                        Text("\(archive.files.count) files · \(archive.totalSize.bytes)")
                             .fixedSize()
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("\(archive.files.count.formatted()) files")
+                            Text("\(archive.files.count) files")
                             Text(archive.totalSize.bytes)
                         }
                     }
@@ -74,8 +74,8 @@ struct ArchiveCard: View {
 
             let figures = packedFrom ?? archive
             // A listing that doesn't say how big files are packed would read "100% smaller"; say nothing instead.
-            if figures.packedSize > 0 || figures.totalSize == 0 {
-                CompressionBar(packed: figures.packedSize, total: figures.totalSize)
+            if let packed = figures.packedSize {
+                CompressionBar(packed: packed, total: figures.totalSize)
                     .help(packedFrom == nil ? "" : String(localized: "As last saved. This updates when you save your changes."))
             }
 

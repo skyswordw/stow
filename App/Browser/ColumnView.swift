@@ -154,10 +154,11 @@ private struct Row: View {
         }
         .padding(.horizontal, 6)
         .contentShape(.rect)
-        .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
-        .accessibilityLabel(model.accessibilityLabel(for: entry))
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
-        .accessibilityAction { model.select([entry.id]); model.open(entry) }
+        .archiveEntryAccessibility(entry: entry,
+                                   isRenaming: model.renamingPath == entry.path) {
+            model.select([entry.id])
+            model.open(entry)
+        }
     }
 }
 
@@ -179,7 +180,7 @@ private struct PreviewColumn: View {
                 }
                 MetadataGrid(rows: [
                     (String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened)),
-                    (String(localized: "Packed"), entry.packedSize.bytes),
+                    (String(localized: "Packed"), entry.packedSize.map { $0.bytes } ?? String(localized: "Unavailable")),
                 ])
             }
             .padding(Space.l)

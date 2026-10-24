@@ -19,13 +19,26 @@ nonisolated enum MacHelperFiles {
         return name.hasPrefix("._")
     }
 
-    /// Deletes helper files from an extracted tree.
-    static func remove(in root: URL) {
+    /// Whether the path itself or a containing folder is a helper.
+    static func isInsideHelper(_ path: String) -> Bool {
+        var prefix = ""
+        return path.split(separator: "/").contains { component in
+            prefix += (prefix.isEmpty ? "" : "/") + component
+            return matches(prefix)
+        }
+    }
+
+    /// Deletes helper files except explicit helper selections and their required ancestors.
+    static func remove(in root: URL, preserving paths: [String] = []) {
+        let preserved = paths.map { PathContainment.containedPath(for: $0) }
         guard let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { return }
         let matches = walker.compactMap { $0 as? URL }.filter {
-            matches(String($0.path.dropFirst(root.path.count)))
+            let relative = String($0.path.dropFirst(root.path.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            return matches(relative) && !preserved.contains { selected in
+                relative == selected || relative.hasPrefix(selected + "/") || selected.hasPrefix(relative + "/")
+            }
         }
-        // Deepest last is fine: removing a folder first makes its children's removal a harmless no-op.
+        // Parents first is fine: removing a folder first makes its children's removal a harmless no-op.
         for url in matches { try? FileManager.default.removeItem(at: url) }
     }
 }

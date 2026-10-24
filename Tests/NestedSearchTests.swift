@@ -1,4 +1,6 @@
 import Foundation
+import Observation
+import Synchronization
 import Testing
 @testable import Stow
 
@@ -53,9 +55,103 @@ struct NestedSearchTests {
         #expect(reads == ["a.zip", "locked.7z"])
         #expect(!nested.isLoading)
         #expect(nested.skipped == 1)
+        #expect(nested.omissions.first?.reason == .passwordRequired)
         let hits = await nested.search("target", includingHelpers: false)
         #expect(hits.map(\.entry.path) == ["a.zip/deep/Target.txt"])
         #expect(await nested.search("notes", includingHelpers: false).isEmpty)
+    }
+
+    @Test(arguments: [false, true])
+    func progressCompletionInvalidatesTheBrowserWithoutNewHits(fails: Bool) async throws {
+        let archive = Archive(name: "outer.zip", format: .zip,
+                              files: [entry("inner.zip"), entry("notes.txt")])
+        let model = BrowserModel(archive: archive)
+        var read: CheckedContinuation<[ArchiveEntry], any Error>?
+        model.nestedLoader = { _, _ in
+            try await withCheckedThrowingContinuation { read = $0 }
+        }
+        model.query = "notes"
+        try await waitUntil { read != nil && model.visibleEntries.count == 1 }
+
+        let invalidated = Mutex(false)
+        let progress = withObservationTracking {
+            model.indexingProgress
+        } onChange: {
+            invalidated.withLock { $0 = true }
+        }
+        #expect(progress != nil)
+        #expect(model.searchCoverageSummary == nil)
+        let pendingRead = try #require(read)
+        if fails { pendingRead.resume(throwing: EngineError(.failed)) }
+        else { pendingRead.resume(returning: []) }
+        try await waitUntil { model.indexingProgress == nil }
+
+        #expect(invalidated.withLock { $0 })
+        #expect(model.visibleEntries.map(\.path) == ["notes.txt"])
+    }
+
+    @Test func omissionsDistinguishPasswordAndReadFailures() async {
+        let archive = Archive(name: "outer.zip", format: .zip,
+                              files: [entry("locked.zip"), entry("broken.zip"), entry("good.zip")])
+        let nested = NestedSearch(archive: archive)
+        await nested.load(in: archive, with: { container, _ in
+            if container.name == "locked.zip" { throw EngineError(.passwordRequired) }
+            if container.name == "broken.zip" { throw EngineError(.failed) }
+            return []
+        }, progress: {})
+        #expect(nested.skipped == 2)
+        #expect(nested.omissions.map(\.reason) == [.readFailure, .passwordRequired])
+        #expect(nested.indexes.count == 1)
+    }
+
+    @Test func limitOmissionsRetainEveryAffectedArchive() {
+        let size = NestedSearch.maxArchiveSize
+        let files = [entry("a-big.zip", size: size + 1)]
+            + (0..<5).map { entry("b\($0).zip", size: size) }
+        let nested = NestedSearch(archive: Archive(name: "outer.zip", format: .zip, files: files))
+        #expect(nested.omissions.map(\.reason) == [.archiveSizeLimit, .totalSizeLimit])
+        let allLimited = NestedSearch(archive: Archive(name: "outer.zip", format: .zip, files: [files[0]]))
+        #expect(!allLimited.isLoading)
+        #expect(allLimited.skipped == 1)
+        let many = (0..<42).map { entry(String(format: "a%02d.zip", $0)) }
+        let limited = NestedSearch(archive: Archive(name: "outer.zip", format: .zip, files: many))
+        #expect(limited.omissions.map(\.reason) == [.archiveCountLimit, .archiveCountLimit])
+        #expect(limited.pending == 40)
+    }
+
+    @Test func cancellationDoesNotBecomeAReadFailure() async {
+        let archive = Archive(name: "outer.zip", format: .zip, files: [entry("inner.zip")])
+        let nested = NestedSearch(archive: archive)
+        await nested.load(in: archive, with: { _, _ in throw CancellationError() }, progress: {})
+        #expect(nested.skipped == 0)
+        #expect(nested.indexes.isEmpty)
+    }
+
+    @Test(arguments: ["notes", "absent"])
+    func browserDisclosesCoverageAndLocatesWithoutOpening(query: String) async throws {
+        let archive = Archive(name: "outer.zip", format: .zip,
+                              files: [entry("folder/locked.zip"), entry("broken.zip"), entry("notes.txt")])
+        let model = BrowserModel(archive: archive)
+        var reads = 0
+        model.nestedLoader = { _, _ in
+            reads += 1
+            throw EngineError(.passwordRequired)
+        }
+        model.query = query
+        try await waitUntil { model.searchOmissions.count == 2 && model.indexingProgress == nil }
+        try await waitUntil { model.visibleEntries.count == (query == "notes" ? 1 : 0) }
+        #expect(model.searchCoverageSummary != nil)
+        #expect(reads == 2)
+        let omission = try #require(model.searchOmissions.first { $0.container.path == "folder/locked.zip" })
+        model.locateSearchOmission(omission)
+        #expect(!model.isSearching)
+        #expect(model.folder == "folder")
+        #expect(model.selection == ["folder/locked.zip"])
+        #expect(model.levels.count == 1)
+        #expect(model.activity == nil)
+        #expect(model.searchOmissions.isEmpty)
+        #expect(model.searchCoverageSummary == nil)
+        #expect(reads == 2)
     }
 
     @Test func resultsListInnerMatchesAfterTheOpenLevel() async throws {

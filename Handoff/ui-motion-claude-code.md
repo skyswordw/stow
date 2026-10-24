@@ -26,8 +26,9 @@ Functional changes already merged:
 These merges establish behavior, not Claude Code approval of their appearance or motion.
 The latest published installation is 0.1.1 (279); these changes are on main after that
 release. Before visual comparison, build current main, confirm the running app's path and
-build identity, and record the commit and comparison-app version. Native verification was
-last blocked by a locked Mac; screenshots from CI are not a substitute for interaction QA.
+build identity, and record the commit and comparison-app version. The latest [remaining native audit](arczip-remaining-native-verification.md) now records
+exact-build installation, editing, compression and recovery checks. Screenshots from CI remain
+separate from that interaction evidence; #93 and #113 are still open.
 
 ## 1. Make encryption discoverable without blocking browsing
 
@@ -120,3 +121,74 @@ snapshot CI; that does not establish final visual quality.
 [Issue #93](https://github.com/skyswordw/stow/issues/93), an accessibility activation crash
 reproduced in published 0.1.1, remains a separate technical investigation. Do not close it
 on the strength of this visual review or assume #103 fixed it.
+
+## Split-volume recovery (#116)
+
+Codex owns volume discovery, descriptor assembly, password routing, errors, and tests.
+Claude Code owns any subsequent visual or motion treatment of the native folder-access
+prompt and recovery card (#104); no design review is claimed here.
+
+Interaction contract: opening a Stow-created `.zip.001` or `.7z.001` discovers matching,
+contiguous numbered siblings. If the sandbox cannot read the containing folder or its
+parts, request explicit folder access, explaining why all parts are needed. Cancel
+stops opening. Missing/inconsistent parts get OPN-102 recovery with Show in Finder:
+put all parts together and reopen `.001`. Complete encrypted 7Z should reach the
+existing password flow, as ArcZip does in the issue report. Preserve Stow's vocabulary,
+keyboard access, and existing prompt semantics. Native ArcZip comparison remains pending.
+
+The app assembles readable regular-file parts into an immediately unlinked temporary
+file, then sends only its descriptor and the inner archive name to the sandboxed engine.
+This avoids a new directory capability or XPC surface. Memory is bounded to 1 MiB;
+opening, extracting, and verifying each require temporary disk space equal to the
+combined archive size and an extra sequential read/write pass. Cancellation closes the
+unlinked descriptor. Consider a future multi-descriptor protocol if this overhead
+becomes material; do not replace it with an ambient directory grant to the engine.
+
+## Packed size semantics (#115)
+
+Codex owns this correction: compressed TAR and solid archives use container bytes for
+root statistics; shared or unknown entry sizes display “Unavailable”, including folder
+aggregates. ZIP retains per-entry packed totals. Saved statistics remain the sidebar
+baseline during staged edits. No visual redesign or motion change is intended.
+Claude Code retains ownership of label hierarchy and visual treatment under #104;
+this functional change does not imply visual approval.
+
+## Input-read and staged-save failures (#112, #114)
+
+Codex owns the descriptor staging, sandbox boundaries, failure classification, and tests.
+Descriptor-backed archives now materialize as real engine-private files before 7-Zip opens
+them; no filesystem entitlements change. This includes nested open/search and verification
+of a saved replacement. Failed saves keep the original and pending edits; Save remains the
+retry control. Cancellation does not show a save-error prompt.
+
+Input-open permission errors must explain that Stow could not read the archive (OPN-101),
+without offering Choose Another Folder. Save errors use the existing Failure prompt with
+Copy Details, rather than an internal temporary pathname as the heading. Claude Code owns
+visual and motion review under #104; this functional change does not imply design approval.
+Compare these recovery interactions with ArcZip while retaining Stow vocabulary. Native
+and packaged-XPC verification remains CI-gated because implementation ran on Linux.
+
+## Installation refusal recovery (#132, #133)
+
+Codex / Grok Bot owns the signature facts and typed running-app refusal. Signature warnings
+must describe possible launch blocking without predicting the host's Gatekeeper decision
+from signature facts alone. Running-app refusal is INS-181: ask the user to quit the installed
+app and retry, explain that it was not changed, and never suggest archive damage or quit the
+app automatically. Keep the existing confirmation, retry, dismiss, and Copy Details controls.
+Claude Code owns visual hierarchy and motion review under #104; these functional copy/state
+changes do not imply visual approval. The full Browser AX recursion remains separately open
+in #93; a successful Glance recovery does not close it.
+
+## Remaining native audit follow-ups (#143)
+
+The [remaining verification report](arczip-remaining-native-verification.md) records additional
+functional fixes and unresolved limits. In #143, showing helper items makes them visible and
+explicit selection extracts them correctly, but Checkup still says they are hidden and will
+not be extracted. Claude Code owns copy hierarchy and presentation: distinguish default
+Extract All filtering from deliberate showing/selection. Codex / Grok Bot owns the facts and
+extraction semantics; preserve explicit selection and existing safety boundaries.
+
+Search coverage in #136 now discloses omitted inner archives and Locate avoids opening or
+unlocking them. Review the retained inspector / Next Steps selection after Locate followed by
+a zero-result query. These are interaction briefs, not visual approval or evidence that Claude
+has started the review. #119 remains the separate visual/motion PR.

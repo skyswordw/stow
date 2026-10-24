@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// A search match inside an archive that sits in the one being browsed (issue #21).
 nonisolated struct NestedHit: Hashable, Sendable {
@@ -17,10 +18,32 @@ nonisolated struct NestedHit: Hashable, Sendable {
     }
 }
 
+/// An omission is coverage information, not a search result or a request to unlock.
+nonisolated struct NestedSearchOmission: Identifiable, Equatable, Sendable {
+    enum Reason: Equatable, Sendable {
+        case passwordRequired, readFailure, archiveSizeLimit, totalSizeLimit, archiveCountLimit
+
+        var description: String {
+            switch self {
+            case .passwordRequired: String(localized: "Password required")
+            case .readFailure: String(localized: "Could not read archive")
+            case .archiveSizeLimit: String(localized: "Archive size limit")
+            case .totalSizeLimit: String(localized: "Total search size limit")
+            case .archiveCountLimit: String(localized: "Archive count limit")
+            }
+        }
+    }
+
+    let container: ArchiveEntry
+    let reason: Reason
+    var id: String { container.id }
+}
+
 /// Search one level into the archives inside an archive. Each inner archive is extracted to the
 /// preview cache and listed once, the first time someone searches; after that a search is a scan
 /// like any other. Only one level deep: open an inner archive to search the ones inside it.
 @MainActor
+@Observable
 final class NestedSearch {
     /// Reads the entries of one inner archive (`entry`, inside `archive`).
     typealias Loader = @MainActor (_ entry: ArchiveEntry, _ archive: Archive) async throws -> [ArchiveEntry]
@@ -33,26 +56,41 @@ final class NestedSearch {
     private(set) var indexes: [(container: ArchiveEntry, search: SearchIndex)] = []
     private(set) var pending: Int
     /// Inner archives that couldn't be read (a password, damage) or were over the limits.
-    private(set) var skipped: Int
+    var skipped: Int { omissions.count }
+    private(set) var omissions: [NestedSearchOmission] = []
     private let candidates: [ArchiveEntry]
 
     init(archive: Archive) {
         let all = archive.index.visible.filter { !$0.isFolder && $0.kind == .archive }.sorted { $0.path < $1.path }
-        candidates = Self.within(all)
+        let partition = Self.partition(all)
+        candidates = partition.picked
+        omissions = partition.omitted
         pending = candidates.count
-        skipped = all.count - candidates.count
     }
 
     /// The inner archives that fit the limits, in path order.
     static func within(_ archives: [ArchiveEntry]) -> [ArchiveEntry] {
+        partition(archives).picked
+    }
+
+    private static func partition(_ archives: [ArchiveEntry]) -> (picked: [ArchiveEntry], omitted: [NestedSearchOmission]) {
         var total: Int64 = 0
         var picked: [ArchiveEntry] = []
-        for entry in archives where picked.count < maxArchives && entry.size <= maxArchiveSize {
-            guard total + entry.size <= maxTotalSize else { continue }
-            total += entry.size
-            picked.append(entry)
+        var omitted: [NestedSearchOmission] = []
+        for entry in archives {
+            let reason: NestedSearchOmission.Reason?
+            if picked.count >= maxArchives { reason = .archiveCountLimit }
+            else if entry.size > maxArchiveSize { reason = .archiveSizeLimit }
+            else if entry.size > maxTotalSize - total { reason = .totalSizeLimit }
+            else { reason = nil }
+            if let reason {
+                omitted.append(NestedSearchOmission(container: entry, reason: reason))
+            } else {
+                total += max(0, entry.size)
+                picked.append(entry)
+            }
         }
-        return picked
+        return (picked, omitted)
     }
 
     var isLoading: Bool { pending > 0 }
@@ -62,12 +100,19 @@ final class NestedSearch {
     func load(in archive: Archive, with loader: Loader, progress: @MainActor () -> Void) async {
         for container in candidates {
             guard !Task.isCancelled else { return }
-            if let entries = try? await loader(container, archive) {
+            do {
+                let entries = try await loader(container, archive)
+                guard !Task.isCancelled else { return }
                 let search = SearchIndex(total: entries.count)
                 await search.build(entries) { _ in }
+                guard !Task.isCancelled else { return }
                 indexes.append((container, search))
-            } else {
-                skipped += 1
+            } catch {
+                let failure = EngineError(error).failure
+                guard !Task.isCancelled, !(error is CancellationError), failure != .cancelled else { return }
+                let reason: NestedSearchOmission.Reason =
+                    failure == .passwordRequired || failure == .wrongPassword ? .passwordRequired : .readFailure
+                omissions.append(NestedSearchOmission(container: container, reason: reason))
             }
             pending -= 1
             progress()

@@ -1,4 +1,4 @@
-# Feature parity: ArcZip 1.1.1 → Stow
+# Feature parity: ArcZip → Stow
 
 Goal: everything ArcZip does, done at least as well, plus what it doesn't do. Stow is open source
 and free — there is no Free/Pro split, so every row below ships to everyone.
@@ -6,6 +6,20 @@ and free — there is no Free/Pro split, so every row below ships to everyone.
 **Sources** (2026-10-20): arczip.app pages (features, formats, FAQ, changelog 1.0.0 → 1.1.1) and a
 static look at the notarized ArcZip 1.1.1 (222) bundle — its `Info.plist`s, entitlements, extension
 points and English UI strings. No code was decompiled or run.
+
+**Current native evidence (2026-10-23):** the [initial comparison](Handoff/arczip-1.1.4-native-audit.md),
+[Pro trial comparison](Handoff/arczip-pro-trial-native-audit.md) and
+[remaining native verification](Handoff/arczip-remaining-native-verification.md) distinguish
+baseline failures from exact-build fixes. Nested reads/Save, helper extraction, TAR statistics,
+split reopening, installation recovery, Save Copy, window identity and search coverage have
+additional native acceptance evidence. Undo (#113) and full Browser AX failure-state recursion
+(#93) remain open despite earlier partial merges. Direct x86_64 7-Zip execution under Rosetta
+also fails (#144). Implementation checkmarks do not override these failures or the report's
+hardware, signing, drag and hover limits.
+
+The [Pro trial comparison](Handoff/arczip-pro-trial-native-audit.md) adds actual search,
+rename/undo/redo/save, Windows-purpose ZIP creation, encrypted 7Z interoperability and Open File
+Flow evidence. It also records ArcZip's split-creation failure and the remaining untested scope.
 
 **What the bundle shows about ArcZip's architecture**
 
@@ -21,7 +35,7 @@ points and English UI strings. No code was decompiled or run.
 | Languages | English, Simplified Chinese | English, Simplified Chinese at launch (String Catalog) |
 | OS | macOS 14+ | macOS 26+ (decision recorded in README) |
 
-Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending verification · ⏳ deferred · ⬜ not started · ➕ Stow goes further
+Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 🎨 designed, UI only (simulated) · 🧪 remaining acceptance · ⏳ deferred · ⬜ not started · ➕ Stow goes further
 
 ---
 
@@ -50,7 +64,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | Space → Quick Look of an entry; arrow keys switch target | ✅ | System Quick Look panel; arrow keys move the browser's selection and the panel follows; several selected page with ← →; ⌘Y too |
-| Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | ✅ previews · 🧪 Settings toggle (pending verification) | Real content read from the archive: images (downsampled), PDF/Office/others (Quick Look), Markdown (rendered), CSV (table), code/logs (monospaced, unwrapped), fonts (the real face), audio (artwork, title, length), video (a frame, length). ➕ 450 ms, then neighbours open instantly |
+| Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | ✅ content paths · 🧪 hover timing/settings | Real content read from the archive: images (downsampled), PDF/Office/others (Quick Look), Markdown (rendered), CSV (table), code/logs (monospaced, unwrapped), fonts (the real face), audio (artwork, title, length), video (a frame, length). ➕ design target: 450 ms, then immediate warm neighbors; actual pointer timing remains unverified |
 | Thumbnails in icon view | ✅ | Quick Look thumbnails, only for tiles on screen, batched into one engine trip; files over 48 MB keep their icon |
 | Quick Look extension for archives in Finder | ✅ | ➕ all 34 types, not just zip/7z/tar; one-line Checkup, encryption, sizes; 3 s timeout with fallbacks; Open in Stow. .tar.xz/.tar.gz show the inner .tar until tarballs are unwrapped |
 | Encrypted entries: preview after unlock | ✅ | The Browser and Glance expose a lock/password action, including with the inspector hidden. Explicit unlock verifies encrypted file data; Space Quick Look and Open can ask and retry directly. Hover never prompts. Previews refresh after a password changes; passwords are shared with extraction and nested levels, with optional Keychain storage |
@@ -61,7 +75,7 @@ Legend: ✅ works · 🎨 designed, UI only (simulated) · 🧪 built, pending v
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Extract all / selected / drag-out to Finder | ✅ | drag-out: file promises, see Previews |
+| Extract all / selected / drag-out to Finder | ✅ native all/selected extraction · 🧪 real drag-out | File promises are implemented; reliable native icon/list drag gestures remain in #38 |
 | Extract All → folder named after archive | ✅ automatic (one item lands as itself) or always | |
 | After Extract All: keep / move archive to Trash / ask | ✅ with “Don’t ask again” | |
 | Auto-close window after extract / install | ✅ setting | |
@@ -97,9 +111,9 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Add, delete, replace, rename items; save; undo/redo | 🧪 engine, staged UI and undo/redo | ZIP / 7Z / TAR; pending macOS verification |
-| Original untouched until save; rollback on failure | 🧪 same-volume atomic save | Fault injection and byte-identity tests; pending macOS verification |
-| Detect archive changed on disk → reload or save a copy | 🧪 watcher + Reload / Save a Copy | pending macOS verification |
+| Add, delete, replace, rename items; save; undo/redo | ✅ native ZIP edits/Save · ❌ native Undo (#113) | Exact bytes/CRC/empty folders passed; #124 did not resolve the real native Undo failure. Wider editable-format acceptance remains scoped separately |
+| Original untouched until save; rollback on failure | ✅ native staged ZIP preservation and Save | Fault injection remains automated; native staged/external-change/cancel paths preserved original hashes |
+| Detect archive changed on disk → reload or save a copy | ✅ native watcher / Reload / Save a Copy | New-path sandbox failure fixed and natively verified in #141; source hash and saved contents checked |
 | Rename the archive itself (incl. SMB/NAS) | 🧪 File › Rename Archive…; sibling staging for other volumes | pending SMB hand-test |
 | Keep browsing position after save | 🧪 | Folder, selection and history; pending macOS verification |
 | Read-only formats; extract and repack as ZIP / 7Z | 🧪 | RAR, compressed TAR, split and nested archives; pending macOS verification |
@@ -112,8 +126,8 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Signature & notarization check (unsigned / ad-hoc / unnotarized / unknown) with warnings | ✅ SecStaticCode + requirements | ➕ plain-word verdict in Checkup and the inspector (“Check Signature” before installing) |
 | Optional quarantine-flag removal | ✅ off by default, explained | installed apps keep the archive’s quarantine so Gatekeeper still checks them; if macOS refuses removal, Checkup says so |
 | Honour developer “drag to X” DMG layouts | ✅ | APFS images give the target; HFS+ ones only reveal a link named “Applications” |
-| Install fonts (OTF/TTF/TTC) to user library, replace existing | ✅ Replace / Skip | web fonts reported as not installable |
-| PKG: prepare safely, hand off to Installer | ✅ unpacked beside the archive, removed when Installer quits | |
+| Install fonts (OTF/TTF/TTC) to user library, replace existing | ✅ native scratch Replace / Skip · 🧪 global activation | Valid TTF bytes and unsupported WOFF2 reporting passed; real user font library remained untouched |
+| PKG: prepare safely, hand off to Installer | ✅ native current-user-only original fixture | Apple Installer completed the no-script text package; exact payload and handoff cleanup checked; vendor/admin/signed release matrix remains in #38 |
 | After install: keep/trash archive, close window | ✅ | |
 | Alternative actions list; customise which actions show; restore suggestions | ✅ More menu (⋯) on Next Steps; Settings › Next Steps | every step that applies is in More with the menu bar's icons and keys, hidden ones included; show or hide each step, or Next Steps itself; Restore Defaults ➕ Pack… for a selection (off by default) |
 

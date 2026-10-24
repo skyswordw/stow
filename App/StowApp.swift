@@ -366,6 +366,12 @@ struct RootView: View {
                 // Below the welcome content rather than over the Recent row.
                 WelcomeView()
                     .navigationTitle("Stow")
+                    .background {
+                        WindowReader { window in
+                            window.representedURL = nil
+                            window.isDocumentEdited = false
+                        }
+                    }
                     .safeAreaInset(edge: .bottom, spacing: 0) { packActivity }
             }
         }

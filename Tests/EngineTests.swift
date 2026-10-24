@@ -135,7 +135,7 @@ struct ListingParserTests {
 
         let folder = listing.entries[0], file = listing.entries[1], solid = listing.entries[2], link = listing.entries[3]
         #expect(folder.isFolder)
-        #expect(file.size == 50_000 && file.packedSize == 87 && !file.isFolder)
+        #expect(file.size == 50_000 && file.packedSize == nil && !file.isFolder)
         #expect(solid.packedSize == nil) // shares a solid block
         #expect(solid.isEncrypted)
         #expect(link.isSymlink && !link.isFolder)
@@ -206,6 +206,38 @@ struct ListingParserTests {
         #expect(parser.consume(Data(" 90%\u{8}".utf8)) == nil) // never goes backwards
     }
 
+    @Test func solidPackedSizesUseContainerInBothParsers() throws {
+        let text = """
+        --
+        Path = solid.7z
+        Type = 7z
+        Physical Size = 123
+        Solid = +
+
+        ----------
+        Path = Docs/a.txt
+        Size = 1000
+        Packed Size = 40
+
+        Path = Docs/b.txt
+        Size = 1000
+        Packed Size =
+
+        """
+        let slow = try #require(SevenZip.parseListing(text))
+        let fast = try #require(SevenZip.parseListingFast(text)?.listing)
+        for listing in [slow, fast] {
+            #expect(listing.entries.allSatisfy { $0.packedSize == nil })
+            let archive = Archive(listing: listing, url: URL(filePath: "/nonexistent/solid.7z"))
+            #expect(archive.packedSize == 123)
+            #expect(archive.entry(at: "Docs")?.packedSize == nil)
+        }
+        var unknown = slow
+        unknown.physicalSize = nil
+        let archive = Archive(listing: unknown, url: URL(filePath: "/nonexistent/solid.7z"))
+        #expect(archive.packedSize == nil)
+    }
+
     @Test func listingMapsIntoArchiveWithFoldersAndCheckup() {
         let listing = ArchiveListing(type: "zip", physicalSize: 100, entries: [
             ListedEntry(path: "Docs/", isFolder: true, size: 0, packedSize: 0),
@@ -221,6 +253,7 @@ struct ListingParserTests {
         #expect(Set(archive.entries.map(\.path)) == ["Docs", "Docs/a.txt", "Empty", "evil.txt"])
         #expect(archive.entry(at: "Docs")?.size == 10)
         #expect(archive.totalSize == 13)
+        #expect(archive.packedSize == 8) // ZIP totals retain per-entry payload semantics.
         #expect(archive.source?.storedPaths["evil.txt"] == ["../../evil.txt"])
         #expect(archive.storedPaths(for: [archive.entry(at: "Docs")!]) == ["Docs/", "Docs/a.txt"])
 
@@ -358,6 +391,77 @@ struct ExtractionTests {
         #expect(fractions.values == fractions.values.sorted() && fractions.values.allSatisfy { (0...1).contains($0) })
     }
 
+    @Test func explicitHelperLeavesSurviveExtraction() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = folder.url.appending(path: "helpers.zip")
+        let paths = [".DS_Store", "Thumbs.db", "desktop.ini", "__MACOSX/Support/note.txt",
+                     "Demo.app/Contents/.DS_Store"]
+        try ZipFixture(entries: paths.map { .file($0, "selected") }).write(to: zip)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        for path in paths {
+            let entry = try #require(archive.entry(at: path))
+            let destination = folder.url.appending(path: UUID().uuidString)
+            try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
+            let result = try await Extraction.run(archive, selection: [entry], to: destination) { _ in }
+            let placed = try #require(result.placed.first)
+            #expect(try String(contentsOf: placed, encoding: .utf8) == "selected")
+        }
+    }
+
+    @Test func extractAllFiltersHelpersButKeepsUserDotfiles() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = folder.url.appending(path: "helpers.zip")
+        try ZipFixture(entries: [
+            .file(".DS_Store", "helper"), .file("Thumbs.db", "helper"), .file("desktop.ini", "helper"),
+            .file("__MACOSX/Support/note.txt", "helper"),
+            .file("Demo.app/Contents/.DS_Store", "helper"), .file("Demo.app/Contents/main", "app"),
+            .file(".env", "environment"), .file(".gitignore", "ignore"),
+        ]).write(to: zip)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        // Both nil and empty selections mean Extract All.
+        for selection in [nil, []] as [[ArchiveEntry]?] {
+            let staged = try await Extraction.stage(archive, selection: selection, near: folder.url) { _ in }
+            defer { staged.discard() }
+            let contents = TemporaryFolder.contents(of: staged.root)
+            #expect(!contents.contains(where: MacHelperFiles.matches))
+            #expect(try String(contentsOf: staged.root.appending(path: ".env"), encoding: .utf8) == "environment")
+            #expect(try String(contentsOf: staged.root.appending(path: ".gitignore"), encoding: .utf8) == "ignore")
+            #expect(staged.items(allFolder: .automatic, folderName: "helpers").count == 1)
+        }
+    }
+
+    @Test func selectedHelperFoldersPreserveContentsWhileOrdinaryParentsFilter() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = folder.url.appending(path: "folders.zip")
+        try ZipFixture(entries: [
+            .file("__MACOSX/Support/note.txt", "support"), .file(".Trashes/cache/.DS_Store", "support"),
+            .file("Docs/.DS_Store", "helper"), .file("Docs/readme.txt", "content"),
+            .file("Demo.app/Contents/Thumbs.db", "helper"), .file("Demo.app/Contents/main", "app"),
+        ]).write(to: zip)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        for path in ["__MACOSX/Support", ".Trashes", "Docs", "Demo.app"] {
+            let entry = try #require(archive.entry(at: path))
+            let staged = try await Extraction.stage(archive, selection: [entry], near: folder.url) { _ in }
+            defer { staged.discard() }
+            if path == "__MACOSX/Support" {
+                #expect(try String(contentsOf: staged.root.appending(path: path + "/note.txt"), encoding: .utf8) == "support")
+            } else if path == ".Trashes" {
+                #expect(Extraction.exists(staged.root.appending(path: ".Trashes/cache/.DS_Store")))
+            } else {
+                #expect(!TemporaryFolder.contents(of: staged.root).contains(where: MacHelperFiles.matches))
+            }
+        }
+        // An explicit leaf remains intentional even when its ordinary parent is also selected.
+        let parent = try #require(archive.entry(at: "Docs"))
+        let leaf = try #require(archive.entry(at: "Docs/.DS_Store"))
+        let staged = try await Extraction.stage(archive, selection: [parent, leaf], near: folder.url) { _ in }
+        defer { staged.discard() }
+        #expect(Extraction.exists(staged.root.appending(path: "Docs/.DS_Store")))
+    }
+
     @Test func extractsSelectionSideBySide() async throws {
         let folder = try TemporaryFolder()
         defer { folder.cleanUp() }
@@ -406,12 +510,13 @@ struct ExtractionTests {
         try Data(bytes).write(to: big)
         let archive7z = folder.url.appending(path: "big.7z")
         let process = try Process.run(SevenZip.bundled()!.executable,
-                                      arguments: ["a", "-bso0", "-bsp0", "-mx1", archive7z.path, big.path])
+                                      arguments: ["a", "-bso0", "-bsp0", "-mx1", "-v4m", archive7z.path, big.path])
         process.waitUntilExit()
         try FileManager.default.removeItem(at: big)
         let destination = folder.url.appending(path: "Out", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
-        let archive = Archive(listing: try await ArchiveEngine.shared.list(archive7z), url: archive7z)
+        let firstVolume = URL(filePath: archive7z.path + ".001")
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(firstVolume), url: firstVolume)
 
         let started = Fractions()
         let task = Task { try await Extraction.run(archive, selection: nil, to: destination) { started.add($0) } }
@@ -449,5 +554,58 @@ private nonisolated final class Fractions: Sendable {
 extension TemporaryFolder {
     static func contents(of url: URL) -> [String] {
         (FileManager.default.enumerator(atPath: url.path)?.allObjects as? [String] ?? []).sorted()
+    }
+}
+
+@Suite("Descriptor materialization")
+struct PreparedInputTests {
+    @Test func copiesAuthorizedHandleWithoutReopeningOrChangingOffset() throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let bytes = Data((0..<255).map(UInt8.init))
+        try bytes.write(to: source)
+        let handle = try FileHandle(forReadingFrom: source)
+        defer { try? handle.close(); try? FileManager.default.removeItem(at: source) }
+        try handle.seek(toOffset: 17)
+        // An unlinked input can only be read through the received handle.
+        try FileManager.default.removeItem(at: source)
+        let input = try SevenZip.Prepared(.descriptor(handle, name: "inner.zip"))
+        defer { input.cleanUp() }
+        #expect(input.descriptor == nil)
+        #expect(try Data(contentsOf: URL(filePath: input.path)) == bytes)
+        #expect(try handle.offset() == 17)
+        #expect(try URL(filePath: input.path).resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink == false)
+        input.cleanUp()
+        #expect(!FileManager.default.fileExists(atPath: input.path))
+    }
+
+    @Test func unsafeDescriptorNamesStayInsideStaging() throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data().write(to: source)
+        defer { try? FileManager.default.removeItem(at: source) }
+        let handle = try FileHandle(forReadingFrom: source)
+        defer { try? handle.close() }
+        for name in [".", "..", "../../inner.7z", ""] {
+            let input = try SevenZip.Prepared(.descriptor(handle, name: name))
+            defer { input.cleanUp() }
+            #expect(FileManager.default.fileExists(atPath: input.path))
+            #expect(URL(filePath: input.path).deletingLastPathComponent().lastPathComponent.hasPrefix("stow-in-"))
+        }
+    }
+
+    @Test func cancelledMaterializationKeepsCancellation() async throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data().write(to: source)
+        defer { try? FileManager.default.removeItem(at: source) }
+        let handle = try FileHandle(forReadingFrom: source)
+        defer { try? handle.close() }
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            do {
+                let input = try SevenZip.Prepared(.descriptor(handle, name: "inner.zip"))
+                input.cleanUp()
+                Issue.record("Cancelled staging succeeded")
+            } catch { #expect((error as? EngineError)?.failure == .cancelled) }
+        }
+        await task.value
     }
 }

@@ -4,7 +4,7 @@ import Foundation
 /// next. Every error alert, failed capsule and failed batch row says it the same way.
 struct Failure: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
-        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, engine, other
+        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, noReadAccess, engine, appRunning, other
     }
 
     /// The one next step a failure offers, besides dismissing it.
@@ -77,8 +77,10 @@ struct Failure: Equatable, Sendable {
         case .damaged: String(localized: "Damaged — download it again")
         case .needsPassword: String(localized: "Needs its password")
         case .diskFull: String(localized: "Not enough space")
+        case .noReadAccess: String(localized: "Can’t read the archive")
         case .noWriteAccess: String(localized: "Can’t save to this folder")
         case .engine: title
+        case .appRunning: String(localized: "Quit the app, then install again")
         case .other: String(localized: "Didn’t finish — try again")
         }
     }
@@ -103,8 +105,10 @@ struct Failure: Equatable, Sendable {
         case .damaged: .damagedData
         case .needsPassword: .passwordRequired
         case .diskFull: .diskFull
+        case .noReadAccess: .noReadAccess
         case .noWriteAccess: .noWriteAccess
         case .engine: .engineStopped
+        case .appRunning: .appRunning
         case .other: .unknown
         }
     }
@@ -113,6 +117,13 @@ struct Failure: Equatable, Sendable {
     /// Stow was writing, if anywhere: a full or read-only folder is recognised there even when the
     /// engine's words don't say so. `needs` is roughly how much it meant to write.
     init(_ error: any Error, _ operation: Operation, name: String, destination: URL? = nil, needs bytes: Int64 = 0) {
+        if let running = error as? Installer.RunningApp {
+            self.init(kind: .appRunning, title: operation.couldNot(name),
+                      advice: running.localizedDescription + " " + String(localized: "The installed app wasn’t changed."),
+                      action: .tryAgain, code: ErrorCode(operation.area, .appRunning))
+            diagnostic = ErrorReport.diagnostic(for: error, message: running.localizedDescription)
+            return
+        }
         let engine = EngineError(error)
         let cause = Self.cause(of: error, message: engine.message, destination: destination)
         self.init(explaining: engine, cause: cause, operation, name: name, destination: destination, needs: bytes)
@@ -123,11 +134,12 @@ struct Failure: Equatable, Sendable {
     /// The code's reason: the cause read from the error when there is one, otherwise the engine's.
     static func reason(failure: EngineFailure, cause: Cause?, message: String) -> ErrorCode.Reason {
         switch (failure, cause) {
-        case (.notAnArchive, _), (.passwordRequired, _), (.wrongPassword, _), (.engineMissing, _),
+        case (.missingVolume, _), (.notAnArchive, _), (.passwordRequired, _), (.wrongPassword, _), (.engineMissing, _),
              (.incompatibleVersion, _), (.connectionLost, _), (.cancelled, _), (.changedOnDisk, _):
             return ErrorCode.reason(for: failure)
         case (_, .damaged(let file)):
             return file == nil && !message.contains("Data Error") && !message.contains("CRC Failed") ? .damagedStructure : .damagedData
+        case (_, .noReadAccess): return .noReadAccess
         case (_, .diskFull): return .diskFull
         case (_, .noWriteAccess): return .noWriteAccess
         default: return .unknown
@@ -137,6 +149,10 @@ struct Failure: Equatable, Sendable {
     private init(explaining engine: EngineError, cause: Cause?, _ operation: Operation, name: String,
                  destination: URL?, needs bytes: Int64) {
         switch (engine.failure, cause) {
+        case (.missingVolume, _):
+            self.init(kind: .damaged,
+                      title: String(localized: "“\(name)” needs all its archive parts"),
+                      advice: engine.message, action: .showInFinder)
         case (.notAnArchive, _):
             self.init(kind: .notAnArchive,
                       title: String(localized: "“\(name)” isn’t an archive Stow can read"),
@@ -170,6 +186,10 @@ struct Failure: Equatable, Sendable {
                           ?? String(localized: "There isn’t enough space"),
                       advice: needed + String(localized: "Free up some space, or choose a folder on another disk. Nothing was left half-written."),
                       action: .chooseFolder)
+        case (_, .noReadAccess):
+            self.init(kind: .noReadAccess, title: operation.couldNot(name),
+                      advice: String(localized: "Stow couldn’t read the archive. Try opening it again. Your files weren’t changed."),
+                      action: .tryAgain)
         case (_, .noWriteAccess(let folder)):
             self.init(kind: .noWriteAccess,
                       title: folder.map { String(localized: "Stow can’t save to “\($0)”") }
@@ -195,6 +215,7 @@ struct Failure: Equatable, Sendable {
         case damaged(file: String?)
         case diskFull(volume: String?)
         case noWriteAccess(folder: String?)
+        case noReadAccess
     }
 
     /// Reads the cause from the error's code when it still has one, from 7-Zip's own (English,
@@ -202,18 +223,34 @@ struct Failure: Equatable, Sendable {
     static func cause(of error: any Error, message: String, destination: URL?) -> Cause? {
         let volume = destination.flatMap(volumeName)
         let folder = destination.map { FileManager.default.displayName(atPath: $0.path) }
+        let lower = message.lowercased()
+        // Cocoa write/read codes must win before the destination heuristic: tests and alerts
+        // often pass a write-permission NSError with no destination URL.
+        let cocoa = error as NSError
+        if cocoa.domain == NSCocoaErrorDomain {
+            switch cocoa.code {
+            case NSFileWriteOutOfSpaceError:
+                return .diskFull(volume: volume)
+            case NSFileReadNoPermissionError:
+                return .noReadAccess
+            case NSFileWriteNoPermissionError, NSFileWriteVolumeReadOnlyError:
+                return .noWriteAccess(folder: folder)
+            default: break
+            }
+        }
         if let code = posixCode(error) {
             if code == ENOSPC || code == EDQUOT { return .diskFull(volume: volume) }
-            if code == EACCES || code == EPERM || code == EROFS { return .noWriteAccess(folder: folder) }
+            if code == EACCES || code == EPERM || code == EROFS {
+                return destination == nil || lower.contains(" : opening :") ? .noReadAccess : .noWriteAccess(folder: folder)
+            }
         }
         if let damage = damagedFile(in: message) { return .damaged(file: damage.isEmpty ? nil : damage) }
-        let lower = message.lowercased()
         if ["no space left", "not enough space", "errno=28", "disk is full", "out of space"].contains(where: lower.contains) {
             return .diskFull(volume: volume)
         }
-        if ["permission denied", "operation not permitted", "read-only file system", "errno=13", "errno=30", "don’t have permission"]
+        if ["permission denied", "operation not permitted", "read-only file system", "errno=1", "errno=13", "errno=30", "don’t have permission"]
             .contains(where: lower.contains) {
-            return .noWriteAccess(folder: folder)
+            return destination == nil || lower.contains(" : opening :") ? .noReadAccess : .noWriteAccess(folder: folder)
         }
         guard let destination else { return nil }
         if let free = availableCapacity(destination), free < 1 << 20 { return .diskFull(volume: volume) }
@@ -240,7 +277,7 @@ struct Failure: Equatable, Sendable {
             if error.domain == NSCocoaErrorDomain {
                 switch error.code {
                 case NSFileWriteOutOfSpaceError: return ENOSPC
-                case NSFileWriteNoPermissionError, NSFileWriteVolumeReadOnlyError: return EACCES
+                case NSFileReadNoPermissionError, NSFileWriteNoPermissionError, NSFileWriteVolumeReadOnlyError: return EACCES
                 default: break
                 }
             }

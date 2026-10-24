@@ -1,6 +1,262 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Quit the app, then install again": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 App 后再安装"
+          }
+        }
+      }
+    },
+    "The installed app wasn’t changed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安装的 App 未被更改。"
+          }
+        }
+      }
+    },
+    "Password required" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password required"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要密码"
+          }
+        }
+      }
+    },
+    "Could not read archive" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not read archive"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取归档"
+          }
+        }
+      }
+    },
+    "Archive size limit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive size limit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "归档大小限制"
+          }
+        }
+      }
+    },
+    "Total search size limit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total search size limit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索总大小限制"
+          }
+        }
+      }
+    },
+    "Archive count limit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive count limit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "归档数量限制"
+          }
+        }
+      }
+    },
+    "1 inner archive was not searched." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 inner archive was not searched."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有 1 个内部归档未被搜索。"
+          }
+        }
+      }
+    },
+    "%lld inner archives were not searched." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld inner archives were not searched."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有 %lld 个内部归档未被搜索。"
+          }
+        }
+      }
+    },
+    "Locate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位"
+          }
+        }
+      }
+    },
+    "Locate %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locate %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位 %@"
+          }
+        }
+      }
+    },
+    "Show this archive in its folder without opening it" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show this archive in its folder without opening it"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在所在文件夹中显示此归档，不打开它"
+          }
+        }
+      }
+    },
+    "No match among the searched items. Check the spelling, or search for part of a name." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No match among the searched items. Check the spelling, or search for part of a name."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已搜索的项目中没有匹配项。请检查拼写，或搜索名称的一部分。"
+          }
+        }
+      }
+    },
+    "Choose the folder containing all archive parts so Stow can read the complete archive." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择包含所有分卷的文件夹，以便 Stow 读取完整归档。"
+          }
+        }
+      }
+    },
+    "Archive parts are missing or inconsistent. Put every numbered part in the same folder and open the .001 part again." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "归档分卷缺失或不一致。请将所有编号分卷放在同一文件夹中，然后重新打开 .001 分卷。"
+          }
+        }
+      }
+    },
+    "“%@” needs all its archive parts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”需要所有归档分卷"
+          }
+        }
+      }
+    },
+    "Unavailable" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可用"
+          }
+        }
+      }
+    },
+    "Stow couldn’t read the archive. Try opening it again. Your files weren’t changed." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stow 无法读取归档。请尝试重新打开。你的文件未被更改。"
+          }
+        }
+      }
+    },
+    "Can’t read the archive" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取归档"
+          }
+        }
+      }
+    },
     "Unlock": {
       "localizations": {
         "zh-Hans": {
@@ -1587,22 +1843,36 @@
         }
       }
     },
-    "%@ files": {
+    "%lld files · %@": {
       "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 个文件"
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld file · %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld files · %2$@"
+                }
+              }
+            }
           }
-        }
-      }
-    },
-    "%@ files · %@": {
-      "localizations": {
+        },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ 个文件 · %2$@"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld 个文件 · %2$@"
+                }
+              }
+            }
           }
         }
       }
@@ -1637,12 +1907,36 @@
         }
       }
     },
-    "%@ results in %@": {
+    "%lld results in %@": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld result in %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld results in %2$@"
+                }
+              }
+            }
+          }
+        },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%2$@中有 %1$@ 个结果"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%2$@中有 %1$lld 个结果"
+                }
+              }
+            }
           }
         }
       }
@@ -4923,12 +5217,12 @@
         }
       }
     },
-    "It carries only a local signature, so nobody vouches for who made it. macOS will block it the first time it opens.": {
+    "It carries only a local signature, so nobody vouches for who made it. macOS may block it when you open it, depending on its download history and your Mac’s security settings.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此 App 仅有本地签名，无法确认制作者。macOS 会阻止其首次打开。"
+            "value": "此 App 仅有本地签名，无法确认制作者。macOS 可能会阻止其打开，具体取决于下载来源和 Mac 的安全设置。"
           }
         }
       }
@@ -6454,12 +6748,36 @@
         }
       }
     },
-    "Search %@ files": {
+    "Search %lld files": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Search %lld file"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Search %lld files"
+                }
+              }
+            }
+          }
+        },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索 %@ 个文件"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "搜索 %lld 个文件"
+                }
+              }
+            }
           }
         }
       }
@@ -6664,12 +6982,12 @@
         }
       }
     },
-    "Signed by %@, but Apple hasn’t checked it for malware. macOS will block it the first time unless you allow it in System Settings › Privacy & Security.": {
+    "Signed by %@, but Apple hasn’t checked it for malware. macOS may block it when you open it, depending on its download history and your Mac’s security settings.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "由%@签名，但未经 Apple 的恶意软件检查。除非你在“系统设置”›“隐私与安全性”中允许，否则 macOS 会阻止其首次打开。"
+            "value": "由%@签名，但未经 Apple 的恶意软件检查。macOS 可能会阻止其打开，具体取决于下载来源和 Mac 的安全设置。"
           }
         }
       }
@@ -7458,12 +7776,12 @@
         }
       }
     },
-    "There’s no signature, so there’s no way to tell who made it or whether it was changed. macOS will block it the first time it opens.": {
+    "There’s no signature, so there’s no way to tell who made it or whether it was changed. macOS may block it when you open it, depending on its download history and your Mac’s security settings.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此 App 没有签名，无法确认制作者或是否被更改。macOS 会阻止其首次打开。"
+            "value": "此 App 没有签名，无法确认制作者或是否被更改。macOS 可能会阻止其打开，具体取决于下载来源和 Mac 的安全设置。"
           }
         }
       }

@@ -25,6 +25,7 @@ Codes are `<area>-<reason>`. Numbers are never reused or renumbered; new reasons
 | --- | --- | --- |
 | `100` | Not an archive Stow can read | engine (`notAnArchive`) |
 | `101` | macOS doesn't let Stow read the file (e.g. kept in another app's storage, like WeChat's) | Stow's read check before opening (`EACCES`, `EPERM`) |
+| `102` | Archive parts are missing or inconsistent; collect all numbered parts and reopen `.001` | split-volume discovery or engine recovery (`missingVolume`) |
 | `110` | Needs a password | engine (`passwordRequired`) |
 | `111` | Wrong password | engine (`wrongPassword`) |
 | `120` | Damaged data (a file's data or checksum doesn't match) | 7-Zip "Data Error", "CRC Failed" |
@@ -37,6 +38,7 @@ Codes are `<area>-<reason>`. Numbers are never reused or renumbered; new reasons
 | `160` | Archive changed on disk while being edited | engine (`changedOnDisk`) |
 | `170` | Cancelled | engine (`cancelled`); normally not shown |
 | `180` | Stow's own limit (e.g. archives nested more than 8 levels deep) | Stow |
+| `181` | Installed app is running; quit it before replacing it | Stow's application installer |
 | `199` | Anything else | the details hold the error's own words |
 
 The engine's `EngineFailure` raw values (1–9) cross the XPC connection unchanged and map into the

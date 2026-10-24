@@ -4,7 +4,7 @@ import Synchronization
 /// What 7-Zip reads: a path (tests, tools), or a descriptor Stow opened and sent over XPC.
 nonisolated enum ArchiveInput: Sendable {
     case file(URL)
-    /// Read as fd 3 through a link named like the archive, so 7-Zip still gets the extension hint.
+    /// Materialized from this authorized handle inside the engine before launching 7-Zip.
     case descriptor(FileHandle, name: String)
 }
 
@@ -73,9 +73,13 @@ nonisolated struct SevenZip: Sendable {
         }
         if Self.isTarball(name: (input.path as NSString).lastPathComponent),
            let entries = try? await tarballEntries(path: input.path, descriptor: input.descriptor) {
-            listing.entries = entries // still "gzip", "xz"…: the format reads as TAR.GZ, TAR.XZ
+            listing.entries = entries.map { entry in
+                var entry = entry
+                entry.packedSize = nil // TAR blocks are not compressed entry sizes.
+                return entry
+            } // still "gzip", "xz"…: the format reads as TAR.GZ, TAR.XZ
             if Task.isCancelled { throw EngineError(.cancelled) }
-            onEntries?(entries)
+            onEntries?(listing.entries)
             return listing
         }
         if let onEntries {
@@ -228,7 +232,11 @@ nonisolated struct SevenZip: Sendable {
         return ArchiveListing(
             type: type,
             physicalSize: archiveFields["Physical Size"].flatMap { Int64($0) },
-            entries: entries,
+            entries: archiveFields["Solid"] == "+" ? entries.map { entry in
+                var entry = entry
+                entry.packedSize = nil
+                return entry
+            } : entries,
             startOffset: startOffset(archiveFields),
             tailSize: archiveFields["Tail Size"].flatMap { Int64($0) }
         )
@@ -301,8 +309,11 @@ nonisolated struct SevenZip: Sendable {
         // Before damage: a wrong password on encrypted 7z contents reads
         // "Data Error in encrypted file. Wrong password? : …".
         if all.contains("Wrong password") { throw EngineError(.wrongPassword) }
+        if let structural = ["Unexpected end of archive", "Headers Error", "Missing volume"].first(where: all.contains) {
+            throw EngineError(.failed, structural)
+        }
         if let damaged = result.errors.split(whereSeparator: \.isNewline).first(where: { $0.contains("Data Error") || $0.contains("CRC Failed") }) {
-            throw EngineError(.failed, String(damaged.drop { $0 != ":" }.dropFirst()).trimmingCharacters(in: .whitespaces))
+            throw EngineError(.failed, String(damaged))
         }
         // With `-bso0` the prompt itself isn't printed; 7-Zip reads EOF from standard input (the
         // only thing it reads there) and stops with "Break signaled". Cancelling never gets here.
@@ -417,8 +428,9 @@ nonisolated struct SevenZip: Sendable {
         }
     }
 
-    /// The archive as a path 7-Zip can open; for a descriptor, a link to `/dev/fd/3`.
-    private struct Prepared {
+    /// A real engine-owned file lets the sandboxed child reopen app-private XPC inputs.
+    /// Copy through the handle: resolving /dev/fd would require path access the child lacks.
+    struct Prepared {
         let path: String
         let descriptor: Int32?
         private let folder: URL?
@@ -433,15 +445,38 @@ nonisolated struct SevenZip: Sendable {
                 let folder = FileManager.default.temporaryDirectory
                     .appending(path: "stow-in-\(UUID().uuidString)", directoryHint: .isDirectory)
                 let safeName = (name as NSString).lastPathComponent
-                let link = folder.appending(path: safeName.isEmpty || safeName == ".." ? "archive" : safeName)
+                let link = folder.appending(path: safeName.isEmpty || safeName == "." || safeName == ".." ? "archive" : safeName)
                 do {
-                    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-                    try FileManager.default.createSymbolicLink(atPath: link.path, withDestinationPath: "/dev/fd/3")
+                    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
+                                                            attributes: [.posixPermissions: 0o700])
+                    guard FileManager.default.createFile(atPath: link.path, contents: nil,
+                                                         attributes: [.posixPermissions: 0o600]) else {
+                        throw EngineError(.failed)
+                    }
+                    let output = try FileHandle(forWritingTo: link)
+                    defer { try? output.close() }
+                    var offset: off_t = 0
+                    var buffer = [UInt8](repeating: 0, count: 1_048_576)
+                    while true {
+                        if Task.isCancelled { throw EngineError(.cancelled) }
+                        let count = buffer.withUnsafeMutableBytes {
+                            pread(handle.fileDescriptor, $0.baseAddress, $0.count, offset)
+                        }
+                        if count < 0 {
+                            if errno == EINTR { continue }
+                            throw EngineError(.failed, String(cString: strerror(errno)))
+                        }
+                        if count == 0 { break }
+                        try output.write(contentsOf: Data(buffer.prefix(count)))
+                        offset += off_t(count)
+                    }
+                    try output.close()
                 } catch {
-                    throw EngineError(.failed, error.localizedDescription)
+                    try? FileManager.default.removeItem(at: folder)
+                    throw EngineError(error)
                 }
                 path = link.path
-                descriptor = handle.fileDescriptor
+                descriptor = nil
                 self.folder = folder
             }
         }

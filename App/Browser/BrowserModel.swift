@@ -68,7 +68,9 @@ final class BrowserModel {
     /// Archives inside archives open up to this deep — enough for real nesting, not for a zip quine.
     static let maxDepth = 8
 
-    private(set) var levels: [Level]
+    private(set) var levels: [Level] {
+        didSet { updateRepresentedURL() }
+    }
     var folder = "" { didSet { if folder != oldValue { refresh() } } }
     var selection: Set<ArchiveEntry.ID> = []
     var viewMode: ViewMode = SettingsKeys.browserView()
@@ -102,6 +104,8 @@ final class BrowserModel {
 
     let previews: PreviewService
     let quickLook = QuickLookController()
+    // History belongs to the archive browser, not a disposable full/Glance view delegate.
+    let editingUndoManager = EditingUndoManager()
     let dragOut = DragOutController()
     var passwords: PasswordHook = .none
     private(set) var isUnlocking = false
@@ -141,6 +145,8 @@ final class BrowserModel {
         }
         quickLook.model = self
         dragOut.model = self
+        editingUndoManager.groupsByEvent = false
+        editingUndoManager.isLocked = { [weak self] in self?.levels.contains { $0.edits.isSaving } == true }
         connectEdits(root)
         if archive.source != nil {
             nestedLoader = { [weak self] entry, archive in
@@ -178,7 +184,14 @@ final class BrowserModel {
     var editSession: EditSession { level.edits }
     var renamingPath: String?
     var renameText = ""
-    weak var editingWindow: NSWindow?
+    weak var editingWindow: NSWindow? {
+        didSet { updateRepresentedURL() }
+    }
+
+    /// Nested archives use cache files; the window continues to represent the outer document.
+    private func updateRepresentedURL() {
+        editingWindow?.representedURL = levels.first?.archive.source?.url
+    }
 
     var level: Level { levels[levels.count - 1] }
 
@@ -188,6 +201,8 @@ final class BrowserModel {
     }
 
     private func connectEdits(_ target: Level) {
+        // Streaming replaces Level/EditSession before SwiftUI can reattach the window.
+        target.edits.undoManager = editingUndoManager
         var previousOperations = target.edits.operations
         for (shown, stored) in target.archive.source?.storedPaths ?? [:] {
             for path in stored { target.edits.displayedPaths[path] = shown }
@@ -221,7 +236,7 @@ final class BrowserModel {
                 if target.edits.isSaving { target.savedArchive = updated }
             } else {
                 target.archive = Archive(name: old.name, format: old.format, files: target.edits.pending.entries.map {
-                    ArchiveEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size, packedSize: $0.packedSize ?? 0, modified: $0.modified ?? .distantPast)
+                    ArchiveEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size, packedSize: $0.packedSize, modified: $0.modified ?? .distantPast)
                 })
             }
             target.search = SearchIndex(total: target.archive.index.visible.count + target.archive.index.helpers.count)
@@ -408,8 +423,8 @@ final class BrowserModel {
             saved.source?.password = target.password
             target.savedArchive = saved
         }
-        editingWindow?.representedURL = url
-        editingWindow?.title = url.lastPathComponent
+        updateRepresentedURL()
+        if level === target { editingWindow?.title = url.lastPathComponent }
     }
 
     func confirmDiscardingEdits() async -> Bool {
@@ -475,13 +490,32 @@ final class BrowserModel {
         let count = visibleEntries.count
         let items = count == 1 ? String(localized: "1 item")
             : String(localized: "\(count.formatted()) items")
-        return isSearching ? String(localized: "\(count.formatted()) results in \(archive.name)") : items
+        return isSearching ? String(localized: "\(count) results in \(archive.name)") : items
     }
 
     /// The selected search result, when it sits inside an inner archive.
     var selectedNestedHit: NestedHit? {
         guard selection.count == 1, let id = selection.first else { return nil }
         return nestedHits[id]
+    }
+
+    /// Completed nested inspection only; never present partial coverage as complete.
+    var searchOmissions: [NestedSearchOmission] {
+        guard isSearching, let nested = level.nested, !nested.isLoading else { return [] }
+        return nested.omissions.sorted { $0.container.path < $1.container.path }
+    }
+
+    var searchCoverageSummary: String? {
+        let count = searchOmissions.count
+        guard count > 0 else { return nil }
+        return count == 1 ? String(localized: "1 inner archive was not searched.")
+            : String(localized: "\(count) inner archives were not searched.")
+    }
+
+    /// Locating is deliberately separate from opening: no password UI or extraction here.
+    func locateSearchOmission(_ omission: NestedSearchOmission) {
+        guard searchOmissions.contains(omission) else { return }
+        navigate(to: omission.container.parent, selecting: [omission.container.id])
     }
 
     /// "Indexing… 12,000 of 40,000" while a big archive's search index builds.
@@ -1015,7 +1049,7 @@ final class BrowserModel {
     /// read-only folder apart from a damaged archive.
     private func perform(_ step: NextStep, itemCount: Int, name: String? = nil, destination: @escaping () -> URL? = { nil },
                          needs bytes: Int64 = 0, prepare: (() async throws(EngineError) -> Void)? = nil,
-                         _ work: @escaping (@escaping @Sendable (Double) -> Void) async throws(EngineError) -> Finished) {
+                         _ work: @escaping (@escaping @Sendable (Double) -> Void) async throws -> Finished) {
         activityTask?.cancel()
         activityTask = Task { [weak self] in
             guard let self else { return }
@@ -1210,7 +1244,7 @@ final class BrowserModel {
                 needs: entry.size, prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(
                 target, purpose: String(localized: "To install “\(Installer.displayName(entry.name))”, Stow needs permission to add apps to this folder."))
-        }) { [weak self] progress throws(EngineError) in
+        }) { [weak self] progress in
             guard let grant else { throw EngineError(.cancelled) }
             defer { grant.release() }
             let outcome = try await Installer.installApp(entry, from: archive, into: grant.url,

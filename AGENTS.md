@@ -1,5 +1,8 @@
 # Collaboration
 
+All rules and responsibilities assigned to Codex in this document apply equally to
+Grok Bot.
+
 ## Working language
 
 - Use **English** for issue titles, descriptions, and comments; PR titles, descriptions,
@@ -13,10 +16,10 @@
 
 - **Claude Code owns UI visual design and motion:** layout, spacing, typography, color,
   materials, icon treatment, visual hierarchy, transitions, and animation tuning.
-- **Codex owns functional correctness:** archive behavior, state, security, errors,
-  cancellation, tests, and accessibility semantics. Codex may implement functional controls
+- **Codex and Grok Bot own functional correctness:** archive behavior, state, security, errors,
+  cancellation, tests, and accessibility semantics. Both may implement functional controls
   needed by a fix; their visual and motion treatment remains pending Claude Code review.
-- Codex should describe interaction goals, states, constraints, and design ideas as a brief
+- Codex and Grok Bot should describe interaction goals, states, constraints, and design ideas as a brief
   for Claude Code. These proposals are references, not final visual approval.
 - Record this ownership in relevant issues and PRs. Do not claim Claude Code has reviewed,
   accepted, or started a task without evidence, or assign an unknown GitHub account.
