@@ -56,7 +56,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
 
     func show() {
         reload(startLoading: false)
-        guard !items.isEmpty else { return }
+        guard !items.isEmpty else { close(); return }
         let needsPasswordRead = model?.archive.isEncrypted == true && items.contains(where: \.isPending)
         // Keep the archive window in control while it may need to present a password sheet.
         // The system panel takes control only once the encrypted reads have finished.
@@ -273,8 +273,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
             // Several selected: the panel pages through them with ← →.
             if items.count > 1, direction == .left || direction == .right { return false }
             model.move(direction, extending: shift)
-            reload()
-            panel.reloadData()
+            show()
             return true
         }
     }
