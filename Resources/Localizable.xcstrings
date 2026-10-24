@@ -287,12 +287,12 @@
         }
       }
     },
-    "Its files are encrypted. Enter the password to preview or extract them.": {
+    "You can browse its file names. Enter the password to preview or extract the files.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "文件内容已加密。请输入密码以预览或解压。"
+            "value": "可以浏览文件名。输入密码即可预览或解压文件。"
           }
         }
       }
@@ -317,12 +317,43 @@
         }
       }
     },
-    "Checking the password — click to cancel": {
+    "Unlocking…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "正在验证密码，点击可取消"
+            "value": "正在解锁…"
+          }
+        }
+      }
+    },
+    "File names are visible; contents need the password.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件名可见；查看内容需要密码。"
+          }
+        }
+      }
+    },
+    "Password available": {
+      "comment": "Archive card status, sentence case beside “Checkup: looks safe”.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码可用"
+          }
+        }
+      }
+    },
+    "Unlocking — click to cancel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在解锁，点击可取消"
           }
         }
       }
@@ -2326,7 +2357,7 @@
         }
       }
     },
-    "%lld macOS helper files hidden": {
+    "%lld macOS helper files": {
       "localizations": {
         "zh-Hans": {
           "variations": {
@@ -2334,7 +2365,7 @@
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "已隐藏 %lld 个 macOS 辅助文件"
+                  "value": "%lld 个 macOS 辅助文件"
                 }
               }
             }
@@ -2346,13 +2377,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld macOS helper file hidden"
+                  "value": "%lld macOS helper file"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld macOS helper files hidden"
+                  "value": "%lld macOS helper files"
                 }
               }
             }
@@ -2742,12 +2773,12 @@
         }
       }
     },
-    "14 macOS helper files hidden": {
+    "14 macOS helper files": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已隐藏 14 个 macOS 辅助文件"
+            "value": "14 个 macOS 辅助文件"
           }
         }
       }
@@ -9053,12 +9084,12 @@
         }
       }
     },
-    "“.DS_Store” and “._” files are hidden here and won’t be extracted.": {
+    "While “Leave out system files” is on, extracting skips files like “.DS_Store” and “._”. To keep one, show helper items from the View menu and select it.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此处已隐藏“.DS_Store”和“._”文件，解压缩时也会忽略它们。"
+            "value": "开启“忽略系统文件”时，解压缩会跳过“.DS_Store”和“._”等文件。如需保留其中某个文件，请从“显示”菜单显示辅助项目并选中它。"
           }
         }
       }

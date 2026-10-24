@@ -259,7 +259,7 @@ struct ListingParserTests {
 
         let titles = archive.checkup.map(\.title)
         #expect(titles.contains("1 path tried to leave the folder"))
-        #expect(titles.contains("2 macOS helper files hidden"))
+        #expect(titles.contains("2 macOS helper files"))
         #expect(!archive.checkup.contains { $0.severity == .fine })
     }
 

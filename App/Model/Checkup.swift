@@ -153,8 +153,8 @@ nonisolated enum Checkup {
         if scan.helperFiles > 0 {
             findings.append(CheckupFinding(
                 severity: .info,
-                title: String(localized: "\(scan.helperFiles) macOS helper files hidden"),
-                detail: String(localized: "“.DS_Store” and “._” files are hidden here and won’t be extracted.")
+                title: String(localized: "\(scan.helperFiles) macOS helper files"),
+                detail: String(localized: "While “Leave out system files” is on, extracting skips files like “.DS_Store” and “._”. To keep one, show helper items from the View menu and select it.")
             ))
         }
 
