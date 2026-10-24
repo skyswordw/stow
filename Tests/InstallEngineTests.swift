@@ -109,7 +109,7 @@ struct InstallEngineTests {
             #expect(failure.code.description == "INS-161")
             #expect(failure.advice == engine.message && failure.action == .tryAgain)
         }
-        #expect(checked == [original])
+        #expect(checked.map(\.path) == [original.path])
         #expect(questions.asked == ["signature adHoc"])
         #expect(Installer.version(of: original) == "1.0")
         #expect(try Data(contentsOf: seal) == originalSeal)
