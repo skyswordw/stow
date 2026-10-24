@@ -281,6 +281,24 @@ struct EditSessionTests {
         #expect(try Data(contentsOf: url) == Data("pk".utf8))
     }
 
+    @Test func newCopyStagesWithoutCreatingSiblings() throws {
+        let directory = try temporaryDirectory()
+        let manager = FileManager.default
+        defer {
+            try? manager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+            try? manager.removeItem(at: directory)
+        }
+        let destination = directory.appending(path: "New Copy.zip")
+        try manager.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+        let staging = try ArchiveSaver.makeStaging(for: destination)
+        defer { staging.cleanup() }
+        #expect(staging.file.deletingLastPathComponent() != directory)
+        try Data("staged copy".utf8).write(to: staging.file)
+        #expect(!manager.fileExists(atPath: destination.path))
+        staging.cleanup()
+        #expect(!manager.fileExists(atPath: staging.file.path))
+    }
+
     @Test func closeDecisions() {
         #expect(EditSession.canClose(.save, saved: true))
         #expect(!EditSession.canClose(.save, saved: false))

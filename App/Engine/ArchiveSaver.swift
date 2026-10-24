@@ -214,9 +214,12 @@ enum ArchiveSaver {
     /// where that lands elsewhere, stage a sibling next to the archive (caller must have write access).
     nonisolated static func makeStaging(for url: URL) throws(EngineError) -> (file: URL, cleanup: @Sendable () -> Void) {
         let manager = FileManager.default
-        if let directory = try? manager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url, create: true) {
+        // A Save panel can authorize a new file without authorizing sibling creation. Its parent
+        // identifies the volume while the destination does not yet exist; keep staging private.
+        let volumeURL = manager.fileExists(atPath: url.path) ? url : url.deletingLastPathComponent()
+        if let directory = try? manager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: volumeURL, create: true) {
             var originalInfo = stat(), stagingInfo = stat()
-            if stat(url.path, &originalInfo) == 0, stat(directory.path, &stagingInfo) == 0,
+            if stat(volumeURL.path, &originalInfo) == 0, stat(directory.path, &stagingInfo) == 0,
                originalInfo.st_dev == stagingInfo.st_dev {
                 let temporary = directory.appending(path: url.lastPathComponent + ".stow-saving")
                 return (temporary, { try? FileManager.default.removeItem(at: directory) })
