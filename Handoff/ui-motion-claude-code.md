@@ -142,3 +142,18 @@ opening, extracting, and verifying each require temporary disk space equal to th
 combined archive size and an extra sequential read/write pass. Cancellation closes the
 unlinked descriptor. Consider a future multi-descriptor protocol if this overhead
 becomes material; do not replace it with an ambient directory grant to the engine.
+
+## Input-read and staged-save failures (#112, #114)
+
+Codex owns the descriptor staging, sandbox boundaries, failure classification, and tests.
+Descriptor-backed archives now materialize as real engine-private files before 7-Zip opens
+them; no filesystem entitlements change. This includes nested open/search and verification
+of a saved replacement. Failed saves keep the original and pending edits; Save remains the
+retry control. Cancellation does not show a save-error prompt.
+
+Input-open permission errors must explain that Stow could not read the archive (OPN-101),
+without offering Choose Another Folder. Save errors use the existing Failure prompt with
+Copy Details, rather than an internal temporary pathname as the heading. Claude Code owns
+visual and motion review under #104; this functional change does not imply design approval.
+Compare these recovery interactions with ArcZip while retaining Stow vocabulary. Native
+and packaged-XPC verification remains CI-gated because implementation ran on Linux.

@@ -43,6 +43,7 @@ struct ErrorCodeTests {
             (NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)), .pack, "PCK-130"),
             (NSError(domain: NSCocoaErrorDomain, code: NSFileWriteOutOfSpaceError), .extract, "EXT-130"),
             (NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError), .install, "INS-140"),
+            (NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError), .open, "OPN-101"),
             (EngineError(.engineMissing), .extract, "EXT-150"),
             (EngineError(.incompatibleVersion), .open, "OPN-151"),
             (EngineError(.connectionLost), .pack, "PCK-152"),

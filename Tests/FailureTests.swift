@@ -64,6 +64,22 @@ struct FailureTests {
         #expect(failure.advice.hasPrefix("7-Zip couldn’t finish: E_FAIL."))
     }
 
+    @Test func inputPermissionFailuresNeverOfferDestinationRecovery() {
+        let errors: [any Error] = [
+            NSError(domain: NSPOSIXErrorDomain, code: Int(EPERM)),
+            EngineError(.failed, "inner.zip : opening : errno=1 : Operation not permitted"),
+        ]
+        for error in errors {
+            let failure = Failure(error, .open, name: "inner.zip")
+            #expect(failure.kind == .noReadAccess)
+            #expect(failure.action == .tryAgain)
+            #expect(failure.code == ErrorCode(.open, .noReadAccess))
+        }
+        let failure = Failure(EngineError(.failed, "inner.zip : opening : errno=1 : Operation not permitted"),
+                              .extract, name: "inner.zip", destination: URL(filePath: "/tmp"))
+        #expect(failure.kind == .noReadAccess && failure.action != .chooseFolder)
+    }
+
     @Test func briefWordsForRows() {
         #expect(Failure(EngineError(.passwordRequired), .extract, name: "x").brief != "")
         let other = Failure(EngineError(.failed, "boom"), .extract, name: "x")
