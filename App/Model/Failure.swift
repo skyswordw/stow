@@ -211,6 +211,20 @@ struct Failure: Equatable, Sendable {
         let volume = destination.flatMap(volumeName)
         let folder = destination.map { FileManager.default.displayName(atPath: $0.path) }
         let lower = message.lowercased()
+        // Cocoa write/read codes must win before the destination heuristic: tests and alerts
+        // often pass a write-permission NSError with no destination URL.
+        let cocoa = error as NSError
+        if cocoa.domain == NSCocoaErrorDomain {
+            switch cocoa.code {
+            case NSFileWriteOutOfSpaceError:
+                return .diskFull(volume: volume)
+            case NSFileReadNoPermissionError:
+                return .noReadAccess
+            case NSFileWriteNoPermissionError, NSFileWriteVolumeReadOnlyError:
+                return .noWriteAccess(folder: folder)
+            default: break
+            }
+        }
         if let code = posixCode(error) {
             if code == ENOSPC || code == EDQUOT { return .diskFull(volume: volume) }
             if code == EACCES || code == EPERM || code == EROFS {
