@@ -5,6 +5,26 @@
 set -euo pipefail
 cd "${0:a:h}/.."
 lang=${1:-zh-Hans}
+
+# `xcodebuild -exportLocalizations` rewrites the formatting of every .xcstrings catalog it touches.
+# Snapshot them first and put back any that changed, so a check never leaves churn behind and
+# uncommitted catalog edits survive byte-for-byte.
+snapshot=$(mktemp -d)
+catalogs=(${(f)"$(find . -path ./build -prune -o -path './.*' -prune -o -path ./Vendor -prune \
+  -o -name '*.xcstrings' -print)"})
+for catalog in $catalogs; do
+  mkdir -p "$snapshot/${catalog:h}" && cp -p "$catalog" "$snapshot/$catalog"
+done
+restore_catalogs() {
+  for catalog in $catalogs; do
+    cmp -s "$snapshot/$catalog" "$catalog" || cp -p "$snapshot/$catalog" "$catalog"
+  done
+  rm -rf "$snapshot"
+}
+trap restore_catalogs EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 rm -rf build/loc && mkdir -p build/loc
 xcodebuild -exportLocalizations -project Stow.xcodeproj -localizationPath build/loc -exportLanguage "$lang" \
   CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
