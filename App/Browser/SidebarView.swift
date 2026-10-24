@@ -56,10 +56,10 @@ struct ArchiveCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(.primary)
                     ViewThatFits(in: .horizontal) {
-                        Text("\(archive.files.count.formatted()) files · \(archive.totalSize.bytes)")
+                        Text("\(archive.files.count) files · \(archive.totalSize.bytes)")
                             .fixedSize()
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("\(archive.files.count.formatted()) files")
+                            Text("\(archive.files.count) files")
                             Text(archive.totalSize.bytes)
                         }
                     }

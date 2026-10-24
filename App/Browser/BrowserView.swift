@@ -84,7 +84,7 @@ struct BrowserView: View {
     }
 
     private var searchPrompt: String {
-        model.indexingProgress ?? String(localized: "Search \(model.archive.files.count.formatted()) files")
+        model.indexingProgress ?? String(localized: "Search \(model.archive.files.count) files")
     }
 
     @ViewBuilder

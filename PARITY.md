@@ -7,6 +7,8 @@ and free — there is no Free/Pro split, so every row below ships to everyone.
 static look at the notarized ArcZip 1.1.1 (222) bundle — its `Info.plist`s, entitlements, extension
 points and English UI strings. No code was decompiled or run.
 
+**Current native evidence (2026-10-23):** see the [ArcZip 1.1.4 comparison](Handoff/arczip-1.1.4-native-audit.md). It records confirmed failures in nested opening/search, split archive reopening, explicit helper extraction, native Save/Undo and compressed TAR statistics. Implementation checkmarks below do not override those observed failures. ArcZip Pro operations and signed-system integration have explicit coverage limits.
+
 **What the bundle shows about ArcZip's architecture**
 
 | Piece | ArcZip | Stow |

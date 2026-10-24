@@ -1556,22 +1556,36 @@
         }
       }
     },
-    "%@ files": {
+    "%lld files · %@": {
       "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 个文件"
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld file · %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld files · %2$@"
+                }
+              }
+            }
           }
-        }
-      }
-    },
-    "%@ files · %@": {
-      "localizations": {
+        },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ 个文件 · %2$@"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld 个文件 · %2$@"
+                }
+              }
+            }
           }
         }
       }
@@ -6423,12 +6437,36 @@
         }
       }
     },
-    "Search %@ files": {
+    "Search %lld files": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Search %lld file"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Search %lld files"
+                }
+              }
+            }
+          }
+        },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索 %@ 个文件"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "搜索 %lld 个文件"
+                }
+              }
+            }
           }
         }
       }
