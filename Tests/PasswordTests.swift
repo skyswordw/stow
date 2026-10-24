@@ -293,10 +293,12 @@ struct EncryptedArchiveTests {
         model.passwords = PasswordHook(prompt: prompt)
         let entry = try #require(model.archive.entry(at: "Docs/secret.txt"))
         model.select([entry.id])
-        model.quickLook.reload()
+        model.quickLook.show()
         let question = try await nextQuestion(from: prompt)
+        #expect(!model.quickLook.isVisible)
 
-        // A password sheet may hide the panel: closing must still cancel its outstanding read.
+        // The encrypted preview waits for credentials before opening the system panel.
+        // Closing must still cancel its outstanding read while that panel is hidden.
         model.quickLook.close()
         let deadline = ContinuousClock.now + .seconds(10)
         while prompt.question != nil, ContinuousClock.now < deadline {
