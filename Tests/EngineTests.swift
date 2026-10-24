@@ -499,7 +499,7 @@ struct PreparedInputTests {
                 let input = try SevenZip.Prepared(.descriptor(handle, name: "inner.zip"))
                 input.cleanUp()
                 Issue.record("Cancelled staging succeeded")
-            } catch { #expect(error.failure == .cancelled) }
+            } catch { #expect((error as? EngineError)?.failure == .cancelled) }
         }
         await task.value
     }
