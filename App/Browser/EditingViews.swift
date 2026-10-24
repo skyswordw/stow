@@ -303,6 +303,9 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
     }
 
     func attach(_ window: NSWindow, model: BrowserModel) {
+        if self.model !== model, self.model?.editingWindow === window {
+            self.model?.editingWindow = nil
+        }
         if let previous = self.window, previous !== window, previous.delegate === self {
             previous.delegate = original
         }
