@@ -313,7 +313,7 @@ final class TrayController {
         takeOff([item.id], actionName: String(localized: "Remove from Tray"))
     }
 
-    /// ⌫ and Remove from Tray: everything selected. Nothing selected, nothing removed (Clear
+    /// Remove from Tray (right-click and More menus): everything selected. Nothing selected, nothing removed (Clear
     /// Tray is for all of it). The files themselves never move.
     func removeSelected() {
         guard path.isEmpty, !selection.isEmpty else { return }
@@ -787,12 +787,6 @@ struct TrayView: View {
         .padding(Self.shadowMargin)
         .onHover { tray.isHovered = $0 }
         .onKeyPress(.space) { tray.quickLook(); return .handled }
-        // Plain ⌫ only: ⌘⌫ stays the Browser's Delete, for files inside an archive.
-        .onKeyPress(keys: [.delete]) { press in
-            guard press.modifiers.isEmpty else { return .ignored }
-            tray.removeSelected()
-            return .handled
-        }
     }
 
 
@@ -935,13 +929,12 @@ struct TrayView: View {
         }
     }
 
-    /// Removes the selection from the Tray (the files stay). It shows ⌫, the key that does the same.
+    /// Removes the selection from the Tray (the files stay). A menu command, with no key of its own.
     private func removeButton(counted: Bool) -> some View {
         let count = tray.selection.count
         return Button(counted && count > 1 ? String(localized: "Remove \(count) Items from Tray") : String(localized: "Remove from Tray")) {
             tray.removeSelected()
         }
-        .keyboardShortcut(.delete, modifiers: [])
         .disabled(tray.selection.isEmpty || tray.folderTitle != nil)
     }
 
