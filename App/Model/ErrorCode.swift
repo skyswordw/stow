@@ -27,6 +27,7 @@ nonisolated struct ErrorCode: Hashable, Sendable, CustomStringConvertible {
         case changedOnDisk = 160
         case cancelled = 170
         case limit = 180
+        case appRunning = 181
         case unknown = 199
     }
 

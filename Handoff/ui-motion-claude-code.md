@@ -166,3 +166,14 @@ Copy Details, rather than an internal temporary pathname as the heading. Claude 
 visual and motion review under #104; this functional change does not imply design approval.
 Compare these recovery interactions with ArcZip while retaining Stow vocabulary. Native
 and packaged-XPC verification remains CI-gated because implementation ran on Linux.
+
+## Installation refusal recovery (#132, #133)
+
+Codex / Grok Bot owns the signature facts and typed running-app refusal. Signature warnings
+must describe possible launch blocking without predicting the host's Gatekeeper decision
+from signature facts alone. Running-app refusal is INS-181: ask the user to quit the installed
+app and retry, explain that it was not changed, and never suggest archive damage or quit the
+app automatically. Keep the existing confirmation, retry, dismiss, and Copy Details controls.
+Claude Code owns visual hierarchy and motion review under #104; these functional copy/state
+changes do not imply visual approval. The full Browser AX recursion remains separately open
+in #93; a successful Glance recovery does not close it.

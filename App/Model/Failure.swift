@@ -4,7 +4,7 @@ import Foundation
 /// next. Every error alert, failed capsule and failed batch row says it the same way.
 struct Failure: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
-        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, noReadAccess, engine, other
+        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, noReadAccess, engine, appRunning, other
     }
 
     /// The one next step a failure offers, besides dismissing it.
@@ -80,6 +80,7 @@ struct Failure: Equatable, Sendable {
         case .noReadAccess: String(localized: "Can’t read the archive")
         case .noWriteAccess: String(localized: "Can’t save to this folder")
         case .engine: title
+        case .appRunning: String(localized: "Quit the app, then install again")
         case .other: String(localized: "Didn’t finish — try again")
         }
     }
@@ -107,6 +108,7 @@ struct Failure: Equatable, Sendable {
         case .noReadAccess: .noReadAccess
         case .noWriteAccess: .noWriteAccess
         case .engine: .engineStopped
+        case .appRunning: .appRunning
         case .other: .unknown
         }
     }
@@ -115,6 +117,13 @@ struct Failure: Equatable, Sendable {
     /// Stow was writing, if anywhere: a full or read-only folder is recognised there even when the
     /// engine's words don't say so. `needs` is roughly how much it meant to write.
     init(_ error: any Error, _ operation: Operation, name: String, destination: URL? = nil, needs bytes: Int64 = 0) {
+        if let running = error as? Installer.RunningApp {
+            self.init(kind: .appRunning, title: operation.couldNot(name),
+                      advice: running.localizedDescription + " " + String(localized: "The installed app wasn’t changed."),
+                      action: .tryAgain, code: ErrorCode(operation.area, .appRunning))
+            diagnostic = ErrorReport.diagnostic(for: error, message: running.localizedDescription)
+            return
+        }
         let engine = EngineError(error)
         let cause = Self.cause(of: error, message: engine.message, destination: destination)
         self.init(explaining: engine, cause: cause, operation, name: name, destination: destination, needs: bytes)

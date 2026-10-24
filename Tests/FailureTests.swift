@@ -5,6 +5,17 @@ import Testing
 @Suite("Failures in plain words")
 @MainActor
 struct FailureTests {
+    @Test func runningAppRefusalWinsOverArchiveDamageHeuristics() {
+        // A bundle name can contain words the engine uses for damaged data.
+        let failure = Failure(Installer.RunningApp(name: "Data Error"), .install, name: "Data Error")
+        #expect(failure.kind == .appRunning && failure.action == .tryAgain)
+        #expect(failure.code == ErrorCode(.install, .appRunning))
+        #expect(failure.advice.contains("Quit it, then install again."))
+        #expect(failure.advice.contains("The installed app wasn’t changed."))
+        #expect(!failure.advice.contains("archive may be damaged"))
+        #expect(failure.report.contains("INS-181"))
+    }
+
     @Test func notAnArchiveOffersFinder() {
         let failure = Failure(EngineError(.notAnArchive), .open, name: "Invoice.pdf")
         #expect(failure.kind == .notAnArchive && failure.action == .showInFinder)

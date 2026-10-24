@@ -1030,7 +1030,7 @@ final class BrowserModel {
     /// read-only folder apart from a damaged archive.
     private func perform(_ step: NextStep, itemCount: Int, name: String? = nil, destination: @escaping () -> URL? = { nil },
                          needs bytes: Int64 = 0, prepare: (() async throws(EngineError) -> Void)? = nil,
-                         _ work: @escaping (@escaping @Sendable (Double) -> Void) async throws(EngineError) -> Finished) {
+                         _ work: @escaping (@escaping @Sendable (Double) -> Void) async throws -> Finished) {
         activityTask?.cancel()
         activityTask = Task { [weak self] in
             guard let self else { return }
@@ -1220,7 +1220,7 @@ final class BrowserModel {
                 needs: entry.size, prepare: { () async throws(EngineError) in
             grant = try await FolderAccess.request(
                 target, purpose: String(localized: "To install “\(Installer.displayName(entry.name))”, Stow needs permission to add apps to this folder."))
-        }) { [weak self] progress throws(EngineError) in
+        }) { [weak self] progress in
             guard let grant else { throw EngineError(.cancelled) }
             defer { grant.release() }
             let outcome = try await Installer.installApp(entry, from: archive, into: grant.url,
