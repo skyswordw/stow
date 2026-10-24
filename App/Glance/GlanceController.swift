@@ -218,7 +218,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
         guard isShown else { return }
         isShown = false
         pendingName = nil
-        if model?.quickLook.isVisible == true { model?.quickLook.close() }
+        if model?.quickLook.isActive == true { model?.quickLook.close() }
         window?.orderOut(nil)
     }
 

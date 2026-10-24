@@ -48,6 +48,9 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
             && QLPreviewPanel.shared().dataSource === self
     }
 
+    /// Includes a preview waiting for encrypted contents before its panel can appear.
+    var isActive: Bool { presentationRequested || isVisible }
+
     /// The entries shown: the selection in on-screen order, files and packages (folders show as a folder).
     var entries: [Item] { items }
 
@@ -87,7 +90,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
 
     /// The browser's selection changed while the panel is open.
     func selectionChanged() {
-        guard isVisible else { return }
+        guard isActive else { return }
         show()
     }
 

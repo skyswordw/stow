@@ -839,7 +839,7 @@ final class BrowserModel {
 
     /// Space / ⌘Y. Shows the selection in the Quick Look panel; arrow keys keep moving the selection.
     func toggleQuickLook() {
-        if quickLook.isVisible {
+        if quickLook.isActive {
             quickLook.close()
         } else if !selection.isEmpty {
             quickLook.show()

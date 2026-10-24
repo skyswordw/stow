@@ -52,7 +52,7 @@ struct BrowserView: View {
         }
         .toolbar { toolbar }
         .onKeyPress(.escape) {
-            if model.quickLook.isVisible {
+            if model.quickLook.isActive {
                 model.quickLook.close()
                 return .handled
             }
