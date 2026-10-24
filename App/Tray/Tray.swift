@@ -313,7 +313,7 @@ final class TrayController {
         takeOff([item.id], actionName: String(localized: "Remove from Tray"))
     }
 
-    /// ⌫, ⌘⌫ and Remove from Tray: everything selected. Nothing selected, nothing removed (Clear
+    /// ⌫ and Remove from Tray: everything selected. Nothing selected, nothing removed (Clear
     /// Tray is for all of it). The files themselves never move.
     func removeSelected() {
         guard path.isEmpty, !selection.isEmpty else { return }
@@ -613,7 +613,6 @@ final class TrayController {
         host.trayUndoManager = undoManager
         panel.contentView = host
         panel.trayUndoManager = undoManager
-        panel.onDelete = { [weak self] in self?.removeSelected() }
         installRowDrag(in: panel)
         moveObserver = NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: panel,
                                                               queue: .main) { [weak self, weak panel] _ in
@@ -685,8 +684,6 @@ private final class StatusTarget: NSObject {
 final class TrayPanel: NSPanel, QLPreviewPanelDataSource, NSDraggingSource {
     nonisolated(unsafe) var previewURLs: [URL] = []
     var border: TrayBorder = .accent
-    /// ⌫ and ⌘⌫ outside a text field.
-    var onDelete: (() -> Void)?
     var trayUndoManager: UndoManager?
 
     override var canBecomeKey: Bool { true }
@@ -696,45 +693,15 @@ final class TrayPanel: NSPanel, QLPreviewPanelDataSource, NSDraggingSource {
         (firstResponder as? NSTextView).flatMap { $0.isEditable ? $0 : nil }
     }
 
-    /// ⌫ or ⌦, alone or with ⌘ only.
-    private static func deleteKey(_ event: NSEvent) -> (isDelete: Bool, command: Bool) {
-        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
-        let isDelete = event.type == .keyDown && (event.keyCode == 51 || event.keyCode == 117)
-            && (modifiers.isEmpty || modifiers == .command)
-        return (isDelete, modifiers == .command)
-    }
-
-    /// The Tray answers its own ⌘ keys first. ⌘⌫ is also the Browser's Edit › Delete, which works on
-    /// the archive window, so here it removes from the Tray and never reaches that command; even
-    /// in the folder-name field, where it deletes to the start of the line as usual. ⌘Z and ⇧⌘Z
-    /// go straight to the Tray's history.
+    /// ⌘Z and ⇧⌘Z go straight to the Tray's own history (outside a text field), whichever
+    /// responder SwiftUI has made first.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        let key = Self.deleteKey(event)
-        if key.isDelete {
-            if let text = editingText {
-                guard key.command else { return super.performKeyEquivalent(with: event) }
-                text.deleteToBeginningOfLine(nil)
-            } else {
-                onDelete?()
-            }
-            return true
-        }
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
         if editingText == nil, event.charactersIgnoringModifiers?.lowercased() == "z", let undo = trayUndoManager {
             if modifiers == .command { if undo.canUndo { undo.undo() }; return true }
             if modifiers == [.command, .shift] { if undo.canRedo { undo.redo() }; return true }
         }
         return super.performKeyEquivalent(with: event)
-    }
-
-    /// A plain ⌫ that didn't come through as a key equivalent.
-    override func sendEvent(_ event: NSEvent) {
-        let key = Self.deleteKey(event)
-        if key.isDelete, !key.command, editingText == nil {
-            onDelete?()
-            return
-        }
-        super.sendEvent(event)
     }
 
     nonisolated override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
@@ -820,6 +787,12 @@ struct TrayView: View {
         .padding(Self.shadowMargin)
         .onHover { tray.isHovered = $0 }
         .onKeyPress(.space) { tray.quickLook(); return .handled }
+        // Plain ⌫ only: ⌘⌫ stays the Browser's Delete, for files inside an archive.
+        .onKeyPress(keys: [.delete]) { press in
+            guard press.modifiers.isEmpty else { return .ignored }
+            tray.removeSelected()
+            return .handled
+        }
     }
 
 
@@ -962,7 +935,7 @@ struct TrayView: View {
         }
     }
 
-    /// Removes the selection from the Tray (the files stay). It shows ⌫, which the panel answers.
+    /// Removes the selection from the Tray (the files stay). It shows ⌫, the key that does the same.
     private func removeButton(counted: Bool) -> some View {
         let count = tray.selection.count
         return Button(counted && count > 1 ? String(localized: "Remove \(count) Items from Tray") : String(localized: "Remove from Tray")) {
