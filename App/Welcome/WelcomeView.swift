@@ -1,47 +1,39 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The empty window is the drop target: it says what dropping will do. Archives opened before sit in
-/// a sidebar, where the archive card and folders will be once one opens, so the window keeps the
-/// Browser's shape. The drop zone fills the rest, up to a cap, so a large window gets a centred
-/// target rather than a sea of dashed border. With nothing to recall there is no sidebar at all.
-struct WelcomeView<Accessory: View>: View {
+/// The empty window is the drop target: it says what dropping will do. Archives opened before sit
+/// below it. The window keeps a fixed, compact size while it shows this (`MainWindowSizing`); in full
+/// screen or a zoomed window the same column stays centred rather than stretching.
+struct WelcomeView: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isTargeted = false
     /// A drag that only promises a file (Mail, Photos, chat apps); see `OtherAppFiles`.
     @State private var isPromiseTargeted = false
-    /// The sidebar toggle hid Recent; this window keeps it hidden until it's shown again.
-    @SceneStorage("welcome.recentHidden") private var recentHidden = false
-    /// Where the drop zone sits in the stage's height; see `dropZonePlacement`.
-    @State private var placement = EdgeInsets()
-    /// Under the drop zone, inside the stage: the pack capsule while packing.
-    @ViewBuilder var accessory: () -> Accessory
 
-    /// The drop zone fills the stage in a typical window; a larger one centres it at this size.
-    private static var dropZoneMax: CGSize { CGSize(width: 680, height: 480) }
-    private static var stageMargin: CGFloat { Space.xxl }
-    /// The stage keeps room for the title, the sentence and both buttons on one line.
-    private static var stageMinWidth: CGFloat { 400 }
+    private static let dropZoneSize = CGSize(width: 560, height: 380)
+    /// With no history it is the whole window, at the same width it has above the Recent list.
+    private static let soloDropZoneSize = CGSize(width: 560, height: CGFloat.infinity)
 
     var body: some View {
         let entries = app.recents.visible
-        NavigationSplitView(columnVisibility: columns(hasRecents: !entries.isEmpty)) {
-            RecentSidebar(entries: entries, open: { app.openRecent($0) }, show: showInFinder,
-                          remove: { entry in withoutRecent { app.recents.remove(entry) } },
-                          clear: { withoutRecent { app.recents.clear() } })
-                .sidebarColumnWidth()
-                // With nothing in Recent there's no sidebar, and so nothing to toggle.
-                .toolbar(removing: entries.isEmpty ? .sidebarToggle : nil)
-        } detail: {
-            stage
-                .frame(minWidth: Self.stageMinWidth)
+        VStack(spacing: Space.xl) {
+            dropZone(size: entries.isEmpty ? Self.soloDropZoneSize : Self.dropZoneSize)
+            if !entries.isEmpty {
+                RecentList(entries: entries, recents: app.recents) { app.openRecent($0) }
+                    .frame(maxWidth: Self.dropZoneSize.width, maxHeight: .infinity)
+            }
         }
+        .padding(.horizontal, Space.xxl)
+        .padding(.bottom, Space.xxl)
+        .padding(.top, Space.l)
+        .frame(maxWidth: MainWindowSizing.welcomeSize.width, maxHeight: MainWindowSizing.welcomeSize.height)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minWidth: 560, minHeight: 480)
         // A quiet title bar: the traffic lights over the window, no title, no bar.
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        .frame(minWidth: 560, minHeight: 480)
-        // Files from Finder arrive on the stage's own target as URLs; drags that only promise
+        // Files from Finder arrive on the drop zone's own target as URLs; drags that only promise
         // an archive (Mail attachments, chat apps) fall through to here and are received first.
         .onDrop(of: OtherAppFiles.promisedTypes, isTargeted: $isPromiseTargeted) { providers in
             Task {
@@ -56,57 +48,19 @@ struct WelcomeView<Accessory: View>: View {
         }
     }
 
-    /// The sidebar shows whenever there's something in it, unless the toggle hid it.
-    private func columns(hasRecents: Bool) -> Binding<NavigationSplitViewVisibility> {
-        Binding {
-            hasRecents && !recentHidden ? .all : .detailOnly
-        } set: { visibility in
-            guard hasRecents else { return }
-            recentHidden = visibility == .detailOnly
-        }
-    }
-
-    /// Emptying Recent folds the sidebar away and the stage widens into its place: eased, quicker
-    /// than an arrival, and not at all under Reduce Motion or from the keyboard.
-    private func withoutRecent(_ change: () -> Void) {
-        withAnimation(reduceMotion ? nil : Motion.presence(false, reduceMotion: false), change)
-    }
-
-    private func showInFinder(_ entry: RecentArchives.Entry) {
-        NSWorkspace.shared.activateFileViewerSelecting([entry.url])
-    }
-
     private var highlighted: Bool { isTargeted || isPromiseTargeted }
 
-    /// Everything beside the sidebar takes drops, not only the dashed outline inside it.
-    private var stage: some View {
-        let gap = Space.s, margin = Self.stageMargin, cap = Self.dropZoneMax.height
-        return dropZone
-            .padding(.horizontal, Self.stageMargin)
-            .padding(.top, placement.top)
-            .padding(.bottom, placement.bottom)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .onGeometryChange(for: EdgeInsets.self) { proxy in
-                dropZonePlacement(stage: proxy.size.height, titleBar: proxy.safeAreaInsets.top,
-                                  gap: gap, margin: margin, cap: cap)
-            } action: { placement = $0 }
-            .contentShape(.rect)
-            .dropDestination(for: URL.self) { urls, _ in
-                handleDrop(urls)
-            } isTargeted: { isTargeted = $0 }
-            .safeAreaInset(edge: .bottom, spacing: 0) { accessory() }
-    }
-
-    private var dropZone: some View {
-        // The format list goes first when the stage is too narrow or too short for it.
-        ViewThatFits {
+    private func dropZone(size: CGSize) -> some View {
+        // Without the format list when a short window also has to fit the Recent list.
+        ViewThatFits(in: .vertical) {
             dropZoneContent(showsFormats: true)
             dropZoneContent(showsFormats: false)
         }
-        .padding(Space.l)
+        .padding(.horizontal, Space.xl)
+        .padding(.vertical, Space.l)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(maxWidth: Self.dropZoneMax.width, maxHeight: Self.dropZoneMax.height)
-        .frame(minHeight: 260)
+        .frame(maxWidth: size.width)
+        .frame(minHeight: 220, maxHeight: size.height)
         .background {
             RoundedRectangle(cornerRadius: Radius.panel + 4)
                 .fill(highlighted ? AnyShapeStyle(.tint.opacity(0.08)) : AnyShapeStyle(.clear))
@@ -115,6 +69,9 @@ struct WelcomeView<Accessory: View>: View {
         }
         .scaleEffect(highlighted && !reduceMotion ? 1.015 : 1)
         .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: highlighted)
+        .dropDestination(for: URL.self) { urls, _ in
+            handleDrop(urls)
+        } isTargeted: { isTargeted = $0 }
     }
 
     private func dropZoneContent(showsFormats: Bool) -> some View {
@@ -136,11 +93,8 @@ struct WelcomeView<Accessory: View>: View {
                 Text(highlighted ? String(localized: "Let go to open") : String(localized: "Drop to open or pack"))
                     .font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .contentTransition(.opacity)
-                // Narrow enough that the two sentences break between them, not one word from the end.
                 Text("An archive opens here; several are extracted. Anything else gets packed.")
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: 296)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if showsFormats {
@@ -157,7 +111,6 @@ struct WelcomeView<Accessory: View>: View {
                         .font(.caption2)
                 }
                 .foregroundStyle(.secondary)
-                .fixedSize()
                 .accessibilityElement(children: .combine)
             }
 
@@ -167,10 +120,8 @@ struct WelcomeView<Accessory: View>: View {
                     .buttonStyle(.glassProminent)
             }
             .controlSize(.large)
-            .fixedSize()
             .padding(.top, Space.s)
         }
-        .multilineTextAlignment(.center)
     }
 
     private func handleDrop(_ urls: [URL]) -> Bool {
@@ -187,58 +138,64 @@ struct WelcomeView<Accessory: View>: View {
     }
 }
 
-/// Room above and below the drop zone. It starts `gap` under the title bar, level with the Recent
-/// heading, and fills down to `margin` from the bottom; once `cap` stops it growing, the spare height
-/// centres it in the whole window rather than in the part below the title bar.
-private nonisolated func dropZonePlacement(stage: CGFloat, titleBar: CGFloat,
-                                           gap: CGFloat, margin: CGFloat, cap: CGFloat) -> EdgeInsets {
-    let height = min(cap, stage - gap - margin)
-    let above = max(gap, (stage - titleBar - height) / 2)
-    return EdgeInsets(top: above, leading: 0, bottom: max(margin, stage - height - above), trailing: 0)
-}
-
-extension WelcomeView where Accessory == EmptyView {
-    init() { self.init { EmptyView() } }
-}
-
-/// Archives opened before, newest first, in the column the archive card takes once one opens.
-private struct RecentSidebar: View {
+/// Archives opened before: name, folder and when, newest first.
+private struct RecentList: View {
     let entries: [RecentArchives.Entry]
+    let recents: RecentArchives
     let open: (RecentArchives.Entry) -> Void
-    let show: (RecentArchives.Entry) -> Void
-    let remove: (RecentArchives.Entry) -> Void
-    let clear: () -> Void
+
+    /// Which ends of the list have rows scrolled out of sight.
+    struct Edges: Equatable {
+        var above = false
+        var below = false
+    }
+
+    @State private var hidden = Edges()
+    /// Roughly one row: whatever row sits at the bottom edge is visibly on its way out.
+    private static let fade: CGFloat = 44
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                HStack(alignment: .firstTextBaseline) {
-                    SectionLabel(String(localized: "Recent"))
-                    Spacer()
-                    Button("Clear", action: clear)
-                        .buttonStyle(.plain)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .help("Clear the list of recent archives")
-                }
-                .padding(.horizontal, Space.s)
-                .padding(.bottom, Space.xs)
+        VStack(alignment: .leading, spacing: Space.s) {
+            HStack(alignment: .firstTextBaseline) {
+                SectionLabel(String(localized: "Recent"))
+                Spacer()
+                Button("Clear") { recents.clear() }
+                    .buttonStyle(.plain)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .help("Clear the list of recent archives")
+            }
+            .padding(.horizontal, Space.s)
 
+            ScrollView {
                 LazyVStack(spacing: 2) {
                     ForEach(entries) { entry in
                         RecentRow(entry: entry) { open(entry) }
                             .contextMenu {
-                                Button("Show in Finder") { show(entry) }
-                                Button("Remove from Recent") { remove(entry) }
+                                Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([entry.url]) }
+                                Button("Remove from Recent") { recents.remove(entry) }
                             }
                     }
                 }
             }
-            .padding(.horizontal, Space.s)
-            .padding(.top, Space.xs)
-            .padding(.bottom, Space.l)
+            .scrollBounceBehavior(.basedOnSize)
+            .onScrollGeometryChange(for: Edges.self) { geometry in
+                let below = geometry.contentSize.height - geometry.visibleRect.maxY
+                return Edges(above: geometry.visibleRect.minY > 1, below: below > 1)
+            } action: { _, edges in
+                hidden = edges
+            }
+            // An edge with more behind it fades over about a row, so a cut-off row reads as "scroll for more".
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: hidden.above ? Space.l : 0)
+                    Color.black
+                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: hidden.below ? Self.fade : 0)
+                }
+            }
         }
-        .scrollBounceBehavior(.basedOnSize)
     }
 }
 
@@ -248,28 +205,30 @@ private struct RecentRow: View {
 
     var body: some View {
         Button(action: open) {
-            HStack(spacing: Space.s + 2) {
-                // The archive card's badge in miniature: the same mark, in the same column.
+            HStack(spacing: Space.m) {
                 FormatBadge(format: ArchiveFormat.infer(fromName: SplitArchive.baseName(entry.name) ?? entry.name) ?? .other)
-                    .scaleEffect(0.7)
-                    .frame(width: 24, height: 28)
-                VStack(alignment: .leading, spacing: 1) {
+                    .scaleEffect(0.8)
+                    .frame(width: 28, height: 34)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(entry.name)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    // The folder gives way first, to its own name and then to an ellipsis; when it
-                    // was opened always reads in full. The whole path is in the tooltip.
-                    ViewThatFits(in: .horizontal) {
-                        caption(entry.folderDisplay).fixedSize()
-                        caption(entry.folder.lastPathComponent)
-                    }
+                    Text(entry.folderDisplay)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                }
+                Spacer(minLength: Space.s)
+                Text(entry.openedDisplay())
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .padding(.horizontal, Space.s)
-            .padding(.vertical, 5)
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(.rect)
         }
@@ -278,20 +237,6 @@ private struct RecentRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityHint(Text("Opens the archive"))
     }
-
-    private func caption(_ folder: String) -> some View {
-        HStack(spacing: 3) {
-            Text(folder)
-                .lineLimit(1)
-                .truncationMode(.head)
-            Text(verbatim: "·")
-                .accessibilityHidden(true)
-            Text(entry.openedDisplay())
-                .monospacedDigit()
-                .lineLimit(1)
-                .fixedSize()
-        }
-    }
 }
 
 private struct RecentButtonStyle: ButtonStyle {
@@ -299,9 +244,134 @@ private struct RecentButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(.primary.opacity(configuration.isPressed ? 0.1 : isHovering ? 0.06 : 0),
+            .background(.primary.opacity(configuration.isPressed ? 0.1 : isHovering ? 0.05 : 0),
                         in: .rect(cornerRadius: Radius.chip))
             .onHover { isHovering = $0 }
+    }
+}
+
+/// Stow has one main window: the welcome while no archive is open, the Browser once one is. The
+/// welcome gets a fixed, compact size that can't be resized, as welcome windows usually do, so a
+/// large window never leaves it floating in empty space. Opening an archive grows the window to the
+/// Browser's last size; closing it shrinks back. The title bar stays where it is both ways, and the
+/// window stays on screen. Full screen and zoomed windows keep their size, and stay resizable.
+@MainActor
+final class MainWindowSizing {
+    /// The welcome window's content size.
+    static let welcomeSize = CGSize(width: 640, height: 600)
+    private static let browserDefault = CGSize(width: 1120, height: 700)
+    private static let browserSizeKey = "mainWindow.browserSize"
+
+    private weak var window: NSWindow?
+    private var showsWelcome = true
+    /// The welcome is up at its fixed size, so the window can't be resized. SwiftUI turns resizing
+    /// back on when the content changes; `styleMask` is watched to keep it off.
+    private var locked = false
+    private var styleObservation: NSKeyValueObservation?
+    /// Where the welcome's top-left was before an archive opened, and where the Browser's was put.
+    /// Closing returns to the first unless the Browser was moved.
+    private var welcomeTopLeft: CGPoint?
+    private var browserTopLeft: CGPoint?
+    private var observers: [NSObjectProtocol] = []
+
+    /// A new main window (SwiftUI makes one each time it's reopened) takes the size of what it shows.
+    func attach(_ window: NSWindow, showsWelcome: Bool) {
+        guard window !== self.window else { return }
+        observers.forEach(NotificationCenter.default.removeObserver)
+        self.window = window
+        self.showsWelcome = showsWelcome
+        welcomeTopLeft = nil
+        browserTopLeft = nil
+        locked = false
+        styleObservation = window.observe(\.styleMask) { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.enforceLock() }
+        }
+        let center = NotificationCenter.default
+        let remember: @Sendable (Notification) -> Void = { [weak self] _ in MainActor.assumeIsolated { self?.rememberBrowserSize() } }
+        observers = [
+            center.addObserver(forName: NSWindow.didEndLiveResizeNotification, object: window, queue: .main, using: remember),
+            center.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main, using: remember),
+            center.addObserver(forName: NSWindow.didExitFullScreenNotification, object: window, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.fit(animated: false) }
+            },
+        ]
+        fit(animated: false)
+        // SwiftUI can still put its default or restored frame on the window as it comes on screen.
+        Task { @MainActor [weak self] in self?.fit(animated: false) }
+    }
+
+    /// The window switches between the welcome and the Browser. Animated only when a click or a
+    /// drop caused it, never from the keyboard or under Reduce Motion (DESIGN.md › Motion).
+    func show(welcome: Bool, animated: Bool) {
+        guard welcome != showsWelcome else { return }
+        if welcome { rememberBrowserSize() }
+        showsWelcome = welcome
+        fit(animated: animated)
+    }
+
+    private func fit(animated: Bool) {
+        guard let window, !window.styleMask.contains(.fullScreen) else { return }
+        let screen = (window.screen ?? NSScreen.main)?.visibleFrame ?? window.frame
+        let topLeft = CGPoint(x: window.frame.minX, y: window.frame.maxY)
+        let welcomeFrameSize = window.frameRect(forContentRect: CGRect(origin: .zero, size: Self.welcomeSize)).size
+        if showsWelcome {
+            // A Browser someone zoomed to fill the screen keeps that size and stays resizable.
+            guard locked || !window.isZoomed else { return }
+            let anchor = topLeft == browserTopLeft ? welcomeTopLeft ?? topLeft : topLeft
+            setLocked(true)
+            move(window, to: Self.frame(size: welcomeFrameSize, topLeft: anchor, in: screen), animated: animated, duration: 0.2)
+        } else {
+            let wasWelcome = locked
+            setLocked(false)
+            // A window SwiftUI opened straight into the Browser already has its own size.
+            guard wasWelcome || window.frame.size == welcomeFrameSize else { return }
+            let target = Self.frame(size: Self.browserSize, topLeft: topLeft, in: screen)
+            welcomeTopLeft = topLeft
+            browserTopLeft = CGPoint(x: target.minX, y: target.maxY)
+            move(window, to: target, animated: animated, duration: 0.25)
+        }
+    }
+
+    private func setLocked(_ locked: Bool) {
+        self.locked = locked
+        enforceLock()
+    }
+
+    private func enforceLock() {
+        guard let window, !window.styleMask.contains(.fullScreen) else { return }
+        if locked == window.styleMask.contains(.resizable) {
+            if locked { window.styleMask.remove(.resizable) } else { window.styleMask.insert(.resizable) }
+        }
+    }
+
+    private func rememberBrowserSize() {
+        guard !showsWelcome, let window, window.styleMask.contains(.resizable),
+              !window.styleMask.contains(.fullScreen) else { return }
+        UserDefaults.standard.set(NSStringFromSize(window.frame.size), forKey: Self.browserSizeKey)
+    }
+
+    private static var browserSize: CGSize {
+        let saved = UserDefaults.standard.string(forKey: browserSizeKey).map(NSSizeFromString) ?? .zero
+        return saved.width > 0 && saved.height > 0 ? saved : browserDefault
+    }
+
+    /// `size` hung from `topLeft`, moved back on screen where it would overhang, and no bigger than it.
+    private static func frame(size: CGSize, topLeft: CGPoint, in screen: CGRect) -> CGRect {
+        let width = min(size.width, screen.width), height = min(size.height, screen.height)
+        let x = min(max(topLeft.x, screen.minX), screen.maxX - width)
+        let top = min(max(topLeft.y, screen.minY + height), screen.maxY)
+        return CGRect(x: x, y: top - height, width: width, height: height)
+    }
+
+    private func move(_ window: NSWindow, to frame: CGRect, animated: Bool, duration: TimeInterval) {
+        guard window.frame != frame else { return }
+        guard animated, window.isVisible else { return window.setFrame(frame, display: true) }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            // A strong ease-out: the window answers the click at once and settles softly.
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1)
+            window.animator().setFrame(frame, display: true)
+        }
     }
 }
 

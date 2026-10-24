@@ -356,6 +356,7 @@ struct RootView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
     @State private var rootWindow: NSWindow?
+    @State private var windowSizing = MainWindowSizing()
 
     var body: some View {
         @Bindable var app = app
@@ -364,8 +365,8 @@ struct RootView: View {
                 BrowserView(model: browser)
                     .overlay(alignment: .bottom) { packActivity }
             } else {
-                // Below the drop zone, inside the stage, rather than under the Recent sidebar.
-                WelcomeView { packActivity }
+                // Below the welcome content rather than over the Recent row.
+                WelcomeView()
                     .navigationTitle("Stow")
                     .background {
                         WindowReader { window in
@@ -373,9 +374,19 @@ struct RootView: View {
                             window.isDocumentEdited = false
                         }
                     }
+                    .safeAreaInset(edge: .bottom, spacing: 0) { packActivity }
             }
         }
-        .background { WindowReader { rootWindow = $0 } }
+        .background {
+            WindowReader { window in
+                rootWindow = window
+                windowSizing.attach(window, showsWelcome: app.browser == nil)
+            }
+        }
+        // The welcome is a fixed, compact window; the Browser gets back its own size.
+        .onChange(of: app.browser == nil) { _, welcome in
+            windowSizing.show(welcome: welcome, animated: !Motion.byKeyboard && !reduceMotion)
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
             guard let window = notification.object as? NSWindow, window === rootWindow else { return }
             app.cancelOpening()

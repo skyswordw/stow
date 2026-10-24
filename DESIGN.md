@@ -34,11 +34,19 @@ And when packing: **"Will it work on their computer?"**
 | --- | --- | --- |
 | Main window | **Browser** | Sidebar (archive card + folder tree), content, inspector |
 | Compact quick window | **Glance** | Small floating window near the pointer for quick extract |
-| Context actions | **Next Steps** | Floating glass capsule that appears for a selection |
+| Context actions | **Actions** | Coherent floating action region for the current selection |
 | Drop shelf | **Tray** | Floating panel that collects files from anywhere |
 | Purpose presets | **"For…" destinations** | Windows PCs · Macs · Linux & servers · Web upload |
 | Compression dialog | **Pack sentence** | Sentence-builder with tappable tokens |
 | Safety report | **Checkup** | Badge on the archive card + detail popover |
+
+**Confirmed direction, 2026-10-24:** the full Browser remains the default; Glance is optional.
+The user chose **Actions** as the English public name. Existing builds still say “Next Steps”;
+[issue #161](https://github.com/skyswordw/stow/issues/161) tracks the public-copy and presentation
+transition. “快捷操作” is a proposed Simplified Chinese localization, pending copy review.
+Internal types and stored preference keys may retain their existing names. Preserve explicit
+user preferences. Other layout/material defaults remain proposals in the
+[product design review](Handoff/product-design-review-2026-10-24.md).
 
 ## Color
 
@@ -77,9 +85,9 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 
 | Moment | Motion | Value |
 | --- | --- | --- |
-| Next Steps capsule appears | Spring, from bottom, scale 0.96 → 1 + opacity | `response 0.32, damping 1.0` |
-| Next Steps content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
-| Floating chrome leaves (Next Steps, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
+| Actions region appears | Spring, from bottom, scale 0.96 → 1 + opacity | `response 0.32, damping 1.0` |
+| Actions content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
+| Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
 | Capsules or the inspector shown/hidden by a key (arrows, ⌘A, Esc, ⌥⌘I) | **None** | — |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
@@ -88,7 +96,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text | 180 ms |
-| Welcome's Recent sidebar folds away (Clear, removing the last one) | Ease-out, the stage widens into its place; **none** under Reduce Motion or from the keyboard | 180 ms |
+| Main window grows into the Browser / shrinks back to the welcome (click, drop) | Window frame eases out (`0.23, 1, 0.32, 1`), title bar stays put; **none** from the keyboard or under Reduce Motion | 250 ms grow, 200 ms shrink |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
 
@@ -104,12 +112,13 @@ Reduced Transparency: glass falls back to solid window background (the system do
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
   Windows, Mac-only files left out, the estimated size.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
-  Archives opened before sit in a **Recent sidebar** — the column the archive card takes once one
-  opens, so the window keeps the Browser's shape — and the drop zone fills the stage beside it,
-  capped and centred in a large window. With nothing to recall there is no sidebar and no toggle.
+  Like most welcome windows it has a **fixed, compact size** (640 × 600) that can't be resized or
+  zoomed: the drop zone on top, Recent below; with no history the drop zone is the whole window.
+  Opening an archive grows the same window to the Browser's last size with the title bar in place;
+  closing it shrinks back. Full-screen and zoomed windows keep their size.
 
 ## Not doing (on purpose)
 
-- No toolbar full of icons. Primary action (Extract) is prominent; the rest live in Next Steps and menus.
+- No toolbar full of icons. Primary action (Extract) is prominent; the rest live in Actions and menus.
 - No splash, no onboarding carousel.
 - No animated keyboard navigation, no bouncing on menus.
