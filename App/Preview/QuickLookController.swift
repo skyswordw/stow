@@ -53,7 +53,22 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
 
     func show() {
         reload(startLoading: false)
-        guard !items.isEmpty, let panel else { return }
+        guard !items.isEmpty else { return }
+        let needsPasswordRead = model?.archive.isEncrypted == true && items.contains(where: \.isPending)
+        // Keep the archive window in control while it may need to present a password sheet.
+        // The system panel takes control only once the encrypted reads have finished.
+        if needsPasswordRead, isVisible { panel?.orderOut(nil) }
+        presentationRequested = true
+        if needsPasswordRead {
+            loadPendingItems(presentAfterLoading: true)
+        } else {
+            presentPanel()
+            loadPendingItems()
+        }
+    }
+
+    private func presentPanel() {
+        guard presentationRequested, let panel else { return }
         if panel.dataSource !== self {
             panel.dataSource = self
             panel.delegate = self
@@ -61,23 +76,19 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         panel.makeKeyAndOrderFront(nil)
         panel.reloadData()
         presentationRequested = true
-        // Taking control of the system panel can end its previous controller's session.
-        // Start reads only after that handoff, so it cannot cancel a new password request.
-        loadPendingItems()
     }
 
     func close() {
         presentationRequested = false
         loads?.cancel()
         loads = nil
-        if panel?.dataSource === self { panel?.orderOut(nil) }
+        if QLPreviewPanel.sharedPreviewPanelExists(), panel?.dataSource === self { panel?.orderOut(nil) }
     }
 
     /// The browser's selection changed while the panel is open.
     func selectionChanged() {
         guard isVisible else { return }
-        reload()
-        panel?.reloadData()
+        show()
     }
 
     /// Rebuilds the items from the browser's selection and starts extracting what isn't on disk yet.
@@ -104,7 +115,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         if startLoading { loadPendingItems() }
     }
 
-    private func loadPendingItems() {
+    private func loadPendingItems(presentAfterLoading: Bool = false) {
         guard let model else { return }
         let archive = model.archive
         let wanted = items.filter(\.isPending)
@@ -124,7 +135,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
                         close()
                         return
                     }
-                    refreshPreview(item)
+                    if !presentAfterLoading { refreshPreview(item) }
                     continue
                 }
                 guard !Task.isCancelled, let self else { return }
@@ -132,8 +143,13 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
                 pinned.append(url)
                 item.url = url
                 item.isPending = false
-                refreshPreview(item)
+                if !presentAfterLoading { refreshPreview(item) }
             }
+            guard !Task.isCancelled, presentAfterLoading, let self, presentationRequested else { return }
+            // Releasing the loading task before panel handoff keeps endPreviewPanelControl
+            // from cancelling a completed password/read operation.
+            loads = nil
+            presentPanel()
         }
     }
 
@@ -141,11 +157,6 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         guard let panel, panel.dataSource === self else { return }
         guard panel.currentPreviewItem === item else { return }
         panel.refreshCurrentPreviewItem()
-        // A password sheet can hide the system panel. Resume the explicit preview request
-        // after the read finishes, unless it was cancelled or the panel relinquished control.
-        if presentationRequested {
-            panel.makeKeyAndOrderFront(nil)
-        }
     }
 
     static func message(for error: EngineError) -> String {
