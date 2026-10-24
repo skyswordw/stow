@@ -93,6 +93,8 @@ struct ArchiveLockRow: View {
     private func row(_ state: ArchiveLockState) -> some View {
         HStack(spacing: 6) {
             ZStack {
+                // The glyph always sets the slot's size, so the shorter spinner can't shrink the row.
+                Image(systemName: "lock.fill").hidden()
                 if state == .checking {
                     ProgressView().controlSize(.mini)
                 } else {

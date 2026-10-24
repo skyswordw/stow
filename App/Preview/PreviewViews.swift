@@ -209,20 +209,30 @@ struct RichPreviewView: View {
                         .multilineTextAlignment(.center)
                 }
                 if isLocked {
-                    // A spinner in place while this file's password is checked; the button keeps its size.
+                    // A spinner in place while this file's password is checked. Both titles and the
+                    // glyph stay in the layout (hidden), so the button keeps one size in both states.
+                    let title = model.isUnlocking ? String(localized: "Checking password…") : String(localized: "Enter Password…")
                     Button {
                         model.unlockArchive(for: entry)
                     } label: {
                         Label {
-                            Text(model.isUnlocking ? String(localized: "Checking password…") : String(localized: "Enter Password…"))
+                            ZStack {
+                                Text("Enter Password…").hidden()
+                                Text("Checking password…").hidden()
+                                Text(title)
+                            }
                         } icon: {
-                            if model.isUnlocking {
-                                ProgressView().controlSize(.mini)
-                            } else {
-                                Image(systemName: "lock.fill")
+                            ZStack {
+                                Image(systemName: "lock.fill").hidden()
+                                if model.isUnlocking {
+                                    ProgressView().controlSize(.mini)
+                                } else {
+                                    Image(systemName: "lock.fill")
+                                }
                             }
                         }
                     }
+                    .accessibilityLabel(title)
                     .disabled(model.isUnlocking)
                     .padding(.top, Space.xs)
                 }
