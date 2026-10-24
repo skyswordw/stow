@@ -1,6 +1,52 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Remove %lld Items from Tray": {
+      "comment": "The Tray's More menu with several items selected. The files stay where they are.",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Remove %lld Item from Tray"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Remove %lld Items from Tray"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "从托盘中移除 %lld 个项目"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Put back on the Tray": {
+      "comment": "VoiceOver announcement after undoing a removal from the Tray.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已放回托盘"
+          }
+        }
+      }
+    },
     "Stow puts copies in a new folder. The originals stay where they are.": {
       "comment": "Collect into a Folder, in the Tray.",
       "localizations": {

@@ -216,6 +216,71 @@ struct TrayTests {
         #expect(tray.collectingName == "Mine") // a typed name stays
     }
 
+    @Test @MainActor func removingTakesTheSelectionAndCanBeUndone() throws {
+        let root = try folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let urls = try ["a.txt", "b.txt", "c.txt", "d.txt"].map { name in
+            let url = root.appending(path: name)
+            try Data(name.utf8).write(to: url)
+            return url
+        }
+        let tray = TrayController()
+        tray.add(urls)
+        tray.removeSelected() // nothing selected: nothing removed
+        #expect(tray.items.count == 4)
+        let (a, b, c, d) = (tray.items[0], tray.items[1], tray.items[2], tray.items[3])
+        tray.click(b, command: false, shift: false)
+        tray.click(d, command: true, shift: false)
+        tray.removeSelected()
+        #expect(tray.items.map(\.name) == ["a.txt", "c.txt"])
+        #expect(tray.selection.isEmpty)
+        #expect(tray.undoManager.undoActionName == "Remove from Tray")
+        tray.undoManager.undo()
+        #expect(tray.items.map(\.name) == ["a.txt", "b.txt", "c.txt", "d.txt"]) // back in place
+        #expect(tray.selection == [b.id, d.id])
+        tray.undoManager.redo()
+        #expect(tray.items.map(\.name) == ["a.txt", "c.txt"])
+        #expect(FileManager.default.fileExists(atPath: urls[1].path)) // the Tray never touches the file
+
+        // A row's own ⓧ takes only that row, even inside a selection.
+        tray.click(a, command: false, shift: false)
+        tray.click(c, command: true, shift: false)
+        tray.remove(c)
+        #expect(tray.items.map(\.name) == ["a.txt"])
+        #expect(tray.selection == [a.id])
+
+        tray.clear()
+        #expect(tray.items.isEmpty)
+        #expect(tray.undoManager.undoActionName == "Clear Tray")
+        tray.undoManager.undo()
+        #expect(tray.items.map(\.name) == ["a.txt"])
+    }
+
+    @Test @MainActor func undoDoesNotDoubleAFileDroppedAgain() throws {
+        let root = try folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let a = root.appending(path: "a.txt")
+        try Data("a".utf8).write(to: a)
+        let tray = TrayController()
+        tray.add([a])
+        tray.clear()
+        tray.add([a])
+        tray.undoManager.undo() // undoes the clear: a is already back
+        #expect(tray.items.count == 1)
+    }
+
+    @Test @MainActor func aMenuOnAnUnselectedRowSelectsItFirst() {
+        let tray = TrayController()
+        tray.items = [TrayItem(name: "a", size: 1), TrayItem(name: "b", size: 1), TrayItem(name: "c", size: 1)]
+        let (a, b, c) = (tray.items[0], tray.items[1], tray.items[2])
+        tray.click(a, command: false, shift: false)
+        tray.click(b, command: true, shift: false)
+        tray.selectForMenu(b.id) // part of the selection: the whole selection stays
+        #expect(tray.selection == [a.id, b.id])
+        tray.selectForMenu(c.id) // outside it: that row alone
+        #expect(tray.selection == [c.id])
+    }
+
     @Test @MainActor func trayBrowsesIntoFolders() throws {
         let root = try folder()
         defer { try? FileManager.default.removeItem(at: root) }

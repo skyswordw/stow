@@ -35,6 +35,14 @@ final class TrayController {
     /// view can point them out for a moment. Cleared by itself.
     private(set) var arrived: Set<UUID> = []
     @ObservationIgnored private var arrivalTask: Task<Void, Never>?
+    /// The Tray's own history: Remove and Clear Tray can be undone (⌘Z) while the Tray is in front.
+    /// Its own, so ⌘Z in the Tray never reaches an archive's staged edits.
+    /// Each removal is one step, grouped here rather than by event, so two quick removals never undo together.
+    let undoManager: UndoManager = {
+        let manager = UndoManager()
+        manager.groupsByEvent = false
+        return manager
+    }()
     weak var app: AppState?
 
     @ObservationIgnored private var panel: TrayPanel?
@@ -300,23 +308,68 @@ final class TrayController {
         collectProblem = String(localized: "This folder already has an item named “\(name)”.")
     }
 
+    /// A row's own ⓧ: that row only, whatever else is selected.
     func remove(_ item: TrayItem) {
-        items.removeAll { $0.id == item.id }
-        selection.remove(item.id)
-        collected = nil
+        takeOff([item.id], actionName: String(localized: "Remove from Tray"))
     }
 
+    /// ⌫, ⌘⌫ and Remove from Tray: everything selected. Nothing selected, nothing removed (Clear
+    /// Tray is for all of it). The files themselves never move.
     func removeSelected() {
-        guard path.isEmpty else { return }
-        items.removeAll { selection.contains($0.id) }
-        selection = []
-        collected = nil
+        guard path.isEmpty, !selection.isEmpty else { return }
+        takeOff(selection, actionName: String(localized: "Remove from Tray"))
     }
 
     func clear() {
-        items = []
         path = []
-        selection = []
+        takeOff(Set(items.map(\.id)), actionName: String(localized: "Clear Tray"))
+    }
+
+    /// Takes rows off the Tray and registers putting them back, so ⌘Z restores them in place.
+    private func takeOff(_ ids: Set<UUID>, actionName: String) {
+        let removed = items.enumerated().filter { ids.contains($0.element.id) }.map { (index: $0.offset, item: $0.element) }
+        guard !removed.isEmpty else { return }
+        let selected = selection
+        items.removeAll { ids.contains($0.id) }
+        selection.subtract(ids)
+        collected = nil
+        registerUndo(actionName) { tray in
+            tray.putBack(removed, selection: selected.intersection(ids), actionName: actionName)
+        }
+    }
+
+    /// One undo step. While undoing or redoing, the manager is already collecting the inverse step.
+    private func registerUndo(_ actionName: String, _ handler: @escaping (TrayController) -> Void) {
+        let grouping = !undoManager.isUndoing && !undoManager.isRedoing
+        if grouping { undoManager.beginUndoGrouping() }
+        undoManager.registerUndo(withTarget: self, handler: handler)
+        undoManager.setActionName(actionName)
+        if grouping { undoManager.endUndoGrouping() }
+    }
+
+    /// Undo: the rows return where they were (a file dropped again since isn't doubled), ringed
+    /// like a drop, and the step can be redone.
+    private func putBack(_ removed: [(index: Int, item: TrayItem)], selection restored: Set<UUID>, actionName: String) {
+        let present = Set(items.compactMap { $0.url?.standardizedFileURL.path })
+        var back: [TrayItem] = []
+        for entry in removed.sorted(by: { $0.index < $1.index }) {
+            if let path = entry.item.url?.standardizedFileURL.path, present.contains(path) { continue }
+            items.insert(entry.item, at: min(entry.index, items.count))
+            back.append(entry.item)
+        }
+        let ids = Set(back.map(\.id))
+        selection = restored.intersection(ids)
+        registerUndo(actionName) { tray in tray.takeOff(ids, actionName: actionName) }
+        guard !ids.isEmpty else { return }
+        mark(ids, announcing: String(localized: "Put back on the Tray"))
+    }
+
+    /// Right-click or ⌃-click on a row: the menu acts on that row. Selected already, the whole
+    /// selection stays; otherwise the row becomes the selection first, as in Finder.
+    func selectForMenu(_ id: UUID) {
+        guard !selection.contains(id) else { return }
+        selection = [id]
+        anchor = id
         collected = nil
     }
 
@@ -555,9 +608,12 @@ final class TrayController {
         // key, which showed as square corners behind the rounded panel.
         panel.hasShadow = false
         panel.hidesOnDeactivate = false
-        let host = NSHostingView(rootView: TrayView(tray: self).environment(app ?? AppState()))
+        let host = TrayHostingView(rootView: TrayView(tray: self).environment(app ?? AppState()))
         host.sizingOptions = []
+        host.trayUndoManager = undoManager
         panel.contentView = host
+        panel.trayUndoManager = undoManager
+        panel.onDelete = { [weak self] in self?.removeSelected() }
         installRowDrag(in: panel)
         moveObserver = NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: panel,
                                                               queue: .main) { [weak self, weak panel] _ in
@@ -571,7 +627,7 @@ final class TrayController {
 
     /// Dragging any selected row drags every selected item out (files are real, so plain URLs).
     private func installRowDrag(in panel: TrayPanel) {
-        rowMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self, weak panel] event in
+        rowMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown]) { [weak self, weak panel] event in
             let box = TrayEventBox(event: event)
             return MainActor.assumeIsolated {
                 TrayEventBox(event: self?.handleRow(box.event, in: panel) ?? box.event)
@@ -582,6 +638,10 @@ final class TrayController {
     private func handleRow(_ event: NSEvent?, in panel: TrayPanel?) -> NSEvent? {
         guard let event, let panel, event.window === panel else { return event }
         switch event.type {
+        case .rightMouseDown:
+            if let hoveredRow { selectForMenu(hoveredRow) }
+        case .leftMouseDown where event.modifierFlags.contains(.control):
+            if let hoveredRow { selectForMenu(hoveredRow) }
         case .leftMouseDown:
             press = hoveredRow.map { (event.locationInWindow, $0) }
             dragStarted = false
@@ -625,8 +685,57 @@ private final class StatusTarget: NSObject {
 final class TrayPanel: NSPanel, QLPreviewPanelDataSource, NSDraggingSource {
     nonisolated(unsafe) var previewURLs: [URL] = []
     var border: TrayBorder = .accent
+    /// ⌫ and ⌘⌫ outside a text field.
+    var onDelete: (() -> Void)?
+    var trayUndoManager: UndoManager?
 
     override var canBecomeKey: Bool { true }
+    override var undoManager: UndoManager? { trayUndoManager ?? super.undoManager }
+
+    private var editingText: NSTextView? {
+        (firstResponder as? NSTextView).flatMap { $0.isEditable ? $0 : nil }
+    }
+
+    /// ⌫ or ⌦, alone or with ⌘ only.
+    private static func deleteKey(_ event: NSEvent) -> (isDelete: Bool, command: Bool) {
+        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        let isDelete = event.type == .keyDown && (event.keyCode == 51 || event.keyCode == 117)
+            && (modifiers.isEmpty || modifiers == .command)
+        return (isDelete, modifiers == .command)
+    }
+
+    /// The Tray answers its own ⌘ keys first. ⌘⌫ is also the Browser's Edit › Delete, which works on
+    /// the archive window, so here it removes from the Tray and never reaches that command; even
+    /// in the folder-name field, where it deletes to the start of the line as usual. ⌘Z and ⇧⌘Z
+    /// go straight to the Tray's history.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let key = Self.deleteKey(event)
+        if key.isDelete {
+            if let text = editingText {
+                guard key.command else { return super.performKeyEquivalent(with: event) }
+                text.deleteToBeginningOfLine(nil)
+            } else {
+                onDelete?()
+            }
+            return true
+        }
+        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        if editingText == nil, event.charactersIgnoringModifiers?.lowercased() == "z", let undo = trayUndoManager {
+            if modifiers == .command { if undo.canUndo { undo.undo() }; return true }
+            if modifiers == [.command, .shift] { if undo.canRedo { undo.redo() }; return true }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
+    /// A plain ⌫ that didn't come through as a key equivalent.
+    override func sendEvent(_ event: NSEvent) {
+        let key = Self.deleteKey(event)
+        if key.isDelete, !key.command, editingText == nil {
+            onDelete?()
+            return
+        }
+        super.sendEvent(event)
+    }
 
     nonisolated override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
     nonisolated override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
@@ -651,6 +760,13 @@ final class TrayPanel: NSPanel, QLPreviewPanelDataSource, NSDraggingSource {
 }
 
 private struct TrayPreviewBox: @unchecked Sendable { let panel: QLPreviewPanel? }
+
+/// The Tray's content view hands Edit › Undo the Tray's history, so the menu reads
+/// "Undo Remove from Tray" while the Tray is in front.
+final class TrayHostingView<Content: View>: NSHostingView<Content> {
+    var trayUndoManager: UndoManager?
+    override var undoManager: UndoManager? { trayUndoManager ?? super.undoManager }
+}
 
 // MARK: - View
 
@@ -704,7 +820,6 @@ struct TrayView: View {
         .padding(Self.shadowMargin)
         .onHover { tray.isHovered = $0 }
         .onKeyPress(.space) { tray.quickLook(); return .handled }
-        .onKeyPress(.delete) { tray.removeSelected(); return .handled }
     }
 
 
@@ -839,7 +954,22 @@ struct TrayView: View {
                 withAnimation(reduceMotion ? nil : Motion.current(Motion.status)) { proxy.scrollTo(last.id) }
             }
         }
-        .contextMenu { actionsMenu }
+        .contextMenu {
+            actionsMenu
+            Divider()
+            // No count here: the menu can be built before a right-click's new selection is drawn.
+            removeButton(counted: false)
+        }
+    }
+
+    /// Removes the selection from the Tray (the files stay). It shows ⌫, which the panel answers.
+    private func removeButton(counted: Bool) -> some View {
+        let count = tray.selection.count
+        return Button(counted && count > 1 ? String(localized: "Remove \(count) Items from Tray") : String(localized: "Remove from Tray")) {
+            tray.removeSelected()
+        }
+        .keyboardShortcut(.delete, modifiers: [])
+        .disabled(tray.selection.isEmpty || tray.folderTitle != nil)
     }
 
     @ViewBuilder private var actionsMenu: some View {
@@ -909,6 +1039,7 @@ struct TrayView: View {
             Menu {
                 actionsMenu
                 Divider()
+                removeButton(counted: true)
                 Button("Clear Tray") { tray.clear() }
             } label: {
                 Label("More", systemImage: "ellipsis")
