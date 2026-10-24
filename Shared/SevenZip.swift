@@ -4,7 +4,7 @@ import Synchronization
 /// What 7-Zip reads: a path (tests, tools), or a descriptor Stow opened and sent over XPC.
 nonisolated enum ArchiveInput: Sendable {
     case file(URL)
-    /// Read as fd 3 through a link named like the archive, so 7-Zip still gets the extension hint.
+    /// Materialized from this authorized handle inside the engine before launching 7-Zip.
     case descriptor(FileHandle, name: String)
 }
 
@@ -425,8 +425,9 @@ nonisolated struct SevenZip: Sendable {
         }
     }
 
-    /// The archive as a path 7-Zip can open; for a descriptor, a link to `/dev/fd/3`.
-    private struct Prepared {
+    /// A real engine-owned file lets the sandboxed child reopen app-private XPC inputs.
+    /// Copy through the handle: resolving /dev/fd would require path access the child lacks.
+    struct Prepared {
         let path: String
         let descriptor: Int32?
         private let folder: URL?
@@ -441,15 +442,38 @@ nonisolated struct SevenZip: Sendable {
                 let folder = FileManager.default.temporaryDirectory
                     .appending(path: "stow-in-\(UUID().uuidString)", directoryHint: .isDirectory)
                 let safeName = (name as NSString).lastPathComponent
-                let link = folder.appending(path: safeName.isEmpty || safeName == ".." ? "archive" : safeName)
+                let link = folder.appending(path: safeName.isEmpty || safeName == "." || safeName == ".." ? "archive" : safeName)
                 do {
-                    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-                    try FileManager.default.createSymbolicLink(atPath: link.path, withDestinationPath: "/dev/fd/3")
+                    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
+                                                            attributes: [.posixPermissions: 0o700])
+                    guard FileManager.default.createFile(atPath: link.path, contents: nil,
+                                                         attributes: [.posixPermissions: 0o600]) else {
+                        throw EngineError(.failed)
+                    }
+                    let output = try FileHandle(forWritingTo: link)
+                    defer { try? output.close() }
+                    var offset: off_t = 0
+                    var buffer = [UInt8](repeating: 0, count: 1_048_576)
+                    while true {
+                        if Task.isCancelled { throw EngineError(.cancelled) }
+                        let count = buffer.withUnsafeMutableBytes {
+                            pread(handle.fileDescriptor, $0.baseAddress, $0.count, offset)
+                        }
+                        if count < 0 {
+                            if errno == EINTR { continue }
+                            throw EngineError(.failed, String(cString: strerror(errno)))
+                        }
+                        if count == 0 { break }
+                        try output.write(contentsOf: Data(buffer.prefix(count)))
+                        offset += off_t(count)
+                    }
+                    try output.close()
                 } catch {
-                    throw EngineError(.failed, error.localizedDescription)
+                    try? FileManager.default.removeItem(at: folder)
+                    throw EngineError(error)
                 }
                 path = link.path
-                descriptor = handle.fileDescriptor
+                descriptor = nil
                 self.folder = folder
             }
         }

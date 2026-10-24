@@ -194,10 +194,11 @@ private struct GridTile: View {
             }
         }
         .contentShape(.rect)
-        .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
-        .accessibilityLabel(model.accessibilityLabel(for: entry))
-        .accessibilityAction { model.select([entry.id]); model.open(entry) }
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        .archiveEntryAccessibility(entry: entry,
+                                   isRenaming: model.renamingPath == entry.path) {
+            model.select([entry.id])
+            model.open(entry)
+        }
     }
 
     /// Size (or where, while searching), then a staged edit's tag: "3.9 MB · Renamed".
@@ -285,9 +286,11 @@ struct ContentList: View {
                     }
                     .opacity(entry.isHelper ? 0.55 : 1)
                     .contentShape(.rect)
-                    .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
-                    .accessibilityLabel(model.accessibilityLabel(for: entry))
-                    .accessibilityAddTraits(model.selection.contains(entry.id) ? .isSelected : [])
+                    .archiveEntryAccessibility(entry: entry,
+                                               isRenaming: model.renamingPath == entry.path) {
+                        model.select([entry.id])
+                        model.open(entry)
+                    }
                     .hoverPreview(for: entry, model: hover, browser: model)
                     .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
                 }

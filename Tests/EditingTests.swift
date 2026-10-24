@@ -143,6 +143,36 @@ struct EditingTests {
         return output.appending(path: "sample." + format.fileExtension)
     }
 
+    @Test(arguments: [PackFormat.zip, .sevenZip, .tar])
+    func privateDescriptorCanBeListedAndRead(format: PackFormat) async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let archive = try await fixture(format, in: root)
+        let handle = try FileHandle(forReadingFrom: archive)
+        defer { try? handle.close() }
+        let input = ArchiveInput.descriptor(handle, name: archive.lastPathComponent)
+        let engine = try #require(SevenZip.bundled())
+        let listing = try await engine.list(input)
+        #expect(listing.entries.contains { $0.path == "folder/b" })
+        try await engine.test(input) { _ in }
+    }
+
+    @Test(arguments: [PackFormat.zip, .sevenZip])
+    func encryptedPrivateDescriptorRetainsPasswordBehavior(format: PackFormat) async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let archive = try await fixture(format, in: root, password: "secret")
+        let handle = try FileHandle(forReadingFrom: archive)
+        defer { try? handle.close() }
+        let engine = try #require(SevenZip.bundled())
+        let input = ArchiveInput.descriptor(handle, name: archive.lastPathComponent)
+        try await engine.test(input, password: "secret") { _ in }
+        do {
+            try await engine.test(input, password: "wrong") { _ in }
+            Issue.record("Wrong password succeeded")
+        } catch { #expect(error.failure == .wrongPassword) }
+    }
+
     private func staged(_ root: URL, path: String, text: String) throws -> TreeStream.Item {
         let url = root.appending(path: UUID().uuidString)
         try Data(text.utf8).write(to: url)

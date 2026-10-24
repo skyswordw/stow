@@ -118,7 +118,7 @@ jobs:
           ALLOWED_SKIPS: "0"
           # 390 after explicit unlock, preview and late-cancellation coverage (#90).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "391"
+          MIN_TESTS: "397"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

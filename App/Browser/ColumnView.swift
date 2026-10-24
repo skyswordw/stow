@@ -154,10 +154,11 @@ private struct Row: View {
         }
         .padding(.horizontal, 6)
         .contentShape(.rect)
-        .accessibilityElement(children: model.renamingPath == entry.path ? .contain : .combine)
-        .accessibilityLabel(model.accessibilityLabel(for: entry))
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
-        .accessibilityAction { model.select([entry.id]); model.open(entry) }
+        .archiveEntryAccessibility(entry: entry,
+                                   isRenaming: model.renamingPath == entry.path) {
+            model.select([entry.id])
+            model.open(entry)
+        }
     }
 }
 
