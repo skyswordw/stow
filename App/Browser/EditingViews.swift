@@ -319,6 +319,15 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
     }
     func windowWillReturnUndoManager(_ window: NSWindow) -> UndoManager? { model?.editingUndoManager }
 
+    func windowDidBecomeKey(_ notification: Notification) {
+        // Full and Glance retain separate delegates and hosted views. Reopening either window
+        // does not move WindowReader into it again, so reclaim editing ownership on activation.
+        if let window = notification.object as? NSWindow, window === self.window, let model {
+            attach(window, model: model)
+        }
+        original?.windowDidBecomeKey?(notification)
+    }
+
     nonisolated override func responds(to selector: Selector!) -> Bool {
         if super.responds(to: selector) { return true }
         return MainActor.assumeIsolated { original?.responds(to: selector) == true }

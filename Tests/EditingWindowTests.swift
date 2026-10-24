@@ -248,4 +248,34 @@ struct EditingWindowTests {
         #expect(routing.manager(in: window) !== model.editingUndoManager)
         #expect(model.editingUndoManager.canUndo)
     }
+
+    private final class KeyWindowDelegate: NSObject, NSWindowDelegate {
+        var activations = 0
+        func windowDidBecomeKey(_ notification: Notification) { activations += 1 }
+    }
+
+    @Test func retainedFullAndGlanceDelegatesReclaimEditingOnActivation() {
+        let model = BrowserModel(archive: archive()), full = hostingWindow(), glance = hostingWindow()
+        let fullOriginal = KeyWindowDelegate(), glanceOriginal = KeyWindowDelegate()
+        full.delegate = fullOriginal
+        glance.delegate = glanceOriginal
+        let fullDelegate = EditingWindowDelegate(), glanceDelegate = EditingWindowDelegate()
+        let routing = EditingUndoCommandsModel()
+        fullDelegate.attach(full, model: model)
+        model.editSession.rename("a.txt", to: "b.txt")
+        glanceDelegate.attach(glance, model: model)
+        routing.perform(.undo, in: glance)
+        #expect(model.editingWindow === glance && model.editSession.operations.isEmpty)
+        // Both view trees remain attached; returning to full must not need WindowReader to rerun.
+        fullDelegate.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification, object: full))
+        #expect(model.editingWindow === full && fullOriginal.activations == 1)
+        #expect(routing.manager(in: full)?.canRedo == true)
+        routing.perform(.redo, in: full)
+        #expect(full.isDocumentEdited && model.editSession.operations.count == 1)
+        glanceDelegate.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification, object: glance))
+        #expect(model.editingWindow === glance && glanceOriginal.activations == 1)
+        #expect(glance.isDocumentEdited && routing.manager(in: glance)?.canUndo == true)
+        routing.perform(.undo, in: glance)
+        #expect(model.editSession.operations.isEmpty)
+    }
 }

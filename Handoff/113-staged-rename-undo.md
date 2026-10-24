@@ -35,13 +35,21 @@ menu state; equal snapshots do not trigger a window/menu refresh loop.
 The existing model-owned history still survives full/Glance switching. Successful saves
 clear saved-session actions; failed saves retain operations and undo history.
 
+Full and Glance retain separate hosted view trees and delegates. Native validation found
+that returning to an existing full window did not rerun WindowReader: editingWindow still
+pointed to Glance. Each delegate now reclaims ownership when its own window becomes key
+and forwards that event to its original delegate. The redundant level-change callback
+that could attach a hidden full view's delegate to the active Glance window is removed;
+connectEdits already assigns each new session synchronously.
+
 ## Regression coverage
 
-Four additional tests cover a hosted window whose undo getter ignores its delegate,
+Five additional tests cover a hosted window whose undo getter ignores its delegate,
 command dispatch, empty field-editor history, archive/window isolation, save locking,
-and attached-sheet exclusion. The earlier plain-window tests remain to cover ordinary
+attached-sheet exclusion, and two retained delegates restoring ownership on activation.
+The earlier plain-window tests remain to cover ordinary
 AppKit windows. Existing real-ZIP tests cover successful and failed save histories.
-The CI floor is 425 tests.
+The CI floor is 426 tests.
 
 The first native candidate passed Edit > Undo Rename, keyboard Redo, and search Undo
 Typing without changing the staged archive rename. Final packaged verification is
