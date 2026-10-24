@@ -60,13 +60,13 @@ nonisolated enum CodeSignature {
                                detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")) and checked by Apple for malware."))
             case .notNotarized(let signer):
                 CheckupFinding(severity: .caution, title: String(localized: "Not notarized by Apple"),
-                               detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")), but Apple hasn’t checked it for malware. macOS will block it the first time unless you allow it in System Settings › Privacy & Security."))
+                               detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")), but Apple hasn’t checked it for malware. macOS may block it when you open it, depending on its download history and your Mac’s security settings."))
             case .adHoc:
                 CheckupFinding(severity: .caution, title: String(localized: "Not signed by a known developer"),
-                               detail: String(localized: "It carries only a local signature, so nobody vouches for who made it. macOS will block it the first time it opens."))
+                               detail: String(localized: "It carries only a local signature, so nobody vouches for who made it. macOS may block it when you open it, depending on its download history and your Mac’s security settings."))
             case .unsigned:
                 CheckupFinding(severity: .caution, title: String(localized: "Not signed"),
-                               detail: String(localized: "There’s no signature, so there’s no way to tell who made it or whether it was changed. macOS will block it the first time it opens."))
+                               detail: String(localized: "There’s no signature, so there’s no way to tell who made it or whether it was changed. macOS may block it when you open it, depending on its download history and your Mac’s security settings."))
             case .broken:
                 CheckupFinding(severity: .caution, title: String(localized: "Signature is broken"),
                                detail: String(localized: "Files inside changed after the developer signed it. It may be damaged or tampered with — get a fresh copy from the developer."))

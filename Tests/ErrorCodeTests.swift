@@ -13,7 +13,7 @@ struct ErrorCodeTests {
             "notAnArchive": 100, "noReadAccess": 101, "missingVolume": 102, "passwordRequired": 110, "wrongPassword": 111,
             "damagedData": 120, "damagedStructure": 121, "diskFull": 130, "noWriteAccess": 140,
             "engineMissing": 150, "engineOutdated": 151, "engineStopped": 152,
-            "changedOnDisk": 160, "cancelled": 170, "limit": 180, "unknown": 199,
+            "changedOnDisk": 160, "cancelled": 170, "limit": 180, "appRunning": 181, "unknown": 199,
         ])
         #expect(ErrorCode.Area.allCases.map(\.rawValue) == ["OPN", "EXT", "INS", "PCK", "CPY", "GEN"])
         #expect(ErrorCode(.extract, .damagedData).description == "EXT-120")
