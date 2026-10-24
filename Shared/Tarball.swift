@@ -19,11 +19,6 @@ nonisolated extension SevenZip {
     private static let tarSuffixes = [".tar.gz", ".tgz", ".tar.xz", ".txz", ".tar.bz2", ".tbz", ".tbz2", ".tb2",
                                       ".tar.zst", ".tzst", ".tar.lz", ".tar.lzma", ".tlz", ".tar.z", ".taz"]
 
-    private static func safe(_ name: String) -> String {
-        let last = (name as NSString).lastPathComponent
-        return last.isEmpty || last == ".." ? "archive.tar.gz" : last
-    }
-
     /// Decided by name, the same way for listing and extracting, so what's shown is what extracts.
     static func isTarball(name: String) -> Bool {
         let lower = name.lowercased()
@@ -40,24 +35,9 @@ nonisolated extension SevenZip {
     /// Extracts from the tar inside, like `extract` (paths empty means everything).
     func extractTarball(_ archive: ArchiveInput, into directory: URL, paths: [String],
                         progress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> [RemovedLink] {
-        // Like `Prepared`: a descriptor is read as fd 3 through a link named like the archive.
-        let path: String, descriptor: Int32?, folder: URL?
-        switch archive {
-        case .file(let url):
-            (path, descriptor, folder) = (url.path, nil, nil)
-        case .descriptor(let handle, let name):
-            let link = FileManager.default.temporaryDirectory
-                .appending(path: "stow-in-\(UUID().uuidString)", directoryHint: .isDirectory)
-            do {
-                try FileManager.default.createDirectory(at: link, withIntermediateDirectories: true)
-                try FileManager.default.createSymbolicLink(atPath: link.appending(path: Self.safe(name)).path,
-                                                           withDestinationPath: "/dev/fd/3")
-            } catch {
-                throw EngineError(.failed, error.localizedDescription)
-            }
-            (path, descriptor, folder) = (link.appending(path: Self.safe(name)).path, handle.fileDescriptor, link)
-        }
-        defer { if let folder { try? FileManager.default.removeItem(at: folder) } }
+        let input = try Prepared(archive)
+        defer { input.cleanUp() }
+        let path = input.path, descriptor = input.descriptor
         var arguments = ["x", "-y", "-aou", "-bso0", "-sccUTF-8", "-si", "-ttar", "-o" + directory.path]
         var listFile: URL?
         if !paths.isEmpty {

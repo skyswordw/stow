@@ -118,7 +118,7 @@ jobs:
           ALLOWED_SKIPS: "0"
           # 393 after explicit helper extraction regression coverage (#109).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "393"
+          MIN_TESTS: "399"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
