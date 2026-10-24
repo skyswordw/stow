@@ -1,6 +1,126 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Re-enter Password" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再次输入密码"
+          }
+        }
+      }
+    },
+    "Passwords don’t match" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "两次输入的密码不一致"
+          }
+        }
+      }
+    },
+    "Tested after packing" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "压缩后检查"
+          }
+        }
+      }
+    },
+    "%@ compression" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@压缩"
+          }
+        }
+      }
+    },
+    "No compression" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不压缩"
+          }
+        }
+      }
+    },
+    "Probably fits in one part, %@." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大概只有一个分卷：%@。"
+          }
+        }
+      }
+    },
+    "About %lld parts, %@ to %@. Opening it needs all of them." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "约 %1$lld 个分卷，%2$@ 到 %3$@。打开时需要全部分卷。"
+          }
+        }
+      }
+    },
+    "%@ can’t be password-protected. Choose ZIP or 7Z to add one." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不支持密码保护。要添加密码，请选择 ZIP 或 7Z。"
+          }
+        }
+      }
+    },
+    "Anyone with the file can open it and see the names inside." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拿到文件的人都能打开它并看到里面的文件名。"
+          }
+        }
+      }
+    },
+    "File names are hidden until the password is entered." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入密码前，文件名也是隐藏的。"
+          }
+        }
+      }
+    },
+    "File names stay visible without the password." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有密码也能看到文件名。"
+          }
+        }
+      }
+    },
+    "Set to %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前设置：%@"
+          }
+        }
+      }
+    },
     "Undo" : {
       "localizations" : {
         "zh-Hans" : {
