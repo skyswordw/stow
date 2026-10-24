@@ -11,6 +11,63 @@ struct EditingWindowTests {
         ]), url: URL(filePath: "/tmp/Stow-Undo-\(UUID().uuidString).zip"))
     }
 
+    @Test func reusedWindowRepresentsNewArchiveAndClearsSampleIdentity() {
+        let first = BrowserModel(archive: archive()), second = BrowserModel(archive: archive())
+        let delegate = EditingWindowDelegate(), window = NSWindow()
+        delegate.attach(window, model: first)
+        // Save / Save a Copy / Rename all notify through this callback.
+        let saved = URL(filePath: "/tmp/Saved.zip")
+        first.editSession.onURLChange?(saved)
+        #expect(window.representedURL == saved)
+        delegate.attach(window, model: second)
+        #expect(window.representedURL == second.archive.source?.url)
+        #expect(first.editingWindow == nil)
+        first.editSession.onURLChange?(URL(filePath: "/tmp/Late.zip"))
+        #expect(window.representedURL == second.archive.source?.url)
+        let sample = BrowserModel(archive: Archive(name: "Sample", format: .zip, files: []))
+        delegate.attach(window, model: sample)
+        #expect(window.representedURL == nil)
+    }
+
+    @Test func streamedListingUpdatesRepresentedURLWithoutReattaching() {
+        let model = BrowserModel(archive: archive(), isListing: true)
+        let delegate = EditingWindowDelegate(), window = NSWindow()
+        delegate.attach(window, model: model)
+        let replacement = archive()
+        model.applyListing(replacement, complete: false)
+        #expect(window.representedURL == replacement.source?.url)
+        model.applyListing(replacement, complete: true)
+        #expect(window.representedURL == replacement.source?.url)
+    }
+
+    @Test func nestedNavigationAndWindowSwitchKeepOuterIdentityAndEdits() throws {
+        let model = BrowserModel(archive: archive())
+        let delegate = EditingWindowDelegate(), full = NSWindow(), glance = NSWindow()
+        delegate.attach(full, model: model)
+        let root = model.level
+        let inner = BrowserModel.Level(archive: archive(), entryPath: "Inner.zip")
+        model.editSession.rename("a.txt", to: "outer.txt")
+        let undo = try #require(full.undoManager)
+        model.navigate(to: "", levels: [root, inner])
+        #expect(full.representedURL == root.archive.source?.url)
+        // Adopting a new outer URL while nested must update the document identity.
+        let copiedOuter = URL(filePath: "/tmp/Outer Copy.zip")
+        root.edits.onURLChange?(copiedOuter)
+        #expect(full.representedURL == copiedOuter)
+        delegate.attach(glance, model: model)
+        #expect(glance.representedURL == copiedOuter)
+        #expect(glance.undoManager === undo)
+        model.goBack()
+        #expect(glance.representedURL == copiedOuter)
+        model.goForward()
+        #expect(glance.representedURL == copiedOuter)
+        model.goUp()
+        delegate.attach(full, model: model)
+        #expect(full.representedURL == copiedOuter)
+        #expect(full.isDocumentEdited && full.undoManager === undo)
+        #expect(root.edits.pending.entries.contains { $0.path == "outer.txt" })
+    }
+
     @Test func windowSuppliesNamedSingleEditUndoAndRedo() throws {
         let model = BrowserModel(archive: archive())
         let delegate = EditingWindowDelegate(), window = NSWindow()

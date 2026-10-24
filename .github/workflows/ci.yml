@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 412 after new-destination save staging coverage (#137).
+          # 415 after combined functional regression coverage.
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "412"
+          MIN_TESTS: "415"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

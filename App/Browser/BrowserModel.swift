@@ -68,7 +68,9 @@ final class BrowserModel {
     /// Archives inside archives open up to this deep — enough for real nesting, not for a zip quine.
     static let maxDepth = 8
 
-    private(set) var levels: [Level]
+    private(set) var levels: [Level] {
+        didSet { updateRepresentedURL() }
+    }
     var folder = "" { didSet { if folder != oldValue { refresh() } } }
     var selection: Set<ArchiveEntry.ID> = []
     var viewMode: ViewMode = SettingsKeys.browserView()
@@ -182,7 +184,14 @@ final class BrowserModel {
     var editSession: EditSession { level.edits }
     var renamingPath: String?
     var renameText = ""
-    weak var editingWindow: NSWindow?
+    weak var editingWindow: NSWindow? {
+        didSet { updateRepresentedURL() }
+    }
+
+    /// Nested archives use cache files; the window continues to represent the outer document.
+    private func updateRepresentedURL() {
+        editingWindow?.representedURL = levels.first?.archive.source?.url
+    }
 
     var level: Level { levels[levels.count - 1] }
 
@@ -414,8 +423,8 @@ final class BrowserModel {
             saved.source?.password = target.password
             target.savedArchive = saved
         }
-        editingWindow?.representedURL = url
-        editingWindow?.title = url.lastPathComponent
+        updateRepresentedURL()
+        if level === target { editingWindow?.title = url.lastPathComponent }
     }
 
     func confirmDiscardingEdits() async -> Bool {

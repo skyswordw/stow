@@ -139,6 +139,7 @@ struct EditSessionTests {
         #expect(model.editSession.pending.physicalSize == model.editSession.base.physicalSize)
         #expect(!undo.canUndo && !undo.canRedo)
         #expect(model.folder == "Renamed")
+        #expect(window.representedURL == url)
     }
 
     @Test func savesAnAddedTreeWithRenamedAndDeletedChildren() async throws {
@@ -208,7 +209,10 @@ struct EditSessionTests {
         let url = directory.appending(path: "Original.zip")
         try ZipFixture(entries: [.file("a.txt", "original")]).write(to: url)
         let listing = try await ArchiveEngine.shared.list(url)
-        let session = EditSession(base: listing, url: url)
+        let model = BrowserModel(archive: Archive(listing: listing, url: url))
+        let delegate = EditingWindowDelegate(), window = NSWindow()
+        delegate.attach(window, model: model)
+        let session = model.editSession
         session.rename("a.txt", to: "b.txt")
         try ZipFixture(entries: [.file("a.txt", "external change")]).write(to: url)
         let afterExternal = try Data(contentsOf: url)
@@ -219,6 +223,7 @@ struct EditSessionTests {
         let copied = try await ArchiveEngine.shared.list(copy)
         #expect(copied.entries.contains { $0.path == "b.txt" })
         #expect(!copied.entries.contains { $0.path == "a.txt" })
+        #expect(window.representedURL == copy)
         #expect(session.url == copy)
         #expect(!session.isEdited)
         #expect(!session.changedOnDisk)
@@ -250,9 +255,15 @@ struct EditSessionTests {
         try ZipFixture(entries: [.file("Photos/a.txt", "a"), .file("Photos/b.txt", "b")]).write(to: url)
         let listing = try await ArchiveEngine.shared.list(url)
         let model = BrowserModel(archive: Archive(listing: listing, url: url))
+        let delegate = EditingWindowDelegate(), window = NSWindow()
+        delegate.attach(window, model: model)
         model.folder = "Photos"
         model.selection = ["Photos/a.txt"]
+        model.editSession.rename("Photos/b.txt", to: "pending.txt")
         #expect(await model.editSession.renameArchive(to: "Harbor Renamed.zip"))
+        #expect(window.representedURL == directory.appending(path: "Harbor Renamed.zip"))
+        #expect(model.editSession.isEdited)
+        #expect(model.editSession.pending.entries.contains { $0.path == "Photos/pending.txt" })
         #expect(model.archive.name == "Harbor Renamed.zip")
         #expect(model.folder == "Photos")
         #expect(model.selection == ["Photos/a.txt"])
