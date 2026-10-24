@@ -139,12 +139,12 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
 
     private func refreshPreview(_ item: Item) {
         guard let panel, panel.dataSource === self else { return }
-        if panel.currentPreviewItem === item { panel.refreshCurrentPreviewItem() }
+        guard panel.currentPreviewItem === item else { return }
+        panel.refreshCurrentPreviewItem()
         // A password sheet can hide the system panel. Resume the explicit preview request
         // after the read finishes, unless it was cancelled or the panel relinquished control.
-        if presentationRequested, !panel.isVisible {
+        if presentationRequested {
             panel.makeKeyAndOrderFront(nil)
-            panel.reloadData()
         }
     }
 
