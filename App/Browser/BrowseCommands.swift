@@ -36,7 +36,9 @@ struct BrowseCommands: Commands {
                 .keyboardShortcut("a", modifiers: [.command, .shift])
                 .disabled(browser == nil || browser?.editSession.isSaving == true)
                 .help(browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Add Files…"))
-            Button("Delete") { if let browser { browser.editSession.delete(Array(browser.selection)) } }
+            // Only from the archive's own window (full or Glance): pressed in the Tray or Settings,
+            // ⌘⌫ must not stage deleting whatever is selected in an archive behind it.
+            Button("Delete") { if let browser, browser.editingWindow?.isKeyWindow == true { browser.editSession.delete(Array(browser.selection)) } }
                 .keyboardShortcut(.delete, modifiers: .command)
                 .disabled(browser?.selection.isEmpty != false || browser?.editSession.isSaving == true)
                 .help(browser?.editSession.refusal(for: Array(browser?.selection ?? [])) ?? (browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Delete")))
