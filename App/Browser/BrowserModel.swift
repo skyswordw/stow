@@ -227,7 +227,7 @@ final class BrowserModel {
                 if target.edits.isSaving { target.savedArchive = updated }
             } else {
                 target.archive = Archive(name: old.name, format: old.format, files: target.edits.pending.entries.map {
-                    ArchiveEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size, packedSize: $0.packedSize ?? 0, modified: $0.modified ?? .distantPast)
+                    ArchiveEntry(path: $0.path, isFolder: $0.isFolder, size: $0.size, packedSize: $0.packedSize, modified: $0.modified ?? .distantPast)
                 })
             }
             target.search = SearchIndex(total: target.archive.index.visible.count + target.archive.index.helpers.count)

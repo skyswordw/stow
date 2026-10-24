@@ -259,7 +259,7 @@ nonisolated extension Archive {
                 if !item.isFolder {
                     scan.helperFiles += 1
                     helpers[path] = ArchiveEntry(path: path, isFolder: false, size: item.size,
-                                                 packedSize: item.packedSize ?? 0,
+                                                 packedSize: item.packedSize,
                                                  modified: item.modified ?? fallbackDate, isHelper: true)
                     if (item.path as NSString).lastPathComponent.hasPrefix("._") {
                         appleDoublePaths.insert(item.path)
@@ -278,7 +278,7 @@ nonisolated extension Archive {
                 explicitFolders[path] = item.modified ?? fallbackDate
             } else {
                 files[path] = ArchiveEntry(path: path, isFolder: false, size: item.size,
-                                           packedSize: item.packedSize ?? 0,
+                                           packedSize: item.packedSize,
                                            modified: item.modified ?? fallbackDate)
             }
         }
@@ -305,7 +305,10 @@ nonisolated extension Archive {
                   isEncrypted: scan.encryptedFiles > 0,
                   files: entries,
                   helpers: Array(helpers.values),
-                  checkup: Checkup.findings(for: scan))
+                  checkup: Checkup.findings(for: scan),
+                  containerPackedSize: (SevenZip.isTarball(name: displayName) || listing.entries.contains { !$0.isFolder && $0.packedSize == nil })
+                      ? listing.physicalSize ?? (try? url.resourceValues(forKeys: [.fileSizeKey])).flatMap { $0.fileSize.map(Int64.init) }
+                      : nil)
         source = ArchiveSource(url: url, renamed: renamed, legacyNames: legacyNames,
                                nameEncoding: nameEncoding,
                                listing: listing,

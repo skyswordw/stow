@@ -398,6 +398,10 @@ struct TarballTests {
 
         let archive = Archive(listing: try await ArchiveEngine.shared.list(tarball), url: tarball)
         #expect(Set(archive.files.map(\.path)) == ["Docs/a.txt", "b.md"])
+        let physicalSize = try #require(tarball.resourceValues(forKeys: [.fileSizeKey]).fileSize)
+        #expect(archive.packedSize == Int64(physicalSize))
+        #expect(archive.files.allSatisfy { $0.packedSize == nil })
+        #expect(archive.entry(at: "Docs")?.packedSize == nil)
 
         let out = folder.url.appending(path: "Out", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
