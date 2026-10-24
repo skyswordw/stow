@@ -15,6 +15,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
     private var items: [Item] = []
     private var loads: Task<Void, Never>?
     private var pinned: [URL] = []
+    private var presentationRequested = false
 
     nonisolated final class Item: NSObject, QLPreviewItem, @unchecked Sendable {
         let entry: ArchiveEntry
@@ -59,16 +60,17 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         }
         panel.makeKeyAndOrderFront(nil)
         panel.reloadData()
+        presentationRequested = true
         // Taking control of the system panel can end its previous controller's session.
         // Start reads only after that handoff, so it cannot cancel a new password request.
         loadPendingItems()
     }
 
     func close() {
-        guard isVisible else { return }
+        presentationRequested = false
         loads?.cancel()
         loads = nil
-        panel?.orderOut(nil)
+        if panel?.dataSource === self { panel?.orderOut(nil) }
     }
 
     /// The browser's selection changed while the panel is open.
@@ -118,7 +120,11 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
                     guard !Task.isCancelled, let self else { return }
                     item.url = Self.statusPage(for: item.entry, status: Self.message(for: error))
                     item.isPending = false
-                    if panel?.currentPreviewItem === item { panel?.refreshCurrentPreviewItem() }
+                    if error.failure == .cancelled {
+                        close()
+                        return
+                    }
+                    refreshPreview(item)
                     continue
                 }
                 guard !Task.isCancelled, let self else { return }
@@ -126,8 +132,19 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
                 pinned.append(url)
                 item.url = url
                 item.isPending = false
-                if panel?.currentPreviewItem === item { panel?.refreshCurrentPreviewItem() }
+                refreshPreview(item)
             }
+        }
+    }
+
+    private func refreshPreview(_ item: Item) {
+        guard let panel, panel.dataSource === self else { return }
+        if panel.currentPreviewItem === item { panel.refreshCurrentPreviewItem() }
+        // A password sheet can hide the system panel. Resume the explicit preview request
+        // after the read finishes, unless it was cancelled or the panel relinquished control.
+        if presentationRequested, !panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            panel.reloadData()
         }
     }
 
@@ -198,6 +215,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
     nonisolated override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
         let panel = PanelBox(panel: panel)
         MainActor.assumeIsolated {
+            presentationRequested = false
             loads?.cancel()
             if let model { pinned.forEach { model.previews.cache.unpin($0) } }
             pinned = []

@@ -285,6 +285,29 @@ struct EncryptedArchiveTests {
         #expect(model.level.password == "swordfish")
     }
 
+    @Test func closingQuickLookWhileItsPasswordPromptIsOpenCancelsTheRead() async throws {
+        defer { folder.cleanUp() }
+        let url = try makeArchive("preview-cancel.zip", ["-mem=AES256"])
+        let model = BrowserModel(archive: Archive(listing: try await ArchiveEngine.shared.list(url), url: url))
+        let prompt = PasswordPrompt()
+        model.passwords = PasswordHook(prompt: prompt)
+        let entry = try #require(model.archive.entry(at: "Docs/secret.txt"))
+        model.select([entry.id])
+        model.quickLook.reload()
+        let question = try await nextQuestion(from: prompt)
+
+        // A password sheet may hide the panel: closing must still cancel its outstanding read.
+        model.quickLook.close()
+        let deadline = ContinuousClock.now + .seconds(10)
+        while prompt.question != nil, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try #require(prompt.question == nil)
+        prompt.answer("swordfish", to: question.id) // a late sheet response is ignored
+        #expect(model.level.password == nil)
+        #expect(model.previews.cache.cachedFile(for: entry, in: model.archive) == nil)
+    }
+
     @Test func manualUnlockDoesNotVerifyAgainstAPlaintextEntry() async throws {
         defer { folder.cleanUp() }
         let url = try makeArchive("mixed.zip", ["-mem=ZipCrypto"])
