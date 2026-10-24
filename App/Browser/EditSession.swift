@@ -303,7 +303,12 @@ final class EditSession {
                 message = String(localized: "The archive changed on disk. Reload it or save a copy.")
                 onChange?()
             } else {
-                message = error.message
+                if error.failure != .cancelled {
+                    var failure = Failure(error, .pack, name: url.lastPathComponent)
+                    // Retry stays on Save, with the staged plan intact.
+                    failure.action = nil
+                    _ = await Prompts.explain(failure)
+                }
             }
             return false
         }

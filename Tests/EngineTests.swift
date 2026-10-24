@@ -451,3 +451,56 @@ extension TemporaryFolder {
         (FileManager.default.enumerator(atPath: url.path)?.allObjects as? [String] ?? []).sorted()
     }
 }
+
+@Suite("Descriptor materialization")
+struct PreparedInputTests {
+    @Test func copiesAuthorizedHandleWithoutReopeningOrChangingOffset() throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let bytes = Data((0..<255).map(UInt8.init))
+        try bytes.write(to: source)
+        let handle = try FileHandle(forReadingFrom: source)
+        defer { try? handle.close(); try? FileManager.default.removeItem(at: source) }
+        try handle.seek(toOffset: 17)
+        // An unlinked input can only be read through the received handle.
+        try FileManager.default.removeItem(at: source)
+        let input = try SevenZip.Prepared(.descriptor(handle, name: "inner.zip"))
+        defer { input.cleanUp() }
+        #expect(input.descriptor == nil)
+        #expect(try Data(contentsOf: URL(filePath: input.path)) == bytes)
+        #expect(try handle.offset() == 17)
+        #expect(try URL(filePath: input.path).resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink == false)
+        input.cleanUp()
+        #expect(!FileManager.default.fileExists(atPath: input.path))
+    }
+
+    @Test func unsafeDescriptorNamesStayInsideStaging() throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data().write(to: source)
+        defer { try? FileManager.default.removeItem(at: source) }
+        let handle = try FileHandle(forReadingFrom: source)
+        defer { try? handle.close() }
+        for name in [".", "..", "../../inner.7z", ""] {
+            let input = try SevenZip.Prepared(.descriptor(handle, name: name))
+            defer { input.cleanUp() }
+            #expect(FileManager.default.fileExists(atPath: input.path))
+            #expect(URL(filePath: input.path).deletingLastPathComponent().lastPathComponent.hasPrefix("stow-in-"))
+        }
+    }
+
+    @Test func cancelledMaterializationKeepsCancellation() async throws {
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data().write(to: source)
+        defer { try? FileManager.default.removeItem(at: source) }
+        let handle = try FileHandle(forReadingFrom: source)
+        defer { try? handle.close() }
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            do {
+                let input = try SevenZip.Prepared(.descriptor(handle, name: "inner.zip"))
+                input.cleanUp()
+                Issue.record("Cancelled staging succeeded")
+            } catch { #expect(error.failure == .cancelled) }
+        }
+        await task.value
+    }
+}

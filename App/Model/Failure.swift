@@ -4,7 +4,7 @@ import Foundation
 /// next. Every error alert, failed capsule and failed batch row says it the same way.
 struct Failure: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
-        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, engine, other
+        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, noReadAccess, engine, other
     }
 
     /// The one next step a failure offers, besides dismissing it.
@@ -77,6 +77,7 @@ struct Failure: Equatable, Sendable {
         case .damaged: String(localized: "Damaged — download it again")
         case .needsPassword: String(localized: "Needs its password")
         case .diskFull: String(localized: "Not enough space")
+        case .noReadAccess: String(localized: "Can’t read the archive")
         case .noWriteAccess: String(localized: "Can’t save to this folder")
         case .engine: title
         case .other: String(localized: "Didn’t finish — try again")
@@ -103,6 +104,7 @@ struct Failure: Equatable, Sendable {
         case .damaged: .damagedData
         case .needsPassword: .passwordRequired
         case .diskFull: .diskFull
+        case .noReadAccess: .noReadAccess
         case .noWriteAccess: .noWriteAccess
         case .engine: .engineStopped
         case .other: .unknown
@@ -128,6 +130,7 @@ struct Failure: Equatable, Sendable {
             return ErrorCode.reason(for: failure)
         case (_, .damaged(let file)):
             return file == nil && !message.contains("Data Error") && !message.contains("CRC Failed") ? .damagedStructure : .damagedData
+        case (_, .noReadAccess): return .noReadAccess
         case (_, .diskFull): return .diskFull
         case (_, .noWriteAccess): return .noWriteAccess
         default: return .unknown
@@ -170,6 +173,10 @@ struct Failure: Equatable, Sendable {
                           ?? String(localized: "There isn’t enough space"),
                       advice: needed + String(localized: "Free up some space, or choose a folder on another disk. Nothing was left half-written."),
                       action: .chooseFolder)
+        case (_, .noReadAccess):
+            self.init(kind: .noReadAccess, title: operation.couldNot(name),
+                      advice: String(localized: "Stow couldn’t read the archive. Try opening it again. Your files weren’t changed."),
+                      action: .tryAgain)
         case (_, .noWriteAccess(let folder)):
             self.init(kind: .noWriteAccess,
                       title: folder.map { String(localized: "Stow can’t save to “\($0)”") }
@@ -195,6 +202,7 @@ struct Failure: Equatable, Sendable {
         case damaged(file: String?)
         case diskFull(volume: String?)
         case noWriteAccess(folder: String?)
+        case noReadAccess
     }
 
     /// Reads the cause from the error's code when it still has one, from 7-Zip's own (English,
@@ -202,18 +210,20 @@ struct Failure: Equatable, Sendable {
     static func cause(of error: any Error, message: String, destination: URL?) -> Cause? {
         let volume = destination.flatMap(volumeName)
         let folder = destination.map { FileManager.default.displayName(atPath: $0.path) }
+        let lower = message.lowercased()
         if let code = posixCode(error) {
             if code == ENOSPC || code == EDQUOT { return .diskFull(volume: volume) }
-            if code == EACCES || code == EPERM || code == EROFS { return .noWriteAccess(folder: folder) }
+            if code == EACCES || code == EPERM || code == EROFS {
+                return destination == nil || lower.contains(" : opening :") ? .noReadAccess : .noWriteAccess(folder: folder)
+            }
         }
         if let damage = damagedFile(in: message) { return .damaged(file: damage.isEmpty ? nil : damage) }
-        let lower = message.lowercased()
         if ["no space left", "not enough space", "errno=28", "disk is full", "out of space"].contains(where: lower.contains) {
             return .diskFull(volume: volume)
         }
-        if ["permission denied", "operation not permitted", "read-only file system", "errno=13", "errno=30", "don’t have permission"]
+        if ["permission denied", "operation not permitted", "read-only file system", "errno=1", "errno=13", "errno=30", "don’t have permission"]
             .contains(where: lower.contains) {
-            return .noWriteAccess(folder: folder)
+            return destination == nil || lower.contains(" : opening :") ? .noReadAccess : .noWriteAccess(folder: folder)
         }
         guard let destination else { return nil }
         if let free = availableCapacity(destination), free < 1 << 20 { return .diskFull(volume: volume) }
@@ -240,7 +250,7 @@ struct Failure: Equatable, Sendable {
             if error.domain == NSCocoaErrorDomain {
                 switch error.code {
                 case NSFileWriteOutOfSpaceError: return ENOSPC
-                case NSFileWriteNoPermissionError, NSFileWriteVolumeReadOnlyError: return EACCES
+                case NSFileReadNoPermissionError, NSFileWriteNoPermissionError, NSFileWriteVolumeReadOnlyError: return EACCES
                 default: break
                 }
             }
