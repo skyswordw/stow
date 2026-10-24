@@ -49,10 +49,11 @@ final class ArchiveEngine {
 
     /// Extracts (and audits) inside the engine. Cancelling the task stops 7-Zip.
     func extract(_ archive: URL, paths: [String], password: String? = nil, excludeMacHelperFiles: Bool = true,
-                 restoreMacMetadata: Bool = false, onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Output {
+                 preservedHelperPaths: [String] = [], restoreMacMetadata: Bool = false, onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Output {
         let id = UUID().uuidString
         let request = try encode(ExtractRequest(operationID: id, paths: paths, password: password,
                                                  excludeMacHelperFiles: excludeMacHelperFiles,
+                                                 preservedHelperPaths: preservedHelperPaths,
                                                  restoreMacMetadata: restoreMacMetadata))
         let handle = try Self.open(archive)
         defer { try? handle.close() }

@@ -324,7 +324,7 @@ nonisolated extension Archive {
             paths += source.storedPaths[entry.path] ?? []
             if entry.isFolder {
                 let prefix = entry.path + "/"
-                for (path, stored) in source.storedPaths where path.hasPrefix(prefix) && !MacHelperFiles.matches(path) {
+                for (path, stored) in source.storedPaths where path.hasPrefix(prefix) && (MacHelperFiles.isInsideHelper(entry.path) || !MacHelperFiles.matches(path)) {
                     paths += stored
                 }
             }
