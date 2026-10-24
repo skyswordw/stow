@@ -290,16 +290,21 @@ final class ArchiveEngine {
     private static func open(_ archive: URL) async throws(EngineError) -> FileHandle {
         if SplitArchive.baseName(archive.lastPathComponent) != nil {
             let folder = archive.deletingLastPathComponent()
+            #if !STOW_NO_ZSTD
+            // FolderAccess lives in the app target only; Quick Look already has the file grant.
             do {
                 _ = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
             } catch {
                 guard await FolderAccess.shared.readableParts(in: folder) else { throw EngineError(.cancelled) }
             }
+            #endif
             do {
                 let parts = try SplitArchive.parts(for: archive)
+                #if !STOW_NO_ZSTD
                 if parts.contains(where: { !FileManager.default.isReadableFile(atPath: $0.path) }) {
                     guard await FolderAccess.shared.readableParts(in: folder) else { throw EngineError(.cancelled) }
                 }
+                #endif
                 return try await SplitArchive.open(parts)
             } catch { throw EngineError(error) }
         }
