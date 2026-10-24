@@ -1,6 +1,100 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Stow puts copies in a new folder. The originals stay where they are.": {
+      "comment": "Collect into a Folder, in the Tray.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 会把副本放进新文件夹，原件保持不动。"
+          }
+        }
+      }
+    },
+    "Choose a Folder…": {
+      "comment": "Collect into a Folder's Where menu before a folder is chosen.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择文件夹…"
+          }
+        }
+      }
+    },
+    "Choose where the new folder goes.": {
+      "comment": "Collect into a Folder: no folder chosen yet; also the Open panel's message.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择新文件夹的位置。"
+          }
+        }
+      }
+    },
+    "Collected in “%@”": {
+      "comment": "The Tray after Collect into a Folder; %@ is the folder the new folder went in.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已收集到“%@”"
+          }
+        }
+      }
+    },
+    "Not chosen": {
+      "comment": "VoiceOver value of Collect into a Folder's Where menu before a folder is chosen.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未选择"
+          }
+        }
+      }
+    },
+    "Other…": {
+      "comment": "Collect into a Folder's Where menu: any folder, from an Open panel.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他…"
+          }
+        }
+      }
+    },
+    "These come from several folders. Choose where to save “%@”.": {
+      "comment": "Pack's Save Here panel when the items come from more than one folder.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些项目来自多个文件夹。请选择存储“%@”的位置。"
+          }
+        }
+      }
+    },
+    "These come from %lld folders. Choose where the new folder goes.": {
+      "comment": "Collect into a Folder when the items come from several folders and none is chosen yet.",
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "这些项目来自 %lld 个文件夹。请选择新文件夹的位置。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Installing “%@”": {
       "comment": "Progress capsule while one app or font is installed.",
       "localizations": {

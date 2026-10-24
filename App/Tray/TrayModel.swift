@@ -108,11 +108,6 @@ nonisolated enum TrayRules {
         return name
     }
 
-    /// Where Collect into a Folder puts the folder: beside the first item.
-    static func collectionParent(for urls: [URL]) -> URL? {
-        urls.first?.deletingLastPathComponent()
-    }
-
     /// The folder's children, folders first, then by name — what browsing into a folder shows.
     static func children(of folder: URL, fileManager: FileManager = .default) -> [TrayItem] {
         let urls = (try? fileManager.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey],

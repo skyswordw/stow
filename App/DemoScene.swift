@@ -19,7 +19,9 @@ import SwiftUI
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
 /// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
 /// install-running (an app part-way into Applications), install-app-open (refused: the installed copy is open, INS-181),
-/// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop), tray-collect-taken (Collect into a Folder with a name that's taken).
+/// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop),
+/// tray-collect (Collect into a Folder, items from one folder), tray-collect-mixed (from three: people choose where),
+/// tray-collect-taken (a name that's taken), tray-collected (after a real collect: where it went).
 /// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, pack-failed-dmg, empty-archive, empty-folder, search-empty, tray-empty.
 /// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly,
@@ -375,18 +377,31 @@ enum DemoScene {
             ]
             app.tray.showArrivalForDemo(Set(app.tray.items.suffix(3).map(\.id)))
             app.tray.show()
-        case "tray-collect", "tray-failed", "tray-collect-taken":
+        case "tray-failed":
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
                 TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
                 TrayItem(name: "Kickoff.key", size: 18_900_000),
             ]
             app.tray.show()
-            switch scene {
-            case "tray-collect": app.tray.collectingName = String(localized: "New Folder")
-            case "tray-collect-taken": app.tray.showCollectProblemForDemo(String(localized: "New Folder"))
             // A copy that failed part-way: the footer's failure card.
-            default: app.tray.failure = Failure(NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)), .copy, name: "Kickoff.key")
+            app.tray.failure = Failure(NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)), .copy, name: "Kickoff.key")
+        case "tray-collect", "tray-collect-taken", "tray-collect-mixed", "tray-collected":
+            // Real files, so the Where rule runs: one folder (it's the default), or three (people choose).
+            let layout: [(String, [String])] = scene == "tray-collect-mixed"
+                ? [("Invoices", ["Invoice October.pdf"]), ("Photos", ["Pier at Dawn.jpg", "Lighthouse.jpg"]), ("Kickoff", ["Kickoff.key"])]
+                : [("Kickoff", ["Invoice October.pdf", "Pier at Dawn.jpg", "Kickoff.key"])]
+            let urls = demoTrayFiles(layout, taken: scene == "tray-collect-taken" ? String(localized: "New Folder") : nil)
+            app.tray.items = []
+            app.tray.add(urls)
+            app.tray.showArrivalForDemo([])
+            app.tray.show()
+            // The scenes ignore any folder remembered on this Mac, so they look the same everywhere.
+            app.tray.beginCollecting(remembered: nil)
+            switch scene {
+            case "tray-collect-taken": app.tray.showCollectProblemForDemo(String(localized: "New Folder"))
+            case "tray-collected": Task { await app.tray.collectIntoFolder() }
+            default: break
             }
         default:
             break
@@ -453,6 +468,28 @@ enum DemoScene {
                 exit(0) // terminate(_:) waits on open sheets; this is a screenshot run.
             }
         }
+    }
+
+    /// Real files for the Tray's Collect scenes, in folders inside the sandbox's temporary
+    /// directory (made fresh each run). `taken` puts an item of that name in the first folder.
+    private static func demoTrayFiles(_ layout: [(String, [String])], taken: String?) -> [URL] {
+        let base = FileManager.default.temporaryDirectory.appending(path: "Demo Tray", directoryHint: .isDirectory)
+        try? FileManager.default.removeItem(at: base)
+        var urls: [URL] = []
+        for (folder, names) in layout {
+            let dir = base.appending(path: folder, directoryHint: .isDirectory)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            for name in names {
+                let url = dir.appending(path: name)
+                FileManager.default.createFile(atPath: url.path, contents: Data(name.utf8))
+                urls.append(url)
+            }
+        }
+        if let taken, let first = layout.first {
+            try? FileManager.default.createDirectory(at: base.appending(path: "\(first.0)/\(taken)", directoryHint: .isDirectory),
+                                                     withIntermediateDirectories: true)
+        }
+        return urls
     }
 
     /// The error scenes' failures, made from the errors the engine and the file system really throw.

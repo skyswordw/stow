@@ -52,8 +52,6 @@ struct TrayTests {
         #expect(TrayRules.freeName("New Folder", in: root) == "New Folder 2")
         try FileManager.default.createDirectory(at: root.appending(path: "New Folder 2"), withIntermediateDirectories: false)
         #expect(TrayRules.freeName("New Folder", in: root) == "New Folder 3")
-        #expect(TrayRules.collectionParent(for: [root.appending(path: "x.txt")])?.standardizedFileURL == root.standardizedFileURL)
-        #expect(TrayRules.collectionParent(for: []) == nil)
     }
 
     @Test func browsingListsFoldersFirst() throws {
@@ -133,6 +131,8 @@ struct TrayTests {
         try FileManager.default.createDirectory(at: root.appending(path: "Taken"), withIntermediateDirectories: false)
         let tray = TrayController()
         tray.add([a])
+        tray.beginCollecting(remembered: nil)
+        #expect(tray.collectDestination?.standardizedFileURL == root.standardizedFileURL) // one folder: that one
         tray.collectingName = "a/b"
         await tray.collectIntoFolder()
         #expect(tray.collectingName == "a/b")
@@ -144,6 +144,76 @@ struct TrayTests {
         #expect(tray.collectingName == "Taken")
         #expect(tray.collectProblem != nil)
         #expect(tray.items.map(\.name) == ["a.txt"])
+    }
+
+    @Test func destinationFollowsOneRule() throws {
+        let a = URL(filePath: "/tmp/A/one.txt"), a2 = URL(filePath: "/tmp/A/two.txt"), b = URL(filePath: "/tmp/B/three.txt")
+        let remembered = URL(filePath: "/tmp/Chosen", directoryHint: .isDirectory)
+        #expect(GatherDestination.sources(of: [a, b, a2]).map(\.count) == [2, 1])
+        #expect(GatherDestination.sources(of: [a, b, a2]).map(\.folder.lastPathComponent) == ["A", "B"])
+        // One folder: that folder, whatever was remembered.
+        #expect(GatherDestination.suggestion(for: [a, a2], remembered: remembered)?.lastPathComponent == "A")
+        // Several: the remembered folder, or nothing (ask).
+        #expect(GatherDestination.suggestion(for: [a, b], remembered: remembered) == remembered)
+        #expect(GatherDestination.suggestion(for: [a, b], remembered: nil) == nil)
+        #expect(GatherDestination.suggestion(for: [], remembered: remembered) == nil)
+
+        let store = try #require(UserDefaults(suiteName: "GatherDestinationTests-\(UUID().uuidString)"))
+        GatherDestination.remember(remembered, for: [a, a2], in: store) // one folder: not remembered
+        #expect(GatherDestination.remembered(in: store) == nil)
+        GatherDestination.remember(remembered, for: [a, b], in: store)
+        #expect(GatherDestination.remembered(in: store)?.path == "/tmp/Chosen")
+    }
+
+    @Test @MainActor func collectingFromSeveralFoldersAsksWhere() async throws {
+        let root = try folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Remembering writes the app's own defaults: put back what was there.
+        let saved = UserDefaults.standard.string(forKey: GatherDestination.key)
+        defer { UserDefaults.standard.set(saved, forKey: GatherDestination.key) }
+        let a = root.appending(path: "A/one.txt"), b = root.appending(path: "B/two.txt"), out = root.appending(path: "Out")
+        for url in [a, b] {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: url)
+        }
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+        let tray = TrayController()
+        tray.add([a, b])
+        tray.beginCollecting(remembered: nil)
+        #expect(tray.collectsFromSeveralFolders)
+        #expect(tray.collectDestination == nil)
+        await tray.collectIntoFolder() // nowhere chosen: asks, makes nothing
+        #expect(tray.collectingName == "New Folder")
+        #expect(tray.collectProblem != nil)
+        tray.chooseCollectDestination(out)
+        #expect(tray.collectProblem == nil)
+        await tray.collectIntoFolder()
+        let made = out.appending(path: "New Folder")
+        #expect(FileManager.default.fileExists(atPath: made.appending(path: "one.txt").path))
+        #expect(FileManager.default.fileExists(atPath: made.appending(path: "two.txt").path))
+        #expect(FileManager.default.fileExists(atPath: a.path)) // copies: the originals stay
+        #expect(tray.collected?.standardizedFileURL == made.standardizedFileURL)
+        #expect(tray.items.map(\.name) == ["New Folder"])
+        #expect(GatherDestination.remembered()?.standardizedFileURL.path == out.standardizedFileURL.path)
+        tray.clear()
+        #expect(tray.collected == nil)
+    }
+
+    @Test @MainActor func aSuggestedNameFollowsTheChosenFolder() throws {
+        let root = try folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let a = root.appending(path: "a.txt"), other = root.appending(path: "Other")
+        try Data("a".utf8).write(to: a)
+        try FileManager.default.createDirectory(at: other.appending(path: "New Folder"), withIntermediateDirectories: true)
+        let tray = TrayController()
+        tray.add([a])
+        tray.beginCollecting(remembered: nil)
+        #expect(tray.collectingName == "New Folder")
+        tray.chooseCollectDestination(other)
+        #expect(tray.collectingName == "New Folder 2") // Stow's suggestion follows the folder
+        tray.collectingName = "Mine"
+        tray.chooseCollectDestination(root)
+        #expect(tray.collectingName == "Mine") // a typed name stays
     }
 
     @Test @MainActor func trayBrowsesIntoFolders() throws {

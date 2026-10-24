@@ -26,6 +26,11 @@ final class TrayController {
     var collectingName: String? { didSet { if collectingName != oldValue { collectProblem = nil } } }
     /// Why that name can't be used, said under the field so the question stays open.
     private(set) var collectProblem: String?
+    /// The folder the new folder goes in, shown in the question's Where menu. Nil until people
+    /// choose, when the items come from several folders and nothing was chosen for a mix before.
+    private(set) var collectDestination: URL?
+    /// The folder Collect just made, so the summary can say where it went; cleared by the next action.
+    private(set) var collected: URL?
     /// Rows a drop (or Add Files…) just named — new ones and ones already on the Tray — so the
     /// view can point them out for a moment. Cleared by itself.
     private(set) var arrived: Set<UUID> = []
@@ -178,6 +183,7 @@ final class TrayController {
         idleTimer?.invalidate()
         idleTimer = nil
         collectingName = nil
+        collected = nil
         if QLPreviewPanel.sharedPreviewPanelExists(), QLPreviewPanel.shared().isVisible { QLPreviewPanel.shared().orderOut(nil) }
         // Esc and ⌥⌘T: gone at once. Otherwise `Motion.exit`, quicker than it came.
         guard let animation = Motion.presence(false, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) else {
@@ -256,6 +262,7 @@ final class TrayController {
         let fresh = TrayRules.newURLs(urls, existing: items.compactMap(\.url))
         items += fresh.map(TrayItem.init(url:))
         if !path.isEmpty { path = [] }
+        collected = nil
         pointOut(TrayRules.matching(urls, in: items), added: fresh.count)
     }
 
@@ -264,13 +271,17 @@ final class TrayController {
     /// the answer to "did it go in?" when nothing new was added.
     private func pointOut(_ ids: Set<UUID>, added: Int) {
         guard !ids.isEmpty else { return }
-        arrived = ids
         let already = ids.count - added
         let announcement = switch (added, already) {
         case (0, _): String(localized: "Already on the Tray")
         case (_, 0): String(localized: "Added \(added) items to the Tray")
         default: String(localized: "Added \(added) items to the Tray, \(already) already there")
         }
+        mark(ids, announcing: announcement)
+    }
+
+    private func mark(_ ids: Set<UUID>, announcing announcement: String) {
+        arrived = ids
         AccessibilityNotification.Announcement(announcement).post()
         arrivalTask?.cancel()
         arrivalTask = Task { [weak self] in
@@ -292,23 +303,27 @@ final class TrayController {
     func remove(_ item: TrayItem) {
         items.removeAll { $0.id == item.id }
         selection.remove(item.id)
+        collected = nil
     }
 
     func removeSelected() {
         guard path.isEmpty else { return }
         items.removeAll { selection.contains($0.id) }
         selection = []
+        collected = nil
     }
 
     func clear() {
         items = []
         path = []
         selection = []
+        collected = nil
     }
 
     func click(_ item: TrayItem, command: Bool, shift: Bool) {
         let result = TrayRules.select(item.id, in: visibleItems.map(\.id), current: selection, anchor: anchor,
                                       command: command, shift: shift)
+        collected = nil
         selection = result.selection
         anchor = result.anchor
         touch()
@@ -364,25 +379,79 @@ final class TrayController {
         app?.system.perform(.extractHere, on: archives)
     }
 
-    /// Asks for the folder's name inside the Tray, starting from "New Folder" (or the first free variant).
-    func beginCollecting() {
-        guard let parent = TrayRules.collectionParent(for: targetURLs) else { return }
+    /// Asks for the folder's name and where it goes, inside the Tray. Where follows
+    /// `GatherDestination`: the items' own folder when they share one, otherwise the folder last
+    /// chosen for a mix, otherwise nothing until people choose.
+    func beginCollecting(remembered: URL? = GatherDestination.remembered()) {
+        let urls = targetURLs
+        guard !urls.isEmpty else { return }
         failure = nil
-        collectingName = TrayRules.freeName(String(localized: "New Folder"), in: parent)
+        collected = nil
+        collectDestination = GatherDestination.suggestion(for: urls, remembered: remembered)
+        collectingName = suggestedName(in: collectDestination)
         panel?.makeKey()
         touch()
     }
 
-    /// Where the new folder goes, for the question's wording.
-    var collectionNeighbour: String? { targets.first?.name }
+    /// "New Folder", or the first free variant once there's a folder to check.
+    private func suggestedName(in folder: URL?) -> String {
+        let base = String(localized: "New Folder")
+        return folder.map { TrayRules.freeName(base, in: $0) } ?? base
+    }
 
-    /// Copies the items into a new folder beside the first one, named by people, and puts that
+    /// The folders the items come from, for the Where menu.
+    var collectSources: [GatherDestination.Source] { GatherDestination.sources(of: targetURLs) }
+
+    /// Other places offered in the Where menu: the folder last chosen for a mix, Desktop and
+    /// Downloads, leaving out any already listed as a source.
+    var collectPlaces: [URL] {
+        let listed = Set(collectSources.map(\.folder.standardizedFileURL.path))
+        var seen = listed
+        let home = FolderAccess.home
+        let candidates = [GatherDestination.remembered(), home.appending(path: "Desktop", directoryHint: .isDirectory),
+                          home.appending(path: "Downloads", directoryHint: .isDirectory)].compactMap { $0 }
+        return candidates.filter { seen.insert($0.standardizedFileURL.path).inserted }
+    }
+
+    var collectsFromSeveralFolders: Bool { collectSources.count > 1 }
+
+    /// Picks where the new folder goes. A name Stow suggested follows the folder ("New Folder 2"
+    /// if that one has a "New Folder"); a name people typed stays.
+    func chooseCollectDestination(_ folder: URL) {
+        let typed = collectingName
+        let suggested = typed == suggestedName(in: collectDestination)
+        collectDestination = folder
+        if suggested { collectingName = suggestedName(in: folder) }
+        collectProblem = nil
+        touch()
+    }
+
+    /// The Where menu's Other…: any folder, from an Open panel (which also lets Stow write there).
+    func chooseOtherCollectDestination() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.directoryURL = collectDestination
+        panel.prompt = String(localized: "Choose")
+        panel.message = String(localized: "Choose where the new folder goes.")
+        NSApp.activate()
+        if panel.runModal() == .OK, let url = panel.url { chooseCollectDestination(url) }
+        self.panel?.makeKey()
+    }
+
+    /// Copies the items into a new folder where people chose, named by them, and puts that
     /// folder on the Tray in their place. Copies, never moves: the originals stay where they were.
     func collectIntoFolder() async {
         guard let typed = collectingName else { return }
         let chosen = targets.filter { $0.url != nil }
         let urls = chosen.compactMap(\.url)
-        guard let parent = TrayRules.collectionParent(for: urls) else { collectingName = nil; return }
+        guard !urls.isEmpty else { collectingName = nil; return }
+        // Return in the name field before a folder was chosen: say what's missing, keep the question.
+        guard let parent = collectDestination else {
+            collectProblem = String(localized: "Choose where the new folder goes.")
+            return
+        }
         let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
         // A name that can't be used is answered under the field, which keeps what was typed.
         guard !name.isEmpty, !name.contains("/") else {
@@ -402,6 +471,7 @@ final class TrayController {
             // Only knowable once the folder is readable: ask again, with what was typed.
             guard !FileManager.default.fileExists(atPath: destination.path) else {
                 collectingName = typed
+                collectDestination = folder
                 collectProblem = String(localized: "This folder already has an item named “\(name)”.")
                 return
             }
@@ -413,11 +483,26 @@ final class TrayController {
             failure = Failure(EngineError(error).message)
             return
         }
+        // The folder actually used: people may pick another one in the access panel.
+        GatherDestination.remember(folder, for: urls)
         let ids = Set(chosen.map(\.id))
         path = []
         items.removeAll { ids.contains($0.id) }
-        items.append(TrayItem(url: destination))
+        let made = TrayItem(url: destination)
+        items.append(made)
         selection = []
+        withAnimation(Motion.current(Motion.status)) { collected = destination }
+        mark([made.id], announcing: Self.collectedTitle(destination))
+    }
+
+    /// "Collected in “Desktop”" — the folder the new folder went in.
+    static func collectedTitle(_ made: URL) -> String {
+        String(localized: "Collected in “\(FileManager.default.displayName(atPath: made.deletingLastPathComponent().path))”")
+    }
+
+    func revealCollected() {
+        guard let collected else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([collected])
     }
 
     func share(from view: NSView?) {
@@ -794,6 +879,15 @@ struct TrayView: View {
     }
 
     private var summary: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            if let made = tray.collected {
+                collectedNote(made).transition(.opacity)
+            }
+            summaryRow
+        }
+    }
+
+    private var summaryRow: some View {
         HStack(spacing: Space.s) {
             VStack(alignment: .leading, spacing: 0) {
                 Group {
@@ -842,17 +936,33 @@ struct TrayView: View {
         VStack(alignment: .leading, spacing: Space.s) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Collect into a Folder").font(.headline)
-                if let neighbour = tray.collectionNeighbour {
-                    Text("Copies go in a new folder beside “\(neighbour)”. The originals stay put.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                Text("Stow puts copies in a new folder. The originals stay where they are.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // Name, then Where, as a Save dialog asks them.
+            Grid(alignment: .leading, horizontalSpacing: Space.s, verticalSpacing: Space.s) {
+                GridRow {
+                    Text("Name").font(.callout).foregroundStyle(.secondary).gridColumnAlignment(.trailing)
+                    TextField("Folder name", text: Binding(get: { tray.collectingName ?? "" }, set: { tray.collectingName = $0 }))
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel(String(localized: "Folder name"))
+                        .onSubmit { Task { await tray.collectIntoFolder() } }
+                }
+                GridRow {
+                    Text("Where").font(.callout).foregroundStyle(.secondary)
+                    whereMenu
                 }
             }
-            TextField("Folder name", text: Binding(get: { tray.collectingName ?? "" }, set: { tray.collectingName = $0 }))
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { Task { await tray.collectIntoFolder() } }
-            // Right under the field it is about, like the password sheet's.
+            // Items from several folders and nothing chosen yet: say why Stow is asking.
+            if tray.collectDestination == nil, tray.collectsFromSeveralFolders {
+                Text("These come from \(tray.collectSources.count) folders. Choose where the new folder goes.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // Right under the fields it is about, like the password sheet's.
             if let problem = tray.collectProblem {
                 Label(problem, systemImage: "exclamationmark.triangle.fill")
                     .symbolRenderingMode(.multicolor)
@@ -866,9 +976,68 @@ struct TrayView: View {
                 Button("Collect") { Task { await tray.collectIntoFolder() } }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
-                    .disabled((tray.collectingName ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled((tray.collectingName ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+                              || tray.collectDestination == nil)
             }
         }
+    }
+
+    /// The folders the items come from first (with how many each), then other likely places,
+    /// then any folder. The chosen one is ticked; each shows its path, so two "Photos" differ.
+    private var whereMenu: some View {
+        Menu {
+            Section {
+                ForEach(tray.collectSources, id: \.folder) { source in
+                    destinationChoice(source.folder, detail: String(localized: "\(source.count) items"))
+                }
+            }
+            if !tray.collectPlaces.isEmpty {
+                Section {
+                    ForEach(tray.collectPlaces, id: \.self) { folder in destinationChoice(folder, detail: nil) }
+                }
+            }
+            Divider()
+            Button("Other…") { tray.chooseOtherCollectDestination() }
+        } label: {
+            Label(tray.collectDestination.map(Self.folderName) ?? String(localized: "Choose a Folder…"), systemImage: "folder")
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .help(tray.collectDestination.map(GatherDestination.abbreviated) ?? "")
+        .accessibilityLabel(String(localized: "Where"))
+        .accessibilityValue(tray.collectDestination.map(Self.folderName) ?? String(localized: "Not chosen"))
+    }
+
+    private func destinationChoice(_ folder: URL, detail: String?) -> some View {
+        let chosen = tray.collectDestination?.standardizedFileURL.path == folder.standardizedFileURL.path
+        let path = GatherDestination.abbreviated(folder)
+        return Toggle(isOn: Binding(get: { chosen }, set: { _ in tray.chooseCollectDestination(folder) })) {
+            Text(Self.folderName(folder))
+            Text(detail.map { "\(path) · \($0)" } ?? path)
+        }
+    }
+
+    private static func folderName(_ folder: URL) -> String {
+        FileManager.default.displayName(atPath: folder.path)
+    }
+
+    /// After Collect: where the new folder went, and a way to see it. Gone with the next action.
+    private func collectedNote(_ made: URL) -> some View {
+        HStack(spacing: Space.s) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .accessibilityHidden(true)
+            Text(TrayController.collectedTitle(made))
+                .fontWeight(.medium)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: Space.xs)
+            Button("Show in Finder") { tray.revealCollected() }
+                .buttonStyle(.link)
+        }
+        .font(.callout)
+        .accessibilityElement(children: .combine)
     }
 }
 

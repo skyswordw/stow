@@ -406,5 +406,15 @@ struct PackPlanTests {
         let folderRequest = PackRequest.collect([a])
         #expect(folderRequest.suggestedName == "a")
         #expect(folderRequest.files.map(\.path) == ["a", "a/Report.pdf"])
+
+        // Save Here starts where the items are, when they share a folder; for a mix it starts at the
+        // folder last chosen for one, or asks.
+        let chosen = URL(filePath: "/tmp/Chosen", directoryHint: .isDirectory)
+        #expect(PackRequest.collect([a.appending(path: "Report.pdf")], remembered: chosen).directory?.standardizedFileURL
+                == a.standardizedFileURL)
+        let mixed = [a.appending(path: "Report.pdf"), b.appending(path: "Report.pdf")]
+        #expect(PackRequest.collect(mixed, remembered: nil).directory == nil)
+        #expect(PackRequest.collect(mixed, remembered: chosen).directory == chosen)
+        #expect(PackRequest.collect(mixed, remembered: nil).origins == mixed)
     }
 }

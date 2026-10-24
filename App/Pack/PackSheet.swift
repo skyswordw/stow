@@ -280,7 +280,10 @@ struct PackSheet: View {
         isChoosing = true
         Task {
             defer { isChoosing = false }
-            guard let destination = await PackDestination.choose(for: fileName, startingAt: request.directory) else { return }
+            let severalFolders = GatherDestination.sources(of: request.origins).count > 1
+            guard let destination = await PackDestination.choose(for: fileName, startingAt: request.directory,
+                                                                  severalFolders: severalFolders) else { return }
+            GatherDestination.remember(destination, for: request.origins)
             var conflict = ArchiveCreation.Conflict.keepBoth
             if !ArchiveCreation.existing(named: archiveName, format: format, in: destination).isEmpty {
                 var free = 2
