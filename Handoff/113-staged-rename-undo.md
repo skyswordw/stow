@@ -42,14 +42,18 @@ and forwards that event to its original delegate. The redundant level-change cal
 that could attach a hidden full view's delegate to the active Glance window is removed;
 connectEdits already assigns each new session synchronously.
 
+When another archive opens, the hidden Glance view also rebuilds. Its attachment must
+not take editingWindow away from the current key window. Attachment now preserves the
+key window's ownership until the other window actually becomes key.
+
 ## Regression coverage
 
-Five additional tests cover a hosted window whose undo getter ignores its delegate,
+Six additional tests cover a hosted window whose undo getter ignores its delegate,
 command dispatch, empty field-editor history, archive/window isolation, save locking,
 attached-sheet exclusion, and two retained delegates restoring ownership on activation.
 The earlier plain-window tests remain to cover ordinary
 AppKit windows. Existing real-ZIP tests cover successful and failed save histories.
-The CI floor is 426 tests.
+The CI floor is 427 tests.
 
 The first native candidate passed Edit > Undo Rename, keyboard Redo, and search Undo
 Typing without changing the staged archive rename. Final packaged verification is

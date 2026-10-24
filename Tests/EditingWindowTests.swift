@@ -10,6 +10,8 @@ struct EditingWindowTests {
     private final class HostingUndoWindow: NSWindow {
         let nativeUndo = UndoManager()
         override var undoManager: UndoManager? { nativeUndo }
+        var keyForTesting = false
+        override var isKeyWindow: Bool { keyForTesting }
     }
 
     private func hostingWindow() -> HostingUndoWindow {
@@ -277,5 +279,31 @@ struct EditingWindowTests {
         #expect(glance.isDocumentEdited && routing.manager(in: glance)?.canUndo == true)
         routing.perform(.undo, in: glance)
         #expect(model.editSession.operations.isEmpty)
+    }
+
+    @Test func hiddenViewReattachmentCannotStealTheKeyWindowsNewArchive() {
+        let first = BrowserModel(archive: archive()), second = BrowserModel(archive: archive())
+        let full = hostingWindow(), glance = hostingWindow()
+        let fullDelegate = EditingWindowDelegate(), glanceDelegate = EditingWindowDelegate()
+        let routing = EditingUndoCommandsModel()
+        full.keyForTesting = true
+        fullDelegate.attach(full, model: first)
+        glanceDelegate.attach(glance, model: first)
+        #expect(first.editingWindow === full)
+        // Opening another archive rebuilds both view trees, including the hidden Glance tree.
+        fullDelegate.attach(full, model: second)
+        glanceDelegate.attach(glance, model: second)
+        #expect(second.editingWindow === full)
+        second.editSession.rename("a.txt", to: "second.txt")
+        #expect(routing.manager(in: full)?.canUndo == true)
+        routing.perform(.undo, in: full)
+        #expect(second.editSession.operations.isEmpty && first.editSession.operations.isEmpty)
+        full.keyForTesting = false
+        glance.keyForTesting = true
+        glanceDelegate.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification, object: glance))
+        fullDelegate.attach(full, model: second)
+        #expect(second.editingWindow === glance)
+        routing.perform(.redo, in: glance)
+        #expect(second.editSession.operations.count == 1 && first.editSession.operations.isEmpty)
     }
 }

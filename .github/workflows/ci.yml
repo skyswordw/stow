@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 426 after native undo command routing and retained-window activation coverage.
+          # 427 after native undo routing, retained-window activation and hidden-view coverage.
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "426"
+          MIN_TESTS: "427"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

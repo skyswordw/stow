@@ -311,7 +311,11 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
         }
         self.window = window
         self.model = model
-        model.editingWindow = window
+        // A hidden full/Glance view can rebuild after another archive opens. It must not
+        // take editing ownership from the model's current key window.
+        if window.isKeyWindow || model.editingWindow?.isKeyWindow != true {
+            model.editingWindow = window
+        }
         for level in model.levels { level.edits.undoManager = model.editingUndoManager }
         window.isDocumentEdited = model.levels.contains { $0.edits.isEdited }
         if window.delegate !== self { original = window.delegate; window.delegate = self }
