@@ -213,7 +213,7 @@ private struct RecentRow: View {
     var body: some View {
         Button(action: open) {
             HStack(spacing: Space.m) {
-                FormatBadge(format: ArchiveFormat.infer(fromName: entry.name) ?? .zip)
+                FormatBadge(format: ArchiveFormat.infer(fromName: SplitArchive.baseName(entry.name) ?? entry.name) ?? .other)
                     .scaleEffect(0.8)
                     .frame(width: 28, height: 34)
                 VStack(alignment: .leading, spacing: 2) {
