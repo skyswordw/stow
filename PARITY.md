@@ -9,6 +9,10 @@ points and English UI strings. No code was decompiled or run.
 
 **Current native evidence (2026-10-23):** see the [ArcZip 1.1.4 comparison](Handoff/arczip-1.1.4-native-audit.md). It records confirmed failures in nested opening/search, split archive reopening, explicit helper extraction, native Save/Undo and compressed TAR statistics. Implementation checkmarks below do not override those observed failures. ArcZip Pro operations and signed-system integration have explicit coverage limits.
 
+The [Pro trial comparison](Handoff/arczip-pro-trial-native-audit.md) adds actual search,
+rename/undo/redo/save, Windows-purpose ZIP creation, encrypted 7Z interoperability and Open File
+Flow evidence. It also records ArcZip's split-creation failure and the remaining untested scope.
+
 **What the bundle shows about ArcZip's architecture**
 
 | Piece | ArcZip | Stow |

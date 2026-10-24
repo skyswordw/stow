@@ -1,4 +1,6 @@
 import Foundation
+import Observation
+import Synchronization
 import Testing
 @testable import Stow
 
@@ -56,6 +58,34 @@ struct NestedSearchTests {
         let hits = await nested.search("target", includingHelpers: false)
         #expect(hits.map(\.entry.path) == ["a.zip/deep/Target.txt"])
         #expect(await nested.search("notes", includingHelpers: false).isEmpty)
+    }
+
+    @Test(arguments: [false, true])
+    func progressCompletionInvalidatesTheBrowserWithoutNewHits(fails: Bool) async throws {
+        let archive = Archive(name: "outer.zip", format: .zip,
+                              files: [entry("inner.zip"), entry("notes.txt")])
+        let model = BrowserModel(archive: archive)
+        var read: CheckedContinuation<[ArchiveEntry], any Error>?
+        model.nestedLoader = { _, _ in
+            try await withCheckedThrowingContinuation { read = $0 }
+        }
+        model.query = "notes"
+        try await waitUntil { read != nil && model.visibleEntries.count == 1 }
+
+        let invalidated = Mutex(false)
+        let progress = withObservationTracking {
+            model.indexingProgress
+        } onChange: {
+            invalidated.withLock { $0 = true }
+        }
+        #expect(progress != nil)
+        let pendingRead = try #require(read)
+        if fails { pendingRead.resume(throwing: EngineError(.failed)) }
+        else { pendingRead.resume(returning: []) }
+        try await waitUntil { model.indexingProgress == nil }
+
+        #expect(invalidated.withLock { $0 })
+        #expect(model.visibleEntries.map(\.path) == ["notes.txt"])
     }
 
     @Test func resultsListInnerMatchesAfterTheOpenLevel() async throws {
