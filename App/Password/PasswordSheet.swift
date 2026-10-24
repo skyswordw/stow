@@ -23,14 +23,17 @@ struct PasswordSheet: View {
                     .controlSize(.large)
                     .focused($isFocused)
                     .onSubmit(submit)
-                Toggle("Show password", isOn: $showsPassword)
-                    .onChange(of: showsPassword) { isFocused = true }
+                // Right under the field it is about, before the Show password option.
                 if question.isRetry {
                     Label("That password didn’t work. Check for typos and Caps Lock, then try again.",
                           systemImage: "exclamationmark.triangle.fill")
                         .symbolRenderingMode(.multicolor)
                         .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                Toggle("Show password", isOn: $showsPassword)
+                    .onChange(of: showsPassword) { isFocused = true }
+                    .padding(.top, question.isRetry ? Space.xs : 0)
             }
             .padding(.leading, 32 + Space.m)
         } buttons: {
@@ -48,7 +51,8 @@ struct PasswordSheet: View {
         switch question.purpose {
         case .open: String(localized: "Its list of files is encrypted. Enter the password to see what’s inside.")
         case .extract: String(localized: "Its files are encrypted. Enter the password to extract them.")
-        case .unlock: String(localized: "Its files are encrypted. Enter the password to preview or extract them.")
+        // Asked from an archive whose file names are already showing: say they stay browsable.
+        case .unlock: String(localized: "You can browse its file names. Enter the password to preview or extract the files.")
         }
     }
 

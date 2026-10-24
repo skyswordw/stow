@@ -17,7 +17,7 @@ struct SidebarView: View {
         // name or a narrow sidebar clipped or truncated the card. Here it takes the height it needs.
         .safeAreaInset(edge: .top, spacing: 0) {
             // Staged items have no packed size until Save, so the packed figures stay the saved archive's.
-            ArchiveCard(archive: model.archive, packedFrom: model.editSession.isEdited ? model.level.savedArchive : nil)
+            ArchiveCard(archive: model.archive, packedFrom: model.editSession.isEdited ? model.level.savedArchive : nil, model: model)
                 .padding(.horizontal, Space.m)
                 .padding(.bottom, Space.s)
         }
@@ -40,6 +40,8 @@ struct ArchiveCard: View {
     let archive: Archive
     /// Whose packed size and ratio to show, when not `archive`'s (the saved archive while edits are staged).
     var packedFrom: Archive?
+    /// The open archive's browser, for the lock line; nil leaves it out.
+    var model: BrowserModel?
     @State private var showCheckup = false
     /// Design review: the Checkup popover opens by itself (`-StowScene checkup-format`).
     static var opensCheckupForDemo = false
@@ -77,21 +79,25 @@ struct ArchiveCard: View {
                     .help(packedFrom == nil ? "" : String(localized: "As last saved. This updates when you save your changes."))
             }
 
-            Button {
-                showCheckup.toggle()
-            } label: {
-                CheckupBadge(archive: archive)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "Checkup"))
-            .help("Checkup")
-            .popover(isPresented: $showCheckup, arrowEdge: .trailing) {
-                CheckupView(findings: archive.checkup)
-            }
-            .task {
-                guard Self.opensCheckupForDemo else { return }
-                try? await Task.sleep(for: .milliseconds(500))
-                showCheckup = true
+            // The lock line and Checkup sit together as the card's two status chips.
+            VStack(alignment: .leading, spacing: Space.xs) {
+                if let model { ArchiveLockRow(model: model) }
+                Button {
+                    showCheckup.toggle()
+                } label: {
+                    CheckupBadge(archive: archive)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "Checkup"))
+                .help("Checkup")
+                .popover(isPresented: $showCheckup, arrowEdge: .trailing) {
+                    CheckupView(findings: archive.checkup)
+                }
+                .task {
+                    guard Self.opensCheckupForDemo else { return }
+                    try? await Task.sleep(for: .milliseconds(500))
+                    showCheckup = true
+                }
             }
         }
         .padding(Space.m)
