@@ -28,7 +28,9 @@ The latest published installation is 0.1.1 (279); these changes are on main afte
 release. Before visual comparison, build current main, confirm the running app's path and
 build identity, and record the commit and comparison-app version. The latest [remaining native audit](arczip-remaining-native-verification.md) now records
 exact-build installation, editing, compression and recovery checks. Screenshots from CI remain
-separate from that interaction evidence; #93 and #113 are still open.
+separate from that interaction evidence. #93 remains open; the functional Undo repair for
+#113 follows #124 in [PR #149](https://github.com/skyswordw/stow/pull/149) and the
+[undo handoff](113-staged-rename-undo.md). It introduces no visual or motion treatment.
 
 ## 1. Make encryption discoverable without blocking browsing
 

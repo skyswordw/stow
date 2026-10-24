@@ -12,8 +12,10 @@ points and English UI strings. No code was decompiled or run.
 [remaining native verification](Handoff/arczip-remaining-native-verification.md) distinguish
 baseline failures from exact-build fixes. Nested reads/Save, helper extraction, TAR statistics,
 split reopening, installation recovery, Save Copy, window identity and search coverage have
-additional native acceptance evidence. Undo (#113) and full Browser AX failure-state recursion
-(#93) remain open despite earlier partial merges. Direct x86_64 7-Zip execution under Rosetta
+additional native acceptance evidence. The [Undo follow-up (#149)](https://github.com/skyswordw/stow/pull/149)
+repairs #113 beyond the partial #124 merge: native command routing, retained-window activation,
+and hidden-view ownership are covered in the [undo handoff](Handoff/113-staged-rename-undo.md).
+Full Browser AX failure-state recursion (#93) remains open. Direct x86_64 7-Zip execution under Rosetta
 also fails (#144). Implementation checkmarks do not override these failures or the report's
 hardware, signing, drag and hover limits.
 
@@ -111,7 +113,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Add, delete, replace, rename items; save; undo/redo | ✅ native ZIP edits/Save · ❌ native Undo (#113) | Exact bytes/CRC/empty folders passed; #124 did not resolve the real native Undo failure. Wider editable-format acceptance remains scoped separately |
+| Add, delete, replace, rename items; save; undo/redo | ✅ native ZIP edits/Save/Undo/Redo | Four single-step edits, text undo isolation, full/Glance switching, failed-save retry and exact bytes/CRC/empty folders; #149 completes the #124 repair. Wider editable-format acceptance remains scoped separately |
 | Original untouched until save; rollback on failure | ✅ native staged ZIP preservation and Save | Fault injection remains automated; native staged/external-change/cancel paths preserved original hashes |
 | Detect archive changed on disk → reload or save a copy | ✅ native watcher / Reload / Save a Copy | New-path sandbox failure fixed and natively verified in #141; source hash and saved contents checked |
 | Rename the archive itself (incl. SMB/NAS) | 🧪 File › Rename Archive…; sibling staging for other volumes | pending SMB hand-test |

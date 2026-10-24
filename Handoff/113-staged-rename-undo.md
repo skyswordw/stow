@@ -50,11 +50,20 @@ key window's ownership until the other window actually becomes key.
 
 Six additional tests cover a hosted window whose undo getter ignores its delegate,
 command dispatch, empty field-editor history, archive/window isolation, save locking,
-attached-sheet exclusion, and two retained delegates restoring ownership on activation.
+attached-sheet exclusion, two retained delegates restoring ownership on activation, and
+hidden views rebuilding for a new archive without stealing the key window's ownership.
 The earlier plain-window tests remain to cover ordinary
 AppKit windows. Existing real-ZIP tests cover successful and failed save histories.
 The CI floor is 427 tests.
 
-The first native candidate passed Edit > Undo Rename, keyboard Redo, and search Undo
-Typing without changing the staged archive rename. Final packaged verification is
-recorded in the issue and PR before closure; model tests alone do not close #113.
+Native candidate checks exercised Grid and List rename, four individual archive edits
+through Undo/Redo, repeated full/Glance switching, and search Undo Typing without changing
+archive history (including an exhausted text stack). Removing an added fixture source
+caused PCK-199 while leaving the original ZIP hash unchanged; Undo/Redo survived dismissal,
+and restoring the source allowed Save and cleared history. Independent ZIP checks covered
+CRC, exact added/replacement bytes, deletion, and empty-directory preservation. The guarded
+hidden-view repair also passed native Undo/Redo after opening a second archive.
+
+PR #149 records the exact final packaged artifact and acceptance before merge. These checks
+use generated test files and preserve the earlier failure evidence. Wider editable-format
+coverage and the independent #93 accessibility recursion remain outside this repair.
