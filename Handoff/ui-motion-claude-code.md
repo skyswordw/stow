@@ -26,8 +26,9 @@ Functional changes already merged:
 These merges establish behavior, not Claude Code approval of their appearance or motion.
 The latest published installation is 0.1.1 (279); these changes are on main after that
 release. Before visual comparison, build current main, confirm the running app's path and
-build identity, and record the commit and comparison-app version. Native verification was
-last blocked by a locked Mac; screenshots from CI are not a substitute for interaction QA.
+build identity, and record the commit and comparison-app version. The latest [remaining native audit](arczip-remaining-native-verification.md) now records
+exact-build installation, editing, compression and recovery checks. Screenshots from CI remain
+separate from that interaction evidence; #93 and #113 are still open.
 
 ## 1. Make encryption discoverable without blocking browsing
 
@@ -177,3 +178,17 @@ app automatically. Keep the existing confirmation, retry, dismiss, and Copy Deta
 Claude Code owns visual hierarchy and motion review under #104; these functional copy/state
 changes do not imply visual approval. The full Browser AX recursion remains separately open
 in #93; a successful Glance recovery does not close it.
+
+## Remaining native audit follow-ups (#143)
+
+The [remaining verification report](arczip-remaining-native-verification.md) records additional
+functional fixes and unresolved limits. In #143, showing helper items makes them visible and
+explicit selection extracts them correctly, but Checkup still says they are hidden and will
+not be extracted. Claude Code owns copy hierarchy and presentation: distinguish default
+Extract All filtering from deliberate showing/selection. Codex / Grok Bot owns the facts and
+extraction semantics; preserve explicit selection and existing safety boundaries.
+
+Search coverage in #136 now discloses omitted inner archives and Locate avoids opening or
+unlocking them. Review the retained inspector / Next Steps selection after Locate followed by
+a zero-result query. These are interaction briefs, not visual approval or evidence that Claude
+has started the review. #119 remains the separate visual/motion PR.
