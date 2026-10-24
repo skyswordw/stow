@@ -1224,6 +1224,11 @@ final class BrowserModel {
         unlockTask?.cancel()
     }
 
+    /// Design review: the lock's checking state without an archive to check (`-StowLock checking`).
+    func showUnlockingForDemo() {
+        isUnlocking = true
+    }
+
     /// Where an app goes: the disk image's own "drag to Applications" shortcut, or /Applications.
     private func installFolder(for entry: ArchiveEntry) -> URL {
         if let override = FolderAccess.override { return override }

@@ -267,12 +267,12 @@
         }
       }
     },
-    "Its files are encrypted. Enter the password to preview or extract them.": {
+    "You can browse its file names. Enter the password to preview or extract the files.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "文件内容已加密。请输入密码以预览或解压。"
+            "value": "可以浏览文件名。输入密码即可预览或解压文件。"
           }
         }
       }
@@ -297,12 +297,43 @@
         }
       }
     },
-    "Checking the password — click to cancel": {
+    "Unlocking…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "正在验证密码，点击可取消"
+            "value": "正在解锁…"
+          }
+        }
+      }
+    },
+    "File names are visible; contents need the password.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件名可见；查看内容需要密码。"
+          }
+        }
+      }
+    },
+    "Password available": {
+      "comment": "Archive card status, sentence case beside “Checkup: looks safe”.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码可用"
+          }
+        }
+      }
+    },
+    "Unlocking — click to cancel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在解锁，点击可取消"
           }
         }
       }

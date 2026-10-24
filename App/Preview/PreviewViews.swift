@@ -186,17 +186,55 @@ struct RichPreviewView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .unavailable(let reason):
+            let isLocked = reason == String(localized: "Locked — needs the archive’s password")
             VStack(spacing: Space.s) {
                 NativeIcon(type: entry.contentType).frame(width: 72, height: 72)
+                    .overlay(alignment: .bottomTrailing) {
+                        // The same lock as the toolbar and archive card, so the three read as one thing.
+                        if isLocked {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 22, height: 22)
+                                .background(.regularMaterial, in: .circle)
+                                .overlay { Circle().strokeBorder(.primary.opacity(contrastStyle.faintBorderOpacity)) }
+                                .offset(x: 4, y: 4)
+                                .accessibilityHidden(true)
+                        }
+                    }
                 if !reason.isEmpty {
                     Text(reason)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                if reason == String(localized: "Locked — needs the archive’s password") {
-                    Button("Enter Password…", systemImage: "lock.fill") { model.unlockArchive(for: entry) }
-                        .disabled(model.isUnlocking)
+                if isLocked {
+                    // A spinner in place while this file's password is checked. Both titles and the
+                    // glyph stay in the layout (hidden), so the button keeps one size in both states.
+                    let title = model.isUnlocking ? String(localized: "Unlocking…") : String(localized: "Enter Password…")
+                    Button {
+                        model.unlockArchive(for: entry)
+                    } label: {
+                        Label {
+                            ZStack {
+                                Text("Enter Password…").hidden()
+                                Text("Unlocking…").hidden()
+                                Text(title)
+                            }
+                        } icon: {
+                            ZStack {
+                                Image(systemName: "lock.fill").hidden()
+                                if model.isUnlocking {
+                                    ProgressView().controlSize(.mini)
+                                } else {
+                                    Image(systemName: "lock.fill")
+                                }
+                            }
+                        }
+                    }
+                    .accessibilityLabel(title)
+                    .disabled(model.isUnlocking)
+                    .padding(.top, Space.xs)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

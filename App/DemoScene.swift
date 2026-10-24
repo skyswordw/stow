@@ -16,7 +16,8 @@ import SwiftUI
 /// `-StowScene associations -StowAssociationsCheck <UTI>` makes Stow the real default for one
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
 /// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
-/// password (the sheet after a rejected password), extract-options, install-options, batch, conflict, signature-warning, replace-app.
+/// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
+/// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app.
 /// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, pack-failed-dmg, empty-archive, empty-folder, search-empty, tray-empty.
 /// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly,
@@ -167,7 +168,13 @@ enum DemoScene {
             app.cloudDownload = CloudDownload(name: "Field Recordings.zip", isICloud: true, fraction: 0.42)
         case "password":
             // The question after a rejected password; nothing is checked against an archive.
-            Task { _ = await app.passwords.ask(.init(archiveName: "Harbor Handoff.7z", purpose: .extract, isRetry: true)) }
+            let purpose: PasswordPrompt.Question.Purpose = switch defaults.string(forKey: "StowPasswordPurpose") {
+            case "unlock": .unlock
+            case "open": .open
+            default: .extract
+            }
+            let isRetry = defaults.object(forKey: "StowPasswordRetry") == nil || defaults.bool(forKey: "StowPasswordRetry")
+            Task { _ = await app.passwords.ask(.init(archiveName: "Harbor Handoff.7z", purpose: purpose, isRetry: isRetry)) }
         case "open":
             // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
             if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
@@ -339,6 +346,18 @@ enum DemoScene {
         }
 
         if scene == "open" { BrowseDemo.apply(to: app) }
+
+        // `-StowEncrypted YES` marks the sample archive encrypted in any scene (Glance, List…);
+        // `-StowLock checking|available` shows the lock checking a password, or after one worked.
+        if defaults.bool(forKey: "StowEncrypted"), let level = app.browser?.level {
+            level.archive.isEncrypted = true
+            level.savedArchive.isEncrypted = true
+        }
+        switch defaults.string(forKey: "StowLock") {
+        case "checking": app.browser?.showUnlockingForDemo()
+        case "available": app.browser?.level.password = "demo"
+        default: break
+        }
 
         // `-StowViewMode grid|list|columns` and `-StowScrollToEnd YES`: check what floats over the last row.
         if let mode = defaults.string(forKey: "StowViewMode").flatMap(BrowserModel.ViewMode.init(rawValue:)) {
