@@ -10,7 +10,7 @@ struct ErrorCodeTests {
     @Test func tableIsPinned() {
         let reasons = Dictionary(uniqueKeysWithValues: ErrorCode.Reason.allCases.map { ("\($0)", $0.rawValue) })
         #expect(reasons == [
-            "notAnArchive": 100, "noReadAccess": 101, "passwordRequired": 110, "wrongPassword": 111,
+            "notAnArchive": 100, "noReadAccess": 101, "missingVolume": 102, "passwordRequired": 110, "wrongPassword": 111,
             "damagedData": 120, "damagedStructure": 121, "diskFull": 130, "noWriteAccess": 140,
             "engineMissing": 150, "engineOutdated": 151, "engineStopped": 152,
             "changedOnDisk": 160, "cancelled": 170, "limit": 180, "unknown": 199,
@@ -23,7 +23,7 @@ struct ErrorCodeTests {
         let pairs: [(EngineFailure, ErrorCode.Reason)] = [
             (.incompatibleVersion, .engineOutdated), (.engineMissing, .engineMissing), (.connectionLost, .engineStopped),
             (.notAnArchive, .notAnArchive), (.passwordRequired, .passwordRequired), (.wrongPassword, .wrongPassword),
-            (.cancelled, .cancelled), (.failed, .unknown), (.changedOnDisk, .changedOnDisk),
+            (.missingVolume, .missingVolume), (.cancelled, .cancelled), (.failed, .unknown), (.changedOnDisk, .changedOnDisk),
         ]
         for (failure, reason) in pairs { #expect(ErrorCode.reason(for: failure) == reason) }
         // Engine raw values cross XPC; they're part of the contract too.
@@ -33,6 +33,7 @@ struct ErrorCodeTests {
     @Test func failuresCarryStableCodes() {
         let cases: [(any Error, Failure.Operation, String)] = [
             (EngineError(.notAnArchive), Failure.Operation.open, "OPN-100"),
+            (EngineError(.missingVolume), .open, "OPN-102"),
             (EngineError(.passwordRequired), .extract, "EXT-110"),
             (EngineError(.wrongPassword), .extract, "EXT-111"),
             (EngineError(.failed, "Data Error : Docs/Q3.pdf"), .extract, "EXT-120"),

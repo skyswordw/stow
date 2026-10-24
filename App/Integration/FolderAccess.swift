@@ -80,6 +80,13 @@ final class FolderAccess {
         return granted == folder && FileManager.default.isReadableFile(atPath: file.path)
     }
 
+    /// A first-volume grant does not authorize its siblings. The system panel grants the folder.
+    func readableParts(in folder: URL) async -> Bool {
+        let reason = String(localized: "Choose the folder containing all archive parts so Stow can read the complete archive.")
+        guard let granted = await ask(for: folder, purpose: .explained(reason)) else { return false }
+        return granted.standardizedFileURL == folder.standardizedFileURL
+    }
+
     /// Whether a remembered grant covers `folder`.
     func covers(_ folder: URL) -> Bool {
         grants.contains { PathContainment.isInside(folder.standardizedFileURL.path, root: $0.standardizedFileURL.path) }

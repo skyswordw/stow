@@ -510,12 +510,13 @@ struct ExtractionTests {
         try Data(bytes).write(to: big)
         let archive7z = folder.url.appending(path: "big.7z")
         let process = try Process.run(SevenZip.bundled()!.executable,
-                                      arguments: ["a", "-bso0", "-bsp0", "-mx1", archive7z.path, big.path])
+                                      arguments: ["a", "-bso0", "-bsp0", "-mx1", "-v4m", archive7z.path, big.path])
         process.waitUntilExit()
         try FileManager.default.removeItem(at: big)
         let destination = folder.url.appending(path: "Out", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
-        let archive = Archive(listing: try await ArchiveEngine.shared.list(archive7z), url: archive7z)
+        let firstVolume = URL(filePath: archive7z.path + ".001")
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(firstVolume), url: firstVolume)
 
         let started = Fractions()
         let task = Task { try await Extraction.run(archive, selection: nil, to: destination) { started.add($0) } }

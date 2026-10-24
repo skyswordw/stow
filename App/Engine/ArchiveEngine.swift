@@ -19,13 +19,13 @@ final class ArchiveEngine {
         if Task.isCancelled { throw EngineError(.cancelled) }
         let id = UUID().uuidString
         let request = try encode(ListRequest(operationID: id, password: password))
-        let handle = try Self.open(archive)
+        let handle = try await Self.open(archive)
         defer { try? handle.close() }
         progress.registerList(id, onChunk)
         defer { progress.removeList(id) }
         let connection = XPCConnection(try await verifiedConnection())
         let file = SendableHandle(handle)
-        let name = archive.lastPathComponent
+        let name = SplitArchive.baseName(archive.lastPathComponent) ?? archive.lastPathComponent
         do {
             let reply = try await withTaskCancellationHandler {
                 try await Self.call(on: connection) { proxy, once in
@@ -38,7 +38,7 @@ final class ArchiveEngine {
             } onCancel: { connection.proxy?.cancel(operation: id) }
             if Task.isCancelled { throw EngineError(.cancelled) }
             return try decode(ArchiveListing.self, from: reply)
-        } catch { throw EngineError(error) }
+        } catch { throw SplitArchive.recover(EngineError(error), name: archive.lastPathComponent) }
     }
 
     /// An extraction waiting inside the engine: `receive` it, then `discard` it.
@@ -55,13 +55,13 @@ final class ArchiveEngine {
                                                  excludeMacHelperFiles: excludeMacHelperFiles,
                                                  preservedHelperPaths: preservedHelperPaths,
                                                  restoreMacMetadata: restoreMacMetadata))
-        let handle = try Self.open(archive)
+        let handle = try await Self.open(archive)
         defer { try? handle.close() }
         progress.register(id, onProgress)
         defer { progress.remove(id) }
 
         let connection = XPCConnection(try await verifiedConnection())
-        let name = archive.lastPathComponent
+        let name = SplitArchive.baseName(archive.lastPathComponent) ?? archive.lastPathComponent
         let file = SendableHandle(handle)
         let reply: Data
         do {
@@ -75,7 +75,7 @@ final class ArchiveEngine {
                 connection.proxy?.cancel(operation: id)
             }
         } catch {
-            throw EngineError(error)
+            throw SplitArchive.recover(EngineError(error), name: archive.lastPathComponent)
         }
         return Output(operationID: id, report: try decode(ExtractReport.self, from: reply))
     }
@@ -139,10 +139,10 @@ final class ArchiveEngine {
     func edit(_ archive: URL, items: [TreeStream.Item], request: EditRequest,
                 onSent: @escaping @Sendable (Int64) -> Void,
                 onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> EditReport {
-        let handle = try Self.open(archive)
+        let handle = try await Self.open(archive)
         defer { try? handle.close() }
         let file = SendableHandle(handle)
-        let name = archive.lastPathComponent
+        let name = SplitArchive.baseName(archive.lastPathComponent) ?? archive.lastPathComponent
         let id = request.operationID
         let payload = try encode(request)
         progress.register(id, onProgress)
@@ -231,11 +231,13 @@ final class ArchiveEngine {
     func verify(_ archive: URL, password: String? = nil) async throws(EngineError) {
         let id = UUID().uuidString
         let request = try encode(ExtractRequest(operationID: id, password: password, testOnly: true))
-        let handle = try Self.open(archive)
+        let handle = try await Self.open(archive)
         defer { try? handle.close() }
-        _ = try await call { proxy, reply in
-            proxy.extract(handle, named: archive.lastPathComponent, request: request, reply: reply)
-        }
+        do {
+            _ = try await call { proxy, reply in
+                proxy.extract(handle, named: SplitArchive.baseName(archive.lastPathComponent) ?? archive.lastPathComponent, request: request, reply: reply)
+            }
+        } catch { throw SplitArchive.recover(EngineError(error), name: archive.lastPathComponent) }
     }
 
     /// Streams the extracted files into `folder` (which must exist).
@@ -286,12 +288,29 @@ final class ArchiveEngine {
         connection.map(XPCConnection.init)?.proxy?.discard(operation: id)
     }
 
-    private static func open(_ archive: URL) throws(EngineError) -> FileHandle {
-        do {
-            return try FileHandle(forReadingFrom: archive)
-        } catch {
-            throw EngineError(.failed, error.localizedDescription)
+    private static func open(_ archive: URL) async throws(EngineError) -> FileHandle {
+        if SplitArchive.baseName(archive.lastPathComponent) != nil {
+            let folder = archive.deletingLastPathComponent()
+            #if !STOW_NO_ZSTD
+            // FolderAccess lives in the app target only; Quick Look already has the file grant.
+            do {
+                _ = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            } catch {
+                guard await FolderAccess.shared.readableParts(in: folder) else { throw EngineError(.cancelled) }
+            }
+            #endif
+            do {
+                let parts = try SplitArchive.parts(for: archive)
+                #if !STOW_NO_ZSTD
+                if parts.contains(where: { !FileManager.default.isReadableFile(atPath: $0.path) }) {
+                    guard await FolderAccess.shared.readableParts(in: folder) else { throw EngineError(.cancelled) }
+                }
+                #endif
+                return try await SplitArchive.open(parts)
+            } catch { throw EngineError(error) }
         }
+        do { return try FileHandle(forReadingFrom: archive) }
+        catch { throw EngineError(.failed, error.localizedDescription) }
     }
 
     private nonisolated static func resume(_ once: ResumeOnce<Data>, _ data: Data?, _ error: NSError?) {

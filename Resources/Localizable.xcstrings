@@ -1,6 +1,36 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Choose the folder containing all archive parts so Stow can read the complete archive." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择包含所有分卷的文件夹，以便 Stow 读取完整归档。"
+          }
+        }
+      }
+    },
+    "Archive parts are missing or inconsistent. Put every numbered part in the same folder and open the .001 part again." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "归档分卷缺失或不一致。请将所有编号分卷放在同一文件夹中，然后重新打开 .001 分卷。"
+          }
+        }
+      }
+    },
+    "“%@” needs all its archive parts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”需要所有归档分卷"
+          }
+        }
+      }
+    },
     "Unavailable" : {
       "localizations" : {
         "zh-Hans" : {
