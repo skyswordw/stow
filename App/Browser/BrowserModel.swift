@@ -475,7 +475,7 @@ final class BrowserModel {
         let count = visibleEntries.count
         let items = count == 1 ? String(localized: "1 item")
             : String(localized: "\(count.formatted()) items")
-        return isSearching ? String(localized: "\(count.formatted()) results in \(archive.name)") : items
+        return isSearching ? String(localized: "\(count) results in \(archive.name)") : items
     }
 
     /// The selected search result, when it sits inside an inner archive.
