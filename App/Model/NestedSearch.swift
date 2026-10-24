@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// A search match inside an archive that sits in the one being browsed (issue #21).
 nonisolated struct NestedHit: Hashable, Sendable {
@@ -21,6 +22,7 @@ nonisolated struct NestedHit: Hashable, Sendable {
 /// preview cache and listed once, the first time someone searches; after that a search is a scan
 /// like any other. Only one level deep: open an inner archive to search the ones inside it.
 @MainActor
+@Observable
 final class NestedSearch {
     /// Reads the entries of one inner archive (`entry`, inside `archive`).
     typealias Loader = @MainActor (_ entry: ArchiveEntry, _ archive: Archive) async throws -> [ArchiveEntry]

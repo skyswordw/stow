@@ -1650,12 +1650,36 @@
         }
       }
     },
-    "%@ results in %@": {
+    "%lld results in %@": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld result in %2$@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld results in %2$@"
+                }
+              }
+            }
+          }
+        },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%2$@中有 %1$@ 个结果"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%2$@中有 %1$lld 个结果"
+                }
+              }
+            }
           }
         }
       }
