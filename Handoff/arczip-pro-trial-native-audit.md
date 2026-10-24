@@ -29,7 +29,7 @@ No purchase, license change, or account credential operation was performed.
 | Save ZIP edits | ArcZip Save succeeded; independent ZIP validation found no CRC error, exact original text under `renamed.txt`, the other file and empty folder preserved. Stow baseline still failed opening internal `.stow-saving` with EPERM, retained its edit plan, and preserved the original hash. Evidence added to [#114](https://github.com/skyswordw/stow/issues/114). |
 | Windows purpose + compression level | ArcZip switched from Balanced to Smaller and prompted for `CON.txt` → `CON-file.txt` and `question?.txt` → `question-.txt`. It produced a valid ZIP with exact input bytes and unchanged source names. Stow's matching purpose workflow passed in the earlier audit. |
 | Linux TAR creation | ArcZip's Linux and Servers / TAR choice showed Store Only and disabled password protection with an explicit explanation. It created a TAR containing the exact 41-byte `add.txt`, independently checked with Python's TAR reader. |
-| Encrypted ZIP creation | ArcZip created a password-protected ZIP from the same 41-byte text. Independent 7-Zip integrity testing and streaming decryption passed with exact source bytes. This session did not establish its ZIP encryption algorithm or a native Stow read of this particular ZIP. |
+| Encrypted ZIP creation | ArcZip created a password-protected ZIP from the same 41-byte text. Independent 7-Zip integrity testing and streaming decryption passed with exact source bytes. Its encryption algorithm was not established. The post-baseline candidate below also read this ZIP natively. |
 | Encrypted 7Z creation | ArcZip created a single-volume 7Z with Fastest (store), a synthetic password, and encrypted filenames. Independent 7-Zip reported `Copy 7zAES`, `Everything is Ok`, and 105,000,000 unpacked bytes. |
 | Cross-app encrypted read | Stow prompted for the ArcZip-created archive's encrypted file list, unlocked it, and extracted `split-input.bin`. SHA-256 exactly matched the 105,000,000-byte input. No Keychain credential was saved. |
 | Encrypted split creation | ArcZip's same input with encrypted filenames and **100 MB** volumes failed with `File operation failed: 分卷临时文件超出登记目录或所有权不一致`. No final volume or partial output remained in the chosen output folder. Turning off splitting produced the valid single-volume archive above. This is a limitation observed in the comparison app, not a new Stow defect. Stow's existing valid-volume reopening failure remains [#116](https://github.com/skyswordw/stow/issues/116). |
@@ -44,6 +44,10 @@ No purchase, license change, or account credential operation was performed.
 - [#128](https://github.com/skyswordw/stow/issues/128): **Looking inside 1 more archive…** remained
   visible for several minutes after the read finished, until the query changed. Make
   `NestedSearch` observable so completion invalidates the browser even when no new hits arrive.
+- [#130](https://github.com/skyswordw/stow/issues/130): after a successful Save and opening a
+  different archive, native represented-window URL still identified the previously saved ZIP.
+  Titles/listings/content were correct. This needs a separate window/document-identity policy;
+  no wrong-content or Finder-action failure is claimed from metadata alone.
 
 The search fixes passed the focused `NestedSearchTests` suite, including success and failure
 completion without added hits. Compiled catalog checks covered English and Simplified Chinese
@@ -59,6 +63,29 @@ unmodified main `b83de40` also failed with five issues, including the same tempo
 This establishes a pre-existing local sandbox problem; it does not turn the full run green or
 replace CI. The attempted single-method baseline filter selected zero tests and was discarded;
 the six-test suite is the actual baseline evidence. See #112/#114 and candidate PR #123.
+
+## Post-baseline engine fix verification
+
+[PR #123](https://github.com/skyswordw/stow/pull/123), head
+`bc874f5ef7b72392fb1cf7db97bb6f0d33f8666a`, passed 397 tests / 69 suites, 0 missing / 938
+translations, Universal2/package and snapshots. Its downloaded app at
+`/tmp/stow-pro-audit-pr123/Stow.app` passed signature/process-path checks and native verification:
+
+- Full Browser and Glance opened the original inner ZIP; Back restored the parent selection.
+  The real Markdown preview worked. Parent search found the nested file and opened it selected.
+- A separate ordinary 7Z inside a ZIP opened and previewed its actual 32-byte text.
+- The ArcZip-created encrypted ZIP inside another ZIP listed public names, offered Unlock,
+  cancelled without losing browsing state, then retried and previewed the exact 41-byte text.
+- A fresh generated ZIP staged a rename without changing the original hash. Save then succeeded;
+  independent CRC validation and comparison against every original entry passed, including the
+  empty folder. The resulting hash matched ArcZip's edited equivalent:
+  `b8eb2534380bc13fc31a550f0b72cd66748cd8c77c36c0ef4272751657dc1907`.
+
+PR #123 was merged as **`be9d48380318c9d18bf01ad9106d8fa0d2a18b56`**. Its descriptor copying
+preserves sandbox boundaries but adds private disk I/O/storage; huge/network-volume performance
+remains in #38. Search PR #129 was rebased onto that main for combined verification. These later
+results supersede the baseline failures for nested opening and Save, not the unrelated Undo,
+split-volume, helper-filtering, statistics or AX-error investigations.
 
 ## Remaining comparison scope
 
