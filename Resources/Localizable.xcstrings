@@ -1,6 +1,26 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Stow couldn’t read the archive. Try opening it again. Your files weren’t changed." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stow 无法读取归档。请尝试重新打开。你的文件未被更改。"
+          }
+        }
+      }
+    },
+    "Can’t read the archive" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取归档"
+          }
+        }
+      }
+    },
     "Unlock": {
       "localizations": {
         "zh-Hans": {

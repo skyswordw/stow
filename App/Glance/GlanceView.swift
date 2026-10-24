@@ -242,9 +242,10 @@ private struct GlanceList: View {
                     }
                     .opacity(entry.isHelper ? 0.55 : 1)
                     .contentShape(.rect)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(model.accessibilityLabel(for: entry))
-                    .accessibilityAddTraits(model.selection.contains(entry.id) ? .isSelected : [])
+                    .archiveEntryAccessibility(entry: entry) {
+                        model.select([entry.id])
+                        model.open(entry)
+                    }
                     .hoverPreview(for: entry, model: hover, browser: model)
                 }
 
