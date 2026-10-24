@@ -364,8 +364,8 @@ struct RootView: View {
                 BrowserView(model: browser)
                     .overlay(alignment: .bottom) { packActivity }
             } else {
-                // Below the welcome content rather than over the Recent row.
-                WelcomeView()
+                // Below the drop zone, inside the stage, rather than under the Recent sidebar.
+                WelcomeView { packActivity }
                     .navigationTitle("Stow")
                     .background {
                         WindowReader { window in
@@ -373,7 +373,6 @@ struct RootView: View {
                             window.isDocumentEdited = false
                         }
                     }
-                    .safeAreaInset(edge: .bottom, spacing: 0) { packActivity }
             }
         }
         .background { WindowReader { rootWindow = $0 } }
