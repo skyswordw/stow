@@ -315,6 +315,7 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
         for level in model.levels { level.edits.undoManager = model.editingUndoManager }
         window.isDocumentEdited = model.levels.contains { $0.edits.isEdited }
         if window.delegate !== self { original = window.delegate; window.delegate = self }
+        EditingUndoCommandsModel.shared.refresh()
     }
     func windowWillReturnUndoManager(_ window: NSWindow) -> UndoManager? { model?.editingUndoManager }
 
