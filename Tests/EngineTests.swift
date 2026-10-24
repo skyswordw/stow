@@ -135,7 +135,7 @@ struct ListingParserTests {
 
         let folder = listing.entries[0], file = listing.entries[1], solid = listing.entries[2], link = listing.entries[3]
         #expect(folder.isFolder)
-        #expect(file.size == 50_000 && file.packedSize == 87 && !file.isFolder)
+        #expect(file.size == 50_000 && file.packedSize == nil && !file.isFolder)
         #expect(solid.packedSize == nil) // shares a solid block
         #expect(solid.isEncrypted)
         #expect(link.isSymlink && !link.isFolder)
@@ -206,6 +206,38 @@ struct ListingParserTests {
         #expect(parser.consume(Data(" 90%\u{8}".utf8)) == nil) // never goes backwards
     }
 
+    @Test func solidPackedSizesUseContainerInBothParsers() throws {
+        let text = """
+        --
+        Path = solid.7z
+        Type = 7z
+        Physical Size = 123
+        Solid = +
+
+        ----------
+        Path = Docs/a.txt
+        Size = 1000
+        Packed Size = 40
+
+        Path = Docs/b.txt
+        Size = 1000
+        Packed Size =
+
+        """
+        let slow = try #require(SevenZip.parseListing(text))
+        let fast = try #require(SevenZip.parseListingFast(text)?.listing)
+        for listing in [slow, fast] {
+            #expect(listing.entries.allSatisfy { $0.packedSize == nil })
+            let archive = Archive(listing: listing, url: URL(filePath: "/nonexistent/solid.7z"))
+            #expect(archive.packedSize == 123)
+            #expect(archive.entry(at: "Docs")?.packedSize == nil)
+        }
+        var unknown = slow
+        unknown.physicalSize = nil
+        let archive = Archive(listing: unknown, url: URL(filePath: "/nonexistent/solid.7z"))
+        #expect(archive.packedSize == nil)
+    }
+
     @Test func listingMapsIntoArchiveWithFoldersAndCheckup() {
         let listing = ArchiveListing(type: "zip", physicalSize: 100, entries: [
             ListedEntry(path: "Docs/", isFolder: true, size: 0, packedSize: 0),
@@ -221,6 +253,7 @@ struct ListingParserTests {
         #expect(Set(archive.entries.map(\.path)) == ["Docs", "Docs/a.txt", "Empty", "evil.txt"])
         #expect(archive.entry(at: "Docs")?.size == 10)
         #expect(archive.totalSize == 13)
+        #expect(archive.packedSize == 8) // ZIP totals retain per-entry payload semantics.
         #expect(archive.source?.storedPaths["evil.txt"] == ["../../evil.txt"])
         #expect(archive.storedPaths(for: [archive.entry(at: "Docs")!]) == ["Docs/", "Docs/a.txt"])
 

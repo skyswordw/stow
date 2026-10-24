@@ -115,7 +115,8 @@ nonisolated extension SevenZip {
 
         private mutating func flush() {
             defer { current = Fields(); hasFields = false }
-            guard section == 2, hasFields, let entry = SevenZip.entry(from: current) else { return }
+            guard section == 2, hasFields, var entry = SevenZip.entry(from: current) else { return }
+            if archiveFields["Solid"] == "+" { entry.packedSize = nil }
             if type == "zip", !current.utf8Flag, !entry.path.allSatisfy(\.isASCII) { legacy.append(entries.count) }
             entries.append(entry)
         }
@@ -151,7 +152,7 @@ nonisolated extension SevenZip {
             if section == 1 {
                 if type == nil, SevenZip.matches(key, "Type") { type = SevenZip.string(value) }
                 if physicalSize == nil, SevenZip.matches(key, "Physical Size") { physicalSize = SevenZip.number(value) }
-                if SevenZip.matches(key, "Offset") || SevenZip.matches(key, "Embedded Stub Size") || SevenZip.matches(key, "Tail Size") {
+                if SevenZip.matches(key, "Offset") || SevenZip.matches(key, "Embedded Stub Size") || SevenZip.matches(key, "Tail Size") || SevenZip.matches(key, "Solid") {
                     archiveFields[SevenZip.string(key)] = archiveFields[SevenZip.string(key)] ?? SevenZip.string(value)
                 }
                 return

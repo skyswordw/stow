@@ -121,6 +121,16 @@ snapshot CI; that does not establish final visual quality.
 reproduced in published 0.1.1, remains a separate technical investigation. Do not close it
 on the strength of this visual review or assume #103 fixed it.
 
+
+## Packed size semantics (#115)
+
+Codex owns this correction: compressed TAR and solid archives use container bytes for
+root statistics; shared or unknown entry sizes display “Unavailable”, including folder
+aggregates. ZIP retains per-entry packed totals. Saved statistics remain the sidebar
+baseline during staged edits. No visual redesign or motion change is intended.
+Claude Code retains ownership of label hierarchy and visual treatment under #104;
+this functional change does not imply visual approval.
+
 ## Input-read and staged-save failures (#112, #114)
 
 Codex owns the descriptor staging, sandbox boundaries, failure classification, and tests.
