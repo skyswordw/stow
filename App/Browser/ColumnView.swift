@@ -179,7 +179,7 @@ private struct PreviewColumn: View {
                 }
                 MetadataGrid(rows: [
                     (String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened)),
-                    (String(localized: "Packed"), entry.packedSize.bytes),
+                    (String(localized: "Packed"), entry.packedSize.map { $0.bytes } ?? String(localized: "Unavailable")),
                 ])
             }
             .padding(Space.l)

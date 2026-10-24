@@ -169,7 +169,8 @@ nonisolated struct ArchiveEntry: Identifiable, Hashable, Sendable {
     let path: String
     let isFolder: Bool
     let size: Int64
-    let packedSize: Int64
+    /// Nil when compression is shared or the listing provides no comparable measurement.
+    let packedSize: Int64?
     let modified: Date
     /// Finder metadata (`.DS_Store`, `._*`, `__MACOSX`): hidden unless people ask to see it.
     var isHelper = false
@@ -273,19 +274,19 @@ nonisolated struct Archive: Identifiable, Sendable {
     /// Builds folder entries (with aggregated sizes) from a flat list of files,
     /// the same shape a real archive listing comes in. `helpers` are macOS helper items.
     init(name: String, format: ArchiveFormat, isEncrypted: Bool = false,
-         files: [ArchiveEntry], helpers: [ArchiveEntry] = [], checkup: [CheckupFinding] = []) {
+         files: [ArchiveEntry], helpers: [ArchiveEntry] = [], checkup: [CheckupFinding] = [], containerPackedSize: Int64? = nil) {
         self.name = name
         self.format = format
         self.isEncrypted = isEncrypted
         self.checkup = checkup
 
-        var folders: [String: (size: Int64, packed: Int64, modified: Date)] = [:]
+        var folders: [String: (size: Int64, packed: Int64?, modified: Date)] = [:]
         for file in files {
             var parent = file.parent
             while !parent.isEmpty {
                 let current = folders[parent] ?? (0, 0, .distantPast)
                 folders[parent] = (current.size + file.size,
-                                   current.packed + file.packedSize,
+                                   current.packed.flatMap { packed in file.packedSize.map { packed + $0 } },
                                    max(current.modified, file.modified))
                 parent = ArchiveEntry.parent(of: parent)
             }
@@ -305,19 +306,19 @@ nonisolated struct Archive: Identifiable, Sendable {
                 parent = ArchiveEntry.parent(of: parent)
             }
         }
-        index = ArchiveIndex(visible: visible, helpers: helperEntries)
+        index = ArchiveIndex(visible: visible, helpers: helperEntries, containerPackedSize: containerPackedSize)
     }
 
     /// The same archive with names read another way (entries, Checkup and source replaced).
     init(_ other: Archive, files: [ArchiveEntry], helpers: [ArchiveEntry], source: ArchiveSource) {
         self.init(name: other.name, format: other.format, isEncrypted: other.isEncrypted,
-                  files: files, helpers: helpers, checkup: other.checkup)
+                  files: files, helpers: helpers, checkup: other.checkup, containerPackedSize: other.packedSize)
         self.source = source
     }
 
     var files: [ArchiveEntry] { index.files }
     var totalSize: Int64 { index.totalSize }
-    var packedSize: Int64 { index.packedSize }
+    var packedSize: Int64? { index.packedSize }
     var hasHelpers: Bool { !index.helpers.isEmpty }
 
     var hasCautions: Bool { checkup.contains { $0.severity == .caution } }
@@ -356,18 +357,20 @@ nonisolated final class ArchiveIndex: Sendable {
     let helpers: [ArchiveEntry]
     let files: [ArchiveEntry]
     let totalSize: Int64
-    let packedSize: Int64
+    let packedSize: Int64?
     private let byPath: [String: ArchiveEntry]
     private let unsorted: [String: [ArchiveEntry]]
     private let sorted = Mutex<[String: [ArchiveEntry]]>([:])
     private let trees = Mutex<[Bool: [String: [FolderNode]]]>([:])
 
-    init(visible: [ArchiveEntry], helpers: [ArchiveEntry]) {
+    init(visible: [ArchiveEntry], helpers: [ArchiveEntry], containerPackedSize: Int64? = nil) {
         self.visible = visible
         self.helpers = helpers
         files = visible.filter { !$0.isFolder }
         totalSize = files.reduce(0) { $0 + $1.size }
-        packedSize = files.reduce(0) { $0 + $1.packedSize }
+        packedSize = containerPackedSize ?? files.reduce(Optional<Int64>(0)) { total, file in
+            total.flatMap { value in file.packedSize.map { value + $0 } }
+        }
         var byPath: [String: ArchiveEntry] = [:]
         byPath.reserveCapacity(visible.count + helpers.count)
         var unsorted: [String: [ArchiveEntry]] = [:]

@@ -123,10 +123,11 @@ private struct EntryDetail: View {
            state == String(localized: "New") || state == String(localized: "Replaced") {
             return String(localized: "When you save")
         }
-        guard entry.size > 0 else { return entry.packedSize.bytes }
-        let saved = 1 - Double(entry.packedSize) / Double(entry.size)
-        return saved < 0.02 ? String(localized: "\(entry.packedSize.bytes) · already compressed")
-            : String(localized: "\(entry.packedSize.bytes) · \(Int((saved * 100).rounded()))% smaller")
+        guard let packed = entry.packedSize else { return String(localized: "Unavailable") }
+        guard entry.size > 0 else { return packed.bytes }
+        let saved = 1 - Double(packed) / Double(entry.size)
+        return saved < 0.02 ? String(localized: "\(packed.bytes) · already compressed")
+            : String(localized: "\(packed.bytes) · \(Int((saved * 100).rounded()))% smaller")
     }
 }
 
@@ -221,7 +222,7 @@ private struct ArchiveSummary: View {
             MetadataGrid(rows: [
                 (String(localized: "Files"), archive.files.count.formatted()),
                 (String(localized: "Unpacked"), archive.totalSize.bytes),
-                (String(localized: "Packed"), archive.packedSize.bytes),
+                (String(localized: "Packed"), archive.packedSize.map { $0.bytes } ?? String(localized: "Unavailable")),
                 (String(localized: "Encryption"), archive.isEncrypted ? String(localized: "Encrypted") : String(localized: "None")),
             ])
 
