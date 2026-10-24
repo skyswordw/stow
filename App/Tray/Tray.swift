@@ -1087,7 +1087,8 @@ private struct TrayRow: View {
         .overlay {
             RoundedRectangle(cornerRadius: Radius.chip)
                 .strokeBorder(.tint, lineWidth: 1.5)
-                .opacity(hasArrived ? 1 : 0)
+                // A selected row already stands out; a ring on top of the fill is one edge too many.
+                .opacity(hasArrived && !isSelected ? 1 : 0)
                 .allowsHitTesting(false)
         }
         .contentShape(.rect)
@@ -1104,14 +1105,22 @@ private struct TrayRow: View {
             if canRemove { Button("Remove") { tray.remove(item) } }
         }
         .focusable()
+        // The selection shows which row the keyboard is on, as in Finder's lists. The system ring
+        // also landed on every clicked row, a heavy second outline around the selection.
+        .focusEffectDisabled()
         .focused(focusedRow, equals: item.id)
         .onChange(of: isFocused) { _, focused in
-            if focused { tray.click(item, command: false, shift: false) }
+            // Tab onto a row selects it. A click selects through the tap gesture below, which knows
+            // about ⌘ and ⇧; selecting here as well turned every ⌘-click back into a plain click.
+            guard focused, Motion.byKeyboard, !tray.selection.contains(item.id) else { return }
+            tray.click(item, command: false, shift: false)
         }
         .onKeyPress(keys: [.upArrow, .downArrow]) { press in
             guard let index = tray.visibleItems.firstIndex(where: { $0.id == item.id }) else { return .ignored }
-            let next = min(max(index + (press.key == .upArrow ? -1 : 1), 0), tray.visibleItems.count - 1)
-            focusedRow.wrappedValue = tray.visibleItems[next].id
+            let next = tray.visibleItems[min(max(index + (press.key == .upArrow ? -1 : 1), 0), tray.visibleItems.count - 1)]
+            // Arrows select the next row, and ⇧-arrows extend the selection to it, as in Finder.
+            tray.click(next, command: false, shift: press.modifiers.contains(.shift))
+            focusedRow.wrappedValue = next.id
             return .handled
         }
         .onKeyPress(.return) { tray.open(item); return .handled }
