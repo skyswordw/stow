@@ -143,6 +143,15 @@ combined archive size and an extra sequential read/write pass. Cancellation clos
 unlinked descriptor. Consider a future multi-descriptor protocol if this overhead
 becomes material; do not replace it with an ambient directory grant to the engine.
 
+## Packed size semantics (#115)
+
+Codex owns this correction: compressed TAR and solid archives use container bytes for
+root statistics; shared or unknown entry sizes display “Unavailable”, including folder
+aggregates. ZIP retains per-entry packed totals. Saved statistics remain the sidebar
+baseline during staged edits. No visual redesign or motion change is intended.
+Claude Code retains ownership of label hierarchy and visual treatment under #104;
+this functional change does not imply visual approval.
+
 ## Input-read and staged-save failures (#112, #114)
 
 Codex owns the descriptor staging, sandbox boundaries, failure classification, and tests.

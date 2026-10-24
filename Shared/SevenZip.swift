@@ -73,9 +73,13 @@ nonisolated struct SevenZip: Sendable {
         }
         if Self.isTarball(name: (input.path as NSString).lastPathComponent),
            let entries = try? await tarballEntries(path: input.path, descriptor: input.descriptor) {
-            listing.entries = entries // still "gzip", "xz"…: the format reads as TAR.GZ, TAR.XZ
+            listing.entries = entries.map { entry in
+                var entry = entry
+                entry.packedSize = nil // TAR blocks are not compressed entry sizes.
+                return entry
+            } // still "gzip", "xz"…: the format reads as TAR.GZ, TAR.XZ
             if Task.isCancelled { throw EngineError(.cancelled) }
-            onEntries?(entries)
+            onEntries?(listing.entries)
             return listing
         }
         if let onEntries {
@@ -228,7 +232,11 @@ nonisolated struct SevenZip: Sendable {
         return ArchiveListing(
             type: type,
             physicalSize: archiveFields["Physical Size"].flatMap { Int64($0) },
-            entries: entries,
+            entries: archiveFields["Solid"] == "+" ? entries.map { entry in
+                var entry = entry
+                entry.packedSize = nil
+                return entry
+            } : entries,
             startOffset: startOffset(archiveFields),
             tailSize: archiveFields["Tail Size"].flatMap { Int64($0) }
         )

@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 393 after explicit helper extraction regression coverage (#109).
+          # 406 after packed-size (#115) and split-volume (#116) regression coverage.
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "405"
+          MIN_TESTS: "406"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
