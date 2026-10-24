@@ -105,25 +105,21 @@ struct ArchiveLockRow: View {
             .accessibilityHidden(true)
 
             // A narrow sidebar keeps the action and drops the word: the lock already says “encrypted”.
+            // Checking keeps its Cancel and shortens the words instead. Every option has content
+            // for every state: an empty one would always "fit" and blank the line.
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: Space.xs) {
-                    Text(title(state))
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .fixedSize()
-                    Spacer(minLength: Space.xs)
-                    if let action = action(state) { actionText(action).fixedSize() }
+                labelled(title(state), action: action(state))
+                switch state {
+                case .locked: labelled(nil, action: action(state))
+                case .checking: labelled(String(localized: "Checking…"), action: action(state))
+                case .passwordAvailable: labelled(title(state), action: nil)
                 }
-                if let action = action(state), state == .locked {
-                    actionText(action).lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    Text(title(state))
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                // Last resort, narrower than any sidebar allows: one truncating line.
+                Text(state == .locked ? action(state) ?? title(state) : title(state))
+                    .font(.caption.weight(state == .locked ? .semibold : .medium))
+                    .foregroundStyle(state == .locked ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.horizontal, Space.s)
@@ -132,6 +128,23 @@ struct ArchiveLockRow: View {
                     in: .rect(cornerRadius: Radius.chip))
         .contentShape(.rect)
         .onHover { isHovering = $0 }
+    }
+
+    /// A title on the left and the action on the right, both at their full width (or one of them).
+    private func labelled(_ title: String?, action: String?) -> some View {
+        HStack(spacing: Space.xs) {
+            if let title {
+                Text(title)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .fixedSize()
+            }
+            if let action {
+                if title != nil { Spacer(minLength: Space.xs) }
+                actionText(action).fixedSize()
+            }
+            if title == nil || action == nil { Spacer(minLength: 0) }
+        }
     }
 
     private func actionText(_ action: String) -> some View {
