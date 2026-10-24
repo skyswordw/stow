@@ -91,7 +91,7 @@ struct SplitArchiveEngineTests {
         #expect(listing.type.lowercased() == (format == .zip ? "zip" : "7z"))
         #expect(listing.entries.map(\.path) == ["payload.bin"])
         if encrypted {
-            #expect(listing.entries.allSatisfy(\.isEncrypted))
+            #expect(listing.entries.allSatisfy { $0.isEncrypted })
             await #expect(throws: EngineError(.passwordRequired)) { try await ArchiveEngine.shared.verify(first) }
             await #expect(throws: EngineError(.wrongPassword)) { try await ArchiveEngine.shared.verify(first, password: "wrong") }
         }
