@@ -1,10 +1,26 @@
 import AppKit
+import SwiftUI
 import Testing
 @testable import Stow
 
 @MainActor
 @Suite("Editing window undo wiring")
 struct EditingWindowTests {
+    /// Mirrors the actual SwiftUI AppKitWindow: its getter bypasses the delegate's manager.
+    private final class HostingUndoWindow: NSWindow {
+        let nativeUndo = UndoManager()
+        override var undoManager: UndoManager? { nativeUndo }
+        var keyForTesting = false
+        override var isKeyWindow: Bool { keyForTesting }
+    }
+
+    private func hostingWindow() -> HostingUndoWindow {
+        let window = HostingUndoWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+                                       styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = NSHostingView(rootView: Text("Archive"))
+        return window
+    }
+
     private func archive() -> Archive {
         Archive(listing: ArchiveListing(type: "zip", entries: [
             ListedEntry(path: "a.txt", isFolder: false, size: 1)
@@ -159,5 +175,135 @@ struct EditingWindowTests {
         #expect(undo.canRedo)
         undo.redo()
         #expect(model.editSession.operations.count == 2)
+    }
+
+    @Test func commandsBypassHostingWindowsIndependentUndoManager() throws {
+        let model = BrowserModel(archive: archive()), window = hostingWindow()
+        let delegate = EditingWindowDelegate(), routing = EditingUndoCommandsModel()
+        delegate.attach(window, model: model)
+        model.editSession.rename("a.txt", to: "b.txt")
+        // The old bare-NSWindow tests passed while the real SwiftUI window still failed.
+        #expect(window.undoManager !== model.editingUndoManager)
+        #expect(window.undoManager?.canUndo == false)
+        let manager = try #require(routing.manager(in: window))
+        #expect(manager === model.editingUndoManager)
+        #expect(manager.undoMenuItemTitle == model.editingUndoManager.undoMenuItemTitle)
+        routing.perform(.undo, in: window)
+        #expect(model.editSession.operations.isEmpty && manager.canRedo)
+        routing.perform(.redo, in: window)
+        #expect(model.editSession.operations.count == 1)
+        #expect(model.editSession.pending.entries.contains { $0.path == "b.txt" })
+    }
+
+    @Test func editableFieldKeepsItsOwnEmptyUndoHistory() throws {
+        let model = BrowserModel(archive: archive()), window = hostingWindow()
+        let delegate = EditingWindowDelegate(), routing = EditingUndoCommandsModel()
+        delegate.attach(window, model: model)
+        model.editSession.rename("a.txt", to: "b.txt")
+        let field = NSTextField(string: "Search")
+        window.contentView?.addSubview(field)
+        #expect(window.makeFirstResponder(field))
+        let editor = try #require(window.firstResponder as? NSTextView)
+        #expect(editor.isEditable)
+        #expect(routing.archiveManager(in: window) == nil)
+        #expect(routing.manager(in: window) === editor.undoManager)
+        #expect(routing.manager(in: window)?.canUndo == false)
+        #expect(model.editingUndoManager.canUndo)
+        // Leaving the field restores archive undo, without consuming any archive operation.
+        #expect(window.makeFirstResponder(window.contentView))
+        #expect(routing.manager(in: window) === model.editingUndoManager)
+        #expect(model.editSession.operations.count == 1)
+    }
+
+    @Test func commandRoutingTracksArchiveWindowAndSaveLock() throws {
+        let first = BrowserModel(archive: archive()), second = BrowserModel(archive: archive())
+        let full = hostingWindow(), glance = hostingWindow(), unrelated = hostingWindow()
+        let delegate = EditingWindowDelegate(), routing = EditingUndoCommandsModel()
+        delegate.attach(full, model: first)
+        first.editSession.rename("a.txt", to: "first.txt")
+        routing.perform(.undo, in: full)
+        delegate.attach(glance, model: first)
+        #expect(routing.archiveManager(in: full) == nil)
+        #expect(routing.archiveManager(in: unrelated) == nil)
+        routing.perform(.redo, in: glance)
+        #expect(first.editSession.operations.count == 1)
+        delegate.attach(full, model: second)
+        #expect(routing.manager(in: full)?.canUndo == false)
+        #expect(first.editingUndoManager.canUndo)
+        second.editSession.rename("a.txt", to: "second.txt")
+        second.editSession.showSavingForDemo(progress: 0.5)
+        #expect(routing.manager(in: full)?.canUndo == false)
+        routing.perform(.undo, in: full)
+        #expect(second.editSession.operations.count == 1)
+        #expect(first.editSession.operations.count == 1)
+    }
+
+    @Test func attachedSheetNeverSelectsArchiveUndo() {
+        let model = BrowserModel(archive: archive()), window = NSWindow(), sheet = NSWindow()
+        let delegate = EditingWindowDelegate(), routing = EditingUndoCommandsModel()
+        delegate.attach(window, model: model)
+        model.editSession.rename("a.txt", to: "b.txt")
+        window.beginSheet(sheet)
+        defer { window.endSheet(sheet) }
+        #expect(routing.archiveManager(in: window) == nil)
+        #expect(routing.archiveManager(in: sheet) == nil)
+        #expect(routing.manager(in: window) !== model.editingUndoManager)
+        #expect(model.editingUndoManager.canUndo)
+    }
+
+    private final class KeyWindowDelegate: NSObject, NSWindowDelegate {
+        var activations = 0
+        func windowDidBecomeKey(_ notification: Notification) { activations += 1 }
+    }
+
+    @Test func retainedFullAndGlanceDelegatesReclaimEditingOnActivation() {
+        let model = BrowserModel(archive: archive()), full = hostingWindow(), glance = hostingWindow()
+        let fullOriginal = KeyWindowDelegate(), glanceOriginal = KeyWindowDelegate()
+        full.delegate = fullOriginal
+        glance.delegate = glanceOriginal
+        let fullDelegate = EditingWindowDelegate(), glanceDelegate = EditingWindowDelegate()
+        let routing = EditingUndoCommandsModel()
+        fullDelegate.attach(full, model: model)
+        model.editSession.rename("a.txt", to: "b.txt")
+        glanceDelegate.attach(glance, model: model)
+        routing.perform(.undo, in: glance)
+        #expect(model.editingWindow === glance && model.editSession.operations.isEmpty)
+        // Both view trees remain attached; returning to full must not need WindowReader to rerun.
+        fullDelegate.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification, object: full))
+        #expect(model.editingWindow === full && fullOriginal.activations == 1)
+        #expect(routing.manager(in: full)?.canRedo == true)
+        routing.perform(.redo, in: full)
+        #expect(full.isDocumentEdited && model.editSession.operations.count == 1)
+        glanceDelegate.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification, object: glance))
+        #expect(model.editingWindow === glance && glanceOriginal.activations == 1)
+        #expect(glance.isDocumentEdited && routing.manager(in: glance)?.canUndo == true)
+        routing.perform(.undo, in: glance)
+        #expect(model.editSession.operations.isEmpty)
+    }
+
+    @Test func hiddenViewReattachmentCannotStealTheKeyWindowsNewArchive() {
+        let first = BrowserModel(archive: archive()), second = BrowserModel(archive: archive())
+        let full = hostingWindow(), glance = hostingWindow()
+        let fullDelegate = EditingWindowDelegate(), glanceDelegate = EditingWindowDelegate()
+        let routing = EditingUndoCommandsModel()
+        full.keyForTesting = true
+        fullDelegate.attach(full, model: first)
+        glanceDelegate.attach(glance, model: first)
+        #expect(first.editingWindow === full)
+        // Opening another archive rebuilds both view trees, including the hidden Glance tree.
+        fullDelegate.attach(full, model: second)
+        glanceDelegate.attach(glance, model: second)
+        #expect(second.editingWindow === full)
+        second.editSession.rename("a.txt", to: "second.txt")
+        #expect(routing.manager(in: full)?.canUndo == true)
+        routing.perform(.undo, in: full)
+        #expect(second.editSession.operations.isEmpty && first.editSession.operations.isEmpty)
+        full.keyForTesting = false
+        glance.keyForTesting = true
+        glanceDelegate.windowDidBecomeKey(Notification(name: NSWindow.didBecomeKeyNotification, object: glance))
+        fullDelegate.attach(full, model: second)
+        #expect(second.editingWindow === glance)
+        routing.perform(.redo, in: glance)
+        #expect(second.editSession.operations.count == 1 && first.editSession.operations.isEmpty)
     }
 }

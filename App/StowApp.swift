@@ -333,6 +333,7 @@ struct StowApp: App {
         .windowToolbarStyle(.unified)
         .commands {
             StowCommands(app: app)
+            EditingUndoCommands()
             BrowseCommands(app: app)
             GlanceCommands(app: app)
         }

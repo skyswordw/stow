@@ -112,11 +112,17 @@ plan. Saving to a new file then failed with “replacement folder unavailable; s
 instead” (#137). The externally modified original hash was unchanged. Deliberate Reload
 adopted the disk contents and dropped the staged projection.
 
-Undo is still unresolved (#113). Both exact #124 candidate artifacts showed disabled Undo /
+Historical Undo failure (#113): both exact #124 candidate artifacts showed disabled Undo /
 Redo after a staged rename. The latest candidate was also tested after Finder activation and
 a clean Reload. Cancelling the native menu via its exposed Cancel action, then Command-Z,
 left the renamed file and one unsaved change visible. No text field was active. #124 was
 independently merged during testing; #113 was reopened with the newer evidence. Revert works.
+
+Follow-up [#149](https://github.com/skyswordw/stow/pull/149) addresses the actual SwiftUI
+command-manager mismatch, retained-window activation, and hidden Glance reattachment after
+opening another archive. The [undo handoff](113-staged-rename-undo.md) describes the repair and
+regressions; #149 records the exact final packaged artifact and native acceptance. The #124
+failures above remain historical observations rather than evidence against the follow-up.
 
 ArcZip native Delete / Undo Delete / Redo Delete / Save passed; independent ZIP checks found
 the selected file removed and all retained content exact. Its existing rename/undo/redo/save

@@ -311,12 +311,26 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
         }
         self.window = window
         self.model = model
-        model.editingWindow = window
+        // A hidden full/Glance view can rebuild after another archive opens. It must not
+        // take editing ownership from the model's current key window.
+        if window.isKeyWindow || model.editingWindow?.isKeyWindow != true {
+            model.editingWindow = window
+        }
         for level in model.levels { level.edits.undoManager = model.editingUndoManager }
         window.isDocumentEdited = model.levels.contains { $0.edits.isEdited }
         if window.delegate !== self { original = window.delegate; window.delegate = self }
+        EditingUndoCommandsModel.shared.refresh()
     }
     func windowWillReturnUndoManager(_ window: NSWindow) -> UndoManager? { model?.editingUndoManager }
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        // Full and Glance retain separate delegates and hosted views. Reopening either window
+        // does not move WindowReader into it again, so reclaim editing ownership on activation.
+        if let window = notification.object as? NSWindow, window === self.window, let model {
+            attach(window, model: model)
+        }
+        original?.windowDidBecomeKey?(notification)
+    }
 
     nonisolated override func responds(to selector: Selector!) -> Bool {
         if super.responds(to: selector) { return true }

@@ -95,9 +95,6 @@ struct BrowserView: View {
                 if notice.wantsRepack(answer) { app.extractAndRepack(model) }
             }
         }
-        .onChange(of: model.level.id) {
-            if let window = model.editingWindow { editingDelegate.attach(window, model: model) }
-        }
         .background {
             WindowReader { window in
                 editingDelegate.attach(window, model: model)
