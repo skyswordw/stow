@@ -17,7 +17,7 @@ nonisolated struct ArchivePreviewModel: Sendable {
     var fileCount: Int
     var folderCount: Int
     var totalSize: Int64
-    var packedSize: Int64
+    var packedSize: Int64?
     var isEncrypted: Bool
     var headline: CheckupFinding
     var cautionCount: Int

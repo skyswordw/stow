@@ -38,8 +38,8 @@ private struct ListedPreview: View {
             VStack(alignment: .leading, spacing: 12) {
                 PreviewHeader(name: model.name, format: model.format, summary: model.summary,
                               isEncrypted: model.isEncrypted, openInStow: openInStow)
-                if model.totalSize > 0 {
-                    PackedBar(packed: model.packedSize, total: model.totalSize)
+                if let packed = model.packedSize, model.totalSize > 0 {
+                    PackedBar(packed: packed, total: model.totalSize)
                 }
                 CheckupLine(finding: model.headline, cautionCount: model.cautionCount)
             }
