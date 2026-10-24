@@ -102,6 +102,8 @@ final class BrowserModel {
 
     let previews: PreviewService
     let quickLook = QuickLookController()
+    // History belongs to the archive browser, not a disposable full/Glance view delegate.
+    let editingUndoManager = EditingUndoManager()
     let dragOut = DragOutController()
     var passwords: PasswordHook = .none
     private(set) var isUnlocking = false
@@ -141,6 +143,8 @@ final class BrowserModel {
         }
         quickLook.model = self
         dragOut.model = self
+        editingUndoManager.groupsByEvent = false
+        editingUndoManager.isLocked = { [weak self] in self?.levels.contains { $0.edits.isSaving } == true }
         connectEdits(root)
         if archive.source != nil {
             nestedLoader = { [weak self] entry, archive in
@@ -188,6 +192,8 @@ final class BrowserModel {
     }
 
     private func connectEdits(_ target: Level) {
+        // Streaming replaces Level/EditSession before SwiftUI can reattach the window.
+        target.edits.undoManager = editingUndoManager
         var previousOperations = target.edits.operations
         for (shown, stored) in target.archive.source?.storedPaths ?? [:] {
             for path in stored { target.edits.displayedPaths[path] = shown }

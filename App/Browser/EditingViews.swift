@@ -295,7 +295,6 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
     var original: (any NSWindowDelegate)?
     weak var model: BrowserModel?
     private weak var window: NSWindow?
-    private let undo = EditingUndoManager()
     private var approving = false
     private var asking = false
 
@@ -304,16 +303,17 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
     }
 
     func attach(_ window: NSWindow, model: BrowserModel) {
-        if self.model !== model { undo.removeAllActions() }
+        if let previous = self.window, previous !== window, previous.delegate === self {
+            previous.delegate = original
+        }
         self.window = window
         self.model = model
-        undo.isLocked = { [weak model] in model?.levels.contains(where: { $0.edits.isSaving }) == true }
         model.editingWindow = window
-        for level in model.levels { level.edits.undoManager = undo }
+        for level in model.levels { level.edits.undoManager = model.editingUndoManager }
         window.isDocumentEdited = model.levels.contains { $0.edits.isEdited }
         if window.delegate !== self { original = window.delegate; window.delegate = self }
     }
-    func windowWillReturnUndoManager(_ window: NSWindow) -> UndoManager? { undo }
+    func windowWillReturnUndoManager(_ window: NSWindow) -> UndoManager? { model?.editingUndoManager }
 
     nonisolated override func responds(to selector: Selector!) -> Bool {
         if super.responds(to: selector) { return true }
@@ -345,7 +345,7 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
 }
 
 /// Save suspends across XPC calls. Keep the system Edit menu from undoing the plan in flight.
-private final class EditingUndoManager: UndoManager {
+final class EditingUndoManager: UndoManager {
     var isLocked: () -> Bool = { false }
     nonisolated override var canUndo: Bool {
         let allowed = MainActor.assumeIsolated { !isLocked() }

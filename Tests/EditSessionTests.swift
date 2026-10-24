@@ -125,9 +125,10 @@ struct EditSessionTests {
         try ZipFixture(entries: [.folder("Folder"), .file("Folder/a.txt", "hello")]).write(to: url)
         let listing = try await ArchiveEngine.shared.list(url)
         let model = BrowserModel(archive: Archive(listing: listing, url: url))
-        let undo = UndoManager()
-        undo.groupsByEvent = false
-        model.editSession.undoManager = undo
+        let delegate = EditingWindowDelegate()
+        let window = NSWindow()
+        delegate.attach(window, model: model)
+        let undo = try #require(window.undoManager)
         model.navigate(to: "Folder")
         model.editSession.rename("Folder", to: "Renamed")
         #expect(model.folder == "Renamed")
@@ -167,10 +168,11 @@ struct EditSessionTests {
         let url = directory.appending(path: "Changed.zip")
         try ZipFixture(entries: [.file("a.txt", "original")]).write(to: url)
         let listing = try await ArchiveEngine.shared.list(url)
-        let session = EditSession(base: listing, url: url)
-        let undo = UndoManager()
-        undo.groupsByEvent = false
-        session.undoManager = undo
+        let model = BrowserModel(archive: Archive(listing: listing, url: url))
+        let delegate = EditingWindowDelegate(), window = NSWindow()
+        delegate.attach(window, model: model)
+        let undo = try #require(window.undoManager)
+        let session = model.editSession
         session.rename("a.txt", to: "b.txt")
         let operations = session.operations, pending = session.pending.entries
         try ZipFixture(entries: [.file("a.txt", "external change")]).write(to: url)

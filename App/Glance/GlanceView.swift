@@ -126,6 +126,7 @@ struct GlanceRoot: View {
 /// controls in the window's toolbar on the glass.
 struct GlanceView: View {
     @Bindable var model: BrowserModel
+    @State private var editingDelegate = EditingWindowDelegate()
     let glance: GlanceController
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
 
@@ -148,13 +149,16 @@ struct GlanceView: View {
                 }
                 return .handled
             }
+            .environment(\.undoManager, model.editingUndoManager)
             .onChange(of: model.selection) { model.quickLook.selectionChanged() }
             .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
             .background {
                 WindowReader { window in
+                    editingDelegate.attach(window, model: model)
                     model.quickLook.attach(to: window)
                     model.dragOut.install(in: window)
                 }
+                .id(ObjectIdentifier(model))
             }
     }
 
