@@ -26,6 +26,18 @@ independently validated archives, signatures, modes, hashes and cleanup; they di
 No competitor code was decompiled. This is additional evidence, not a full hardware/release
 certification or a claim that all ArcZip Pro behavior matches.
 
+## Final main smoke check
+
+The latest functional main artifact `ec376533081e16e370db0962afe0836467a3fff2`, successful CI
+40072032332, was downloaded to `/tmp/stow-final-main-ec37653/Stow.app` and passed deep/strict
+signature validation. Its native window opened the recovered ZIP with the correct representedURL,
+then opened the encrypted-filename 7Z first volume, accepted the synthetic password without
+Keychain saving, and reported the correct 7Z/encryption metadata. Close Archive cleared the
+window URL; Welcome labelled the real first volume **7Z archive**. This is the active tested app;
+the older published copy in Applications was not represented as current-main system integration.
+The final main differs from the integrated native candidate only by the independently verified
+Recents badge change. Subsequent report-only commits do not change executable behavior.
+
 ## Verified installation behavior
 
 All app/font choices used picker-selected scratch destinations. The PKG was generated for
