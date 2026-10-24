@@ -301,8 +301,11 @@ nonisolated struct SevenZip: Sendable {
         // Before damage: a wrong password on encrypted 7z contents reads
         // "Data Error in encrypted file. Wrong password? : …".
         if all.contains("Wrong password") { throw EngineError(.wrongPassword) }
+        if let structural = ["Unexpected end of archive", "Headers Error", "Missing volume"].first(where: all.contains) {
+            throw EngineError(.failed, structural)
+        }
         if let damaged = result.errors.split(whereSeparator: \.isNewline).first(where: { $0.contains("Data Error") || $0.contains("CRC Failed") }) {
-            throw EngineError(.failed, String(damaged.drop { $0 != ":" }.dropFirst()).trimmingCharacters(in: .whitespaces))
+            throw EngineError(.failed, String(damaged))
         }
         // With `-bso0` the prompt itself isn't printed; 7-Zip reads EOF from standard input (the
         // only thing it reads there) and stops with "Break signaled". Cancelling never gets here.

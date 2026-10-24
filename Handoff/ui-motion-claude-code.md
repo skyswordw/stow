@@ -120,3 +120,25 @@ snapshot CI; that does not establish final visual quality.
 [Issue #93](https://github.com/skyswordw/stow/issues/93), an accessibility activation crash
 reproduced in published 0.1.1, remains a separate technical investigation. Do not close it
 on the strength of this visual review or assume #103 fixed it.
+
+## Split-volume recovery (#116)
+
+Codex owns volume discovery, descriptor assembly, password routing, errors, and tests.
+Claude Code owns any subsequent visual or motion treatment of the native folder-access
+prompt and recovery card (#104); no design review is claimed here.
+
+Interaction contract: opening a Stow-created `.zip.001` or `.7z.001` discovers matching,
+contiguous numbered siblings. If the sandbox cannot read the containing folder or its
+parts, request explicit folder access, explaining why all parts are needed. Cancel
+stops opening. Missing/inconsistent parts get OPN-102 recovery with Show in Finder:
+put all parts together and reopen `.001`. Complete encrypted 7Z should reach the
+existing password flow, as ArcZip does in the issue report. Preserve Stow's vocabulary,
+keyboard access, and existing prompt semantics. Native ArcZip comparison remains pending.
+
+The app assembles readable regular-file parts into an immediately unlinked temporary
+file, then sends only its descriptor and the inner archive name to the sandboxed engine.
+This avoids a new directory capability or XPC surface. Memory is bounded to 1 MiB;
+opening, extracting, and verifying each require temporary disk space equal to the
+combined archive size and an extra sequential read/write pass. Cancellation closes the
+unlinked descriptor. Consider a future multi-descriptor protocol if this overhead
+becomes material; do not replace it with an ambient directory grant to the engine.

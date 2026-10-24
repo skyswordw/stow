@@ -14,6 +14,7 @@ nonisolated struct ErrorCode: Hashable, Sendable, CustomStringConvertible {
     enum Reason: Int, CaseIterable, Sendable {
         case notAnArchive = 100
         case noReadAccess = 101
+        case missingVolume = 102
         case passwordRequired = 110
         case wrongPassword = 111
         case damagedData = 120
@@ -45,6 +46,7 @@ nonisolated struct ErrorCode: Hashable, Sendable, CustomStringConvertible {
         case .incompatibleVersion: .engineOutdated
         case .engineMissing: .engineMissing
         case .connectionLost: .engineStopped
+        case .missingVolume: .missingVolume
         case .notAnArchive: .notAnArchive
         case .passwordRequired: .passwordRequired
         case .wrongPassword: .wrongPassword

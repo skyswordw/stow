@@ -123,7 +123,7 @@ struct Failure: Equatable, Sendable {
     /// The code's reason: the cause read from the error when there is one, otherwise the engine's.
     static func reason(failure: EngineFailure, cause: Cause?, message: String) -> ErrorCode.Reason {
         switch (failure, cause) {
-        case (.notAnArchive, _), (.passwordRequired, _), (.wrongPassword, _), (.engineMissing, _),
+        case (.missingVolume, _), (.notAnArchive, _), (.passwordRequired, _), (.wrongPassword, _), (.engineMissing, _),
              (.incompatibleVersion, _), (.connectionLost, _), (.cancelled, _), (.changedOnDisk, _):
             return ErrorCode.reason(for: failure)
         case (_, .damaged(let file)):
@@ -137,6 +137,10 @@ struct Failure: Equatable, Sendable {
     private init(explaining engine: EngineError, cause: Cause?, _ operation: Operation, name: String,
                  destination: URL?, needs bytes: Int64) {
         switch (engine.failure, cause) {
+        case (.missingVolume, _):
+            self.init(kind: .damaged,
+                      title: String(localized: "“\(name)” needs all its archive parts"),
+                      advice: engine.message, action: .showInFinder)
         case (.notAnArchive, _):
             self.init(kind: .notAnArchive,
                       title: String(localized: "“\(name)” isn’t an archive Stow can read"),
