@@ -45,7 +45,7 @@ struct NoSearchResultsView: View {
                 ContentUnavailableView {
                     Label("No files match “\(model.query)”", systemImage: "magnifyingglass")
                 } description: {
-                    Text("Stow looked in every folder of this archive. Check the spelling, or search for part of a name.")
+                    Text("No match among the searched items. Check the spelling, or search for part of a name.")
                 } actions: {
                     Button("Clear Search") { model.query = "" }
                 }

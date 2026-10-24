@@ -22,7 +22,34 @@ struct BrowserView: View {
                 .accessibilitySortPriority(2)
                 .archiveDrop(model: model, folder: model.folder)
                 .safeAreaInset(edge: .top, spacing: 0) {
-                    if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
+                    VStack(alignment: .leading, spacing: Space.s) {
+                        if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
+                        if let summary = model.searchCoverageSummary {
+                            DisclosureGroup {
+                                ScrollView {
+                                    VStack(alignment: .leading, spacing: Space.s) {
+                                        ForEach(model.searchOmissions) { omission in
+                                            HStack {
+                                                VStack(alignment: .leading) {
+                                                    Text(verbatim: omission.container.path)
+                                                    Text(omission.reason.description)
+                                                        .foregroundStyle(.secondary)
+                                                }
+                                                Spacer()
+                                                Button("Locate") { model.locateSearchOmission(omission) }
+                                                    .accessibilityLabel(String(localized: "Locate \(omission.container.path)"))
+                                                    .help("Show this archive in its folder without opening it")
+                                            }
+                                        }
+                                    }
+                                }
+                                .frame(maxHeight: 180)
+                            } label: {
+                                Text(summary)
+                            }
+                            .padding(Space.s)
+                        }
+                    }
                 }
                 // Next Steps takes real room above the bars: grid, list and columns scroll their last
                 // row clear of it, and nothing is reserved while it's hidden.
