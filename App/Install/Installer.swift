@@ -16,6 +16,14 @@ enum Installer {
 
     enum Answer { case proceed, alternate, cancel }
 
+    /// A known installation refusal, kept separate from archive-engine errors.
+    struct RunningApp: LocalizedError, Sendable {
+        let name: String
+        var errorDescription: String? {
+            String(localized: "“\(name)” is open. Quit it, then install again.")
+        }
+    }
+
     typealias Ask = (Question) async -> Answer
 
     struct AppOutcome {
@@ -37,7 +45,7 @@ enum Installer {
     // MARK: - Apps
 
     static func installApp(_ entry: ArchiveEntry, from archive: Archive, into folder: URL, removeQuarantine: Bool,
-                           ask: Ask, onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> AppOutcome {
+                           ask: Ask, onProgress: @escaping @Sendable (Double) -> Void) async throws -> AppOutcome {
         let staged = try await Extraction.stage(archive, selection: [entry], near: folder, onProgress: onProgress)
         defer { staged.discard() }
         let bundle = staged.url(for: entry)
@@ -52,7 +60,7 @@ enum Installer {
         let replacing = Extraction.exists(target)
         if replacing {
             if isRunning(target) {
-                throw EngineError(.failed, String(localized: "“\(displayName(entry.name))” is open. Quit it, then install again."))
+                throw RunningApp(name: displayName(entry.name))
             }
             let answer = await ask(.replaceApp(app: entry.name, installed: version(of: target), incoming: version(of: bundle)))
             if answer == .cancel { throw EngineError(.cancelled) }

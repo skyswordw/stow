@@ -38,6 +38,7 @@ Codes are `<area>-<reason>`. Numbers are never reused or renumbered; new reasons
 | `160` | Archive changed on disk while being edited | engine (`changedOnDisk`) |
 | `170` | Cancelled | engine (`cancelled`); normally not shown |
 | `180` | Stow's own limit (e.g. archives nested more than 8 levels deep) | Stow |
+| `181` | Installed app is running; quit it before replacing it | Stow's application installer |
 | `199` | Anything else | the details hold the error's own words |
 
 The engine's `EngineFailure` raw values (1–9) cross the XPC connection unchanged and map into the
