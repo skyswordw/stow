@@ -239,6 +239,7 @@ nonisolated enum EngineFailure: Int, Sendable {
     case failed
     case changedOnDisk
     case missingVolume
+    case appRunning
 }
 
 nonisolated struct EngineError: LocalizedError, Sendable, Equatable {
@@ -285,6 +286,7 @@ nonisolated struct EngineError: LocalizedError, Sendable, Equatable {
         case .wrongPassword: String(localized: "The password is incorrect.")
         case .cancelled: String(localized: "Cancelled.")
         case .changedOnDisk: String(localized: "The archive changed on disk. Reload it or save a copy.")
+        case .appRunning: String(localized: "The app is open. Quit it, then install again.")
         case .failed: String(localized: "Something went wrong reading the archive.")
         }
     }

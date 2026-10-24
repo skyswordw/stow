@@ -36,8 +36,10 @@ enum Installer {
 
     // MARK: - Apps
 
+    /// `runningApp` allows tests to model a running target without launching or quitting an app.
     static func installApp(_ entry: ArchiveEntry, from archive: Archive, into folder: URL, removeQuarantine: Bool,
-                           ask: Ask, onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> AppOutcome {
+                           ask: Ask, onProgress: @escaping @Sendable (Double) -> Void,
+                           runningApp: ((URL) -> Bool)? = nil) async throws(EngineError) -> AppOutcome {
         let staged = try await Extraction.stage(archive, selection: [entry], near: folder, onProgress: onProgress)
         defer { staged.discard() }
         let bundle = staged.url(for: entry)
@@ -51,8 +53,8 @@ enum Installer {
         let target = folder.appending(path: entry.name)
         let replacing = Extraction.exists(target)
         if replacing {
-            if isRunning(target) {
-                throw EngineError(.failed, String(localized: "“\(displayName(entry.name))” is open. Quit it, then install again."))
+            if (runningApp ?? isRunning)(target) {
+                throw EngineError(.appRunning, String(localized: "“\(displayName(entry.name))” is open. Quit it, then install again."))
             }
             let answer = await ask(.replaceApp(app: entry.name, installed: version(of: target), incoming: version(of: bundle)))
             if answer == .cancel { throw EngineError(.cancelled) }

@@ -25,6 +25,7 @@ nonisolated struct ErrorCode: Hashable, Sendable, CustomStringConvertible {
         case engineOutdated = 151
         case engineStopped = 152
         case changedOnDisk = 160
+        case appRunning = 161
         case cancelled = 170
         case limit = 180
         case unknown = 199
@@ -53,6 +54,7 @@ nonisolated struct ErrorCode: Hashable, Sendable, CustomStringConvertible {
         case .cancelled: .cancelled
         case .failed: .unknown
         case .changedOnDisk: .changedOnDisk
+        case .appRunning: .appRunning
         }
     }
 }

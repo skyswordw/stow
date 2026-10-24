@@ -36,9 +36,10 @@ Codes are `<area>-<reason>`. Numbers are never reused or renumbered; new reasons
 | `151` | Archive engine out of date | engine (`incompatibleVersion`) |
 | `152` | Archive engine stopped unexpectedly | engine (`connectionLost`) |
 | `160` | Archive changed on disk while being edited | engine (`changedOnDisk`) |
+| `161` | Target app is running; quit it, then retry installation | installer (`appRunning`); never auto-quits the app |
 | `170` | Cancelled | engine (`cancelled`); normally not shown |
 | `180` | Stow's own limit (e.g. archives nested more than 8 levels deep) | Stow |
 | `199` | Anything else | the details hold the error's own words |
 
-The engine's `EngineFailure` raw values (1–9) cross the XPC connection unchanged and map into the
+The engine's `EngineFailure` raw values (1–11) cross the XPC connection unchanged and map into the
 reasons above, so engine, extraction and packing failures share one table.

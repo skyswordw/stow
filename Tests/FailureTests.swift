@@ -5,6 +5,20 @@ import Testing
 @Suite("Failures in plain words")
 @MainActor
 struct FailureTests {
+    @Test func runningAppOffersRetryWithoutDamageAdvice() {
+        // Typed conditions win over both message and destination heuristics.
+        let message = "“Data Error” is open. Quit it, then install again."
+        let error = EngineError(.appRunning, message)
+        for wrapped in [error, EngineError(error.nsError)] {
+            let failure = Failure(wrapped, .install, name: "Tool", destination: URL(filePath: "/tmp"))
+            #expect(failure.kind == .appRunning && failure.action == .tryAgain)
+            #expect(failure.code.description == "INS-161")
+            #expect(failure.advice == message)
+            #expect(failure.brief == message)
+            #expect(!failure.report.contains("archive may be damaged"))
+        }
+    }
+
     @Test func notAnArchiveOffersFinder() {
         let failure = Failure(EngineError(.notAnArchive), .open, name: "Invoice.pdf")
         #expect(failure.kind == .notAnArchive && failure.action == .showInFinder)

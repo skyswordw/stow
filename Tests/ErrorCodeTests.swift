@@ -13,7 +13,7 @@ struct ErrorCodeTests {
             "notAnArchive": 100, "noReadAccess": 101, "missingVolume": 102, "passwordRequired": 110, "wrongPassword": 111,
             "damagedData": 120, "damagedStructure": 121, "diskFull": 130, "noWriteAccess": 140,
             "engineMissing": 150, "engineOutdated": 151, "engineStopped": 152,
-            "changedOnDisk": 160, "cancelled": 170, "limit": 180, "unknown": 199,
+            "changedOnDisk": 160, "appRunning": 161, "cancelled": 170, "limit": 180, "unknown": 199,
         ])
         #expect(ErrorCode.Area.allCases.map(\.rawValue) == ["OPN", "EXT", "INS", "PCK", "CPY", "GEN"])
         #expect(ErrorCode(.extract, .damagedData).description == "EXT-120")
@@ -23,11 +23,12 @@ struct ErrorCodeTests {
         let pairs: [(EngineFailure, ErrorCode.Reason)] = [
             (.incompatibleVersion, .engineOutdated), (.engineMissing, .engineMissing), (.connectionLost, .engineStopped),
             (.notAnArchive, .notAnArchive), (.passwordRequired, .passwordRequired), (.wrongPassword, .wrongPassword),
-            (.missingVolume, .missingVolume), (.cancelled, .cancelled), (.failed, .unknown), (.changedOnDisk, .changedOnDisk),
+            (.appRunning, .appRunning), (.missingVolume, .missingVolume), (.cancelled, .cancelled), (.failed, .unknown), (.changedOnDisk, .changedOnDisk),
         ]
         for (failure, reason) in pairs { #expect(ErrorCode.reason(for: failure) == reason) }
         // Engine raw values cross XPC; they're part of the contract too.
         #expect(EngineFailure.incompatibleVersion.rawValue == 1 && EngineFailure.changedOnDisk.rawValue == 9)
+        #expect(EngineFailure.missingVolume.rawValue == 10 && EngineFailure.appRunning.rawValue == 11)
     }
 
     @Test func failuresCarryStableCodes() {
@@ -48,6 +49,7 @@ struct ErrorCodeTests {
             (EngineError(.incompatibleVersion), .open, "OPN-151"),
             (EngineError(.connectionLost), .pack, "PCK-152"),
             (EngineError(.changedOnDisk), .open, "OPN-160"),
+            (EngineError(.appRunning), .install, "INS-161"),
             (EngineError(.failed, "E_FAIL"), .extract, "EXT-199"),
         ]
         for (error, operation, code) in cases {

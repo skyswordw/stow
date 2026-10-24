@@ -4,7 +4,7 @@ import Foundation
 /// next. Every error alert, failed capsule and failed batch row says it the same way.
 struct Failure: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
-        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, noReadAccess, engine, other
+        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, noReadAccess, engine, appRunning, other
     }
 
     /// The one next step a failure offers, besides dismissing it.
@@ -79,6 +79,7 @@ struct Failure: Equatable, Sendable {
         case .diskFull: String(localized: "Not enough space")
         case .noReadAccess: String(localized: "Can’t read the archive")
         case .noWriteAccess: String(localized: "Can’t save to this folder")
+        case .appRunning: advice
         case .engine: title
         case .other: String(localized: "Didn’t finish — try again")
         }
@@ -107,6 +108,7 @@ struct Failure: Equatable, Sendable {
         case .noReadAccess: .noReadAccess
         case .noWriteAccess: .noWriteAccess
         case .engine: .engineStopped
+        case .appRunning: .appRunning
         case .other: .unknown
         }
     }
@@ -126,7 +128,7 @@ struct Failure: Equatable, Sendable {
     static func reason(failure: EngineFailure, cause: Cause?, message: String) -> ErrorCode.Reason {
         switch (failure, cause) {
         case (.missingVolume, _), (.notAnArchive, _), (.passwordRequired, _), (.wrongPassword, _), (.engineMissing, _),
-             (.incompatibleVersion, _), (.connectionLost, _), (.cancelled, _), (.changedOnDisk, _):
+             (.incompatibleVersion, _), (.connectionLost, _), (.cancelled, _), (.changedOnDisk, _), (.appRunning, _):
             return ErrorCode.reason(for: failure)
         case (_, .damaged(let file)):
             return file == nil && !message.contains("Data Error") && !message.contains("CRC Failed") ? .damagedStructure : .damagedData
@@ -140,6 +142,9 @@ struct Failure: Equatable, Sendable {
     private init(explaining engine: EngineError, cause: Cause?, _ operation: Operation, name: String,
                  destination: URL?, needs bytes: Int64) {
         switch (engine.failure, cause) {
+        case (.appRunning, _):
+            self.init(kind: .appRunning, title: operation.couldNot(name),
+                      advice: engine.message, action: .tryAgain)
         case (.missingVolume, _):
             self.init(kind: .damaged,
                       title: String(localized: "“\(name)” needs all its archive parts"),

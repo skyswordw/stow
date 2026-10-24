@@ -78,6 +78,46 @@ struct InstallEngineTests {
         #expect(Installer.version(of: applications.appending(path: "Tool.app")) == "2.0")
     }
 
+    @Test func refusesRunningAppAndDiscardsStaging() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let build = folder.url.appending(path: "Build", directoryHint: .isDirectory)
+        let applications = folder.url.appending(path: "Applications", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: build, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: applications, withIntermediateDirectories: true)
+        let original = try makeApp(named: "Tool", version: "1.0", in: applications)
+        let seal = original.appending(path: "Contents/_CodeSignature/CodeResources")
+        let originalSeal = try Data(contentsOf: seal)
+        let zipURL = folder.url.appending(path: "Tool.zip")
+        try zip([try makeApp(named: "Tool", version: "2.0", in: build)], to: zipURL)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zipURL), url: zipURL)
+        let entry = try #require(archive.entry(at: "Tool.app"))
+        let questions = Questions()
+        var checked: [URL] = []
+
+        do {
+            _ = try await Installer.installApp(entry, from: archive, into: applications, removeQuarantine: true,
+                                               ask: questions.answer(.proceed), onProgress: { _ in }, runningApp: {
+                checked.append($0)
+                return true
+            })
+            Issue.record("Installing over a running app should fail")
+        } catch {
+            let engine = EngineError(error)
+            #expect(engine.failure == .appRunning)
+            let failure = Failure(engine, .install, name: "Tool")
+            #expect(failure.code.description == "INS-161")
+            #expect(failure.advice == engine.message && failure.action == .tryAgain)
+        }
+        #expect(checked == [original])
+        #expect(questions.asked == ["signature adHoc"])
+        #expect(Installer.version(of: original) == "1.0")
+        #expect(try Data(contentsOf: seal) == originalSeal)
+        #expect(CodeSignature.assess(original) == .adHoc)
+        // Neither replacement nor staging debris survives the refusal.
+        #expect(TemporaryFolder.contents(of: applications).filter { !$0.contains("/") } == ["Tool.app"])
+    }
+
     @Test func installsFontsAndSkipsOnesAlreadyThere() async throws {
         let folder = try TemporaryFolder()
         defer { folder.cleanUp() }

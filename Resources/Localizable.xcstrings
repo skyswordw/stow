@@ -8667,6 +8667,16 @@
         }
       }
     },
+    "The app is open. Quit it, then install again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用正在运行。请退出后重新安装。"
+          }
+        }
+      }
+    },
     "“%@” is open. Quit it, then install again.": {
       "localizations": {
         "zh-Hans": {
