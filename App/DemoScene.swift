@@ -19,7 +19,7 @@ import SwiftUI
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
 /// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
 /// install-running (an app part-way into Applications), install-app-open (refused: the installed copy is open, INS-181),
-/// tray-arrived (rows pointed out after a drop), tray-collect-taken (Collect into a Folder with a name that's taken).
+/// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop), tray-collect-taken (Collect into a Folder with a name that's taken).
 /// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, pack-failed-dmg, empty-archive, empty-folder, search-empty, tray-empty.
 /// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly,
@@ -338,6 +338,31 @@ enum DemoScene {
                 TrayItem(name: "Brand Assets.zip", size: 26_400_000),
             ]
             app.tray.selection = [app.tray.items[1].id, app.tray.items[2].id]
+            app.tray.show()
+        case "tray-files":
+            // Real files on disk, so the rows show what Finder would: text, an image, a PDF, a ZIP, a folder.
+            let folder = FileManager.default.temporaryDirectory.appending(path: "Demo Tray Files", directoryHint: .isDirectory)
+            try? FileManager.default.removeItem(at: folder)
+            try? FileManager.default.createDirectory(at: folder.appending(path: "Site Photos"), withIntermediateDirectories: true)
+            let note = folder.appending(path: "Notes.txt"), short = folder.appending(path: "File 01.txt")
+            try? Data("Kickoff notes\n\n- Agree the scope\n- Book the photographer\n- Send the brand kit\n".utf8).write(to: note)
+            try? Data("01\n".utf8).write(to: short)
+            let picture = folder.appending(path: "Pier at Dawn.png")
+            let image = NSImage(size: CGSize(width: 240, height: 160), flipped: false) { rect in
+                NSGradient(starting: .systemOrange, ending: .systemIndigo)?.draw(in: rect, angle: 90)
+                return true
+            }
+            if let tiff = image.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: picture)
+            }
+            let pdf = folder.appending(path: "Invoice October.pdf")
+            let page = NSTextView(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+            page.string = "Invoice October\n\nHarbor Studio\n\n3 × Brand workshop\nTotal 4,200"
+            try? page.dataWithPDF(inside: page.bounds).write(to: pdf)
+            let zip = folder.appending(path: "Brand Assets.zip")
+            try? Data([0x50, 0x4B, 0x05, 0x06] + [UInt8](repeating: 0, count: 18)).write(to: zip)
+            app.tray.add([note, short, picture, pdf, zip, folder.appending(path: "Site Photos")])
+            app.tray.showArrivalForDemo([])
             app.tray.show()
         case "tray-arrived":
             // Three rows just dropped; the last is already on the Tray and was dropped again.

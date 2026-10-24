@@ -41,6 +41,11 @@ final class TrayController {
     @ObservationIgnored private var idleTimer: Timer?
     @ObservationIgnored private var lastActivity = Date()
     @ObservationIgnored private var rowMonitor: Any?
+    @ObservationIgnored private var moveObserver: (any NSObjectProtocol)?
+    /// Where people dragged the Tray to, if they did; it comes back out there until Stow quits.
+    @ObservationIgnored private var placedFrame: CGRect?
+    /// True while Stow itself positions the panel, so that move isn't taken as the person's.
+    @ObservationIgnored private var isPlacing = false
     @ObservationIgnored private var press: (point: NSPoint, id: UUID)?
     @ObservationIgnored private var dragStarted = false
     /// The row under the pointer, as rows report it (multi-item drag out starts from here).
@@ -145,8 +150,11 @@ final class TrayController {
         let panel = panel ?? makePanel()
         self.panel = panel
         panel.border = SettingsKeys.trayBorder()
+        isPlacing = true
         panel.setFrame(frame(), display: false)
-        edge = statusItem?.button?.window == nil ? .trailing : .top
+        isPlacing = false
+        // Moved by hand, it grows from its own middle; otherwise from the menu bar or screen edge.
+        edge = placedFrame != nil ? .center : statusItem?.button?.window == nil ? .trailing : .top
         isShown = true
         touch()
         startIdleTimer()
@@ -186,7 +194,19 @@ final class TrayController {
     /// Under the menu-bar icon when there is one, otherwise at the right edge of the screen; the
     /// window is larger by the margin its shadow is drawn in.
     private func frame() -> CGRect {
-        contentFrame().insetBy(dx: -TrayView.shadowMargin, dy: -TrayView.shadowMargin)
+        if let placedFrame, let kept = Self.onScreen(placedFrame) { return kept }
+        return contentFrame().insetBy(dx: -TrayView.shadowMargin, dy: -TrayView.shadowMargin)
+    }
+
+    /// The frame pulled back inside the screen it's mostly on (its shadow margin may overhang);
+    /// nil when that screen has gone.
+    private static func onScreen(_ frame: CGRect) -> CGRect? {
+        guard let visible = NSScreen.screens.first(where: { $0.visibleFrame.intersects(frame) })?.visibleFrame else { return nil }
+        let margin = TrayView.shadowMargin
+        var kept = frame
+        kept.origin.x = min(max(kept.minX, visible.minX - margin), visible.maxX - kept.width + margin)
+        kept.origin.y = min(max(kept.minY, visible.minY - margin), visible.maxY - kept.height + margin)
+        return kept
     }
 
     private func contentFrame() -> CGRect {
@@ -454,6 +474,13 @@ final class TrayController {
         host.sizingOptions = []
         panel.contentView = host
         installRowDrag(in: panel)
+        moveObserver = NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: panel,
+                                                              queue: .main) { [weak self, weak panel] _ in
+            MainActor.assumeIsolated {
+                guard let self, let panel, !self.isPlacing else { return }
+                self.placedFrame = panel.frame
+            }
+        }
         return panel
     }
 
@@ -639,6 +666,12 @@ struct TrayView: View {
         .padding(.horizontal, Space.l)
         .padding(.top, Space.m)
         .padding(.bottom, Space.s)
+        // The header is the Tray's title bar: drag it to move the panel. The buttons in it keep
+        // their clicks. (SwiftUI never passes a background drag to AppKit, so
+        // `isMovableByWindowBackground` alone doesn't move it.)
+        .contentShape(.rect)
+        .gesture(WindowDragGesture())
+        .allowsWindowActivationEvents(true)
     }
 
     // MARK: Card
@@ -922,7 +955,7 @@ private struct TrayRow: View {
     }
 }
 
-/// A real file's Finder thumbnail when one exists, its icon otherwise.
+/// A picture or video's Finder thumbnail; every other real file's Finder icon; the type's icon for samples.
 private struct TrayThumbnail: View {
     let item: TrayItem
     @State private var image: NSImage?
@@ -936,9 +969,18 @@ private struct TrayThumbnail: View {
             }
         }
         .task(id: item.url) {
-            guard let url = item.url, !item.isFolder else { return }
-            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 60, height: 60),
-                                                       scale: NSScreen.main?.backingScaleFactor ?? 2, representationTypes: .thumbnail)
+            guard let url = item.url else { return }
+            // At 28 pt only a picture or a video says anything as a preview; a page of text or a PDF
+            // is a white square. Everything else gets its Finder icon: the type's badge, an app's
+            // own icon, a folder's custom icon.
+            guard !item.isFolder, item.contentType.conforms(to: .image) || item.contentType.conforms(to: .movie) else {
+                image = NSWorkspace.shared.icon(forFile: url.path)
+                return
+            }
+            // Decorated as Finder draws it, with an edge and shadow around the picture.
+            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 28, height: 28),
+                                                       scale: NSScreen.main?.backingScaleFactor ?? 2, representationTypes: .all)
+            request.iconMode = true
             if let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) {
                 image = thumbnail.nsImage
             }
