@@ -98,7 +98,10 @@ final class AppState {
                 // Files received from a drag (Mail, chat apps) live in a folder Stow empties at launch.
                 if !OtherAppFiles.isReceived(url) { recents.add(url) }
                 if browser?.isListing == true { browser?.applyListing(archive, complete: true) }
-                else { browser = makeBrowser(archive) }
+                else {
+                    browser?.quickLook.close()
+                    browser = makeBrowser(archive)
+                }
                 browser?.verifyDiskImage()
             } catch {
                 let error = error is CancellationError ? EngineError(.cancelled) : EngineError(error)

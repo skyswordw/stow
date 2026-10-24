@@ -15,6 +15,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
     private var items: [Item] = []
     private var loads: Task<Void, Never>?
     private var pinned: [URL] = []
+    private var presentationRequested = false
 
     nonisolated final class Item: NSObject, QLPreviewItem, @unchecked Sendable {
         let entry: ArchiveEntry
@@ -47,36 +48,54 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
             && QLPreviewPanel.shared().dataSource === self
     }
 
+    /// Includes a preview waiting for encrypted contents before its panel can appear.
+    var isActive: Bool { presentationRequested || isVisible }
+
     /// The entries shown: the selection in on-screen order, files and packages (folders show as a folder).
     var entries: [Item] { items }
 
     func show() {
-        reload()
-        guard !items.isEmpty, let panel else { return }
+        reload(startLoading: false)
+        guard !items.isEmpty else { close(); return }
+        let needsPasswordRead = model?.archive.isEncrypted == true && items.contains(where: \.isPending)
+        // Keep the archive window in control while it may need to present a password sheet.
+        // The system panel takes control only once the encrypted reads have finished.
+        if needsPasswordRead, isVisible { panel?.orderOut(nil) }
+        presentationRequested = true
+        if needsPasswordRead {
+            loadPendingItems(presentAfterLoading: true)
+        } else {
+            presentPanel()
+            loadPendingItems()
+        }
+    }
+
+    private func presentPanel() {
+        guard presentationRequested, let panel else { return }
         if panel.dataSource !== self {
             panel.dataSource = self
             panel.delegate = self
         }
         panel.makeKeyAndOrderFront(nil)
         panel.reloadData()
+        presentationRequested = true
     }
 
     func close() {
-        guard isVisible else { return }
+        presentationRequested = false
         loads?.cancel()
         loads = nil
-        panel?.orderOut(nil)
+        if QLPreviewPanel.sharedPreviewPanelExists(), panel?.dataSource === self { panel?.orderOut(nil) }
     }
 
     /// The browser's selection changed while the panel is open.
     func selectionChanged() {
-        guard isVisible else { return }
-        reload()
-        panel?.reloadData()
+        guard isActive else { return }
+        show()
     }
 
     /// Rebuilds the items from the browser's selection and starts extracting what isn't on disk yet.
-    func reload() {
+    func reload(startLoading: Bool = true) {
         guard let model else { return }
         loads?.cancel()
         pinned.forEach { model.previews.cache.unpin($0) }
@@ -96,6 +115,12 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
             }
             return Item(entry: entry, url: Self.statusPage(for: entry, status: String(localized: "Extracting…")), isPending: true)
         }
+        if startLoading { loadPendingItems() }
+    }
+
+    private func loadPendingItems(presentAfterLoading: Bool = false) {
+        guard let model else { return }
+        let archive = model.archive
         let wanted = items.filter(\.isPending)
         guard !wanted.isEmpty else { return }
         loads = Task { [weak self, weak model] in
@@ -109,7 +134,11 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
                     guard !Task.isCancelled, let self else { return }
                     item.url = Self.statusPage(for: item.entry, status: Self.message(for: error))
                     item.isPending = false
-                    if panel?.currentPreviewItem === item { panel?.refreshCurrentPreviewItem() }
+                    if error.failure == .cancelled {
+                        close()
+                        return
+                    }
+                    if !presentAfterLoading { refreshPreview(item) }
                     continue
                 }
                 guard !Task.isCancelled, let self else { return }
@@ -117,9 +146,20 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
                 pinned.append(url)
                 item.url = url
                 item.isPending = false
-                if panel?.currentPreviewItem === item { panel?.refreshCurrentPreviewItem() }
+                if !presentAfterLoading { refreshPreview(item) }
             }
+            guard !Task.isCancelled, presentAfterLoading, let self, presentationRequested else { return }
+            // Releasing the loading task before panel handoff keeps endPreviewPanelControl
+            // from cancelling a completed password/read operation.
+            loads = nil
+            presentPanel()
         }
+    }
+
+    private func refreshPreview(_ item: Item) {
+        guard let panel, panel.dataSource === self else { return }
+        guard panel.currentPreviewItem === item else { return }
+        panel.refreshCurrentPreviewItem()
     }
 
     static func message(for error: EngineError) -> String {
@@ -189,6 +229,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
     nonisolated override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
         let panel = PanelBox(panel: panel)
         MainActor.assumeIsolated {
+            presentationRequested = false
             loads?.cancel()
             if let model { pinned.forEach { model.previews.cache.unpin($0) } }
             pinned = []
@@ -232,8 +273,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
             // Several selected: the panel pages through them with ← →.
             if items.count > 1, direction == .left || direction == .right { return false }
             model.move(direction, extending: shift)
-            reload()
-            panel.reloadData()
+            show()
             return true
         }
     }

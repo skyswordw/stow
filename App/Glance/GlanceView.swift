@@ -139,7 +139,7 @@ struct GlanceView: View {
             .navigationTitle(model.title)
             .toolbar { toolbar }
             .onKeyPress(.escape) {
-                if model.quickLook.isVisible {
+                if model.quickLook.isActive {
                     model.quickLook.close()
                 } else if !model.selection.isEmpty {
                     model.select([])
