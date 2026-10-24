@@ -23,6 +23,38 @@ enum AccessibilityText {
     }
 }
 
+/// Keep AX attribute resolution independent of the observable browser and visual children.
+/// Rename keeps the original subtree so its native text field remains reachable.
+private struct ArchiveEntryAccessibility: ViewModifier {
+    let label: String
+    let isRenaming: Bool
+    let activate: @MainActor () -> Void
+
+    func body(content: Content) -> some View {
+        if isRenaming {
+            content
+        } else {
+            content.accessibilityRepresentation {
+                Button(action: {
+                    // Leave the AX callback before selection, navigation, or sheets mutate the tree.
+                    Task { @MainActor in activate() }
+                }) {
+                    Text(verbatim: label)
+                }
+            }
+        }
+    }
+}
+
+extension View {
+    /// Snapshot rename state during normal body evaluation; the AX leaf reads only a String.
+    func archiveEntryAccessibility(entry: ArchiveEntry, isRenaming: Bool = false,
+                                   activate: @escaping @MainActor () -> Void) -> some View {
+        modifier(ArchiveEntryAccessibility(label: AccessibilityText.entry(entry),
+                                           isRenaming: isRenaming, activate: activate))
+    }
+}
+
 struct ContrastStyle: Equatable {
     let increased: Bool
     var borderOpacity: Double { increased ? 0.45 : 0.1 }
@@ -77,7 +109,7 @@ extension View {
 }
 
 extension BrowserModel {
-    /// The VoiceOver label for a row or tile in any view mode.
+    /// Rich browser summary. Do not use from entry AX modifiers: it reads observable state.
     func accessibilityLabel(for entry: ArchiveEntry) -> String {
         AccessibilityText.entry(entry,
                                 itemCount: entry.isNavigable ? archive.children(of: entry.path, includingHelpers: showHelperItems).count : nil,
