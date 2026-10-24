@@ -391,6 +391,77 @@ struct ExtractionTests {
         #expect(fractions.values == fractions.values.sorted() && fractions.values.allSatisfy { (0...1).contains($0) })
     }
 
+    @Test func explicitHelperLeavesSurviveExtraction() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = folder.url.appending(path: "helpers.zip")
+        let paths = [".DS_Store", "Thumbs.db", "desktop.ini", "__MACOSX/Support/note.txt",
+                     "Demo.app/Contents/.DS_Store"]
+        try ZipFixture(entries: paths.map { .file($0, "selected") }).write(to: zip)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        for path in paths {
+            let entry = try #require(archive.entry(at: path))
+            let destination = folder.url.appending(path: UUID().uuidString)
+            try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
+            let result = try await Extraction.run(archive, selection: [entry], to: destination) { _ in }
+            let placed = try #require(result.placed.first)
+            #expect(try String(contentsOf: placed, encoding: .utf8) == "selected")
+        }
+    }
+
+    @Test func extractAllFiltersHelpersButKeepsUserDotfiles() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = folder.url.appending(path: "helpers.zip")
+        try ZipFixture(entries: [
+            .file(".DS_Store", "helper"), .file("Thumbs.db", "helper"), .file("desktop.ini", "helper"),
+            .file("__MACOSX/Support/note.txt", "helper"),
+            .file("Demo.app/Contents/.DS_Store", "helper"), .file("Demo.app/Contents/main", "app"),
+            .file(".env", "environment"), .file(".gitignore", "ignore"),
+        ]).write(to: zip)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        // Both nil and empty selections mean Extract All.
+        for selection in [nil, []] as [[ArchiveEntry]?] {
+            let staged = try await Extraction.stage(archive, selection: selection, near: folder.url) { _ in }
+            defer { staged.discard() }
+            let contents = TemporaryFolder.contents(of: staged.root)
+            #expect(!contents.contains(where: MacHelperFiles.matches))
+            #expect(try String(contentsOf: staged.root.appending(path: ".env"), encoding: .utf8) == "environment")
+            #expect(try String(contentsOf: staged.root.appending(path: ".gitignore"), encoding: .utf8) == "ignore")
+            #expect(staged.items(allFolder: .automatic, folderName: "helpers").count == 1)
+        }
+    }
+
+    @Test func selectedHelperFoldersPreserveContentsWhileOrdinaryParentsFilter() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let zip = folder.url.appending(path: "folders.zip")
+        try ZipFixture(entries: [
+            .file("__MACOSX/Support/note.txt", "support"), .file(".Trashes/cache/.DS_Store", "support"),
+            .file("Docs/.DS_Store", "helper"), .file("Docs/readme.txt", "content"),
+            .file("Demo.app/Contents/Thumbs.db", "helper"), .file("Demo.app/Contents/main", "app"),
+        ]).write(to: zip)
+        let archive = Archive(listing: try await ArchiveEngine.shared.list(zip), url: zip)
+        for path in ["__MACOSX/Support", ".Trashes", "Docs", "Demo.app"] {
+            let entry = try #require(archive.entry(at: path))
+            let staged = try await Extraction.stage(archive, selection: [entry], near: folder.url) { _ in }
+            defer { staged.discard() }
+            if path == "__MACOSX/Support" {
+                #expect(try String(contentsOf: staged.root.appending(path: path + "/note.txt"), encoding: .utf8) == "support")
+            } else if path == ".Trashes" {
+                #expect(Extraction.exists(staged.root.appending(path: ".Trashes/cache/.DS_Store")))
+            } else {
+                #expect(!TemporaryFolder.contents(of: staged.root).contains(where: MacHelperFiles.matches))
+            }
+        }
+        // An explicit leaf remains intentional even when its ordinary parent is also selected.
+        let parent = try #require(archive.entry(at: "Docs"))
+        let leaf = try #require(archive.entry(at: "Docs/.DS_Store"))
+        let staged = try await Extraction.stage(archive, selection: [parent, leaf], near: folder.url) { _ in }
+        defer { staged.discard() }
+        #expect(Extraction.exists(staged.root.appending(path: "Docs/.DS_Store")))
+    }
+
     @Test func extractsSelectionSideBySide() async throws {
         let folder = try TemporaryFolder()
         defer { folder.cleanUp() }
