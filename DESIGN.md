@@ -88,6 +88,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text | 180 ms |
+| Welcome's Recent sidebar folds away (Clear, removing the last one) | Ease-out, the stage widens into its place; **none** under Reduce Motion or from the keyboard | 180 ms |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
 
@@ -103,6 +104,9 @@ Reduced Transparency: glass falls back to solid window background (the system do
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
   Windows, Mac-only files left out, the estimated size.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
+  Archives opened before sit in a **Recent sidebar** — the column the archive card takes once one
+  opens, so the window keeps the Browser's shape — and the drop zone fills the stage beside it,
+  capped and centred in a large window. With nothing to recall there is no sidebar and no toggle.
 
 ## Not doing (on purpose)
 

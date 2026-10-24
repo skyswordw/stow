@@ -1,46 +1,47 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The empty window is the drop target: it says what dropping will do. Archives opened before sit
-/// beside it (below it in a narrow window); the drop target keeps a fixed maximum so the list,
-/// not a sea of dashed border, fills a large window.
-struct WelcomeView: View {
+/// The empty window is the drop target: it says what dropping will do. Archives opened before sit in
+/// a sidebar, where the archive card and folders will be once one opens, so the window keeps the
+/// Browser's shape. The drop zone fills the rest, up to a cap, so a large window gets a centred
+/// target rather than a sea of dashed border. With nothing to recall there is no sidebar at all.
+struct WelcomeView<Accessory: View>: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isTargeted = false
     /// A drag that only promises a file (Mail, Photos, chat apps); see `OtherAppFiles`.
     @State private var isPromiseTargeted = false
-    @State private var isWide = false
+    /// The sidebar toggle hid Recent; this window keeps it hidden until it's shown again.
+    @SceneStorage("welcome.recentHidden") private var recentHidden = false
+    /// Where the drop zone sits in the stage's height; see `dropZonePlacement`.
+    @State private var placement = EdgeInsets()
+    /// Under the drop zone, inside the stage: the pack capsule while packing.
+    @ViewBuilder var accessory: () -> Accessory
 
-    /// Wide enough for the drop target and the Recent list side by side.
-    private static let wideWidth: CGFloat = 900
-    private static let dropZoneSize = CGSize(width: 560, height: 380)
-    /// Alone in the window there's nothing to balance it against, so it stays a little smaller.
-    private static let soloDropZoneSize = CGSize(width: 520, height: 360)
+    /// The drop zone fills the stage in a typical window; a larger one centres it at this size.
+    private static var dropZoneMax: CGSize { CGSize(width: 680, height: 480) }
+    private static var stageMargin: CGFloat { Space.xxl }
+    /// The stage keeps room for the title, the sentence and both buttons on one line.
+    private static var stageMinWidth: CGFloat { 400 }
 
     var body: some View {
         let entries = app.recents.visible
-        let layout = isWide
-            ? AnyLayout(HStackLayout(alignment: .top, spacing: Space.xxl))
-            : AnyLayout(VStackLayout(spacing: Space.xl))
-        layout {
-            dropZone(size: entries.isEmpty ? Self.soloDropZoneSize : Self.dropZoneSize)
-            if !entries.isEmpty {
-                RecentList(entries: entries, recents: app.recents) { app.openRecent($0) }
-                    .frame(maxWidth: isWide ? 440 : Self.dropZoneSize.width,
-                           maxHeight: isWide ? Self.dropZoneSize.height : .infinity)
-            }
+        NavigationSplitView(columnVisibility: columns(hasRecents: !entries.isEmpty)) {
+            RecentSidebar(entries: entries, open: { app.openRecent($0) }, show: showInFinder,
+                          remove: { entry in withoutRecent { app.recents.remove(entry) } },
+                          clear: { withoutRecent { app.recents.clear() } })
+                .sidebarColumnWidth()
+                // With nothing in Recent there's no sidebar, and so nothing to toggle.
+                .toolbar(removing: entries.isEmpty ? .sidebarToggle : nil)
+        } detail: {
+            stage
+                .frame(minWidth: Self.stageMinWidth)
         }
-        .padding(.horizontal, Space.xxl)
-        .padding(.bottom, Space.xxl)
-        .padding(.top, Space.l)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(minWidth: 560, minHeight: 480)
-        .onGeometryChange(for: Bool.self) { $0.size.width >= Self.wideWidth } action: { isWide = $0 }
         // A quiet title bar: the traffic lights over the window, no title, no bar.
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        // Files from Finder arrive on the drop zone's own target as URLs; drags that only promise
+        .frame(minWidth: 560, minHeight: 480)
+        // Files from Finder arrive on the stage's own target as URLs; drags that only promise
         // an archive (Mail attachments, chat apps) fall through to here and are received first.
         .onDrop(of: OtherAppFiles.promisedTypes, isTargeted: $isPromiseTargeted) { providers in
             Task {
@@ -55,19 +56,57 @@ struct WelcomeView: View {
         }
     }
 
+    /// The sidebar shows whenever there's something in it, unless the toggle hid it.
+    private func columns(hasRecents: Bool) -> Binding<NavigationSplitViewVisibility> {
+        Binding {
+            hasRecents && !recentHidden ? .all : .detailOnly
+        } set: { visibility in
+            guard hasRecents else { return }
+            recentHidden = visibility == .detailOnly
+        }
+    }
+
+    /// Emptying Recent folds the sidebar away and the stage widens into its place: eased, quicker
+    /// than an arrival, and not at all under Reduce Motion or from the keyboard.
+    private func withoutRecent(_ change: () -> Void) {
+        withAnimation(reduceMotion ? nil : Motion.presence(false, reduceMotion: false), change)
+    }
+
+    private func showInFinder(_ entry: RecentArchives.Entry) {
+        NSWorkspace.shared.activateFileViewerSelecting([entry.url])
+    }
+
     private var highlighted: Bool { isTargeted || isPromiseTargeted }
 
-    private func dropZone(size: CGSize) -> some View {
-        // Without the format list when a short window also has to fit the Recent list.
-        ViewThatFits(in: .vertical) {
+    /// Everything beside the sidebar takes drops, not only the dashed outline inside it.
+    private var stage: some View {
+        let gap = Space.s, margin = Self.stageMargin, cap = Self.dropZoneMax.height
+        return dropZone
+            .padding(.horizontal, Self.stageMargin)
+            .padding(.top, placement.top)
+            .padding(.bottom, placement.bottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onGeometryChange(for: EdgeInsets.self) { proxy in
+                dropZonePlacement(stage: proxy.size.height, titleBar: proxy.safeAreaInsets.top,
+                                  gap: gap, margin: margin, cap: cap)
+            } action: { placement = $0 }
+            .contentShape(.rect)
+            .dropDestination(for: URL.self) { urls, _ in
+                handleDrop(urls)
+            } isTargeted: { isTargeted = $0 }
+            .safeAreaInset(edge: .bottom, spacing: 0) { accessory() }
+    }
+
+    private var dropZone: some View {
+        // The format list goes first when the stage is too narrow or too short for it.
+        ViewThatFits {
             dropZoneContent(showsFormats: true)
             dropZoneContent(showsFormats: false)
         }
-        .padding(.horizontal, Space.xl)
-        .padding(.vertical, Space.l)
+        .padding(Space.l)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(maxWidth: size.width)
-        .frame(minHeight: 220, maxHeight: size.height)
+        .frame(maxWidth: Self.dropZoneMax.width, maxHeight: Self.dropZoneMax.height)
+        .frame(minHeight: 260)
         .background {
             RoundedRectangle(cornerRadius: Radius.panel + 4)
                 .fill(highlighted ? AnyShapeStyle(.tint.opacity(0.08)) : AnyShapeStyle(.clear))
@@ -76,9 +115,6 @@ struct WelcomeView: View {
         }
         .scaleEffect(highlighted && !reduceMotion ? 1.015 : 1)
         .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: highlighted)
-        .dropDestination(for: URL.self) { urls, _ in
-            handleDrop(urls)
-        } isTargeted: { isTargeted = $0 }
     }
 
     private func dropZoneContent(showsFormats: Bool) -> some View {
@@ -100,8 +136,11 @@ struct WelcomeView: View {
                 Text(highlighted ? String(localized: "Let go to open") : String(localized: "Drop to open or pack"))
                     .font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .contentTransition(.opacity)
+                // Narrow enough that the two sentences break between them, not one word from the end.
                 Text("An archive opens here; several are extracted. Anything else gets packed.")
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: 296)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if showsFormats {
@@ -118,6 +157,7 @@ struct WelcomeView: View {
                         .font(.caption2)
                 }
                 .foregroundStyle(.secondary)
+                .fixedSize()
                 .accessibilityElement(children: .combine)
             }
 
@@ -127,8 +167,10 @@ struct WelcomeView: View {
                     .buttonStyle(.glassProminent)
             }
             .controlSize(.large)
+            .fixedSize()
             .padding(.top, Space.s)
         }
+        .multilineTextAlignment(.center)
     }
 
     private func handleDrop(_ urls: [URL]) -> Bool {
@@ -145,64 +187,58 @@ struct WelcomeView: View {
     }
 }
 
-/// Archives opened before: name, folder and when, newest first.
-private struct RecentList: View {
+/// Room above and below the drop zone. It starts `gap` under the title bar, level with the Recent
+/// heading, and fills down to `margin` from the bottom; once `cap` stops it growing, the spare height
+/// centres it in the whole window rather than in the part below the title bar.
+private nonisolated func dropZonePlacement(stage: CGFloat, titleBar: CGFloat,
+                                           gap: CGFloat, margin: CGFloat, cap: CGFloat) -> EdgeInsets {
+    let height = min(cap, stage - gap - margin)
+    let above = max(gap, (stage - titleBar - height) / 2)
+    return EdgeInsets(top: above, leading: 0, bottom: max(margin, stage - height - above), trailing: 0)
+}
+
+extension WelcomeView where Accessory == EmptyView {
+    init() { self.init { EmptyView() } }
+}
+
+/// Archives opened before, newest first, in the column the archive card takes once one opens.
+private struct RecentSidebar: View {
     let entries: [RecentArchives.Entry]
-    let recents: RecentArchives
     let open: (RecentArchives.Entry) -> Void
-
-    /// Which ends of the list have rows scrolled out of sight.
-    struct Edges: Equatable {
-        var above = false
-        var below = false
-    }
-
-    @State private var hidden = Edges()
-    /// Roughly one row: whatever row sits at the bottom edge is visibly on its way out.
-    private static let fade: CGFloat = 44
+    let show: (RecentArchives.Entry) -> Void
+    let remove: (RecentArchives.Entry) -> Void
+    let clear: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.s) {
-            HStack(alignment: .firstTextBaseline) {
-                SectionLabel(String(localized: "Recent"))
-                Spacer()
-                Button("Clear") { recents.clear() }
-                    .buttonStyle(.plain)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .help("Clear the list of recent archives")
-            }
-            .padding(.horizontal, Space.s)
+        ScrollView {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                HStack(alignment: .firstTextBaseline) {
+                    SectionLabel(String(localized: "Recent"))
+                    Spacer()
+                    Button("Clear", action: clear)
+                        .buttonStyle(.plain)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .help("Clear the list of recent archives")
+                }
+                .padding(.horizontal, Space.s)
+                .padding(.bottom, Space.xs)
 
-            ScrollView {
                 LazyVStack(spacing: 2) {
                     ForEach(entries) { entry in
                         RecentRow(entry: entry) { open(entry) }
                             .contextMenu {
-                                Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([entry.url]) }
-                                Button("Remove from Recent") { recents.remove(entry) }
+                                Button("Show in Finder") { show(entry) }
+                                Button("Remove from Recent") { remove(entry) }
                             }
                     }
                 }
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .onScrollGeometryChange(for: Edges.self) { geometry in
-                let below = geometry.contentSize.height - geometry.visibleRect.maxY
-                return Edges(above: geometry.visibleRect.minY > 1, below: below > 1)
-            } action: { _, edges in
-                hidden = edges
-            }
-            // An edge with more behind it fades over about a row, so a cut-off row reads as "scroll for more".
-            .mask {
-                VStack(spacing: 0) {
-                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-                        .frame(height: hidden.above ? Space.l : 0)
-                    Color.black
-                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-                        .frame(height: hidden.below ? Self.fade : 0)
-                }
-            }
+            .padding(.horizontal, Space.s)
+            .padding(.top, Space.xs)
+            .padding(.bottom, Space.l)
         }
+        .scrollBounceBehavior(.basedOnSize)
     }
 }
 
@@ -212,30 +248,28 @@ private struct RecentRow: View {
 
     var body: some View {
         Button(action: open) {
-            HStack(spacing: Space.m) {
+            HStack(spacing: Space.s + 2) {
+                // The archive card's badge in miniature: the same mark, in the same column.
                 FormatBadge(format: ArchiveFormat.infer(fromName: SplitArchive.baseName(entry.name) ?? entry.name) ?? .other)
-                    .scaleEffect(0.8)
-                    .frame(width: 28, height: 34)
-                VStack(alignment: .leading, spacing: 2) {
+                    .scaleEffect(0.7)
+                    .frame(width: 24, height: 28)
+                VStack(alignment: .leading, spacing: 1) {
                     Text(entry.name)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    Text(entry.folderDisplay)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.head)
-                }
-                Spacer(minLength: Space.s)
-                Text(entry.openedDisplay())
+                    // The folder gives way first, to its own name and then to an ellipsis; when it
+                    // was opened always reads in full. The whole path is in the tooltip.
+                    ViewThatFits(in: .horizontal) {
+                        caption(entry.folderDisplay).fixedSize()
+                        caption(entry.folder.lastPathComponent)
+                    }
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .fixedSize()
+                }
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, Space.s)
-            .padding(.vertical, 6)
+            .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(.rect)
         }
@@ -244,6 +278,20 @@ private struct RecentRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityHint(Text("Opens the archive"))
     }
+
+    private func caption(_ folder: String) -> some View {
+        HStack(spacing: 3) {
+            Text(folder)
+                .lineLimit(1)
+                .truncationMode(.head)
+            Text(verbatim: "·")
+                .accessibilityHidden(true)
+            Text(entry.openedDisplay())
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+        }
+    }
 }
 
 private struct RecentButtonStyle: ButtonStyle {
@@ -251,7 +299,7 @@ private struct RecentButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(.primary.opacity(configuration.isPressed ? 0.1 : isHovering ? 0.05 : 0),
+            .background(.primary.opacity(configuration.isPressed ? 0.1 : isHovering ? 0.06 : 0),
                         in: .rect(cornerRadius: Radius.chip))
             .onHover { isHovering = $0 }
     }
