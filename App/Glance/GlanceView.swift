@@ -149,7 +149,7 @@ struct GlanceView: View {
                 }
                 return .handled
             }
-            .environment(\.undoManager, model.editingUndoManager)
+            .environment(\.undoManager, model.editingUndoManager as UndoManager?)
             .onChange(of: model.selection) { model.quickLook.selectionChanged() }
             .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
             .background {
