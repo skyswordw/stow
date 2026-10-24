@@ -1,5 +1,15 @@
 # Collaboration
 
+## Working language
+
+- Use **English** for issue titles, descriptions, and comments; PR titles, descriptions,
+  and review comments; commit messages; and agent handoff documents.
+- Use English for code identifiers, source comments, and developer documentation, following
+  the surrounding code's conventions. Apply this rule to new work and substantive updates.
+- Keep user-facing translations in their intended languages. Preserve original quotations,
+  logs, and filenames when they are needed as evidence.
+- Match the user's preferred language in direct conversation.
+
 ## Ownership
 
 - **Claude Code owns UI visual design and motion:** layout, spacing, typography, color,
