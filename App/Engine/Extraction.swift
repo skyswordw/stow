@@ -86,17 +86,21 @@ enum Extraction {
     static func stage(_ archive: Archive, selection: [ArchiveEntry]?, near destination: URL, skipSystemFiles: Bool = true,
                       onProgress: @escaping @Sendable (Double) -> Void) async throws(EngineError) -> Staged {
         guard let source = archive.source else { throw EngineError(.failed, String(localized: "This archive isn’t on disk.")) }
-        let selection = selection.map(topmost)
+        // Keep explicit helper intent even when a selected ordinary parent covers that entry.
+        let explicitHelpers = (selection ?? []).filter { MacHelperFiles.isInsideHelper($0.path) }
+        let preservedHelpers = archive.storedPaths(for: explicitHelpers)
+        let selection = selection.flatMap { $0.isEmpty ? nil : topmost($0) }
         // A Mac's AppleDouble files come along so their details can be put back (always: they're
         // the files' own details, not clutter). The engine reads them; the files themselves can't
         // cross over, since sandboxed directory listings hide `._` names.
         let restoreMetadata = !archive.appleDoublePaths.isEmpty
         var paths = selection.map(archive.storedPaths(for:)) ?? []
+        if !paths.isEmpty { paths = Array(Set(paths + preservedHelpers)).sorted() }
         if restoreMetadata, !paths.isEmpty { paths += appleDoubles(for: paths, in: archive.appleDoublePaths) }
         let engine = ArchiveEngine.shared
         let output = try await engine.extract(
             source.url, paths: paths, password: source.password, excludeMacHelperFiles: skipSystemFiles,
-            restoreMacMetadata: restoreMetadata,
+            preservedHelperPaths: preservedHelpers, restoreMacMetadata: restoreMetadata,
             onProgress: onProgress)
         defer { engine.discard(output) }
         if Task.isCancelled { throw EngineError(.cancelled) }
