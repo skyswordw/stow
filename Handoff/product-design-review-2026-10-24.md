@@ -3,9 +3,11 @@
 ## Decisions, ownership and evidence
 
 The user authorized a comprehensive audit and implementation briefs for Claude Code, using
-ArcZip as the reference for visual completion. Two product choices are confirmed: **full
-Browser is the default opening experience**, and **Actions is the English public name** for
-Next Steps. Glance remains optional. “快捷操作” is a Chinese copy proposal. Inspector visibility,
+ArcZip as the reference for visual completion. Three product choices are confirmed: **full
+Browser is the default opening experience**, **Actions is the English public name** for
+Next Steps, and **Actions stays floating**. The user subsequently described the three-pane
+composition as bulky, with excessive space in both side panes, and requested a structure
+closer to ArcZip. Glance remains optional. “快捷操作” is a Chinese copy proposal. Inspector visibility,
 materials, density and exact action placement below are proposals, not new approved defaults.
 
 Claude Code owns layout, typography, spacing, color, materials, icons, hierarchy and motion.
@@ -54,22 +56,57 @@ not Stow requirements. No programmable Flow/macro capability was established by 
 
 ## Proposed composition and action contract
 
-**Browser:** the left pane owns archive identity, safety/password entry and folder navigation;
-the center owns contents, selection and location; the Inspector owns the selected item's
-preview/details. A quiet unselected Inspector or optional collapse is worth evaluating, but
-do not silently change its default visibility. Put archive-wide details in one primary home.
-Keep Checkup and encryption accessible when side panels are hidden.
+**Browser — revised content-first direction:** the earlier three-pane study retained too much
+permanent structure. The user's new feedback calls for reallocating space, not only reducing
+padding. In the captured ArcZip full-window state, the main file list and right detail area
+are visible without a permanent left archive/folder pane. This observation does not establish
+all of ArcZip's possible layouts or defaults.
+
+Current Stow source requests a sidebar minimum/ideal/maximum of **220/248/320 pt** and an
+Inspector of **240/280/360 pt**. Their ideal widths total **528 pt**, before dividers; these are
+source sizing hints, not measured window allocations. The left archive card and the unselected
+Inspector duplicate information while both reduce room for filenames and file columns.
+
+Proposed structure for Claude Code:
+
+- Make the file workspace the primary continuous surface. Explore **files plus optional
+  preview**, with a list-only focus state and an optional folder tree for deep archives.
+  Three visible panes remain available when deliberately useful; the design should not require
+  them to establish archive identity or expose essential commands.
+- Move archive identity and a concise information affordance into the title/navigation region;
+  provide sizes, ratio and detailed facts once in Archive Info. Keep Checkup and explicit password
+  entry discoverable with both side panes closed. Do not move security state into an obscure menu.
+- Use breadcrumbs, Back/Forward and Up for ordinary navigation. A labelled folder control reveals
+  the tree when needed; no large identity/statistics card inside that tree. **Search must stay
+  available with the tree hidden**; current `.searchable(placement: .sidebar)` needs a new host.
+- Let the preview pane use content-appropriate height and bounded width. Text needs a readable
+  excerpt and compact facts, rather than a fixed empty poster area. Images/PDFs may need more
+  space. Keep preview and Quick Look distinct, and avoid duplicating the Actions buttons there.
+- Keep pane controls discoverable and explicit. Avoid automatically opening/closing panes on
+  every selection or file-kind change. Preserve user choices; exact initial visibility,
+  persistence and responsive breakpoints remain implementation proposals for review.
+
+The [revised structure study](evidence/2026-10-24/browser-content-first-structure-study.jpg)
+shows the proposed file/preview composition with folder navigation hidden. Its controls explore
+both optional panes. It supersedes the earlier three-pane studies for **composition**, while
+retaining the user-confirmed floating Actions direction. It is not native or final visual approval.
+
+Do not merely lower `SidebarView.minWidth`: its current minimum prevents wrapped ArchiveCard
+content from causing an AppKit constraint-update loop. Restructure the pane content and test
+geometry as a functional change. Preserve navigation/history, focus, search, drop destinations,
+staged edits and ongoing operation targets when panes are toggled or reflowed.
 
 **Toolbar:** prioritize navigation, view mode and the archive-level action. Give Glance a
 stable visible route coordinated with #159. Secondary tools can use deliberate menus. Explain
 Extract All versus selected extraction through wording and scope; avoid equally prominent
 duplicates competing across the window. Preserve menu/keyboard routes.
 
-**Actions:** prefer a coherent floating bottom group within the content pane, as DESIGN.md
-already intends. A fixed bottom region is an exploratory alternative, not a selected direction.
+**Actions:** the user confirmed the coherent floating bottom group. The earlier fixed-bottom
+study is historical exploration and is no longer a competing implementation direction.
 Keep selection scope and the primary target stable, reserve room above path/edit bars, and
 let long-name metadata yield before essential action labels. Claude should evaluate a small
 Actions label/matching Settings symbol. Branding must not obscure concrete action verbs.
+Size the floating group around its contents; avoid turning it into another full-width panel.
 
 Keep Extract as the existing default primary. App/font/PKG/nested-archive suggestions are
 explicit alternatives; never silently promote installing executable content to the default.
@@ -80,7 +117,8 @@ keyboard focus, history, staged edits and credentials across Browser/Glance tran
 Reference structure studies: [floating Actions](evidence/2026-10-24/actions-floating-structure-study.jpg)
 and [anchored alternative](evidence/2026-10-24/actions-anchored-structure-study.jpg). These are
 non-native, unapproved composition examples, not Stow screenshots or final visual designs.
-The floating group is the recommended starting point; Claude owns refinement. Local prototype
+The floating group is now confirmed; the permanent three-pane shell is superseded above.
+Claude owns visual refinement. Local prototype
 checks covered changing file type, multiple selection, retaining an operation's scope after
 selection changes, cancellation, and both variants at 320-point content width without horizontal
 overflow. These checks do not establish native app behavior or full keyboard/VoiceOver acceptance.
@@ -165,3 +203,9 @@ state matrix, supported minimum sizes, long names, Grid/List/Columns, Inspector 
 keyboard/VoiceOver and accessibility preferences. Verify real extraction scope, password
 cancel/retry, Save/Undo and navigation after moving controls. Signing/OS integration acceptance
 uses the collaborator's artifact; do not create a duplicate signing pipeline.
+
+For #160, include a flat archive and a deeply nested one at matching window dimensions.
+Show list-only, list/preview and deliberately expanded folder-tree states. Compare space for
+long filenames and useful columns, not raw whitespace elimination: small archives naturally
+leave spare room. Verify Search, Checkup, unlock and Glance with both side panes hidden, and
+ensure narrow-window reflow does not create focus loss, clipped actions or constraint loops.

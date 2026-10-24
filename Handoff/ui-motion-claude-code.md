@@ -12,7 +12,10 @@ Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/1
 The [product design review](product-design-review-2026-10-24.md) adds native ArcZip/Stow
 evidence, proposed panel/action responsibilities, a state matrix and a sequenced issue map.
 The user confirmed the full Browser as the default and **Actions** as the English public
-name for Next Steps. The running baseline still uses the old name; #161 tracks the transition.
+name for Next Steps, and subsequently confirmed floating Actions. They requested a lighter
+Browser composition: optional folder navigation and preview should give the file list more
+space, using ArcZip as the structural reference (#160). Exact pane defaults remain proposals.
+The running baseline still uses the old name; #161 tracks the transition.
 “快捷操作” remains a proposed Chinese localization. Claude Code owns final visual/motion
 treatment; Codex / Grok Bot owns functional review. No new Claude session is implied.
 
