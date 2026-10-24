@@ -69,10 +69,10 @@ nonisolated enum AppleDouble {
     /// At most this much attribute data travels back from the engine (resource forks can be big).
     static let transferLimit = 32 << 20
 
-    /// Engine side. Reads the AppleDouble companion of every item under `root` and deletes it.
+    /// Engine side. Reads AppleDouble companions and deletes those not explicitly selected.
     /// Companions are found by exact path: inside a sandbox, directory listings hide `._` files
     /// even though they exist. Keys are paths relative to `root`.
-    static func collect(in root: URL) -> [String: [String: Data]] {
+    static func collect(in root: URL, preserving paths: [String] = []) -> [String: [String: Data]] {
         let fileManager = FileManager.default
         guard let walker = fileManager.enumerator(at: root, includingPropertiesForKeys: nil) else { return [:] }
         let rootPath = root.path.hasSuffix("/") ? root.path : root.path + "/"
@@ -87,7 +87,11 @@ nonisolated enum AppleDouble {
             for companion in ["__MACOSX/" + inline, inline] {
                 let url = root.appending(path: companion)
                 guard let data = try? Data(contentsOf: url) else { continue }
-                try? fileManager.removeItem(at: url)
+                let explicitlySelected = paths.contains {
+                    let selected = PathContainment.containedPath(for: $0)
+                    return companion == selected || companion.hasPrefix(selected + "/")
+                }
+                if !explicitlySelected { try? fileManager.removeItem(at: url) }
                 guard var attributes = attributes(in: data) else { continue }
                 attributes = attributes.filter { !skipped.contains($0.key) }
                 let size = attributes.values.reduce(0) { $0 + $1.count }
