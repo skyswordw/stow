@@ -19,6 +19,8 @@ Grok Bot.
 - **Codex and Grok Bot own functional correctness:** archive behavior, state, security, errors,
   cancellation, tests, and accessibility semantics. Both may implement functional controls
   needed by a fix; their visual and motion treatment remains pending Claude Code review.
+- Claude Code preserves the functional contracts and accessibility behavior described in the
+  handoff, and calls out any behavior change a design needs explicitly in its PR.
 - Codex and Grok Bot should describe interaction goals, states, constraints, and design ideas as a brief
   for Claude Code. These proposals are references, not final visual approval.
 - Record this ownership in relevant issues and PRs. Do not claim Claude Code has reviewed,
@@ -29,3 +31,29 @@ Follow [DESIGN.md](DESIGN.md) and the current
 against **ArcZip** while retaining Stow's own vocabulary and design language.
 
 This division does not add a user approval gate to already authorized work.
+
+## Build and check
+
+Full details are in [README.md](README.md); CI enforces the last two checks.
+
+- Run `scripts/fetch-7zip.sh` once in each checkout or worktree. It puts the pinned 7-Zip into
+  the gitignored `Vendor/`.
+- `Stow.xcodeproj` is generated and gitignored. Edit `project.yml`, not the project, and run
+  `xcodegen generate` after changing it or adding or removing source files.
+- Build: `xcodebuild -project Stow.xcodeproj -scheme Stow -derivedDataPath build build`
+- Test: `xcodebuild -project Stow.xcodeproj -scheme Stow -derivedDataPath build test`
+- After each build, run `scripts/register-extensions.sh` so Finder and Quick Look use that build.
+- Design screenshots: `scripts/snapshot.sh <scene> [light|dark]`. Scenes are listed in the README.
+- Every user-facing string needs a Simplified Chinese translation:
+  `scripts/check-localizations.sh zh-Hans`.
+- Commit any plists that `xcodegen generate` rewrites; CI fails when they differ from `project.yml`.
+
+## Where things are
+
+- [README.md](README.md): requirements, archive engine and Finder integration architecture, and
+  the source layout table.
+- [DESIGN.md](DESIGN.md) and [Handoff/](Handoff/): design language, current briefs, native audits.
+- [PARITY.md](PARITY.md): feature comparison with ArcZip.
+  [ROADMAP.md](ROADMAP.md): remaining work and tests not yet run.
+- [RELEASING.md](RELEASING.md): signed and notarized builds, Sparkle appcast, release workflow.
+- [ERROR-CODES.md](ERROR-CODES.md): the user-visible error codes; `ErrorCodeTests` pins them.
