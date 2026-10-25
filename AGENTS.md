@@ -42,7 +42,10 @@ Full details are in [README.md](README.md); CI enforces the last two checks.
   `xcodegen generate` after changing it or adding or removing source files.
 - Build: `xcodebuild -project Stow.xcodeproj -scheme Stow -derivedDataPath build build`
 - Test: `xcodebuild -project Stow.xcodeproj -scheme Stow -derivedDataPath build test`
-- After each build, run `scripts/register-extensions.sh` so Finder and Quick Look use that build.
+- When validating Finder or Quick Look installation, run `scripts/register-extensions.sh`
+  with the exact intended app path. A routine build/test must not replace the user's registered
+  extensions with a temporary checkout. Coordinate signed system-integration artifacts with
+  the release collaborator; see #32 and #38.
 - Design screenshots: `scripts/snapshot.sh <scene> [light|dark]`. Scenes are listed in the README.
 - Every user-facing string needs a Simplified Chinese translation:
   `scripts/check-localizations.sh zh-Hans`.
