@@ -80,10 +80,11 @@ struct PasswordSheet: View {
 
 extension View {
     /// Presents `prompt`'s questions as a sheet. Closing it any other way cancels the question.
-    func passwordSheet(_ prompt: PasswordPrompt) -> some View {
+    /// `isActive` false leaves the question to another window, which answers it there.
+    func passwordSheet(_ prompt: PasswordPrompt, isActive: Bool = true) -> some View {
         sheet(item: Binding(
-            get: { prompt.question },
-            set: { if $0 == nil, let question = prompt.question { prompt.answer(nil, to: question.id) } }
+            get: { isActive ? prompt.question : nil },
+            set: { if $0 == nil, isActive, let question = prompt.question { prompt.answer(nil, to: question.id) } }
         )) { question in
             PasswordSheet(question: question) { prompt.answer($0, to: question.id) }
         }

@@ -102,6 +102,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text (the chevron stays put) | 180 ms |
 | Pack password check rows (re-enter, mismatch) appear or go | Ease-out fade, never a spring; **none** when typed | 200 ms |
+| Welcome and Browser windows replace each other (an archive opens or closes) | The system's own window opening and closing; **none** when a key press switched them | — |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
 
@@ -121,6 +122,10 @@ Reduced Transparency: glass falls back to solid window background (the system do
   plain words instead of only in a tooltip. When the screen is short, only the middle of the sheet
   scrolls (its cut-off edge fades) and the name, Cancel and Pack stay put.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
+  It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't
+  be resized or zoomed. The drop zone sits on top, Recent below; with no history the drop zone is
+  the whole window. Opening an archive brings up the Browser window at its last size and place and
+  closes the welcome; closing the archive brings the welcome back. Only one of them is open at a time.
 
 ## Not doing (on purpose)
 

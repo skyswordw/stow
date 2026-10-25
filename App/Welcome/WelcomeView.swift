@@ -1,42 +1,62 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// The welcome window, fixed and compact: it can't be resized or zoomed, so it never floats in
+/// empty space. The Browser is a window of its own (`AppRoot` hands over between them).
+struct WelcomeWindow: View {
+    static let size = CGSize(width: 640, height: 600)
+    @Environment(AppState.self) private var app
+    @State private var window: NSWindow?
+
+    var body: some View {
+        WelcomeView()
+            .safeAreaInset(edge: .bottom, spacing: 0) { PackActivityAccessory() }
+            .frame(width: Self.size.width, height: Self.size.height)
+            .background {
+                WindowReader { window in
+                    self.window = window
+                    window.animationBehavior = WindowSwitch.animation
+                }
+            }
+            // Closing it while an archive is still on its way cancels that, as closing the Browser
+            // does. The hand-over only closes it once the archive is in, and an archive opening into
+            // Glance isn't this window's to cancel.
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
+                guard let closing = notification.object as? NSWindow, closing === window,
+                      WindowSwitch.ownsOpening(.welcome, hasArchive: app.browser != nil,
+                                               glanceIsShown: app.glance.isShown) else { return }
+                app.cancelOpening()
+            }
+            .modifier(AppRoot(host: .welcome))
+    }
+}
+
 /// The empty window is the drop target: it says what dropping will do. Archives opened before sit
-/// beside it (below it in a narrow window); the drop target keeps a fixed maximum so the list,
-/// not a sea of dashed border, fills a large window.
+/// below it.
 struct WelcomeView: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isTargeted = false
     /// A drag that only promises a file (Mail, Photos, chat apps); see `OtherAppFiles`.
     @State private var isPromiseTargeted = false
-    @State private var isWide = false
 
-    /// Wide enough for the drop target and the Recent list side by side.
-    private static let wideWidth: CGFloat = 900
     private static let dropZoneSize = CGSize(width: 560, height: 380)
-    /// Alone in the window there's nothing to balance it against, so it stays a little smaller.
-    private static let soloDropZoneSize = CGSize(width: 520, height: 360)
+    /// With no history it is the whole window, at the same width it has above the Recent list.
+    private static let soloDropZoneSize = CGSize(width: 560, height: CGFloat.infinity)
 
     var body: some View {
         let entries = app.recents.visible
-        let layout = isWide
-            ? AnyLayout(HStackLayout(alignment: .top, spacing: Space.xxl))
-            : AnyLayout(VStackLayout(spacing: Space.xl))
-        layout {
+        VStack(spacing: Space.xl) {
             dropZone(size: entries.isEmpty ? Self.soloDropZoneSize : Self.dropZoneSize)
             if !entries.isEmpty {
                 RecentList(entries: entries, recents: app.recents) { app.openRecent($0) }
-                    .frame(maxWidth: isWide ? 440 : Self.dropZoneSize.width,
-                           maxHeight: isWide ? Self.dropZoneSize.height : .infinity)
+                    .frame(maxWidth: Self.dropZoneSize.width, maxHeight: .infinity)
             }
         }
         .padding(.horizontal, Space.xxl)
         .padding(.bottom, Space.xxl)
         .padding(.top, Space.l)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(minWidth: 560, minHeight: 480)
-        .onGeometryChange(for: Bool.self) { $0.size.width >= Self.wideWidth } action: { isWide = $0 }
         // A quiet title bar: the traffic lights over the window, no title, no bar.
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)

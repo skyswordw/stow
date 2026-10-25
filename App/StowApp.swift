@@ -323,6 +323,26 @@ struct StowApp: App {
     @AppStorage(SettingsKeys.appearance) private var appearance = "system"
 
     var body: some Scene {
+        // The welcome is a window of its own, fixed and compact as welcome windows usually are. It's
+        // up while no archive is open; the Browser takes over when one opens and hands back on close.
+        Window("Stow", id: "welcome") {
+            WelcomeWindow()
+                .environment(app)
+                .onAppear { delegate.app = app; SettingsAppearance.apply() }
+                .onChange(of: appearance) { SettingsAppearance.apply() }
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+        .defaultLaunchBehavior(.presented)
+        .restorationBehavior(.disabled)
+        .commands {
+            StowCommands(app: app)
+            EditingUndoCommands()
+            BrowseCommands(app: app)
+            GlanceCommands(app: app)
+        }
+        // Not at launch and not in the Window menu: the welcome opens it, with an archive to show.
         Window("Stow", id: "main") {
             RootView()
                 .environment(app)
@@ -331,12 +351,9 @@ struct StowApp: App {
         }
         .defaultSize(width: 1120, height: 700)
         .windowToolbarStyle(.unified)
-        .commands {
-            StowCommands(app: app)
-            EditingUndoCommands()
-            BrowseCommands(app: app)
-            GlanceCommands(app: app)
-        }
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
+        .commandsRemoved()
         Window("Welcome to Stow", id: "onboarding") {
             OnboardingView().environment(app)
         }
@@ -350,76 +367,143 @@ struct StowApp: App {
     }
 }
 
+/// The Browser window. It only ever shows an open archive: with none, the welcome takes over (`AppRoot`).
 struct RootView: View {
     @Environment(AppState.self) private var app
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
     @State private var rootWindow: NSWindow?
 
     var body: some View {
-        @Bindable var app = app
         Group {
             if let browser = app.browser {
                 BrowserView(model: browser)
-                    .overlay(alignment: .bottom) { packActivity }
+                    .overlay(alignment: .bottom) { PackActivityAccessory() }
             } else {
-                // Below the welcome content rather than over the Recent row.
-                WelcomeView()
-                    .navigationTitle("Stow")
-                    .background {
-                        WindowReader { window in
-                            window.representedURL = nil
-                            window.isDocumentEdited = false
-                        }
-                    }
-                    .safeAreaInset(edge: .bottom, spacing: 0) { packActivity }
+                // For the moment it takes the welcome to come back.
+                Color.clear
             }
         }
-        .background { WindowReader { rootWindow = $0 } }
+        .background {
+            WindowReader { window in
+                rootWindow = window
+                // State restoration is off, so the Browser keeps its size and place this way.
+                window.setFrameAutosaveName("Browser")
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
-            guard let window = notification.object as? NSWindow, window === rootWindow else { return }
+            guard let window = notification.object as? NSWindow, window === rootWindow,
+                  WindowSwitch.ownsOpening(.browser, hasArchive: app.browser != nil,
+                                           glanceIsShown: app.glance.isShown) else { return }
             app.cancelOpening()
         }
-        .sheet(item: $app.packRequest) { PackSheet(request: $0).environment(app) }
-        // A second importer on the same view would be ignored, so this one sits on a background.
-        .background {
-            Color.clear.fileImporter(isPresented: $app.isChoosingBatch, allowedContentTypes: [.archive, .diskImage, .data],
-                                     allowsMultipleSelection: true) { result in
-                if case .success(let urls) = result, !urls.isEmpty { app.extractArchives(urls) }
+        .modifier(AppRoot(host: .browser))
+    }
+}
+
+/// What both of Stow's windows carry: the sheets and file panels Stow presents app-wide, the launch
+/// setup, and the hand-over between the welcome and the Browser. Only the window in charge, the
+/// welcome with no archive open and the Browser with one, presents anything, so nothing shows twice
+/// while one window replaces the other.
+struct AppRoot: ViewModifier {
+    enum Host { case welcome, browser }
+    let host: Host
+
+    @Environment(AppState.self) private var app
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.openSettings) private var openSettings
+    @MainActor private static var launched = false
+
+    private var isHost: Bool { (host == .welcome) == (app.browser == nil) }
+
+    func body(content: Content) -> some View {
+        @Bindable var app = app
+        content
+            .sheet(item: isHost ? $app.packRequest : .constant(nil)) { PackSheet(request: $0).environment(app) }
+            // A second importer on the same view would be ignored, so this one sits on a background.
+            .background {
+                Color.clear.fileImporter(isPresented: isHost ? $app.isChoosingBatch : .constant(false),
+                                         allowedContentTypes: [.archive, .diskImage, .data],
+                                         allowsMultipleSelection: true) { result in
+                    if case .success(let urls) = result, !urls.isEmpty { app.extractArchives(urls) }
+                }
             }
-        }
-        .passwordSheet(app.passwords)
-        .fileImporter(isPresented: $app.isChoosingArchive, allowedContentTypes: [.archive, .diskImage, .data]) { result in
-            if case .success(let url) = result { app.open(url) }
-        }
-        .sheet(item: $app.openFailure) { open in
-            FailureCard(failure: open.failure) { action in
-                app.openFailure = nil
-                if let action, let url = open.url { app.follow(action, opening: url) }
+            .passwordSheet(app.passwords, isActive: isHost)
+            .fileImporter(isPresented: isHost ? $app.isChoosingArchive : .constant(false),
+                          allowedContentTypes: [.archive, .diskImage, .data]) { result in
+                if case .success(let url) = result { app.open(url) }
             }
-        }
-        .cloudDownloadSheet(app, isActive: !app.glance.isShown)
-        .overlay(alignment: .bottomTrailing) { BatchStack(queue: app.batch) }
-        .task {
-            SettingsRouter.shared.open = { openSettings() }
-            OnboardingRouter.shared.open = { openWindow(id: "onboarding") }
-            DemoScene.apply(to: app)
-            guard !OnboardingRouter.shared.didCheckAutomaticPresentation else { return }
-            OnboardingRouter.shared.didCheckAutomaticPresentation = true
-            // Let the main window appear before presenting the first-run checklist.
-            await Task.yield()
-            if Onboarding.shouldShowAutomatically() {
-                openWindow(id: "onboarding")
+            .sheet(item: isHost ? $app.openFailure : .constant(nil)) { open in
+                FailureCard(failure: open.failure) { action in
+                    app.openFailure = nil
+                    if let action, let url = open.url { app.follow(action, opening: url) }
+                }
             }
-        }
-        .onAppear { app.showMainWindow = { [openWindow] in openWindow(id: "main") } }
+            .cloudDownloadSheet(app, isActive: isHost && !app.glance.isShown)
+            .overlay(alignment: .bottomTrailing) { if isHost { BatchStack(queue: app.batch) } }
+            .onChange(of: app.browser == nil, initial: true) { _, noArchive in handOver(noArchive: noArchive) }
+            .task {
+                SettingsRouter.shared.open = { openSettings() }
+                OnboardingRouter.shared.open = { openWindow(id: "onboarding") }
+                guard !Self.launched else { return }
+                Self.launched = true
+                DemoScene.apply(to: app)
+                guard !OnboardingRouter.shared.didCheckAutomaticPresentation else { return }
+                OnboardingRouter.shared.didCheckAutomaticPresentation = true
+                // Let the window appear before presenting the first-run checklist.
+                await Task.yield()
+                if Onboarding.shouldShowAutomatically() {
+                    openWindow(id: "onboarding")
+                }
+            }
+            // "Show the main window": the Browser with an archive open, the welcome without one.
+            .onAppear(perform: routeShowMainWindow)
     }
 
-    /// Sits above the browser's Next Steps when both are showing.
-    private var packActivity: some View {
+    private func routeShowMainWindow() {
+        let open = openWindow
+        app.showMainWindow = { [weak app] in open(id: app?.browser == nil ? "welcome" : "main") }
+    }
+
+    /// An archive opened in the welcome, or the Browser's archive closed: the other window takes
+    /// over. Glance showing the archive keeps the Browser away. A key press switches them without
+    /// window animation (DESIGN.md › Motion).
+    private func handOver(noArchive: Bool) {
+        let leaving: String, arriving: String?
+        switch host {
+        case .welcome where !noArchive: (leaving, arriving) = ("welcome", app.glance.isShown ? nil : "main")
+        case .browser where noArchive: (leaving, arriving) = ("main", "welcome")
+        default: return
+        }
+        WindowSwitch.animation = Motion.byKeyboard ? .none : .default
+        for window in GlanceController.mainWindows { window.animationBehavior = WindowSwitch.animation }
+        if let arriving { openWindow(id: arriving) }
+        dismissWindow(id: leaving)
+    }
+}
+
+/// How the welcome comes up after a switch; the Browser's own opening is Glance's (`prepareMainWindow`).
+@MainActor enum WindowSwitch {
+    static var animation = NSWindow.AnimationBehavior.default
+
+    /// Automatic handover closes the former host after a replacement load has already begun.
+    /// Only the currently responsible presentation may interpret a close as cancellation.
+    static func ownsOpening(_ host: AppRoot.Host, hasArchive: Bool, glanceIsShown: Bool) -> Bool {
+        guard !glanceIsShown else { return false }
+        switch host {
+        case .welcome: return !hasArchive
+        case .browser: return hasArchive
+        }
+    }
+}
+
+/// The pack capsule while packing: under the welcome, or over the Browser above its Next Steps.
+struct PackActivityAccessory: View {
+    @Environment(AppState.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
         let nextSteps = app.browser.map { !$0.selection.isEmpty || $0.activity != nil } ?? false
-        return ZStack {
+        ZStack {
             if app.packing.activity != nil {
                 PackActivityBar(packing: app.packing)
                     .transition(.rise(reduceMotion: reduceMotion))
