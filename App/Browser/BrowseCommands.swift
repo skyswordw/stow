@@ -3,9 +3,14 @@ import SwiftUI
 /// View and Go menus for the browser: view modes, helper items, names, history and opening.
 struct BrowseCommands: Commands {
     let app: AppState
+    private let routing = EditingUndoCommandsModel.shared
 
     var body: some Commands {
         let browser = app.browser
+        let _ = routing.snapshot
+        let archiveOwnsFocus = browser.map {
+            routing.archiveManager(in: NSApp.keyWindow) === $0.editingUndoManager
+        } ?? false
         CommandGroup(replacing: .saveItem) {
             Button("Save") { if let browser { Task { await browser.saveEdits() } } }
                 .keyboardShortcut("s")
@@ -38,9 +43,13 @@ struct BrowseCommands: Commands {
                 .help(browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Add Files…"))
             // Only from the archive's own window (full or Glance): pressed in the Tray or Settings,
             // ⌘⌫ must not stage deleting whatever is selected in an archive behind it.
-            Button("Delete") { if let browser, browser.editingWindow?.isKeyWindow == true { browser.editSession.delete(Array(browser.selection)) } }
-                .keyboardShortcut(.delete, modifiers: .command)
-                .disabled(browser?.selection.isEmpty != false || browser?.editSession.isSaving == true)
+            Button("Delete") {
+                if let browser, routing.archiveManager(in: NSApp.keyWindow) === browser.editingUndoManager {
+                    browser.editSession.delete(Array(browser.selection))
+                }
+            }
+                .keyboardShortcut(archiveOwnsFocus ? KeyboardShortcut(.delete, modifiers: .command) : nil)
+                .disabled(!archiveOwnsFocus || browser?.selection.isEmpty != false || browser?.editSession.isSaving == true)
                 .help(browser?.editSession.refusal(for: Array(browser?.selection ?? [])) ?? (browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Delete")))
             // Return already opens the selected item in all three browser modes.
             Button("Rename") { if let browser, let entry = browser.selectedEntries.first { browser.beginRename(entry) } }
