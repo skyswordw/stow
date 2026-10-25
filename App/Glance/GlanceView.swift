@@ -268,6 +268,7 @@ private struct GlanceList: View {
                 }
             }
             .alternatingRowBackgrounds(.disabled)
+            .collapsesSelectionOnClick(model)
             .safeAreaPadding(.bottom, 56)
             .quickLookKeys(model)
             .onChange(of: model.selection) { model.selectionDidChange() }
