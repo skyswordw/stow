@@ -713,6 +713,15 @@ final class BrowserModel {
 
     // MARK: - Selection
 
+    /// AppKit may try to start its own table selection gesture during our file-promise drag.
+    /// It must not clear or narrow the selection whose files are already on the pasteboard.
+    var tableSelection: Binding<Set<ArchiveEntry.ID>> {
+        Binding(get: { self.selection }, set: { ids in
+            guard !self.dragOut.isDragging else { return }
+            self.selection = ids
+        })
+    }
+
     func select(_ ids: Set<ArchiveEntry.ID>, scroll: Bool = false) {
         selection = ids
         let first = ids.min { (positions[$0] ?? .max) < (positions[$1] ?? .max) }

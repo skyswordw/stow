@@ -15,8 +15,10 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     var hovered: ArchiveEntry.ID?
     private weak var window: NSWindow?
     private var monitor: Any?
-    private var press: (point: NSPoint, entry: ArchiveEntry.ID)?
+    private var press: (point: NSPoint, entry: ArchiveEntry.ID, selection: Set<ArchiveEntry.ID>)?
     private var started = false
+    private(set) var isDragging = false
+    private var preservedSelection: (archive: UUID, folder: String, ids: Set<ArchiveEntry.ID>)?
 
     func install(in window: NSWindow) {
         guard self.window !== window else { return }
@@ -25,7 +27,10 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             // Local monitors run on the main thread, inside event dispatch.
             let box = EventBox(event: event)
-            return MainActor.assumeIsolated { EventBox(event: self?.handle(box.event) ?? box.event) }.event
+            MainActor.assumeIsolated { _ = self?.handle(box.event) }
+            // Keep AppKit's event dispatch intact. The table binding excludes its competing
+            // selection gesture while our file-promise session owns the selected entries.
+            return event
         }
     }
 
@@ -37,20 +42,35 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         guard let event, event.window === window, model?.archive.source != nil else { return event }
         switch event.type {
         case .leftMouseDown:
-            press = hovered.map { (event.locationInWindow, $0) }
+            let id = tableEntry(at: event) ?? hovered
+            press = id.map { (event.locationInWindow, $0, model?.selection ?? []) }
             started = false
         case .leftMouseDragged:
             guard let press, !started else { return started ? nil : event }
             let moved = hypot(event.locationInWindow.x - press.point.x, event.locationInWindow.y - press.point.y)
             guard moved > 4 else { return event }
             started = true
+            if let model, press.selection.contains(press.entry) { model.select(press.selection) }
             beginDrag(from: press.entry, event: event)
             return nil
         default:
+            finishSelectionPreservation()
             press = nil
             started = false
         }
         return event
+    }
+
+    /// A table can begin its native gesture before SwiftUI's hover callback runs. Resolve the
+    /// actual pressed row in both full and compact lists instead of depending on hover timing.
+    private func tableEntry(at event: NSEvent) -> ArchiveEntry.ID? {
+        guard let model, let window else { return nil }
+        var view = (window.contentView?.superview ?? window.contentView)?.hitTest(event.locationInWindow)
+        while let current = view, !(current is NSTableView) { view = current.superview }
+        guard let table = view as? NSTableView, table.numberOfRows == model.visibleEntries.count else { return nil }
+        let row = table.row(at: table.convert(event.locationInWindow, from: nil))
+        guard model.visibleEntries.indices.contains(row) else { return nil }
+        return model.visibleEntries[row].id
     }
 
     private func beginDrag(from id: ArchiveEntry.ID, event: NSEvent) {
@@ -76,6 +96,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         }
         guard !items.isEmpty else { return }
         dragging = entries.map(\.path)
+        preserveSelection()
         model.quickLook.close()
         view.beginDraggingSession(with: items, event: event, source: self)
     }
@@ -94,6 +115,29 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     nonisolated func draggingSession(_ session: NSDraggingSession,
                                      sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
         context == .outsideApplication ? .copy : []
+    }
+
+    nonisolated func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint,
+                                     operation: NSDragOperation) {
+        MainActor.assumeIsolated {
+            finishSelectionPreservation()
+            started = false
+            press = nil
+        }
+    }
+
+    func preserveSelection() {
+        guard let model else { return }
+        preservedSelection = (model.archive.id, model.folder, model.selection)
+        isDragging = true
+    }
+
+    func finishSelectionPreservation() {
+        isDragging = false
+        defer { preservedSelection = nil }
+        guard let model, let saved = preservedSelection,
+              model.archive.id == saved.archive, model.folder == saved.folder else { return }
+        model.select(saved.ids)
     }
 
     // MARK: - NSFilePromiseProviderDelegate
