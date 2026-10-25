@@ -16,8 +16,11 @@ nonisolated struct PackRequest: Identifiable, Sendable {
     var files: [PackFile]
     /// Names of the chosen items, as they appear at the top of the archive.
     var roots: [String]
-    /// Where the chosen items live; the default place to save the archive.
+    /// Where the chosen items live; the default place to save the archive. Nil for items from
+    /// several folders with no remembered choice (`GatherDestination`): Save Here asks.
     var directory: URL?
+    /// The chosen items on disk, so a Save Here choice for a mix can be remembered.
+    var origins: [URL] = []
     var suggestedNameOverride: String?
     var cleanupDirectory: URL?
     var initialFormat: PackFormat?
@@ -52,7 +55,7 @@ nonisolated struct PackRequest: Identifiable, Sendable {
         collect(urls)
     }
 
-    static func collect(_ urls: [URL]) -> PackRequest {
+    static func collect(_ urls: [URL], remembered: URL? = GatherDestination.remembered()) -> PackRequest {
         var files: [PackFile] = []
         var roots: [String] = []
         var taken = Set<String>()
@@ -76,7 +79,9 @@ nonisolated struct PackRequest: Identifiable, Sendable {
                 if let file = file(at: child, path: name + "/" + relative) { files.append(file) }
             }
         }
-        return PackRequest(files: files, roots: roots, directory: urls.first?.deletingLastPathComponent())
+        var request = PackRequest(files: files, roots: roots, directory: GatherDestination.suggestion(for: urls, remembered: remembered))
+        request.origins = urls
+        return request
     }
 
     private static func file(at url: URL, path: String) -> PackFile? {

@@ -177,13 +177,16 @@ enum PackPreferences {
 /// Asks where to save, and what to do when the name is taken. The folder people pick is the only
 /// place Stow may write the archive (and its staging folder) to.
 enum PackDestination {
-    static func choose(for fileName: String, startingAt directory: URL?) async -> URL? {
+    /// `severalFolders`: the items come from more than one folder, so the panel says it's asking.
+    static func choose(for fileName: String, startingAt directory: URL?, severalFolders: Bool = false) async -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
         panel.prompt = String(localized: "Save Here")
-        panel.message = String(localized: "Choose where to save “\(fileName)”.")
+        panel.message = severalFolders
+            ? String(localized: "These come from several folders. Choose where to save “\(fileName)”.")
+            : String(localized: "Choose where to save “\(fileName)”.")
         panel.directoryURL = directory
         let response = if let window = NSApp.keyWindow {
             await panel.beginSheetModal(for: window)

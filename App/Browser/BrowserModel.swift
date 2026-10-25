@@ -19,6 +19,9 @@ final class BrowserModel {
         var placed: [URL] = []
         /// Overrides the step's own done wording ("Updated in Applications", "2 fonts installed · 1 already there").
         var title: String?
+        /// The one thing being worked on, when there is one ("Harbor Prototype"): the running
+        /// capsule names it instead of counting "1 item".
+        var name: String?
 
         var doneTitle: String {
             if let title { return title }
@@ -1065,7 +1068,7 @@ final class BrowserModel {
             let finished: Finished
             do {
                 try await prepare?()
-                activity = Activity(step: step, itemCount: itemCount, phase: .running(0))
+                activity = Activity(step: step, itemCount: itemCount, phase: .running(0), name: name)
                 finished = try await work { fraction in
                     Task { @MainActor in self.advance(to: fraction) }
                 }
@@ -1078,7 +1081,7 @@ final class BrowserModel {
                     } else {
                         activity?.phase = .failed(failure)
                         if activity == nil {
-                            activity = Activity(step: step, itemCount: itemCount, phase: .failed(failure))
+                            activity = Activity(step: step, itemCount: itemCount, phase: .failed(failure), name: name)
                         }
                     }
                 }

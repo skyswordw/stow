@@ -95,12 +95,14 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
 | Capsules or the inspector shown/hidden by a key (arrows, ⌘A, Esc, ⌥⌘I) | **None** | — |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
+| Tray rows a drop (or Add Files…) brought in, new or already there | Accent ring and faint tint **at once**; fade out after 1.2 s; scrolled into view if below the fold (no scroll animation under Reduce Motion) | fade `Motion.status` 200 ms |
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |
 | Tray panel show/hide | Same edge in, same edge out: scale 0.96 → 1 from the menu bar + opacity (`Motion.presence`) | `appear` in, `exit` out; **none** for ⌥⌘T and Esc |
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text (the chevron stays put) | 180 ms |
 | Pack password check rows (re-enter, mismatch) appear or go | Ease-out fade, never a spring; **none** when typed | 200 ms |
+| Welcome and Browser windows replace each other (an archive opens or closes) | The system's own window opening and closing; **none** when a key press switched them | — |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
 
@@ -120,6 +122,10 @@ Reduced Transparency: glass falls back to solid window background (the system do
   plain words instead of only in a tooltip. When the screen is short, only the middle of the sheet
   scrolls (its cut-off edge fades) and the name, Cancel and Pack stay put.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
+  It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't
+  be resized or zoomed. The drop zone sits on top, Recent below; with no history the drop zone is
+  the whole window. Opening an archive brings up the Browser window at its last size and place and
+  closes the welcome; closing the archive brings the welcome back. Only one of them is open at a time.
 
 ## Not doing (on purpose)
 
