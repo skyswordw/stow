@@ -450,6 +450,8 @@ enum DemoScene {
                     : NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible })
                     ?? NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible })
                 guard let window = targetWindow else { return }
+                // A scene's size is for its picture only: never save it as the window's everyday frame.
+                window.setFrameAutosaveName("")
                 window.setContentSize(CGSize(width: size[0], height: size[1]))
             }
         }

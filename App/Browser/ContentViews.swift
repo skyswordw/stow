@@ -298,6 +298,7 @@ struct ContentList: View {
                     .hoverPreview(for: entry, model: hover, browser: model)
                     .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
                 }
+                // The name takes whatever room the others leave; their maximums keep it that way.
                 .width(min: 220, ideal: 320)
 
                 TableColumn(String(localized: "Size")) { entry in
