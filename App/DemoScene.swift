@@ -9,7 +9,8 @@ import SwiftUI
 /// grid, list, fonts, search, search-nested (results inside an inner archive; search-nested-many selects two), activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
-/// `PackPreferences` keys work as launch arguments too; `-StowPackPassword YES` starts with “with a password”.
+/// `PackPreferences` keys work as launch arguments too; `-StowPackPassword YES` starts with “with a password”;
+/// `-StowPackPasswordReview mismatch|shown` fills in a sample password (`pack-password` shows the mismatch).
 /// quicklook (the Finder preview; `-StowPreview encrypted|slow`, or `-StowOpen <path>` for a real file),
 /// associations (Settings › File Types), integration (Settings › Integration; `-StowRepair YES`
 /// runs Repair for real).
@@ -155,6 +156,10 @@ enum DemoScene {
             var request = PackRequest(files: SampleArchive.packCandidates)
             request.initialFormat = .tarZst
             app.packRequest = request
+        case "pack-password":
+            // "With a password", the second entry typed wrong (#153). Registered, so nothing is saved.
+            UserDefaults.standard.register(defaults: ["StowPackPassword": true, "StowPackPasswordReview": "mismatch"])
+            app.packRequest = PackRequest(files: SampleArchive.packCandidates)
         case "pack-dmg":
             // A DMG for Macs: the split word is off (a disk image is one file).
             var request = PackRequest(files: SampleArchive.packCandidates)

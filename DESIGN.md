@@ -32,13 +32,25 @@ And when packing: **"Will it work on their computer?"**
 
 | Concept | Name in Stow | Notes |
 | --- | --- | --- |
-| Main window | **Browser** | Sidebar (archive card + folder tree), content, inspector |
+| Main window | **Browser** | Content workspace with optional folder navigation and preview |
 | Compact quick window | **Glance** | Small floating window near the pointer for quick extract |
-| Context actions | **Next Steps** | Floating glass capsule that appears for a selection |
+| Context actions | **Actions** | Coherent floating action region for the current selection |
 | Drop shelf | **Tray** | Floating panel that collects files from anywhere |
 | Purpose presets | **"For…" destinations** | Windows PCs · Macs · Linux & servers · Web upload |
 | Compression dialog | **Pack sentence** | Sentence-builder with tappable tokens |
 | Safety report | **Checkup** | Badge on the archive card + detail popover |
+
+**Confirmed direction, 2026-10-24:** the full Browser remains the default; Glance is optional.
+The user chose **Actions** as the English public name and confirmed the **floating Actions**
+direction. They also asked to reduce the bulk of the current three-pane composition, using
+ArcZip's content-first layout as a reference. The proposed structure gives files the main
+surface, with folder navigation and preview available as needed; exact defaults and final
+visual treatment belong to the #160 design brief. Existing builds still say “Next Steps”;
+[issue #161](https://github.com/skyswordw/stow/issues/161) tracks the public-copy and presentation
+transition. “快捷操作” is a proposed Simplified Chinese localization, pending copy review.
+Internal types and stored preference keys may retain their existing names. Preserve explicit
+user preferences. Other layout/material defaults remain proposals in the
+[product design review](Handoff/product-design-review-2026-10-24.md).
 
 ## Color
 
@@ -59,7 +71,7 @@ System font (SF Pro), Dynamic sizes via text styles. Hierarchy is weight + size 
 | Section headers | `.subheadline`, semibold, secondary |
 | Row title | `.body` |
 | Metadata | `.callout` / `.caption`, secondary, **monospaced digits** for sizes & counts |
-| Pack sentence | `.title2`, regular; tokens semibold in accent |
+| Pack sentence | `.title2`, regular; tokens semibold in accent, each with a small pull-down chevron so it reads as a menu |
 
 Numbers that change (counts, sizes, progress) use `.monospacedDigit()` and
 `.contentTransition(.numericText())` so they don't jitter.
@@ -77,9 +89,9 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 
 | Moment | Motion | Value |
 | --- | --- | --- |
-| Next Steps capsule appears | Spring, from bottom, scale 0.96 → 1 + opacity | `response 0.32, damping 1.0` |
-| Next Steps content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
-| Floating chrome leaves (Next Steps, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
+| Actions region appears | Spring, from bottom, scale 0.96 → 1 + opacity | `response 0.32, damping 1.0` |
+| Actions content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
+| Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
 | Capsules or the inspector shown/hidden by a key (arrows, ⌘A, Esc, ⌥⌘I) | **None** | — |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
@@ -88,7 +100,8 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Tray panel show/hide | Same edge in, same edge out: scale 0.96 → 1 from the menu bar + opacity (`Motion.presence`) | `appear` in, `exit` out; **none** for ⌥⌘T and Esc |
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
-| Pack sentence token change | Blur-crossfade of the token text | 180 ms |
+| Pack sentence token change | Blur-crossfade of the token text (the chevron stays put) | 180 ms |
+| Pack password check rows (re-enter, mismatch) appear or go | Ease-out fade, never a spring; **none** when typed | 200 ms |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
 
@@ -97,16 +110,20 @@ Reduced Transparency: glass falls back to solid window background (the system do
 
 ## Signature details
 
-- **Archive card** at the top of the sidebar: format badge, file count, packed → unpacked size with a
-  compression bar, lock if encrypted, Checkup badge.
+- **Compact archive identity** in the Browser's title/navigation region. Detailed file counts,
+  packed → unpacked sizes and compression facts have one home in Archive Info. Keep encryption
+  and Checkup directly discoverable when the optional folder tree and preview are closed.
 - **Checkup** lists findings in plain words: "2 files would extract outside the folder — they'll be
   kept inside", "1 app inside is not signed".
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
-  Windows, Mac-only files left out, the estimated size.
+  Windows, Mac-only files left out, the estimated size. **More Options** is a full-strength heading
+  that lists its current settings while closed; inside, choices a format can't offer say why in
+  plain words instead of only in a tooltip. When the screen is short, only the middle of the sheet
+  scrolls (its cut-off edge fades) and the name, Cancel and Pack stay put.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
 
 ## Not doing (on purpose)
 
-- No toolbar full of icons. Primary action (Extract) is prominent; the rest live in Next Steps and menus.
+- No toolbar full of icons. Primary action (Extract) is prominent; the rest live in Actions and menus.
 - No splash, no onboarding carousel.
 - No animated keyboard navigation, no bouncing on menus.
