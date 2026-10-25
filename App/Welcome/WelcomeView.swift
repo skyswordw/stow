@@ -1,9 +1,24 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// The welcome window, fixed and compact: it can't be resized or zoomed, so it never floats in
+/// empty space. The Browser is a window of its own (`AppRoot` hands over between them).
+struct WelcomeWindow: View {
+    static let size = CGSize(width: 640, height: 600)
+
+    var body: some View {
+        WelcomeView()
+            .safeAreaInset(edge: .bottom, spacing: 0) { PackActivityAccessory() }
+            .frame(width: Self.size.width, height: Self.size.height)
+            .background {
+                WindowReader { window in window.animationBehavior = WindowSwitch.animation }
+            }
+            .modifier(AppRoot(host: .welcome))
+    }
+}
+
 /// The empty window is the drop target: it says what dropping will do. Archives opened before sit
-/// below it. The window keeps a fixed, compact size while it shows this (`MainWindowSizing`); in full
-/// screen or a zoomed window the same column stays centred rather than stretching.
+/// below it.
 struct WelcomeView: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -27,9 +42,7 @@ struct WelcomeView: View {
         .padding(.horizontal, Space.xxl)
         .padding(.bottom, Space.xxl)
         .padding(.top, Space.l)
-        .frame(maxWidth: MainWindowSizing.welcomeSize.width, maxHeight: MainWindowSizing.welcomeSize.height)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .frame(minWidth: 560, minHeight: 480)
         // A quiet title bar: the traffic lights over the window, no title, no bar.
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
@@ -247,131 +260,6 @@ private struct RecentButtonStyle: ButtonStyle {
             .background(.primary.opacity(configuration.isPressed ? 0.1 : isHovering ? 0.05 : 0),
                         in: .rect(cornerRadius: Radius.chip))
             .onHover { isHovering = $0 }
-    }
-}
-
-/// Stow has one main window: the welcome while no archive is open, the Browser once one is. The
-/// welcome gets a fixed, compact size that can't be resized, as welcome windows usually do, so a
-/// large window never leaves it floating in empty space. Opening an archive grows the window to the
-/// Browser's last size; closing it shrinks back. The title bar stays where it is both ways, and the
-/// window stays on screen. Full screen and zoomed windows keep their size, and stay resizable.
-@MainActor
-final class MainWindowSizing {
-    /// The welcome window's content size.
-    static let welcomeSize = CGSize(width: 640, height: 600)
-    private static let browserDefault = CGSize(width: 1120, height: 700)
-    private static let browserSizeKey = "mainWindow.browserSize"
-
-    private weak var window: NSWindow?
-    private var showsWelcome = true
-    /// The welcome is up at its fixed size, so the window can't be resized. SwiftUI turns resizing
-    /// back on when the content changes; `styleMask` is watched to keep it off.
-    private var locked = false
-    private var styleObservation: NSKeyValueObservation?
-    /// Where the welcome's top-left was before an archive opened, and where the Browser's was put.
-    /// Closing returns to the first unless the Browser was moved.
-    private var welcomeTopLeft: CGPoint?
-    private var browserTopLeft: CGPoint?
-    private var observers: [NSObjectProtocol] = []
-
-    /// A new main window (SwiftUI makes one each time it's reopened) takes the size of what it shows.
-    func attach(_ window: NSWindow, showsWelcome: Bool) {
-        guard window !== self.window else { return }
-        observers.forEach(NotificationCenter.default.removeObserver)
-        self.window = window
-        self.showsWelcome = showsWelcome
-        welcomeTopLeft = nil
-        browserTopLeft = nil
-        locked = false
-        styleObservation = window.observe(\.styleMask) { [weak self] _, _ in
-            MainActor.assumeIsolated { self?.enforceLock() }
-        }
-        let center = NotificationCenter.default
-        let remember: @Sendable (Notification) -> Void = { [weak self] _ in MainActor.assumeIsolated { self?.rememberBrowserSize() } }
-        observers = [
-            center.addObserver(forName: NSWindow.didEndLiveResizeNotification, object: window, queue: .main, using: remember),
-            center.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main, using: remember),
-            center.addObserver(forName: NSWindow.didExitFullScreenNotification, object: window, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.fit(animated: false) }
-            },
-        ]
-        fit(animated: false)
-        // SwiftUI can still put its default or restored frame on the window as it comes on screen.
-        Task { @MainActor [weak self] in self?.fit(animated: false) }
-    }
-
-    /// The window switches between the welcome and the Browser. Animated only when a click or a
-    /// drop caused it, never from the keyboard or under Reduce Motion (DESIGN.md › Motion).
-    func show(welcome: Bool, animated: Bool) {
-        guard welcome != showsWelcome else { return }
-        if welcome { rememberBrowserSize() }
-        showsWelcome = welcome
-        fit(animated: animated)
-    }
-
-    private func fit(animated: Bool) {
-        guard let window, !window.styleMask.contains(.fullScreen) else { return }
-        let screen = (window.screen ?? NSScreen.main)?.visibleFrame ?? window.frame
-        let topLeft = CGPoint(x: window.frame.minX, y: window.frame.maxY)
-        let welcomeFrameSize = window.frameRect(forContentRect: CGRect(origin: .zero, size: Self.welcomeSize)).size
-        if showsWelcome {
-            // A Browser someone zoomed to fill the screen keeps that size and stays resizable.
-            guard locked || !window.isZoomed else { return }
-            let anchor = topLeft == browserTopLeft ? welcomeTopLeft ?? topLeft : topLeft
-            setLocked(true)
-            move(window, to: Self.frame(size: welcomeFrameSize, topLeft: anchor, in: screen), animated: animated, duration: 0.2)
-        } else {
-            let wasWelcome = locked
-            setLocked(false)
-            // A window SwiftUI opened straight into the Browser already has its own size.
-            guard wasWelcome || window.frame.size == welcomeFrameSize else { return }
-            let target = Self.frame(size: Self.browserSize, topLeft: topLeft, in: screen)
-            welcomeTopLeft = topLeft
-            browserTopLeft = CGPoint(x: target.minX, y: target.maxY)
-            move(window, to: target, animated: animated, duration: 0.25)
-        }
-    }
-
-    private func setLocked(_ locked: Bool) {
-        self.locked = locked
-        enforceLock()
-    }
-
-    private func enforceLock() {
-        guard let window, !window.styleMask.contains(.fullScreen) else { return }
-        if locked == window.styleMask.contains(.resizable) {
-            if locked { window.styleMask.remove(.resizable) } else { window.styleMask.insert(.resizable) }
-        }
-    }
-
-    private func rememberBrowserSize() {
-        guard !showsWelcome, let window, window.styleMask.contains(.resizable),
-              !window.styleMask.contains(.fullScreen) else { return }
-        UserDefaults.standard.set(NSStringFromSize(window.frame.size), forKey: Self.browserSizeKey)
-    }
-
-    private static var browserSize: CGSize {
-        let saved = UserDefaults.standard.string(forKey: browserSizeKey).map(NSSizeFromString) ?? .zero
-        return saved.width > 0 && saved.height > 0 ? saved : browserDefault
-    }
-
-    /// `size` hung from `topLeft`, moved back on screen where it would overhang, and no bigger than it.
-    private static func frame(size: CGSize, topLeft: CGPoint, in screen: CGRect) -> CGRect {
-        let width = min(size.width, screen.width), height = min(size.height, screen.height)
-        let x = min(max(topLeft.x, screen.minX), screen.maxX - width)
-        let top = min(max(topLeft.y, screen.minY + height), screen.maxY)
-        return CGRect(x: x, y: top - height, width: width, height: height)
-    }
-
-    private func move(_ window: NSWindow, to frame: CGRect, animated: Bool, duration: TimeInterval) {
-        guard window.frame != frame else { return }
-        guard animated, window.isVisible else { return window.setFrame(frame, display: true) }
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = duration
-            // A strong ease-out: the window answers the click at once and settles softly.
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1)
-            window.animator().setFrame(frame, display: true)
-        }
     }
 }
 

@@ -96,7 +96,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text | 180 ms |
-| Main window grows into the Browser / shrinks back to the welcome (click, drop) | Window frame eases out (`0.23, 1, 0.32, 1`), title bar stays put; **none** from the keyboard or under Reduce Motion | 250 ms grow, 200 ms shrink |
+| Welcome and Browser windows replace each other (an archive opens or closes) | The system's own window opening and closing; **none** when a key press switched them | — |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
 
@@ -112,10 +112,10 @@ Reduced Transparency: glass falls back to solid window background (the system do
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
   Windows, Mac-only files left out, the estimated size.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
-  Like most welcome windows it has a **fixed, compact size** (640 × 600) that can't be resized or
-  zoomed: the drop zone on top, Recent below; with no history the drop zone is the whole window.
-  Opening an archive grows the same window to the Browser's last size with the title bar in place;
-  closing it shrinks back. Full-screen and zoomed windows keep their size.
+  It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't
+  be resized or zoomed. The drop zone sits on top, Recent below; with no history the drop zone is
+  the whole window. Opening an archive brings up the Browser window at its last size and place and
+  closes the welcome; closing the archive brings the welcome back. Only one of them is open at a time.
 
 ## Not doing (on purpose)
 

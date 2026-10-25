@@ -256,9 +256,13 @@ final class GlanceController: NSObject, NSWindowDelegate {
 
     static let windowIdentifier = "glance"
 
-    /// The full window (SwiftUI's `Window(id: "main")`), however many times it was reopened.
+    /// The full window (SwiftUI's `Window(id: "main")`), however many times it was reopened, and the
+    /// welcome window that stands in for it while no archive is open.
     static var mainWindows: [NSWindow] {
-        NSApp.windows.filter { $0.identifier?.rawValue == "main" || $0.identifier?.rawValue.hasPrefix("main-") == true }
+        NSApp.windows.filter { window in
+            let id = window.identifier?.rawValue ?? ""
+            return ["main", "welcome"].contains { id == $0 || id.hasPrefix($0 + "-") }
+        }
     }
 
     static var isKeyboardEvent: Bool { NSApp.currentEvent?.type == .keyDown }
