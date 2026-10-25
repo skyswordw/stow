@@ -1,8 +1,10 @@
+import AppKit
 import SwiftUI
 
 /// "Pack “Project” as a ZIP for Windows PCs, without a password, as one file."
 /// Every choice is a token in a sentence, and the report underneath says what that sentence will do.
-/// Rarer choices (compression level, checking the result) wait under More Options.
+/// Rarer choices (compression level, checking the result) wait under More Options, whose
+/// heading says what they're set to while it's closed.
 struct PackSheet: View {
     let request: PackRequest
     @Environment(AppState.self) private var app
@@ -10,10 +12,17 @@ struct PackSheet: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var options = PackOptions()
     @State private var password = ""
+    @State private var confirmation = ""
+    @State private var revealsPassword = false
+    /// The password as it last appeared on screen. Seeing it counts as checking it.
+    @State private var seenPassword: String?
+    @FocusState private var focus: Field?
     @State private var name = ""
     @State private var overrides: [String: String] = [:]
     @State private var showDetails = false
     @State private var showMore = false
+    @State private var middleHeight: CGFloat?
+    @State private var overflow = ScrollEdges()
     @State private var isChoosing = false
     @State private var handedOffCleanup = false
 
@@ -23,13 +32,43 @@ struct PackSheet: View {
 
     private var archiveName: String { Compatibility.archiveName(name, for: options.audience) }
 
+    /// A sheet takes its height from its content's minimum, and a scroll view's is almost nothing.
+    /// So the middle asks for all of itself, up to what fits on screen beside the sentence, name
+    /// and buttons (about 380 pt); past that it scrolls.
+    private var middleMinHeight: CGFloat {
+        let budget = (NSScreen.main?.visibleFrame.height ?? 800) - 380
+        return min(middleHeight ?? 0, max(budget, 240))
+    }
+
+    private enum Field: Hashable { case password, confirmation }
+
     var body: some View {
         let report = report
         VStack(alignment: .leading, spacing: Space.xl) {
             sentence
-            if options.usesPassword { passwordField }
-            ReportView(report: report, audience: options.audience, overrides: $overrides, showDetails: $showDetails)
-            moreOptions
+            // The middle grows with what people open (names, options). It asks for its full height,
+            // so the sheet fits it when it can; when the screen can't, only the middle scrolls and
+            // the sentence, name and buttons stay where they are. One copy of the fields, so focus
+            // and typing survive the switch.
+            ScrollView {
+                middle(report)
+                    .padding(Space.xs) // room for focus rings inside the clip…
+                    .onGeometryChange(for: CGFloat.self, of: \.size.height) { middleHeight = $0 }
+            }
+            .frame(minHeight: middleMinHeight, idealHeight: middleHeight)
+            .scrollBounceBehavior(.basedOnSize)
+            .onScrollGeometryChange(for: ScrollEdges.self, of: ScrollEdges.init) { _, edges in overflow = edges }
+            // Whichever edge has more beyond it fades out, so a cut-off section reads as "scroll for more".
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: overflow.above ? Space.xl : 0)
+                    Color.black
+                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: overflow.below ? Space.xl : 0)
+                }
+            }
+            .padding(-Space.xs) // …without moving the content off the sheet's grid
             VStack(alignment: .leading, spacing: Space.l) {
                 nameRow
                 footer(report)
@@ -38,6 +77,13 @@ struct PackSheet: View {
         .padding(Space.xxl)
         .frame(minWidth: 580)
         .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.token, reduceMotion: reduceMotion), value: options)
+        .onChange(of: options.usesPassword) { _, uses in
+            // Choosing "with a password" means typing one next.
+            if uses { focus = .password }
+        }
+        .onChange(of: password) { _, new in
+            if revealsPassword { seenPassword = new }
+        }
         .onAppear(perform: restore)
         .onDisappear {
             if !handedOffCleanup, let directory = request.cleanupDirectory { try? FileManager.default.removeItem(at: directory) }
@@ -75,7 +121,7 @@ struct PackSheet: View {
         case .audience:
             Token(title: options.audience.phrase, suffix: suffix) {
                 ForEach(Audience.allCases) { audience in
-                    Button(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) {
+                    Button(audience.phrase.sentenceCased) {
                         setAudience(audience)
                     }
                 }
@@ -91,7 +137,7 @@ struct PackSheet: View {
             Token(title: options.split.phrase, suffix: suffix, isEnabled: options.format.supportsSplit,
                   disabledHelp: String(localized: "A \(options.format.displayName) is always one file")) {
                 ForEach(SplitSize.allCases) { split in
-                    Button(split.phrase.prefix(1).uppercased() + split.phrase.dropFirst()) { options.split = split }
+                    Button(split.phrase.sentenceCased) { options.split = split }
                 }
             }
         }
@@ -113,18 +159,97 @@ struct PackSheet: View {
         }
     }
 
+    private func middle(_ report: PackReport) -> some View {
+        VStack(alignment: .leading, spacing: Space.xl) {
+            if options.usesPassword { passwordField }
+            ReportView(report: report, audience: options.audience, overrides: $overrides, showDetails: $showDetails)
+            moreOptions(report)
+        }
+    }
+
+    // MARK: Password
+
+    /// Typed twice or seen once: either way the person knows what they'll have to type to open it.
+    private var passwordChecked: Bool {
+        revealsPassword || seenPassword == password || confirmation == password
+    }
+
+    private var needsConfirmation: Bool { !revealsPassword && seenPassword != password }
+
+    /// Only once the second entry has gone wrong — not while it's still a correct beginning.
+    private var showsMismatch: Bool {
+        guard needsConfirmation, !confirmation.isEmpty, confirmation != password else { return false }
+        return !password.hasPrefix(confirmation) || focus != .confirmation
+    }
+
     private var passwordField: some View {
-        HStack(spacing: Space.s) {
-            Image(systemName: "key.fill").accessibilityHidden(true).foregroundStyle(.secondary)
-            SecureField("Password", text: $password)
+        VStack(alignment: .leading, spacing: Space.s) {
+            HStack(spacing: Space.s) {
+                Image(systemName: "key.fill").accessibilityHidden(true).foregroundStyle(.secondary)
+                    .frame(width: 18)
+                Group {
+                    if revealsPassword {
+                        TextField("Password", text: $password)
+                            .autocorrectionDisabled()
+                            .font(.body.monospaced()) // l, 1 and I read apart
+                    } else {
+                        SecureField("Password", text: $password)
+                    }
+                }
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
-            Button("Suggest") { password = Self.suggestedPassword() }
-                .controlSize(.large)
+                .focused($focus, equals: .password)
+                .onSubmit { if needsConfirmation { focus = .confirmation } }
+                suggestButton
+            }
+            if needsConfirmation {
+                HStack(spacing: Space.s) {
+                    Color.clear.frame(width: 18, height: 1)
+                    SecureField("Re-enter Password", text: $confirmation)
+                        .textFieldStyle(.roundedBorder)
+                        .controlSize(.large)
+                        .focused($focus, equals: .confirmation)
+                    // Same width as Suggest above, so both fields line up end to end.
+                    suggestButton.hidden().accessibilityHidden(true)
+                }
+                .transition(.opacity)
+            }
+            if showsMismatch {
+                Label {
+                    Text("Passwords don’t match")
+                } icon: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+                }
+                .font(.callout)
+                .padding(.leading, 18 + Space.s)
+                .transition(.opacity)
+            }
+            // The same option, in the same place, as the sheet that asks for a password to open one.
+            Toggle("Show password", isOn: Binding(get: { revealsPassword }, set: setRevealsPassword))
+                .padding(.leading, 18 + Space.s)
         }
+        .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: needsConfirmation)
+        .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: showsMismatch)
         // Slides down from the sentence that asked for it; goes faster than it came.
         .transition(AnyTransition.asymmetric(insertion: reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)),
                                 removal: .opacity.animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.exit, reduceMotion: reduceMotion))))
+    }
+
+    private var suggestButton: some View {
+        Button("Suggest") {
+            password = Self.suggestedPassword()
+            confirmation = ""
+            // A password nobody has seen is one nobody can type; show what was made.
+            setRevealsPassword(true)
+        }
+        .controlSize(.large)
+    }
+
+    private func setRevealsPassword(_ reveals: Bool) {
+        revealsPassword = reveals
+        if reveals { seenPassword = password }
+        // Swapping the secure field for a plain one would otherwise drop the caret.
+        focus = .password
     }
 
     // MARK: More options
@@ -138,55 +263,141 @@ struct PackSheet: View {
         return String(localized: "\(options.level.detail) Remembered for \(options.audience.phrase).")
     }
 
-    private var moreOptions: some View {
-        DisclosureGroup("More Options", isExpanded: $showMore) {
-            VStack(alignment: .leading, spacing: Space.m) {
-                LabeledContent("Compression") {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Picker("Compression", selection: levelBinding) {
-                            ForEach(CompressionLevel.allCases) { Text($0.title).tag($0) }
+    /// What More Options is set to, so a closed section still says what it holds. The sentence
+    /// already shows the password and parts, so they aren't repeated here.
+    private var optionsSummary: String {
+        var parts = [compressionSummary]
+        if options.verify { parts.append(String(localized: "Tested after packing")) }
+        if options.format == .dmg { parts.append(options.diskImageFilesystem.title) }
+        return parts.joined(separator: " · ")
+    }
+
+    private var compressionSummary: String {
+        if options.format == .tarZst, options.level == .store {
+            return String(localized: "\(CompressionLevel.fastest.title) compression") // zstd has no stored mode
+        }
+        guard options.format.isCompressed, options.level != .store else { return String(localized: "No compression") }
+        return String(localized: "\(options.level.title) compression")
+    }
+
+    /// Part names come from `ArchiveCreation`: "Project.zip.001", "Project.zip.002", …
+    private func splitCaption(_ report: PackReport) -> String? {
+        guard options.format.supportsSplit else {
+            return String(localized: "A \(options.format.displayName) is always one file")
+        }
+        guard options.split != .none else { return nil }
+        let base = archiveName + "." + options.format.fileExtension
+        guard report.parts > 1 else {
+            return String(localized: "Probably fits in one part, \(base + ".001").")
+        }
+        return String(localized: "About \(report.parts) parts, \(base + ".001") to \(String(format: ".%03d", report.parts)). Opening it needs all of them.")
+    }
+
+    private var passwordCaption: String {
+        guard options.format.supportsPassword else {
+            return String(localized: "\(options.format.displayName) can’t be password-protected. Choose ZIP or 7Z to add one.")
+        }
+        guard options.usesPassword else { return String(localized: "Anyone with the file can open it and see the names inside.") }
+        return options.format == .sevenZip
+            ? String(localized: "File names are hidden until the password is entered.")
+            : String(localized: "File names stay visible without the password.")
+    }
+
+    private func moreOptions(_ report: PackReport) -> some View {
+        DisclosureGroup(isExpanded: $showMore) {
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.m, verticalSpacing: Space.l) {
+                optionRow("Compression") {
+                    Picker("Compression", selection: levelBinding) {
+                        ForEach(CompressionLevel.allCases) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    .disabled(!options.format.isCompressed)
+                    caption(levelCaption)
+                }
+                optionRow("Verify") {
+                    Toggle("Test every file once it’s packed", isOn: $options.verify)
+                }
+                // The same choices as the sentence's last words, bound to the same state.
+                optionRow("Split archives") {
+                    if options.format.supportsSplit {
+                        Picker("Split archives", selection: $options.split) {
+                            ForEach(SplitSize.allCases) { Text($0.phrase.sentenceCased).tag($0) }
                         }
                         .labelsHidden()
                         .fixedSize()
-                        .disabled(!options.format.isCompressed)
-                        Text(levelCaption)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(SplitSize.none.phrase.sentenceCased)
                     }
+                    if let text = splitCaption(report) { caption(text) }
+                }
+                optionRow("Password") {
+                    if options.format.supportsPassword {
+                        Picker("Password", selection: $options.usesPassword) {
+                            Text("Without a password").tag(false)
+                            Text("With a password").tag(true)
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                    } else {
+                        Text("Without a password")
+                    }
+                    caption(passwordCaption)
                 }
                 if options.format == .dmg {
-                    LabeledContent("Disk format") {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Picker("Disk format", selection: $options.diskImageFilesystem) {
-                                ForEach(DiskImageFilesystem.allCases) { Text($0.title).tag($0) }
-                            }
-                            .labelsHidden()
-                            .fixedSize()
-                            Text(options.diskImageFilesystem.detail)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                    optionRow("Disk format") {
+                        Picker("Disk format", selection: $options.diskImageFilesystem) {
+                            ForEach(DiskImageFilesystem.allCases) { Text($0.title).tag($0) }
                         }
+                        .labelsHidden()
+                        .fixedSize()
+                        caption(options.diskImageFilesystem.detail)
                     }
-                    LabeledContent("Layout") {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
-                            Text(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                    optionRow("Layout") {
+                        Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
+                        caption(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
                     }
-                }
-                LabeledContent("Verify") {
-                    Toggle("Test every file once it’s packed", isOn: $options.verify)
                 }
             }
-            .padding(.top, Space.s)
+            .padding(.top, Space.m)
             .padding(.leading, Space.xs)
+        } label: {
+            // Full-strength title, and the current settings beside it while closed: the section is
+            // easy to find and says whether it's worth opening. The whole line opens it.
+            HStack(alignment: .firstTextBaseline, spacing: Space.s) {
+                Text("More Options")
+                    .fontWeight(.medium)
+                if !showMore {
+                    Text(optionsSummary)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .accessibilityLabel(String(localized: "Set to \(optionsSummary)"))
+                }
+            }
+            .contentShape(.rect)
+            .onTapGesture {
+                withAnimation(Motion.presence(!showMore, reduceMotion: reduceMotion)) { showMore.toggle() }
+            }
         }
         .font(.callout)
-        .foregroundStyle(.secondary)
+    }
+
+    private func optionRow(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
+        GridRow {
+            Text(title)
+                .foregroundStyle(.secondary)
+                .gridColumnAlignment(.trailing)
+            VStack(alignment: .leading, spacing: Space.xs) { content() }
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func caption(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var levelBinding: Binding<CompressionLevel> {
@@ -236,7 +447,7 @@ struct PackSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.glassProminent)
                 .controlSize(.large)
-                .disabled(isChoosing || report.included.isEmpty || (options.usesPassword && password.isEmpty))
+                .disabled(isChoosing || report.included.isEmpty || (options.usesPassword && (password.isEmpty || !passwordChecked)))
         }
     }
 
@@ -256,10 +467,18 @@ struct PackSheet: View {
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
         options.split = options.format.supportsSplit ? SettingsKeys.splitSize() : .none
+        // Settings › Passwords: visible by default also lets Chinese and Japanese input methods work.
+        revealsPassword = SettingsKeys.flag(SettingsKeys.showPassword)
         // Design review: -StowPackDetails YES opens both disclosures.
         if UserDefaults.standard.bool(forKey: "StowPackDetails") { showDetails = true; showMore = true }
         // Design review: -StowPackPassword YES starts with "with a password" (formats that allow one).
         if UserDefaults.standard.bool(forKey: "StowPackPassword"), options.format.supportsPassword { options.usesPassword = true }
+        // Design review: -StowPackPasswordReview mismatch|shown fills in a sample password in that state.
+        switch UserDefaults.standard.string(forKey: "StowPackPasswordReview") {
+        case "mismatch": password = "harbor-sample"; confirmation = "harbor-smaple"
+        case "shown": password = "harbor-sample"; setRevealsPassword(true)
+        default: break
+        }
     }
 
     private func setAudience(_ audience: Audience) {
@@ -318,6 +537,24 @@ struct PackSheet: View {
     }
 }
 
+/// Whether a scroll view has content past its top or bottom edge.
+private struct ScrollEdges: Equatable {
+    var above = false
+    var below = false
+
+    init() {}
+
+    init(_ geometry: ScrollGeometry) {
+        above = geometry.contentOffset.y > 1
+        below = geometry.contentOffset.y + geometry.containerSize.height < geometry.contentSize.height - 1
+    }
+}
+
+private extension String {
+    /// `Audience` and `SplitSize` phrases sit inside the sentence; a menu item or label starts upper-case.
+    var sentenceCased: String { prefix(1).uppercased() + dropFirst() }
+}
+
 /// A sentence word you can change. Looks like text, behaves like a menu.
 private struct Token<Items: View>: View {
     @Environment(\.colorSchemeContrast) private var contrast
@@ -347,18 +584,27 @@ private struct Token<Items: View>: View {
         Menu {
             items()
         } label: {
-            Text(title)
-                .fontWeight(.semibold)
-                .foregroundStyle(.tint)
-                .id(title)
-                // Blur-replace scales a little, so Reduce Motion gets the cross-fade alone.
-                .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
+            // The small chevron is the Mac's pull-down cue: it says "this word is a menu" without
+            // a hover. It stays put while the word beside it blurs over to the new choice.
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(title)
+                    .fontWeight(.semibold)
+                    .id(title)
+                    // Blur-replace scales a little, so Reduce Motion gets the cross-fade alone.
+                    .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
+                Image(systemName: "chevron.down")
+                    .font(.footnote.weight(.bold))
+                    .opacity(contrastStyle.increased ? 1 : 0.6)
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(.tint)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .padding(.horizontal, 6)
+        .padding(.leading, 6)
+        .padding(.trailing, 5)
         .padding(.vertical, 1)
         .background(.tint.opacity(isHovering ? 0.16 : 0.08), in: .rect(cornerRadius: 6))
         .onHover { isHovering = $0 }

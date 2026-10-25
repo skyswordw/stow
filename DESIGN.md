@@ -71,7 +71,7 @@ System font (SF Pro), Dynamic sizes via text styles. Hierarchy is weight + size 
 | Section headers | `.subheadline`, semibold, secondary |
 | Row title | `.body` |
 | Metadata | `.callout` / `.caption`, secondary, **monospaced digits** for sizes & counts |
-| Pack sentence | `.title2`, regular; tokens semibold in accent |
+| Pack sentence | `.title2`, regular; tokens semibold in accent, each with a small pull-down chevron so it reads as a menu |
 
 Numbers that change (counts, sizes, progress) use `.monospacedDigit()` and
 `.contentTransition(.numericText())` so they don't jitter.
@@ -99,7 +99,8 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Tray panel show/hide | Same edge in, same edge out: scale 0.96 → 1 from the menu bar + opacity (`Motion.presence`) | `appear` in, `exit` out; **none** for ⌥⌘T and Esc |
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
-| Pack sentence token change | Blur-crossfade of the token text | 180 ms |
+| Pack sentence token change | Blur-crossfade of the token text (the chevron stays put) | 180 ms |
+| Pack password check rows (re-enter, mismatch) appear or go | Ease-out fade, never a spring; **none** when typed | 200 ms |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
 
@@ -114,7 +115,10 @@ Reduced Transparency: glass falls back to solid window background (the system do
 - **Checkup** lists findings in plain words: "2 files would extract outside the folder — they'll be
   kept inside", "1 app inside is not signed".
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
-  Windows, Mac-only files left out, the estimated size.
+  Windows, Mac-only files left out, the estimated size. **More Options** is a full-strength heading
+  that lists its current settings while closed; inside, choices a format can't offer say why in
+  plain words instead of only in a tooltip. When the screen is short, only the middle of the sheet
+  scrolls (its cut-off edge fades) and the name, Cancel and Pack stay put.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
 
 ## Not doing (on purpose)
