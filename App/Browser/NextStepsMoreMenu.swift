@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// The capsule's ⋯ button: every other step that applies to the selection, with the icons and
-/// shortcuts the menu bar uses, then a way to choose what the capsule suggests.
+/// The Actions capsule's ⋯ button: every other action that applies to the selection, with the
+/// icons and shortcuts the menu bar uses, then a way to choose what Actions suggests.
 struct NextStepsMoreMenu: View {
     let model: BrowserModel
     let alternatives: [NextStep]
-    /// A large glass button's height.
-    private static let size: CGFloat = 28
+    @State private var isHovering = false
 
     var body: some View {
         Menu {
@@ -14,19 +13,19 @@ struct NextStepsMoreMenu: View {
         } label: {
             Image(systemName: "ellipsis")
                 .fontWeight(.medium)
-                .frame(width: Self.size, height: Self.size)
+                .frame(width: ActionButtonStyle.height, height: ActionButtonStyle.height)
+                // Inside the capsule's glass, so a quiet fill under the pointer like its other buttons.
+                .background(.primary.opacity(isHovering ? 0.07 : 0), in: .circle)
                 .contentShape(.circle)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        // A Menu doesn't take the glass button style; this is the same glass, the same height
-        // as the capsule's large buttons.
-        .glassEffect(.regular.interactive(), in: .circle)
+        .onHover { isHovering = $0 }
         .help("More actions for the selection")
         .accessibilityLabel("More actions")
-        .accessibilityHint("Every other step for the selection, and Customize Next Steps")
+        .accessibilityHint("Every other action for the selection, and Customize Actions")
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { NextStepsDemo.moreButtonFrame = $0 }
     }
 }
@@ -43,7 +42,8 @@ struct NextStepsMoreItems: View {
                 .keyboardShortcut(step.menuShortcut)
         }
         if !alternatives.isEmpty { Divider() }
-        Button("Customize Next Steps…", systemImage: "slider.horizontal.3") {
+        // The same symbol as Settings › Actions, so the menu item and the pane read as one feature.
+        Button("Customize Actions…", systemImage: SettingsPane.nextSteps.systemImage) {
             SettingsRouter.shared.pane = .nextSteps
             SettingsRouter.shared.open()
         }

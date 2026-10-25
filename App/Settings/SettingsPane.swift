@@ -9,7 +9,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .extraction: String(localized: "Extraction")
         case .installing: String(localized: "Installing")
         case .packing: String(localized: "Packing")
-        case .nextSteps: String(localized: "Next Steps")
+        case .nextSteps: String(localized: "Actions")
         case .previews: String(localized: "Previews")
         case .passwords: String(localized: "Passwords")
         case .fileTypes: String(localized: "File Types")
