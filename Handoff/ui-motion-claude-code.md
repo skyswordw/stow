@@ -7,11 +7,31 @@ starting points for Claude Code's judgment, not approved final visual designs.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Current product-wide brief — 2026-10-24
+
+The [product design review](product-design-review-2026-10-24.md) adds native ArcZip/Stow
+evidence, proposed panel/action responsibilities, a state matrix and a sequenced issue map.
+The user confirmed the full Browser as the default and **Actions** as the English public
+name for Next Steps, and subsequently confirmed floating Actions. They requested a lighter
+Browser composition: optional folder navigation and preview should give the file list more
+space, using ArcZip as the structural reference (#160). Exact pane defaults remain proposals.
+The running baseline still uses the old name; #161 tracks the transition.
+“快捷操作” remains a proposed Chinese localization. Claude Code owns final visual/motion
+treatment; Codex / Grok Bot owns functional review. No new Claude session is implied.
+
+Focused briefs: [Browser #160](https://github.com/skyswordw/stow/issues/160),
+[Actions #161](https://github.com/skyswordw/stow/issues/161),
+[Settings #162](https://github.com/skyswordw/stow/issues/162),
+[Glance #159](https://github.com/skyswordw/stow/issues/159), and
+[Pack #153](https://github.com/skyswordw/stow/issues/153). Coordinate existing Tray/install
+PR #154 and Pack PR #155 rather than restarting those implementations. Historical references
+to Next Steps below describe the baseline, not a second product feature.
+
 ## Starting point
 
 Use [DESIGN.md](../DESIGN.md): native SwiftUI/AppKit, content before chrome, Liquid Glass
 for floating controls, a restrained amber accent, semantic status with words and icons,
-and Stow's own Browser / Glance / Next Steps vocabulary. ArcZip is the comparison target
+and Stow's own Browser / Glance / Actions vocabulary. ArcZip is the comparison target
 for archive interactions, not a visual template to copy.
 
 Functional changes already merged:

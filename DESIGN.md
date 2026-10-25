@@ -32,7 +32,7 @@ And when packing: **"Will it work on their computer?"**
 
 | Concept | Name in Stow | Notes |
 | --- | --- | --- |
-| Main window | **Browser** | Sidebar (archive card + folder tree), content, inspector |
+| Main window | **Browser** | Content workspace with optional folder navigation and preview |
 | Compact quick window | **Glance** | Small floating window near the pointer for quick extract |
 | Context actions | **Actions** | Coherent floating action region for the current selection |
 | Drop shelf | **Tray** | Floating panel that collects files from anywhere |
@@ -41,7 +41,11 @@ And when packing: **"Will it work on their computer?"**
 | Safety report | **Checkup** | Badge on the archive card + detail popover |
 
 **Confirmed direction, 2026-10-24:** the full Browser remains the default; Glance is optional.
-The user chose **Actions** as the English public name. Existing builds still say “Next Steps”;
+The user chose **Actions** as the English public name and confirmed the **floating Actions**
+direction. They also asked to reduce the bulk of the current three-pane composition, using
+ArcZip's content-first layout as a reference. The proposed structure gives files the main
+surface, with folder navigation and preview available as needed; exact defaults and final
+visual treatment belong to the #160 design brief. Existing builds still say “Next Steps”;
 [issue #161](https://github.com/skyswordw/stow/issues/161) tracks the public-copy and presentation
 transition. “快捷操作” is a proposed Simplified Chinese localization, pending copy review.
 Internal types and stored preference keys may retain their existing names. Preserve explicit
@@ -105,8 +109,9 @@ Reduced Transparency: glass falls back to solid window background (the system do
 
 ## Signature details
 
-- **Archive card** at the top of the sidebar: format badge, file count, packed → unpacked size with a
-  compression bar, lock if encrypted, Checkup badge.
+- **Compact archive identity** in the Browser's title/navigation region. Detailed file counts,
+  packed → unpacked sizes and compression facts have one home in Archive Info. Keep encryption
+  and Checkup directly discoverable when the optional folder tree and preview are closed.
 - **Checkup** lists findings in plain words: "2 files would extract outside the folder — they'll be
   kept inside", "1 app inside is not signed".
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
