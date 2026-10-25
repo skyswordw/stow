@@ -5,7 +5,19 @@ import SwiftUI
 /// open immediately so scanning down a list feels instant.
 @Observable
 final class HoverPreviewModel {
-    private(set) var presented: ArchiveEntry.ID?
+    private(set) var presented: ArchiveEntry.ID? {
+        didSet {
+            if presented == nil { stopWatching() } else if oldValue == nil { startWatching() }
+        }
+    }
+
+    /// The popover doesn't dismiss itself: AppKit's outside-click dismissal also swallowed the
+    /// click when it landed on the item the popover points at, so the first click on a previewed
+    /// file only closed the preview (#167). These close it instead and let the event through: any
+    /// press (a click means act, not look) and a window losing the keyboard (Space opening Quick
+    /// Look, a sheet, switching apps).
+    @ObservationIgnored private var pressMonitor: Any?
+    @ObservationIgnored private var resignObserver: (any NSObjectProtocol)?
 
     private var openTask: Task<Void, Never>?
     private var closeTask: Task<Void, Never>?
@@ -71,6 +83,29 @@ final class HoverPreviewModel {
         if presented != nil { lastClosed = .now }
         withTransaction(Self.unanimated) { presented = nil }
     }
+
+    private func startWatching() {
+        pressMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
+            // Local monitors run on the main thread, inside event dispatch.
+            MainActor.assumeIsolated { self?.close() }
+            return event
+        }
+        resignObserver = NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification,
+                                                                object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.close() }
+        }
+    }
+
+    private func stopWatching() {
+        if let pressMonitor { NSEvent.removeMonitor(pressMonitor) }
+        if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
+        pressMonitor = nil
+        resignObserver = nil
+    }
+
+    isolated deinit {
+        stopWatching()
+    }
 }
 
 private struct HoverPreviewModifier: ViewModifier {
@@ -93,6 +128,8 @@ private struct HoverPreviewModifier: ViewModifier {
             .onChange(of: enabled) { if !enabled { model.close() } }
             .popover(isPresented: isPresented, arrowEdge: .trailing) {
                 HoverPreviewCard(entry: entry, browser: browser)
+                    // The model closes it (see `HoverPreviewModel.presented`), so clicks reach the items.
+                    .interactiveDismissDisabled()
             }
     }
 
