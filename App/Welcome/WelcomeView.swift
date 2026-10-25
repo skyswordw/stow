@@ -5,13 +5,26 @@ import UniformTypeIdentifiers
 /// empty space. The Browser is a window of its own (`AppRoot` hands over between them).
 struct WelcomeWindow: View {
     static let size = CGSize(width: 640, height: 600)
+    @Environment(AppState.self) private var app
+    @State private var window: NSWindow?
 
     var body: some View {
         WelcomeView()
             .safeAreaInset(edge: .bottom, spacing: 0) { PackActivityAccessory() }
             .frame(width: Self.size.width, height: Self.size.height)
             .background {
-                WindowReader { window in window.animationBehavior = WindowSwitch.animation }
+                WindowReader { window in
+                    self.window = window
+                    window.animationBehavior = WindowSwitch.animation
+                }
+            }
+            // Closing it while an archive is still on its way cancels that, as closing the Browser
+            // does. The hand-over only closes it once the archive is in, and an archive opening into
+            // Glance isn't this window's to cancel.
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
+                guard let closing = notification.object as? NSWindow, closing === window,
+                      app.browser == nil, !app.glance.isShown else { return }
+                app.cancelOpening()
             }
             .modifier(AppRoot(host: .welcome))
     }
