@@ -27,10 +27,12 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             // Local monitors run on the main thread, inside event dispatch.
             let box = EventBox(event: event)
-            MainActor.assumeIsolated { _ = self?.handle(box.event) }
-            // Keep AppKit's event dispatch intact. The table binding excludes its competing
-            // selection gesture while our file-promise session owns the selected entries.
-            return event
+            return MainActor.assumeIsolated {
+                guard let self else { return box }
+                // Preserve nil: our file-promise session already owns this drag. Starting a
+                // second NSTableView gesture can clear selection and orphan the promises.
+                return EventBox(event: self.handle(box.event))
+            }.event
         }
     }
 
@@ -119,7 +121,11 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 
     nonisolated func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint,
                                      operation: NSDragOperation) {
+        let box = DragSessionBox(session: session)
         MainActor.assumeIsolated {
+            // Cancelled drags have no receiver. Leaving file promises on the drag pasteboard
+            // makes AppKit try to materialize them during termination, which can hang Quit.
+            if operation.isEmpty { box.session.draggingPasteboard.clearContents() }
             finishSelectionPreservation()
             started = false
             press = nil
@@ -167,4 +173,9 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 /// Events never leave the main thread here; the box only gets them through `assumeIsolated`.
 private struct EventBox: @unchecked Sendable {
     let event: NSEvent?
+}
+
+/// AppKit invokes this delegate on its event thread; the session never crosses threads.
+private nonisolated struct DragSessionBox: @unchecked Sendable {
+    let session: NSDraggingSession
 }
