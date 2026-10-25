@@ -30,16 +30,18 @@ struct NextStepsMoreMenu: View {
     }
 }
 
-/// The More menu's items, shared with the design-review scene that shows them open.
+/// The More menu's items, shared with File › Actions and the design-review scene that shows them open.
 struct NextStepsMoreItems: View {
     let model: BrowserModel
     let alternatives: [NextStep]
+    /// Off in the menu bar, where Extract, Quick Look and Open already have their keys.
+    var showsShortcuts = true
 
     var body: some View {
         ForEach(alternatives) { step in
             Button(step.title, systemImage: step.symbol) { run(step) }
                 .labelStyle(.titleAndIcon)
-                .keyboardShortcut(step.menuShortcut)
+                .keyboardShortcut(showsShortcuts ? step.menuShortcut : nil)
         }
         if !alternatives.isEmpty { Divider() }
         // The same symbol as Settings › Actions, so the menu item and the pane read as one feature.

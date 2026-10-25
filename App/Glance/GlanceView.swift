@@ -149,6 +149,8 @@ struct GlanceView: View {
                     model.renamingPath = nil
                 } else if model.quickLook.isActive {
                     model.quickLook.close()
+                } else if model.isActionStackOpen {
+                    model.isActionStackOpen = false
                 } else if !model.selection.isEmpty {
                     model.select([])
                 } else {

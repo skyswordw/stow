@@ -60,6 +60,11 @@ struct BrowserView: View {
                     model.quickLook.close()
                     return .handled
                 }
+                // The innermost thing first: a fanned-out Actions stack folds before the selection goes.
+                if model.isActionStackOpen {
+                    model.isActionStackOpen = false
+                    return .handled
+                }
                 guard !model.selection.isEmpty else { return .ignored }
                 model.select([])
                 return .handled

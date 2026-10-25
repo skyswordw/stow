@@ -77,10 +77,13 @@ evidence; its optional-pane composition and mockups are superseded.
 **The Actions stack.** The front button is what the selection is most likely for: **Install** for
 an app, fonts or an installer package, otherwise **Extract**. The other shown steps wait behind it,
 nearest first, and fan out above it, the same width as the front, when the pointer rests on the
-stack or its edges are clicked; leaving folds them back. Pointing only reveals: every action takes
-a click, and the existing install confirmations and signature checks are unchanged. More (⋯) lists
-every action except the front one, so the menu alone reaches all of them by keyboard; ⌘E still
-extracts from the menu bar whichever button is in front.
+stack or its edges are clicked; leaving folds them back, and Esc folds them before it clears the
+selection. Only the strip above the front button opens the stack, so a click or an accessibility
+press aimed at it can never land on the front action. Pointing only reveals: every action takes a
+click, and the existing install confirmations and signature checks are unchanged. More (⋯) lists
+every action except the front one; **File › Actions** lists all of them, front first, so the
+keyboard reaches every action without macOS's keyboard navigation turned on. ⌘E still extracts
+from the menu bar whichever button is in front.
 
 One prominent action at a time: Extract All carries the accent while nothing is selected; once
 Actions is up, the stack's front does and Extract All stays put, unaccented. Archive facts live

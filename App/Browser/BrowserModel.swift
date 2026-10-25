@@ -81,6 +81,8 @@ final class BrowserModel {
     /// Edit › Find… (⌘F) asks the Browser's search field for the keyboard; it counts, so each
     /// press is a new request.
     private(set) var searchFocusRequest = 0
+    /// Whether Actions' stack is fanned out. Esc folds it before it clears the selection.
+    var isActionStackOpen = false
     var showHelperItems = false { didSet { if showHelperItems != oldValue { refresh(); runSearch() } } }
     var isChoosingEncoding = false
     /// A hover preview to show without a pointer (design review: `-StowHover`).

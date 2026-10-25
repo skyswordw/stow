@@ -41,7 +41,9 @@ struct NextStepsBar: View {
             HStack(alignment: .bottom, spacing: Space.s) {
                 NextStepsMoreMenu(model: model, alternatives: layout.more)
                 if let front = layout.front {
-                    ActionStack(front: front, behind: layout.behind, selection: model.selection, glass: glass) { step in
+                    ActionStack(front: front, behind: layout.behind, selection: model.selection,
+                                isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
+                                glass: glass) { step in
                         if step == .quickLook { model.toggleQuickLook() } else { model.run(step) }
                     }
                 }
@@ -59,11 +61,12 @@ private struct ActionStack: View {
     let behind: [NextStep]
     /// A new selection folds the stack again.
     let selection: Set<ArchiveEntry.ID>
+    /// Fanned out: by the pointer resting on it or a click on its edges. The model holds it so the
+    /// window's Esc can fold it first.
+    @Binding var isOpen: Bool
     let glass: Namespace.ID
     let run: (NextStep) -> Void
 
-    /// Opened from its edges or the keyboard; stays open while the pointer is over it.
-    @State private var isOpen = false
     @State private var pointerTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -98,7 +101,10 @@ private struct ActionStack: View {
             return .handled
         }
         .onChange(of: selection) { fold() }
-        .onDisappear { pointerTask?.cancel() }
+        .onDisappear {
+            pointerTask?.cancel()
+            isOpen = false
+        }
         .task {
             guard NextStepsDemo.opensStack else { return }
             try? await Task.sleep(for: .milliseconds(600))
@@ -111,26 +117,37 @@ private struct ActionStack: View {
     @ViewBuilder
     private var edgesView: some View {
         if edges > 0 {
-            Button {
-                setOpen(true)
-            } label: {
-                ZStack(alignment: .bottom) {
-                    ForEach((0..<edges).reversed(), id: \.self) { depth in
-                        StackEdge(depth: depth)
-                            .scaleEffect(1 - 0.07 * CGFloat(depth + 1), anchor: .top)
-                            .offset(y: -CGFloat(depth + 1) * 4.5)
-                    }
+            ZStack(alignment: .bottom) {
+                ForEach((0..<edges).reversed(), id: \.self) { depth in
+                    StackEdge(depth: depth)
+                        .scaleEffect(1 - 0.07 * CGFloat(depth + 1), anchor: .top)
+                        .offset(y: -CGFloat(depth + 1) * 4.5)
                 }
-                // The edges are thin; the button reaches a little higher so they're easy to hit.
-                .padding(.top, Space.s)
-                .contentShape(.rect)
+                // What takes the click: the strip above the front button and nothing of the front
+                // button itself, so a click or an accessibility press aimed at the middle of this
+                // control can never land on the front action instead.
+                VStack(spacing: 0) {
+                    Button {
+                        setOpen(true)
+                    } label: {
+                        Color.clear
+                            .frame(height: Self.edgeStrip)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "Show All Actions"))
+                    .accessibilityHint(String(localized: "Shows the other actions for the selection above this one"))
+                    .help(String(localized: "Show all actions"))
+                    Color.clear
+                        .frame(height: StackButtonStyle.height)
+                        .accessibilityHidden(true)
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "Show All Actions"))
-            .accessibilityHint(String(localized: "Shows the other actions for the selection above this one"))
-            .help(String(localized: "Show all actions"))
         }
     }
+
+    /// The edges show 4–9 pt above the front button; the strip that opens the stack is a little taller.
+    private static let edgeStrip: CGFloat = 14
 
     /// The other actions, nearest the front button at the bottom. They rise out from under it.
     private var choices: some View {
