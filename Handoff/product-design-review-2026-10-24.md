@@ -1,5 +1,11 @@
 # Product design review — Browser, Actions and supporting surfaces
 
+> **Historical audit; composition superseded after the PR #177 review.** Read the
+> [current direction](browser-design-direction-reset.md) and DESIGN.md first. The user
+> identified Codex's structural mockups as misleading the visual work. Optional left/right
+> pane proposals, a mandatory single capsule/filename summary and fidelity to those mockups
+> are retired. Keep the observations and functional evidence below as historical context.
+
 ## Decisions, ownership and evidence
 
 The user authorized a comprehensive audit and implementation briefs for Claude Code, using

@@ -22,7 +22,7 @@ And when packing: **"Will it work on their computer?"**
 | Principle | What it means here |
 | --- | --- |
 | **Native first** | SwiftUI + AppKit, Liquid Glass, SF Symbols, system font, system controls. No web views, no custom chrome that fights the OS. |
-| **Content is the hero** | Glass is the floating control layer; the archive's contents are the solid layer beneath. Never glass on glass. |
+| **Content is the hero** | Keep archive content readable and give navigation, Details and floating actions coherent depth and Liquid Glass treatment. Claude Code owns the surface composition, including purposeful overlapping controls. |
 | **Say it in a sentence** | Options are expressed as a readable sentence ("Pack 12 items as ZIP for Windows PCs"), not a dialog of checkboxes. |
 | **Trust is visible** | Every opened archive gets a safety summary. Risky things are explained in plain words, not error codes. |
 | **Fast hands, no animation** | Keyboard actions and things done 100×/day never animate. Motion is reserved for spatial changes and rare moments. |
@@ -32,7 +32,8 @@ And when packing: **"Will it work on their computer?"**
 
 | Concept | Name in Stow | Notes |
 | --- | --- | --- |
-| Main window | **Browser** | Content workspace with optional folder navigation and preview |
+| Main window | **Browser** | File workspace and a fixed Details pane; no left navigation pane in the current direction |
+| Information pane | **Details** | File preview, identity and properties; archive information when nothing is selected |
 | Compact quick window | **Glance** | Small floating window near the pointer for quick extract |
 | Context actions | **Actions** | Coherent floating action region for the current selection |
 | Drop shelf | **Tray** | Floating panel that collects files from anywhere |
@@ -40,17 +41,27 @@ And when packing: **"Will it work on their computer?"**
 | Compression dialog | **Pack sentence** | Sentence-builder with tappable tokens |
 | Safety report | **Checkup** | Badge on the archive card + detail popover |
 
-**Confirmed direction, 2026-10-24:** the full Browser remains the default; Glance is optional.
-The user chose **Actions** as the English public name and confirmed the **floating Actions**
-direction. They also asked to reduce the bulk of the current three-pane composition, using
-ArcZip's content-first layout as a reference. The proposed structure gives files the main
-surface, with folder navigation and preview available as needed; exact defaults and final
-visual treatment belong to the #160 design brief. Existing builds still say “Next Steps”;
+**Current direction after the user's PR #177 review, 2026-10-24:** the full Browser remains
+the default; Glance is optional. The full Browser has a file workspace and **fixed, visible
+Details**, with no Details collapse toggle. Remove the separate left folder-navigation pane
+from the proposed Browser composition; retain navigation through the files, breadcrumbs,
+history, parent navigation and search. This supersedes the earlier optional-left/optional-right
+pane studies. Claude Code owns the final visual composition and motion.
+
+The user chose **Actions** as the English public name and confirmed floating Actions. The
+bottom action region should contain commands, without repeating the selected filename/size
+summary next to Quick Look; those facts belong in Details. The supplied ArcZip collapsed and
+expanded action-stack crops are the preferred interaction reference to investigate. Neither
+a single enclosing capsule nor fidelity to Codex's earlier mockups is required. See the
+[current direction and evidence](Handoff/browser-design-direction-reset.md).
+
+Existing main builds still say “Next Steps”;
 [issue #161](https://github.com/skyswordw/stow/issues/161) tracks the public-copy and presentation
 transition. “快捷操作” is a proposed Simplified Chinese localization, pending copy review.
 Internal types and stored preference keys may retain their existing names. Preserve explicit
-user preferences. Other layout/material defaults remain proposals in the
-[product design review](Handoff/product-design-review-2026-10-24.md).
+user preferences where compatible with these newer product decisions. The
+[earlier product design review](Handoff/product-design-review-2026-10-24.md) retains historical
+evidence; its optional-pane composition and mockups are superseded.
 
 ## Color
 
@@ -113,7 +124,8 @@ Reduced Transparency: glass falls back to solid window background (the system do
 
 - **Compact archive identity** in the Browser's title/navigation region. Detailed file counts,
   packed → unpacked sizes and compression facts have one home in Archive Info. Keep encryption
-  and Checkup directly discoverable when the optional folder tree and preview are closed.
+  and Checkup directly discoverable. Full Browser Details stays visible; Glance provides the
+  optional compact experience. The exact home of Archive Info remains Claude Code's decision.
 - **Checkup** lists findings in plain words: "2 files would extract outside the folder — they'll be
   kept inside", "1 app inside is not signed".
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for

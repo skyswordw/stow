@@ -32,6 +32,20 @@ against **ArcZip** while retaining Stow's own vocabulary and design language.
 
 This division does not add a user approval gate to already authorized work.
 
+## Design handoffs and review
+
+- Separate confirmed user decisions, observed reference behavior, functional requirements and
+  optional visual ideas. Describe the task and observable outcome behind a requirement.
+- Codex / Grok Bot mockups are exploratory. Fidelity to them is not an acceptance criterion;
+  Claude Code may replace their composition, control grouping and material treatment.
+- Use actual ArcZip interactions and user-supplied references before inventing interaction
+  details. Static screenshots establish appearance/states, not their trigger or timing.
+- Review state, scope, keyboard access and security as functional requirements. Let Claude Code
+  choose their visual expression, and explain any behavior change explicitly.
+- When user feedback supersedes guidance, update the current brief and mark obsolete mockups
+  and PR comments as superseded. Keep one current direction instead of accumulating conflicting
+  instructions. The current Browser decisions live in DESIGN.md and its linked handoff.
+
 ## Build and check
 
 Full details are in [README.md](README.md); CI enforces the last two checks.
