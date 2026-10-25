@@ -528,12 +528,20 @@ final class TrayController {
                 collectProblem = String(localized: "This folder already has an item named “\(name)”.")
                 return
             }
-            try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
-            for url in urls {
-                try FileManager.default.copyItem(at: url, to: destination.appending(path: TrayRules.freeName(url.lastPathComponent, in: destination)))
-            }
+            _ = try TrayCollection.copy(urls, named: name, into: folder)
+        } catch let retained as TrayCollection.RetainedCopies {
+            failure = Failure(String(localized: "Couldn’t collect the files."),
+                              advice: String(localized: "Partial copies remain in “\(retained.folder.path)”. Remove that folder before trying again."),
+                              code: ErrorCode(.copy, .unknown))
+            failure?.diagnostic = String(describing: retained.copyError) + "\nCleanup: " + String(describing: retained.cleanupError)
+            return
+        } catch let recursive as TrayCollection.RecursiveDestination {
+            collectingName = typed
+            collectDestination = folder
+            collectProblem = recursive.localizedDescription
+            return
         } catch {
-            failure = Failure(EngineError(error).message)
+            failure = Failure(error, .copy, name: name, destination: folder)
             return
         }
         // The folder actually used: people may pick another one in the access panel.

@@ -1,6 +1,37 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Choose a destination outside the folders being collected.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择待收集文件夹之外的目标位置。"
+          }
+        }
+      }
+    },
+    "Couldn’t collect the files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能收集文件。"
+          }
+        }
+      }
+    },
+    "Partial copies remain in “%@”. Remove that folder before trying again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分副本仍保留在“%@”中。请移除该文件夹后重试。"
+          }
+        }
+      }
+    }
+,
     "Re-enter Password": {
       "localizations": {
         "zh-Hans": {

@@ -2,6 +2,52 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Collect publishes one complete directory. Failed copies stay private and are removed;
+/// an exclusive rename never replaces a destination created while the inputs were copying.
+nonisolated enum TrayCollection {
+    struct RetainedCopies: Error {
+        let folder: URL
+        let copyError: any Error
+        let cleanupError: any Error
+    }
+
+    struct RecursiveDestination: LocalizedError {
+        var errorDescription: String? {
+            String(localized: "Choose a destination outside the folders being collected.")
+        }
+    }
+
+    static func copy(_ urls: [URL], named name: String, into parent: URL,
+                     fileManager: FileManager = .default) throws -> URL {
+        let resolvedParent = parent.resolvingSymlinksInPath().standardizedFileURL.path
+        for url in urls {
+            let source = url.resolvingSymlinksInPath().standardizedFileURL
+            if (try? source.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true,
+               resolvedParent == source.path || resolvedParent.hasPrefix(source.path + "/") {
+                throw RecursiveDestination()
+            }
+        }
+        let destination = parent.appending(path: name, directoryHint: .isDirectory)
+        let staging = parent.appending(path: ".stow-collect-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: staging, withIntermediateDirectories: false)
+        do {
+            for url in urls {
+                let child = TrayRules.freeName(url.lastPathComponent, in: staging, fileManager: fileManager)
+                try fileManager.copyItem(at: url, to: staging.appending(path: child))
+            }
+            guard renamex_np(staging.path, destination.path, UInt32(RENAME_EXCL)) == 0 else {
+                throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
+            }
+            return destination
+        } catch {
+            let copyError = error
+            do { try fileManager.removeItem(at: staging) }
+            catch { throw RetainedCopies(folder: staging, copyError: copyError, cleanupError: error) }
+            throw copyError
+        }
+    }
+}
+
 /// One thing on the Tray: a real file or folder, or a sample row for design review.
 nonisolated struct TrayItem: Identifiable, Hashable, Sendable {
     let id = UUID()
