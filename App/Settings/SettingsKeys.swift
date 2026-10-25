@@ -19,6 +19,10 @@ nonisolated enum SettingsKeys {
     static let trayPinned = "tray.pinned"
     static let nextStepsShown = "nextSteps.shown"
     static let nextStepsHidden = "nextSteps.hidden"
+    /// Which of the Browser's optional panes were last shown. Window layout, like a split position,
+    /// not a preference: Reset All leaves them (see `BrowserLayout`).
+    static let browserShowsFolders = "browse.showsFolders"
+    static let browserShowsInspector = "browse.showsInspector"
     /// Sparkle reads and writes these itself; Stow only resets them.
     static let updatesAutomaticallyCheck = "SUEnableAutomaticChecks"
     static let updatesAutomaticallyDownload = "SUAutomaticallyUpdate"

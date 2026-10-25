@@ -18,12 +18,15 @@ enum ArchiveLockState: Equatable {
     }
 }
 
-/// The title bar's password entry stays available when the sidebar or inspector is hidden.
+/// The title bar's password entry stays available when the folder list or inspector is hidden.
 ///
 /// While a password is being checked, a spinner takes the lock's place in the same button, so the
 /// target never moves and clicking it again cancels (Handoff › Motion intent).
 struct ArchiveUnlockControl: View {
     let model: BrowserModel
+    /// The Browser's toolbar says what the lock means beside it, so a locked archive reads as one
+    /// without a hover; Glance's compact toolbar keeps the icon alone.
+    var showsTitle = false
 
     var body: some View {
         switch ArchiveLockState(model) {
@@ -32,21 +35,55 @@ struct ArchiveUnlockControl: View {
         case .checking:
             Button { model.cancelUnlocking() } label: {
                 Label {
-                    Text("Cancel Unlocking")
+                    if showsTitle { title(String(localized: "Unlocking…")) } else { Text("Cancel Unlocking") }
                 } icon: {
                     ProgressView().controlSize(.small)
                 }
+                .labelStyle(showsTitle ? AnyLabelStyle(.titleAndIcon) : AnyLabelStyle(.automatic))
             }
+            .accessibilityLabel(String(localized: "Cancel Unlocking"))
             .help("Unlocking — click to cancel")
         case .locked:
-            Button(String(localized: "Unlock Archive…"), systemImage: "lock.fill") { model.unlockArchive() }
-                .help("Enter the archive’s password to preview or extract files")
-                .disabled(model.isListing)
+            Button { model.unlockArchive() } label: {
+                Label {
+                    if showsTitle { title(String(localized: "Enter Password…")) } else { Text("Unlock Archive…") }
+                } icon: {
+                    Image(systemName: "lock.fill")
+                }
+                .labelStyle(showsTitle ? AnyLabelStyle(.titleAndIcon) : AnyLabelStyle(.automatic))
+            }
+            .accessibilityLabel(String(localized: "Unlock Archive…"))
+            .help("Enter the archive’s password to preview or extract files")
+            .disabled(model.isListing)
         case .passwordAvailable:
+            // Quieter once a password has worked: the open lock alone, the words in its help.
             Button(String(localized: "Password Available"), systemImage: "lock.open.fill") { model.unlockArchive() }
                 .help("A password is available for this archive. Individual files may still ask for a different password.")
                 .disabled(model.isListing)
         }
+    }
+
+    /// Locked and checking share one width, so the button doesn't resize while a password is checked.
+    private func title(_ shown: String) -> some View {
+        ZStack(alignment: .leading) {
+            Text("Enter Password…").hidden()
+            Text("Unlocking…").hidden()
+            Text(shown)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Type-erased label style, so one control can switch between styles.
+struct AnyLabelStyle: LabelStyle {
+    private let make: (Configuration) -> AnyView
+
+    init(_ style: some LabelStyle) {
+        make = { AnyView(style.makeBody(configuration: $0)) }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        make(configuration)
     }
 }
 

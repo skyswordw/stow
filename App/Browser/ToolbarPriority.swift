@@ -1,29 +1,19 @@
-import AppKit
+import SwiftUI
 
-/// Which toolbar items give way first when the window is narrow. Extract All is the primary action
-/// and never goes into the overflow menu; the view switcher, Tray, Glance and New Archive (also in the menu
-/// bar) go first. SwiftUI has no priority of its own, so this sets AppKit's on the items it makes,
-/// matched by their labels.
-enum ToolbarPriority {
-    private static var observed: Set<ObjectIdentifier> = []
-    private static let first = String(localized: "Extract All")
-    private static let last = [String(localized: "View"), String(localized: "Tray"), String(localized: "Glance"),
-                                String(localized: "New Archive")]
-
-    static func install(in window: NSWindow) {
-        guard observed.insert(ObjectIdentifier(window)).inserted else { return }
-        // The toolbar arrives after the window, and SwiftUI rebuilds its items (the inspector
-        // toggling, another archive) without AppKit announcing them; a dozen label checks per update
-        // keeps up with all of that.
-        NotificationCenter.default.addObserver(forName: NSWindow.didUpdateNotification, object: window,
-                                               queue: .main) { [weak window] _ in
-            MainActor.assumeIsolated { window?.toolbar?.items.forEach(apply) }
+extension ToolbarContent {
+    /// Which toolbar items give way first when the window is narrow. Extract All, Checkup (with
+    /// the archive's password) and Glance stay out of the overflow menu as long as anything does
+    /// (#159, #160); the view switcher, which the View menu also has (⌘1–3), goes first.
+    ///
+    /// SwiftUI's own priority arrived in macOS 26.1; 26.0 keeps the system's order. (Setting
+    /// AppKit's `visibilityPriority` on the items SwiftUI makes never stuck: SwiftUI resets it on
+    /// every update.)
+    @ToolbarContentBuilder
+    func overflowPriority(keepsVisible: Bool) -> some ToolbarContent {
+        if #available(macOS 26.1, *) {
+            visibilityPriority(keepsVisible ? .high : .low)
+        } else {
+            self
         }
-    }
-
-    static func apply(_ item: NSToolbarItem) {
-        let priority: NSToolbarItem.VisibilityPriority = item.label == first ? .high
-            : last.contains(item.label) ? .low : .standard
-        if item.visibilityPriority != priority, priority != .standard { item.visibilityPriority = priority }
     }
 }

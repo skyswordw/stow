@@ -23,8 +23,9 @@ struct SidebarLayoutTests {
     }
 
     /// SwiftUI reads a split column's minimum size from a zero proposal. Measured at that width the
-    /// archive card wrapped its captions a few characters per line and asked for ~690 pt of height,
-    /// and with these totals the window then looped on Update Constraints until AppKit threw.
+    /// old archive card wrapped its captions a few characters per line and asked for ~690 pt of
+    /// height, and with these totals the window then looped on Update Constraints until AppKit
+    /// threw. The folder list holds single-line rows now (#160); keep it measured small.
     @Test func columnMinimumIsMeasuredAtTheColumnsMinimumWidth() {
         let (archive, overridden) = Self.unluckyTotals()
         #expect(overridden == 3, "The sample should have three fonts to resize; it has \(overridden)")

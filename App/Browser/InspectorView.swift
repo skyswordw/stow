@@ -1,40 +1,68 @@
 import SwiftUI
 
+/// The optional pane beside the files: a preview and the facts for what's selected, or Archive Info
+/// when nothing is. It shows and tells; doing is the Actions bar's job, so no action buttons repeat
+/// here (#160, #161).
 struct InspectorView: View {
     let model: BrowserModel
+    /// The header's ×, the same as the header row's Preview toggle.
+    let close: () -> Void
 
     var body: some View {
         // Search results inside other archives count too, so the inspector matches what's highlighted.
         let selected = model.selectedEntries + model.selection.compactMap { model.nestedHits[$0]?.entry }
+        VStack(spacing: 0) {
+            HStack {
+                Text(selected.isEmpty ? String(localized: "Archive Info") : String(localized: "Preview"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Button(String(localized: "Hide the preview"), systemImage: "xmark", action: close)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.accessoryBar)
+                    .accessibilityLabel(String(localized: "Hide the preview"))
+                    .help(String(localized: "Hide the preview"))
+            }
+            .padding(.leading, Space.l)
+            .padding(.trailing, Space.s)
+            .frame(height: BrowserHeader.height)
+            details(selected)
+        }
+    }
+
+    private func details(_ selected: [ArchiveEntry]) -> some View {
         ScrollView {
             Group {
                 if let hit = model.selectedNestedHit {
-                    NestedDetail(hit: hit, model: model)
+                    NestedDetail(hit: hit)
                 } else {
-                switch selected.count {
-                case 0: ArchiveSummary(archive: model.archive)
-                case 1: EntryDetail(entry: selected[0], model: model)
-                default: MultiDetail(entries: selected, model: model)
-                }
+                    switch selected.count {
+                    case 0: ArchiveInfoView(model: model)
+                    case 1: EntryDetail(entry: selected[0], model: model)
+                    default: MultiDetail(entries: selected, model: model)
+                    }
                 }
             }
-            .padding(Space.l)
+            .padding(.horizontal, Space.l)
+            .padding(.top, Space.xs)
+            .padding(.bottom, Space.l)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
 
-/// A search result inside an inner archive: what and where, and the way there.
+/// A search result inside an inner archive: what it is and where. Actions has the way there.
 private struct NestedDetail: View {
     let hit: NestedHit
-    let model: BrowserModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
             EntryThumbnail(entry: hit.inner, style: .large)
-                .frame(maxWidth: .infinity, minHeight: 120)
+                .frame(maxWidth: .infinity)
             Text(hit.inner.name)
                 .font(.title3.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
                 .lineLimit(3)
             MetadataGrid(rows: [
                 (String(localized: "Size"), hit.inner.size.bytes),
@@ -42,11 +70,6 @@ private struct NestedDetail: View {
                 (String(localized: "Inside"), hit.container.path),
                 (String(localized: "Where"), hit.inner.parent.isEmpty ? String(localized: "Top level") : hit.inner.parent),
             ])
-            Button(String(localized: "Show in Archive"), systemImage: NextStep.openInside.symbol) {
-                model.showNested(hit)
-            }
-            .accessibilityLabel(String(localized: "Show in “\(hit.container.name)”"))
-            .controlSize(.large)
         }
     }
 }
@@ -57,16 +80,16 @@ private struct EntryDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
+            // As tall as what it shows: a few lines of text take a few lines, a photo its own shape,
+            // not a fixed poster with empty space around it.
             Group {
                 if model.archive.source != nil, entry.kind.isPreviewable {
-                    RichPreviewView(entry: entry, model: model)
-                        .frame(height: 200)
+                    RichPreviewView(entry: entry, model: model, fitsContent: true)
                 } else {
                     EntryThumbnail(entry: entry, style: .large)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 140)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name)
@@ -94,16 +117,6 @@ private struct EntryDetail: View {
 
             if entry.kind == .app, model.archive.source != nil {
                 SignatureSection(entry: entry, model: model)
-            }
-
-            let steps = NextStep.suggestions(for: [entry], dropTargets: model.archive.dropTargets).dropLast()
-            if !steps.isEmpty, model.activity == nil {
-                HStack(spacing: Space.s) {
-                    ForEach(Array(steps)) { step in
-                        Button(step.title, systemImage: step.symbol) { model.run(step, on: [entry]) }
-                    }
-                }
-                .controlSize(.large)
             }
         }
     }
@@ -184,7 +197,7 @@ private struct MultiDetail: View {
                             LiveThumbnail(entry: entry, model: model, side: 150).padding(Space.s)
                         }
                     }
-                        .frame(width: 150, height: 112)
+                        .frame(width: 128, height: 96)
                         .background(Color(nsColor: .textBackgroundColor))
                         .clipShape(.rect(cornerRadius: Radius.card))
                         .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
@@ -192,7 +205,8 @@ private struct MultiDetail: View {
                         .offset(x: CGFloat(index) * 10 - 10)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 160)
+            .frame(maxWidth: .infinity, minHeight: 136)
+            .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(entries.count) items")
@@ -201,48 +215,6 @@ private struct MultiDetail: View {
                 Text(entries.reduce(Int64(0)) { $0 + $1.size }.bytes)
                     .foregroundStyle(.secondary)
                     .liveNumber()
-            }
-        }
-    }
-}
-
-private struct ArchiveSummary: View {
-    let archive: Archive
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Space.l) {
-            HStack(spacing: Space.m) {
-                FormatBadge(format: archive.format)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(archive.name).font(.headline).accessibilityAddTraits(.isHeader)
-                    Text("\(archive.format.displayName) archive").foregroundStyle(.secondary)
-                }
-            }
-
-            MetadataGrid(rows: [
-                (String(localized: "Files"), archive.files.count.formatted()),
-                (String(localized: "Unpacked"), archive.totalSize.bytes),
-                (String(localized: "Packed"), archive.packedSize.map { $0.bytes } ?? String(localized: "Unavailable")),
-                (String(localized: "Encryption"), archive.isEncrypted ? String(localized: "Encrypted") : String(localized: "None")),
-            ])
-
-            VStack(alignment: .leading, spacing: Space.m) {
-                SectionLabel(String(localized: "Checkup"))
-                ForEach(archive.checkup) { finding in
-                    HStack(alignment: .firstTextBaseline, spacing: Space.s) {
-                        Image(systemName: finding.severity.symbol)
-                        .accessibilityHidden(true)
-                            .foregroundStyle(finding.severity.color)
-                            .frame(width: 16)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(finding.title).font(.callout.weight(.medium))
-                            Text(finding.detail)
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
             }
         }
     }

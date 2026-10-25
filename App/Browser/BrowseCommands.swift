@@ -57,6 +57,13 @@ struct BrowseCommands: Commands {
             Button("Replace…") { if let browser, let entry = browser.selectedEntries.first { browser.chooseReplacement(entry) } }
                 .disabled(browser?.selection.count != 1 || browser?.selectedEntries.first?.isFolder != false || browser?.editSession.isSaving == true)
         }
+        CommandGroup(after: .textEditing) {
+            // The Browser's search lives in the toolbar, where a narrow window folds it into a
+            // button; ⌘F reaches it either way. Glance has no search of its own.
+            Button("Find…") { browser?.focusSearch() }
+                .keyboardShortcut("f")
+                .disabled(browser == nil || app.glance.isShown)
+        }
         CommandGroup(before: .toolbar) {
             Button("as Icons") { browser?.viewMode = .grid }
                 .keyboardShortcut("1")

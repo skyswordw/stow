@@ -188,13 +188,17 @@ private struct PreviewColumn: View {
     }
 }
 
-// MARK: - Path bar
+// MARK: - Breadcrumbs
 
 /// Where you are, archive by archive and folder by folder; every part is a place to go back to.
-struct PathBar: View {
+/// Sits in the Browser's header row, after Back, Forward and Up; a deep path scrolls, keeping
+/// the current folder in view.
+struct Breadcrumbs: View {
     @Environment(\.colorSchemeContrast) private var contrast
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let model: BrowserModel
+    /// Whether the trail is wider than its room; its cut-off start then fades instead of clipping a word.
+    @State private var overflows = false
 
     static let height: CGFloat = 28
 
@@ -217,8 +221,9 @@ struct PathBar: View {
                             Image(systemName: segment.isArchive ? "archivebox.fill" : "folder.fill")
                                 .foregroundStyle(segment.isArchive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                         }
-                        .font(.caption)
+                        .font(.callout)
                         .fontWeight(index == segments.count - 1 ? .semibold : .regular)
+                        .foregroundStyle(index == segments.count - 1 ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 3)
                         .contentShape(.rect)
@@ -227,14 +232,20 @@ struct PathBar: View {
                     .help(segment.isArchive ? String(localized: "Go to the top of “\(segment.title)”") : String(localized: "Go to “\(segment.title)”"))
                 }
             }
-            .padding(.horizontal, Space.m)
             .frame(height: Self.height)
         }
         .scrollIndicators(.never)
         .defaultScrollAnchor(.leading, for: .alignment)
         .defaultScrollAnchor(.trailing, for: .initialOffset)
-        .accessibleBar()
-        .overlay(alignment: .top) { Divider() }
+        .onScrollGeometryChange(for: Bool.self) { $0.contentSize.width > $0.containerSize.width + 1 } action: { overflows = $1 }
+        .mask {
+            if overflows {
+                LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12)],
+                               startPoint: .leading, endPoint: .trailing)
+            } else {
+                Color.black
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Path")
     }

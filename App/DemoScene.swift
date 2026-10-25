@@ -41,6 +41,7 @@ import SwiftUI
 /// `-StowViewMode grid|list|columns` switches the view; `-StowScrollToEnd YES` scrolls to the last item.
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
+/// `-StowLogLayout YES` also prints who has the keyboard and which toolbar items are showing.
 enum DemoScene {
     static func apply(to app: AppState) {
         let defaults = UserDefaults.standard
@@ -82,7 +83,7 @@ enum DemoScene {
             let scan = Checkup.FormatScan(name: sample.name, real: .sevenZip, realType: "7z", tailSize: 2_048)
             app.browser = BrowserModel(archive: Archive(name: sample.name, format: .sevenZip, files: sample.files,
                                                         checkup: scan.findings + sample.checkup.filter { $0.severity == .info }))
-            ArchiveCard.opensCheckupForDemo = true
+            CheckupToolbarButton.opensForDemo = true
         case "readonly":
             BrowseDemo.readOnly(in: app)
         case "next-steps", "next-steps-more":
@@ -466,6 +467,13 @@ enum DemoScene {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
                     let name = index == 0 ? "\(label)-\(kind)" : "\(label)-\(kind)\(index)"
                     if let url = snapshot(window, name: name) { print(url.path) }
+                }
+                if defaults.bool(forKey: "StowLogLayout") {
+                    // Who has the keyboard, and which toolbar items made it out of the overflow menu.
+                    print("focus:", NSApp.keyWindow?.firstResponder.map { String(describing: type(of: $0)) } ?? "none")
+                    if let toolbar = NSApp.windows.compactMap(\.toolbar).first {
+                        print("toolbar:", toolbar.visibleItems?.map(\.label).filter { !$0.isEmpty } ?? [])
+                    }
                 }
                 if scene == "glance", let url = glancePlacement(app, name: "\(label)-screen") { print(url.path) }
                 if scene == "next-steps-more", let url = NextStepsDemo.captureWithMenu(name: "\(label)-menu") { print(url.path) }

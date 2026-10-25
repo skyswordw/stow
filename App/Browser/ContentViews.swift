@@ -264,6 +264,10 @@ extension View {
 struct ContentList: View {
     @Bindable var model: BrowserModel
     @State private var hover = HoverPreviewModel()
+    /// Takes the keyboard when it appears, as the grid does. Without it nothing held focus in List,
+    /// and with the folder list open AppKit gave the window's first focus to the toolbar's search
+    /// field instead (#160; see #172).
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         ScrollViewReader { scroller in
@@ -326,6 +330,8 @@ struct ContentList: View {
                 }
             }
             .alternatingRowBackgrounds(.disabled)
+            .focused($isFocused)
+            .onAppear { isFocused = true }
             .collapsesSelectionOnClick(model)
             .quickLookKeys(model)
             .onChange(of: model.selection) { model.selectionDidChange() }

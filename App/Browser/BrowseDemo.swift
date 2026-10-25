@@ -6,7 +6,8 @@ import Quartz
 ///
 ///     -StowNested "Showcase/Nested/Earlier Rounds.7z"   open archives inside, `|`-separated chain
 ///     -StowFolder Showcase/Photos   -StowView grid|list|columns   -StowHelpers YES
-///     -StowSelect "Mac-Blue.jpg|Sonoma.jpg"   (names in the folder)   -StowQuery "tide"
+///     -StowSelect "Mac-Blue.jpg|Sonoma.jpg"   (names in the folder)   -StowQuery "tide"   -StowFind YES (⌘F)
+///     -browse.showsFolders YES   -browse.showsInspector NO   (which optional panes are open)
 ///     -StowQuickLook YES   -StowHover "README.md"   -StowMove down   -StowEncodingSheet YES
 ///
 /// Pair with `-StowSnapshotDelay 5` so thumbnails and previews arrive before the picture.
@@ -93,6 +94,7 @@ enum BrowseDemo {
                 }
             }
             if let query = defaults.string(forKey: "StowQuery") { model.query = query }
+            if defaults.bool(forKey: "StowFind") { model.focusSearch() }
             try? await Task.sleep(for: .milliseconds(400))
             if let move = defaults.string(forKey: "StowMove") {
                 let direction: BrowserModel.Direction = switch move {
