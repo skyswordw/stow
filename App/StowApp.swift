@@ -390,7 +390,9 @@ struct RootView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
-            guard let window = notification.object as? NSWindow, window === rootWindow else { return }
+            guard let window = notification.object as? NSWindow, window === rootWindow,
+                  WindowSwitch.ownsOpening(.browser, hasArchive: app.browser != nil,
+                                           glanceIsShown: app.glance.isShown) else { return }
             app.cancelOpening()
         }
         .modifier(AppRoot(host: .browser))
@@ -482,6 +484,16 @@ struct AppRoot: ViewModifier {
 /// How the welcome comes up after a switch; the Browser's own opening is Glance's (`prepareMainWindow`).
 @MainActor enum WindowSwitch {
     static var animation = NSWindow.AnimationBehavior.default
+
+    /// Automatic handover closes the former host after a replacement load has already begun.
+    /// Only the currently responsible presentation may interpret a close as cancellation.
+    static func ownsOpening(_ host: AppRoot.Host, hasArchive: Bool, glanceIsShown: Bool) -> Bool {
+        guard !glanceIsShown else { return false }
+        switch host {
+        case .welcome: return !hasArchive
+        case .browser: return hasArchive
+        }
+    }
 }
 
 /// The pack capsule while packing: under the welcome, or over the Browser above its Next Steps.

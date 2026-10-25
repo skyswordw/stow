@@ -23,7 +23,8 @@ struct WelcomeWindow: View {
             // Glance isn't this window's to cancel.
             .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
                 guard let closing = notification.object as? NSWindow, closing === window,
-                      app.browser == nil, !app.glance.isShown else { return }
+                      WindowSwitch.ownsOpening(.welcome, hasArchive: app.browser != nil,
+                                               glanceIsShown: app.glance.isShown) else { return }
                 app.cancelOpening()
             }
             .modifier(AppRoot(host: .welcome))
