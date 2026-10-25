@@ -326,6 +326,7 @@ struct ContentList: View {
                 }
             }
             .alternatingRowBackgrounds(.disabled)
+            .collapsesSelectionOnClick(model)
             .quickLookKeys(model)
             .onChange(of: model.selection) { model.selectionDidChange() }
             .onChange(of: model.demoHover, initial: true) { if let id = model.demoHover { hover.present(id) } }
@@ -336,6 +337,104 @@ struct ContentList: View {
             }
         }
     }
+}
+
+extension View {
+    /// A plain click on one row of a multi-selection selects just that row, as in the grid (#169).
+    /// Applied to a `Table` of `model.visibleEntries`.
+    func collapsesSelectionOnClick(_ model: BrowserModel) -> some View {
+        background(TableClickSelection(model: model))
+    }
+}
+
+/// SwiftUI's `Table` (macOS 27) loses this click: AppKit selects the row once the double-click
+/// interval has passed, and SwiftUI writes an empty selection to the binding instead of that row.
+/// Selecting the row through the model on mouse-up leaves AppKit's late change nothing to do.
+/// Sits behind the table, so its frame says which clicks are the table's. Remove once #169's
+/// steps keep the row without it.
+private struct TableClickSelection: NSViewRepresentable {
+    let model: BrowserModel
+
+    func makeNSView(context: Context) -> Watcher { Watcher(model: model) }
+    func updateNSView(_ watcher: Watcher, context: Context) { watcher.model = model }
+
+    final class Watcher: NSView {
+        var model: BrowserModel
+        private var monitor: Any?
+        /// The selected row a plain press landed on, while it can still become a click.
+        private var press: (row: Int, point: NSPoint)?
+
+        init(model: BrowserModel) {
+            self.model = model
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] event in
+                // Local monitors run on the main thread, inside event dispatch.
+                let box = TableEventBox(event: event)
+                MainActor.assumeIsolated { self?.handle(box.event) }
+                return event
+            }
+        }
+
+        isolated deinit {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+        }
+
+        private func handle(_ event: NSEvent) {
+            guard let window, event.window === window else { return }
+            guard event.type == .leftMouseDown else {
+                guard let press else { return }
+                self.press = nil
+                // A drag (out of the window or across rows) isn't a click.
+                let moved = hypot(event.locationInWindow.x - press.point.x, event.locationInWindow.y - press.point.y)
+                let entries = model.visibleEntries
+                guard moved <= 4, press.row < entries.count else { return }
+                let id = entries[press.row].id
+                // Once the table is done with this mouse-up.
+                DispatchQueue.main.async { [model] in
+                    guard model.renamingPath == nil, model.selection.count > 1, model.selection.contains(id) else { return }
+                    model.select([id])
+                }
+                return
+            }
+            press = nil
+            let entries = model.visibleEntries
+            guard event.clickCount == 1,
+                  event.modifierFlags.isDisjoint(with: [.command, .shift, .option, .control]),
+                  model.renamingPath == nil, model.selection.count > 1,
+                  bounds.contains(convert(event.locationInWindow, from: nil)),
+                  let table = table(at: event.locationInWindow, in: window),
+                  // The rows are `visibleEntries`, in order, and the table shows the model's selection.
+                  table.numberOfRows == entries.count,
+                  table.selectedRowIndexes.count == model.selection.count,
+                  table.selectedRowIndexes.allSatisfy({ model.selection.contains(entries[$0].id) }) else { return }
+            let row = table.row(at: table.convert(event.locationInWindow, from: nil))
+            guard row >= 0, table.selectedRowIndexes.contains(row) else { return }
+            press = (row, event.locationInWindow)
+        }
+
+        private func table(at point: NSPoint, in window: NSWindow) -> NSTableView? {
+            // The frame view has no superview, so window coordinates are its hit-test coordinates.
+            var view = (window.contentView?.superview ?? window.contentView)?.hitTest(point)
+            while let current = view, !(current is NSTableView) { view = current.superview }
+            return view as? NSTableView
+        }
+    }
+}
+
+/// Events never leave the main thread here; the box only gets them through `assumeIsolated`.
+private struct TableEventBox: @unchecked Sendable {
+    let event: NSEvent
 }
 
 struct EntryMenu: View {
