@@ -48,18 +48,12 @@ private struct RenameField: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSTextField {
-        let field = NSTextField(string: text)
+        let field = RenameTextField(string: text)
         field.delegate = context.coordinator
         field.isBezeled = true
         field.bezelStyle = .roundedBezel
         field.focusRingType = .default
         field.setAccessibilityLabel(String(localized: "Rename"))
-        DispatchQueue.main.async { [weak field] in
-            guard let field, let window = field.window else { return }
-            window.makeFirstResponder(field)
-            let stem = (field.stringValue as NSString).deletingPathExtension
-            field.currentEditor()?.selectedRange = NSRange(location: 0, length: (stem as NSString).length)
-        }
         return field
     }
     func updateNSView(_ field: NSTextField, context: Context) { context.coordinator.parent = self }
@@ -73,6 +67,24 @@ private struct RenameField: NSViewRepresentable {
             if selector == #selector(NSResponder.insertNewline(_:)) { parent.commit(); return true }
             if selector == #selector(NSResponder.cancelOperation(_:)) { parent.cancel(); return true }
             return false
+        }
+    }
+}
+
+/// Table cells can be created before they join a window. Request focus after attachment,
+/// rather than losing the only request while SwiftUI is still building a detached cell.
+private final class RenameTextField: NSTextField {
+    private var tookInitialFocus = false
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil, !tookInitialFocus else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !tookInitialFocus, let window,
+                  window.makeFirstResponder(self), let editor = currentEditor() else { return }
+            tookInitialFocus = true
+            let stem = (stringValue as NSString).deletingPathExtension
+            editor.selectedRange = NSRange(location: 0, length: (stem as NSString).length)
         }
     }
 }
@@ -286,6 +298,20 @@ private struct ArchiveDrop: ViewModifier {
 }
 
 extension View {
+    /// Only the active archive presentation owns editing notices. A retained hidden full
+    /// window must neither present nor clear a compact window's validation or save failure.
+    func editingNotice(_ model: BrowserModel, isActive: Bool, repack: @escaping () -> Void) -> some View {
+        sheet(item: Binding(
+            get: { isActive ? model.editSession.notice : nil },
+            set: { if isActive { model.editSession.notice = $0 } }
+        )) { notice in
+            PromptView(prompt: notice.prompt) { answer in
+                model.editSession.notice = nil
+                if notice.wantsRepack(answer) { repack() }
+            }
+        }
+    }
+
     func archiveDrop(model: BrowserModel, folder: String) -> some View { modifier(ArchiveDrop(model: model, folder: folder)) }
 }
 
