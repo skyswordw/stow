@@ -6,7 +6,7 @@ recipient's computer. *Stow* is a working name.
 **Website:** https://skyswordw.github.io/stow/ · **Roadmap:** [ROADMAP.md](ROADMAP.md) · **Feature parity:** [PARITY.md](PARITY.md)
 
 **Status:** prototype. Real archives open, browse, preview and extract through a sandboxed 7-Zip
-engine; packing creates real archives; the install Next Steps (apps, fonts, installer packages) and
+engine; packing creates real archives; the install Actions (apps, fonts, installer packages) and
 Finder integration (Quick Look, context menu, Services, file types) are real. "Try the Sample", the
 Recent list and most design-review scenes still use fictional sample data.
 
@@ -144,7 +144,7 @@ Stow stays sandboxed (user-selected files only) and asks for the narrowest acces
 extension and Tray (⌥⌘T). Skip or Get Started finishes it; Help › Welcome to Stow reopens it.
 Resetting preferences keeps first-run completion remembered.
 
-Stow has a Settings window (⌘,) with General, Extraction, Installing, Packing, Next Steps, Previews,
+Stow has a Settings window (⌘,) with General, Extraction, Installing, Packing, Actions, Previews,
 Passwords, File Types, Integration, Advanced and Licenses panes. Glance and Tray controls live
 in General. The host lives in `App/Settings` and reuses the extraction and
 installing forms in `App/Options`. Advanced can clean preview caches and reset preferences.
@@ -187,7 +187,7 @@ start Sparkle, so they never touch the network or show an update prompt.
 | --- | --- |
 | `DESIGN.md` | Design language: principles, vocabulary, color, type, motion values |
 | `PARITY.md` | Feature-by-feature comparison with ArcZip 1.1.1 and what is left to build |
-| `App/Model` | Value types: archive listing, Checkup findings, Next Steps, packing rules |
+| `App/Model` | Value types: archive listing, Checkup findings, Actions (`NextStep`), packing rules |
 | `App/Engine` | Engine client (XPC), staged extraction, conflict-aware placement, destination picker |
 | `App/Install` | App/font/package installers, folder grants, prompts, archive aftercare |
 | `App/Batch` | Batch extraction queue and its progress stack |
@@ -196,7 +196,7 @@ start Sparkle, so they never touch the network or show an update prompt.
 | `Engine` | `StowEngine.xpc`: sandboxed service that drives `7zz` |
 | `Shared` | Compiled into both: XPC contract, 7-Zip driver and parser, path containment |
 | `App/Design` | Tokens (space, radius, motion), flow layout, thumbnails |
-| `App/Browser` | Main window: sidebar + archive card, grid/list, inspector, Next Steps capsule, hover preview |
+| `App/Browser` | Main window: title menu and Checkup, header row (folders, navigation, search, preview), grid/list/columns, optional folder list and preview, Archive Info, Actions capsule, bottom row, hover preview |
 | `App/Pack` | The Pack sentence and its compatibility report |
 | `App/Tray` | Floating drop shelf |
 | `App/Integration` | Finder/Services actions, folder grants, File Types, login item, Dock, repair |

@@ -39,7 +39,7 @@ And when packing: **"Will it work on their computer?"**
 | Drop shelf | **Tray** | Floating panel that collects files from anywhere |
 | Purpose presets | **"For…" destinations** | Windows PCs · Macs · Linux & servers · Web upload |
 | Compression dialog | **Pack sentence** | Sentence-builder with tappable tokens |
-| Safety report | **Checkup** | Badge on the archive card + detail popover |
+| Safety report | **Checkup** | Shield button in the title bar; findings in Archive Info |
 
 **Current direction after the user's PR #177 review, 2026-10-24:** the full Browser remains
 the default; Glance is optional. The full Browser has a file workspace and **fixed, visible
@@ -62,6 +62,23 @@ Internal types and stored preference keys may retain their existing names. Prese
 user preferences where compatible with these newer product decisions. The
 [earlier product design review](Handoff/product-design-review-2026-10-24.md) retains historical
 evidence; its optional-pane composition and mockups are superseded.
+
+## Browser layout (#160, #161)
+
+| Region | Holds |
+| --- | --- |
+| Title bar | The archive's name with a ⌄ menu (Archive Info, Show in Finder, Rename, Close), “ZIP archive · 17 files” under it; view mode; **Checkup** shield (and the password lock when encrypted) at the trailing edge |
+| Header row, above the files | **Folders** toggle · Back / Forward / Up · breadcrumbs · Search · **Preview** toggle |
+| Files | The main surface: grid, list or columns, full width when both panes are closed |
+| Folders (optional, left) | Navigation only: the archive's top level and its folders; reveals the current folder |
+| Preview (optional, right) | “Preview ×” header; a content-sized preview and facts for the selection, or **Archive Info** when nothing is selected. No action buttons |
+| Actions (floating) | One glass capsule over the files: “Actions” above the selection's name and size, then suggestions, ⋯ More and the amber primary |
+| Bottom row | **Glance** · “1 of 5 selected” / “5 items” · **Extract All** |
+
+One prominent extraction at a time: Extract All carries the accent while nothing is selected;
+once Actions is up, its Extract does and Extract All stays put, unaccented. Both panes start as
+they were last left (folders closed, preview open on first run). Archive facts live in one place,
+Archive Info, reached from the empty Preview pane, the Checkup button and the title menu.
 
 ## Color
 
@@ -104,7 +121,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Actions content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
 | Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
-| Capsules or the inspector shown/hidden by a key (arrows, ⌘A, Esc, ⌥⌘I) | **None** | — |
+| Capsules, the folder list or the preview shown/hidden by a key (arrows, ⌘A, Esc, ⌃⌘S, ⌥⌘I) | **None** | — |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
 | Tray rows a drop (or Add Files…) brought in, new or already there | Accent ring and faint tint **at once**; fade out after 1.2 s; scrolled into view if below the fold (no scroll animation under Reduce Motion) | fade `Motion.status` 200 ms |
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |

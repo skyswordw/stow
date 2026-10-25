@@ -71,7 +71,7 @@ Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 
 | Quick Look extension for archives in Finder | ✅ | ➕ all 34 types, not just zip/7z/tar; one-line Checkup, encryption, sizes; 3 s timeout with fallbacks; Open in Stow. .tar.xz/.tar.gz show the inner .tar until tarballs are unwrapped |
 | Encrypted entries: preview after unlock | ✅ | The Browser and Glance expose a lock/password action, including with the inspector hidden. Explicit unlock verifies encrypted file data; Space Quick Look and Open can ask and retry directly. Hover never prompts. Previews refresh after a password changes; passwords are shared with extraction and nested levels, with optional Keychain storage |
 | Extract to temp & open with default app | ✅ | Open / double-click / ⌘↓. Files land read-only in a per-window cache (512 MB, least recently used first, keyed by archive identity + entry path + date), removed on close and quit, swept at launch |
-| Drag out to Finder | ✅ | `NSFilePromiseProvider` per item; extracted only when dropped, through the usual staging and no-clobber placement, progress in Next Steps |
+| Drag out to Finder | ✅ | `NSFilePromiseProvider` per item; extracted only when dropped, through the usual staging and no-clobber placement, progress in Actions |
 
 ## 3. Extraction
 
@@ -107,7 +107,7 @@ Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.
-Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
+Progress and result appear in an Actions-style capsule (Stop, Show in Finder).
 
 ## 5. Editing existing archives
 
@@ -120,7 +120,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Keep browsing position after save | 🧪 | Folder, selection and history; pending macOS verification |
 | Read-only formats; extract and repack as ZIP / 7Z | 🧪 | RAR, compressed TAR, split and nested archives; pending macOS verification |
 
-## 6. Next Steps (ArcZip “Flow”)
+## 6. Actions (ArcZip “Flow”)
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
@@ -131,13 +131,13 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Install fonts (OTF/TTF/TTC) to user library, replace existing | ✅ native scratch Replace / Skip · 🧪 global activation | Valid TTF bytes and unsupported WOFF2 reporting passed; real user font library remained untouched |
 | PKG: prepare safely, hand off to Installer | ✅ native current-user-only original fixture | Apple Installer completed the no-script text package; exact payload and handoff cleanup checked; vendor/admin/signed release matrix remains in #38 |
 | After install: keep/trash archive, close window | ✅ | |
-| Alternative actions list; customise which actions show; restore suggestions | ✅ More menu (⋯) on Next Steps; Settings › Next Steps | every step that applies is in More with the menu bar's icons and keys, hidden ones included; show or hide each step, or Next Steps itself; Restore Defaults ➕ Pack… for a selection (off by default) |
+| Alternative actions list; customise which actions show; restore suggestions | ✅ More menu (⋯) on Actions; Settings › Actions | every step that applies is in More with the menu bar's icons and keys, hidden ones included; show or hide each step, or Actions itself; Restore Defaults ➕ Pack… for a selection (off by default) |
 
 ## 7. Compact window (ArcZip “Mini”) → **Glance**
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Opens near the pointer, compact browse/extract | ✅ | clamped to the visible screen; name + size list, Next Steps, Extract All |
+| Opens near the pointer, compact browse/extract | ✅ | clamped to the visible screen; name + size list, Actions, Extract All |
 | Pin on top | ✅ | remembered |
 | Switch Glance ↔ full window keeping location, selection, history | ✅ | one shared browser; ⌥⌘G |
 | Default to Glance when opening from Finder/Quick Look | ✅ | Settings › General |
@@ -168,7 +168,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | General: appearance (light/dark/auto), default view, CPU cores | 🧪 pending verification | |
-| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Next Steps panes; Glance and Tray controls live in General |
+| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Actions panes; Glance and Tray controls live in General |
 | Password field: show by default (for CJK input) | 🧪 pending verification | |
 | Advanced: temp-file usage & cleanup, reset all preferences | 🧪 pending verification | |
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |
