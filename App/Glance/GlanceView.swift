@@ -126,6 +126,7 @@ struct GlanceRoot: View {
 /// controls in the window's toolbar on the glass.
 struct GlanceView: View {
     @Bindable var model: BrowserModel
+    @Environment(AppState.self) private var app
     @State private var editingDelegate = EditingWindowDelegate()
     let glance: GlanceController
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
@@ -136,11 +137,17 @@ struct GlanceView: View {
             // Keeps the solid card apart from the glass when both are dark.
             .overlay { RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.separator.opacity(0.6)) }
             .overlay(alignment: .bottom) { nextSteps }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
+                else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
+            }
             .padding([.horizontal, .bottom], Space.s)
             .navigationTitle(model.title)
             .toolbar { toolbar }
             .onKeyPress(.escape) {
-                if model.quickLook.isActive {
+                if model.renamingPath != nil {
+                    model.renamingPath = nil
+                } else if model.quickLook.isActive {
                     model.quickLook.close()
                 } else if !model.selection.isEmpty {
                     model.select([])
@@ -151,6 +158,10 @@ struct GlanceView: View {
             }
             .onChange(of: model.selection) { model.quickLook.selectionChanged() }
             .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
+            .editingNotice(model, isActive: glance.isShown) {
+                glance.expand()
+                app.extractAndRepack(model)
+            }
             .background {
                 WindowReader { window in
                     editingDelegate.attach(window, model: model)
@@ -223,14 +234,14 @@ private struct GlanceList: View {
 
     var body: some View {
         ScrollViewReader { scroller in
-            Table(model.visibleEntries, selection: $model.selection) {
+            Table(model.visibleEntries, selection: model.tableSelection) {
                 TableColumn(String(localized: "Name")) { entry in
                     HStack(spacing: Space.s) {
                         RowIcon(entry: entry, model: model)
                             .accessibilityHidden(true)
                             .frame(width: 18, height: 18)
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(entry.name).lineLimit(1).truncationMode(.middle)
+                            EditingName(model: model, entry: entry).lineLimit(1)
                             if model.isSearching {
                                 Text(entry.parent.isEmpty ? String(localized: "Top level") : entry.parent)
                                     .font(.caption)
@@ -242,7 +253,7 @@ private struct GlanceList: View {
                     }
                     .opacity(entry.isHelper ? 0.55 : 1)
                     .contentShape(.rect)
-                    .archiveEntryAccessibility(entry: entry) {
+                    .archiveEntryAccessibility(entry: entry, isRenaming: model.renamingPath == entry.path) {
                         model.select([entry.id])
                         model.open(entry)
                     }

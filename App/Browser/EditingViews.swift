@@ -286,6 +286,20 @@ private struct ArchiveDrop: ViewModifier {
 }
 
 extension View {
+    /// Only the active archive presentation owns editing notices. A retained hidden full
+    /// window must neither present nor clear a compact window's validation or save failure.
+    func editingNotice(_ model: BrowserModel, isActive: Bool, repack: @escaping () -> Void) -> some View {
+        sheet(item: Binding(
+            get: { isActive ? model.editSession.notice : nil },
+            set: { if isActive { model.editSession.notice = $0 } }
+        )) { notice in
+            PromptView(prompt: notice.prompt) { answer in
+                model.editSession.notice = nil
+                if notice.wantsRepack(answer) { repack() }
+            }
+        }
+    }
+
     func archiveDrop(model: BrowserModel, folder: String) -> some View { modifier(ArchiveDrop(model: model, folder: folder)) }
 }
 

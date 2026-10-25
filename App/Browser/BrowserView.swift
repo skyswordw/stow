@@ -79,6 +79,10 @@ struct BrowserView: View {
         }
         .toolbar { toolbar }
         .onKeyPress(.escape) {
+            if model.renamingPath != nil {
+                model.renamingPath = nil
+                return .handled
+            }
             if model.quickLook.isActive {
                 model.quickLook.close()
                 return .handled
@@ -89,12 +93,7 @@ struct BrowserView: View {
         }
         .onChange(of: model.selection) { model.quickLook.selectionChanged() }
         .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
-        .sheet(item: Binding(get: { model.editSession.notice }, set: { model.editSession.notice = $0 })) { notice in
-            PromptView(prompt: notice.prompt) { answer in
-                model.editSession.notice = nil
-                if notice.wantsRepack(answer) { app.extractAndRepack(model) }
-            }
-        }
+        .editingNotice(model, isActive: !app.glance.isShown) { app.extractAndRepack(model) }
         .background {
             WindowReader { window in
                 editingDelegate.attach(window, model: model)
