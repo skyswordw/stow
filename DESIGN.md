@@ -68,17 +68,26 @@ evidence; its optional-pane composition and mockups are superseded.
 | Region | Holds |
 | --- | --- |
 | Title bar | The archive's name with a ⌄ menu (Archive Info, Show in Finder, Rename, Close), “ZIP archive · 17 files” under it; view mode; **Checkup** shield (and the password lock when encrypted) at the trailing edge |
-| Header row, above the files | **Folders** toggle · Back / Forward / Up · breadcrumbs · Search · **Preview** toggle |
-| Files | The main surface: grid, list or columns, full width when both panes are closed |
-| Folders (optional, left) | Navigation only: the archive's top level and its folders; reveals the current folder |
-| Preview (optional, right) | “Preview ×” header; a content-sized preview and facts for the selection, or **Archive Info** when nothing is selected. No action buttons |
-| Actions (floating) | One glass capsule over the files: “Actions” above the selection's name and size, then suggestions, ⋯ More and the amber primary |
-| Bottom row | **Glance** · “1 of 5 selected” / “5 items” · **Extract All** |
+| Navigation, floating over the files | One glass capsule: Back · Forward · Up │ the path (a short path takes only its width; a deep one scrolls and fades at its start). **Search** in its own glass capsule on the trailing side |
+| Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
+| Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
+| Archive controls, floating bottom leading | One glass capsule: **Glance** · **Extract All** |
+| Actions, floating bottom trailing | ⋯ More, then the **stack**: the front action in the accent with the edges of the others showing behind it. No name or size: Details says what's selected |
 
-One prominent extraction at a time: Extract All carries the accent while nothing is selected;
-once Actions is up, its Extract does and Extract All stays put, unaccented. Both panes start as
-they were last left (folders closed, preview open on first run). Archive facts live in one place,
-Archive Info, reached from the empty Preview pane, the Checkup button and the title menu.
+**The Actions stack.** The front button is what the selection is most likely for: **Install** for
+an app, fonts or an installer package, otherwise **Extract**. The other shown steps wait behind it,
+nearest first, and fan out above it, the same width as the front, when the pointer rests on the
+stack or its edges are clicked; leaving folds them back. Pointing only reveals: every action takes
+a click, and the existing install confirmations and signature checks are unchanged. More (⋯) lists
+every action except the front one, so the menu alone reaches all of them by keyboard; ⌘E still
+extracts from the menu bar whichever button is in front.
+
+One prominent action at a time: Extract All carries the accent while nothing is selected; once
+Actions is up, the stack's front does and Extract All stays put, unaccented. Archive facts live
+in one place, Archive Info, reached from Details with nothing selected, the Checkup button and
+the title menu. Everything floating shares one family: glass capsules, buttons concentric inside
+them (button radius + inset = capsule radius), 36–38 pt tall. Details is a solid reading surface
+with the same light rim, brighter along its top edge.
 
 ## Color
 
@@ -121,7 +130,8 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Actions content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
 | Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
-| Capsules, the folder list or the preview shown/hidden by a key (arrows, ⌘A, Esc, ⌃⌘S, ⌥⌘I) | **None** | — |
+| Actions shown/hidden or its stack opened/closed by a key (arrows, ⌘A, Esc) | **None** | — |
+| Actions stack fans out (pointer rests 140 ms on it, or its edges clicked) | Spring: each action rises from behind the front button, scale 0.9 → 1 + opacity; folds back with an ease-out 280 ms after the pointer leaves. Choosing an action or a new selection folds it at once, unanimated. Fade only under Reduce Motion | `response 0.32, damping 1.0` in, 180 ms out |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
 | Tray rows a drop (or Add Files…) brought in, new or already there | Accent ring and faint tint **at once**; fade out after 1.2 s; scrolled into view if below the fold (no scroll animation under Reduce Motion) | fade `Motion.status` 200 ms |
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |

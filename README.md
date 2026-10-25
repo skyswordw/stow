@@ -196,7 +196,7 @@ start Sparkle, so they never touch the network or show an update prompt.
 | `Engine` | `StowEngine.xpc`: sandboxed service that drives `7zz` |
 | `Shared` | Compiled into both: XPC contract, 7-Zip driver and parser, path containment |
 | `App/Design` | Tokens (space, radius, motion), flow layout, thumbnails |
-| `App/Browser` | Main window: title menu and Checkup, header row (folders, navigation, search, preview), grid/list/columns, optional folder list and preview, Archive Info, Actions capsule, bottom row, hover preview |
+| `App/Browser` | Main window: title menu and Checkup, floating navigation and search, grid/list/columns, Details and Archive Info, floating archive controls and the Actions stack, hover preview |
 | `App/Pack` | The Pack sentence and its compatibility report |
 | `App/Tray` | Floating drop shelf |
 | `App/Integration` | Finder/Services actions, folder grants, File Types, login item, Dock, repair |
