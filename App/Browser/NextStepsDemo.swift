@@ -1,10 +1,13 @@
 import AppKit
 
-/// Design review: opens the capsule's More menu and captures it with the window
+/// Design review: opens Actions' More menu and captures it with the window
 /// (`-StowScene next-steps-more`). A menu isn't one of the app's windows, so the usual capture misses it.
 enum NextStepsDemo {
     /// The More button in window coordinates (top-left origin), kept up to date by the capsule.
     static var moreButtonFrame: CGRect?
+
+    /// The Actions stack opens by itself, to show it fanned out (`-StowActionsOpen YES`).
+    static var opensStack: Bool { UserDefaults.standard.bool(forKey: "StowActionsOpen") }
 
     private static var mainWindow: NSWindow? {
         NSApp.windows.first { !($0 is NSPanel) && $0.isVisible && $0.sheetParent == nil }

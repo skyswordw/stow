@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// What the open archive is: its format, how big, how well it packed, whether it's encrypted, and
-/// what Checkup found. The one home for these facts, reached two ways: the inspector shows it while
-/// nothing is selected, and the toolbar's Checkup button shows it when the inspector is closed or
-/// busy with a selection. Nothing else in the Browser repeats these figures.
+/// what Checkup found. The one home for these facts, reached two ways: Details shows it while
+/// nothing is selected, and the toolbar's Checkup button shows it while Details is busy with a
+/// selection. Nothing else in the Browser repeats these figures.
 struct ArchiveInfoView: View {
     let model: BrowserModel
 
@@ -29,11 +29,12 @@ struct ArchiveInfoView: View {
             }
 
             VStack(alignment: .leading, spacing: Space.s) {
-                MetadataGrid(rows: [
-                    (String(localized: "Files"), archive.files.count.formatted()),
-                    (String(localized: "Unpacked"), archive.totalSize.bytes),
-                    (String(localized: "Packed"), Self.packedDescription(saved ?? archive)),
-                    (String(localized: "Encryption"), archive.isEncrypted ? String(localized: "Encrypted") : String(localized: "None")),
+                let packed = Self.packedFigures(saved ?? archive)
+                PropertyList([
+                    PropertyRow(String(localized: "Files"), archive.files.count.formatted()),
+                    PropertyRow(String(localized: "Total size"), archive.totalSize.bytes),
+                    PropertyRow(String(localized: "Compressed size"), packed.value, detail: packed.change),
+                    PropertyRow(String(localized: "Encryption"), archive.isEncrypted ? String(localized: "Encrypted") : String(localized: "None")),
                 ])
                 if saved != nil {
                     Text("As last saved. This updates when you save your changes.")
@@ -49,17 +50,17 @@ struct ArchiveInfoView: View {
         }
     }
 
-    /// "170 bytes · 23% smaller"; a listing that doesn't say how big files are packed says so
-    /// instead of reading "100% smaller".
-    static func packedDescription(_ archive: Archive) -> String {
-        guard let packed = archive.packedSize else { return String(localized: "Unavailable") }
+    /// "170 bytes" and how that compares ("23% smaller"); a listing that doesn't say how big files
+    /// are packed says so instead of reading "100% smaller".
+    static func packedFigures(_ archive: Archive) -> (value: String, change: String?) {
+        guard let packed = archive.packedSize else { return (String(localized: "Unavailable"), nil) }
         let total = archive.totalSize
-        guard total > 0 else { return packed.bytes }
+        guard total > 0 else { return (packed.bytes, nil) }
         let fraction = Double(packed) / Double(total)
         let change = fraction > 1
             ? String(localized: "\(Int(((fraction - 1) * 100).rounded()))% larger")
             : String(localized: "\(Int(((1 - fraction) * 100).rounded()))% smaller")
-        return [packed.bytes, change].joined(separator: " · ")
+        return (packed.bytes, change)
     }
 }
 
@@ -71,7 +72,8 @@ private struct CheckupFindings: View {
         VStack(alignment: .leading, spacing: Space.m) {
             VStack(alignment: .leading, spacing: 2) {
                 SectionLabel(String(localized: "Checkup"))
-                Text("Stow inspects every archive before anything touches your disk.")
+                // What Checkup reads is the listing, not the files' contents: say exactly that.
+                Text("Checks names, links, sizes and format as the archive opens, not what’s inside the files.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -122,13 +124,13 @@ struct CheckupStatus: Equatable {
 
     var summary: String {
         cautions > 0 ? String(localized: "Checkup: \(cautions) things to know")
-            : handled > 0 ? String(localized: "Checkup: safe, \(handled) handled")
-            : String(localized: "Checkup: looks safe")
+            : handled > 0 ? String(localized: "Checkup: no warnings, \(handled) handled")
+            : String(localized: "Checkup: no warnings")
     }
 }
 
-/// The toolbar's Checkup: always in reach, whichever panes are open. The shield's shape and colour
-/// say how it went; the popover is the same Archive Info the empty inspector shows.
+/// The toolbar's Checkup: always in reach, whatever is selected. The shield's shape and colour say
+/// how it went; the popover is the same Archive Info Details shows while nothing is selected.
 struct CheckupToolbarButton: View {
     let model: BrowserModel
     /// Shared with the title's menu, whose Archive Info opens the same popover.

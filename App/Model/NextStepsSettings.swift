@@ -127,6 +127,17 @@ nonisolated struct NextStepsSettings: Equatable, Sendable {
         var primary: NextStep?
         /// Everything else that applies — hidden steps included — for the More menu.
         var alternatives: [NextStep] = []
+
+        /// The stack's front button: installing, when the selection is something to install (an
+        /// app, fonts, an installer package), otherwise the main button. Never runs by itself; it
+        /// takes a click like every other action.
+        var front: NextStep? { suggestions.first(where: \.isInstall) ?? primary }
+
+        /// The shown steps behind the front one, nearest first: the order they fan out above it.
+        var behind: [NextStep] { (suggestions + [primary].compactMap(\.self)).filter { $0 != front } }
+
+        /// More (⋯): every action but the front one, so the menu alone reaches all of them.
+        var more: [NextStep] { behind + alternatives }
     }
 
     func layout(for entries: [ArchiveEntry], dropTargets: [DiskImageLayout.DropTarget] = []) -> Layout {

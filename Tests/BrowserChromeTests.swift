@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Stow
 
-/// The words the Browser's title, bottom bar, Archive Info and Checkup button show (#160).
+/// The words the Browser's title, Details, Archive Info and Checkup button show (#160).
 @Suite("Browser chrome")
 @MainActor
 struct BrowserChromeTests {
@@ -24,20 +24,29 @@ struct BrowserChromeTests {
         #expect(model.subtitle == "ZIP archive · 3 files")
     }
 
-    @Test func theBottomBarCountsWhatsHereThenWhatsSelected() {
-        let model = BrowserModel(archive: Self.archive([Self.entry("Docs/a.txt"), Self.entry("c.txt"), Self.entry("d.txt")]))
-        #expect(model.statusText == "3 items")
-        model.select(["c.txt"])
-        #expect(model.statusText == "1 of 3 selected")
-        model.navigate(to: "Docs")
-        #expect(model.statusText == "1 item")
+    @Test func locationNamesTheArchiveAndItsFolders() {
+        let model = BrowserModel(archive: Self.archive([Self.entry("Showcase/Docs/a.txt"), Self.entry("c.txt")]))
+        // The top level is the archive itself, not an abstract "Top level".
+        #expect(model.location(ofFolder: "") == "Brand Kit.zip")
+        #expect(model.location(ofFolder: "Showcase/Docs") == "Brand Kit.zip › Showcase › Docs")
+        // Search results say where they are in the archive, with the archive's name for its top level.
+        #expect(model.searchLocation(of: Self.entry("c.txt")) == "Brand Kit.zip")
+        #expect(model.searchLocation(of: Self.entry("Showcase/Docs/a.txt")) == "Showcase › Docs")
+    }
+
+    @Test func compressedSizeDoesntGuessWhenNothingWasSaved() {
+        #expect(DetailsPane.compressedFigures(size: 100, packed: 60, staged: nil) == ("60 bytes", "40% smaller"))
+        // Equal sizes don't say how a file was stored before; no "already compressed".
+        #expect(DetailsPane.compressedFigures(size: 27, packed: 27, staged: nil) == ("27 bytes", nil))
+        #expect(DetailsPane.compressedFigures(size: 100, packed: nil, staged: nil) == ("Unavailable", nil))
+        #expect(DetailsPane.compressedFigures(size: 100, packed: 60, staged: "New") == ("When you save", nil))
     }
 
     @Test func packedSizeSaysHowItChangedOrThatItIsUnknown() {
-        #expect(ArchiveInfoView.packedDescription(Self.archive([Self.entry("a", size: 100, packed: 25)])) == "25 bytes · 75% smaller")
-        #expect(ArchiveInfoView.packedDescription(Self.archive([Self.entry("a", size: 100, packed: 120)])) == "120 bytes · 20% larger")
+        #expect(ArchiveInfoView.packedFigures(Self.archive([Self.entry("a", size: 100, packed: 25)])) == ("25 bytes", "75% smaller"))
+        #expect(ArchiveInfoView.packedFigures(Self.archive([Self.entry("a", size: 100, packed: 120)])) == ("120 bytes", "20% larger"))
         // A listing without packed sizes says so rather than "100% smaller".
-        #expect(ArchiveInfoView.packedDescription(Self.archive([Self.entry("a", size: 100, packed: nil)])) == "Unavailable")
+        #expect(ArchiveInfoView.packedFigures(Self.archive([Self.entry("a", size: 100, packed: nil)])) == ("Unavailable", nil))
     }
 
     @Test func checkupShieldFollowsTheFindings() {
@@ -46,8 +55,9 @@ struct BrowserChromeTests {
         let caution = CheckupFinding(severity: .caution, title: "Named .zip, but it’s really 7Z", detail: "")
 
         let safe = CheckupStatus([fine])
-        #expect(safe.symbol == "checkmark.shield.fill" && safe.summary == "Checkup: looks safe")
-        #expect(CheckupStatus([fine, handled]).summary == "Checkup: safe, 1 handled")
+        // Checkup reads the listing, so it reports no warnings rather than calling the archive safe.
+        #expect(safe.symbol == "checkmark.shield.fill" && safe.summary == "Checkup: no warnings")
+        #expect(CheckupStatus([fine, handled]).summary == "Checkup: no warnings, 1 handled")
         let warned = CheckupStatus([fine, caution, caution])
         #expect(warned.symbol == "exclamationmark.shield.fill" && warned.summary == "Checkup: 2 things to know")
     }

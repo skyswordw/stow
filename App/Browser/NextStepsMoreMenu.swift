@@ -1,28 +1,28 @@
 import SwiftUI
 
-/// The Actions capsule's ⋯ button: every other action that applies to the selection, with the
-/// icons and shortcuts the menu bar uses, then a way to choose what Actions suggests.
+/// Actions' ⋯ button, a glass circle beside the stack: every action for the selection except the
+/// front button's, with the icons and shortcuts the menu bar uses, then a way to choose what
+/// Actions suggests. The keyboard's way to every action, whether or not the stack is open.
 struct NextStepsMoreMenu: View {
     let model: BrowserModel
     let alternatives: [NextStep]
-    @State private var isHovering = false
 
     var body: some View {
         Menu {
             NextStepsMoreItems(model: model, alternatives: alternatives)
         } label: {
             Image(systemName: "ellipsis")
-                .fontWeight(.medium)
-                .frame(width: ActionButtonStyle.height, height: ActionButtonStyle.height)
-                // Inside the capsule's glass, so a quiet fill under the pointer like its other buttons.
-                .background(.primary.opacity(isHovering ? 0.07 : 0), in: .circle)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: ActionButtonStyle.height + 2 * ActionButtonStyle.inset,
+                       height: ActionButtonStyle.height + 2 * ActionButtonStyle.inset)
+                .accessibleGlass(in: .circle, interactive: true)
                 .contentShape(.circle)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .onHover { isHovering = $0 }
         .help("More actions for the selection")
         .accessibilityLabel("More actions")
         .accessibilityHint("Every other action for the selection, and Customize Actions")

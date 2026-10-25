@@ -7,8 +7,8 @@ import Quartz
 ///     -StowNested "Showcase/Nested/Earlier Rounds.7z"   open archives inside, `|`-separated chain
 ///     -StowFolder Showcase/Photos   -StowView grid|list|columns   -StowHelpers YES
 ///     -StowSelect "Mac-Blue.jpg|Sonoma.jpg"   (names in the folder)   -StowQuery "tide"   -StowFind YES (⌘F)
-///     -browse.showsFolders YES   -browse.showsInspector NO   (which optional panes are open)
 ///     -StowQuickLook YES   -StowHover "README.md"   -StowMove down   -StowEncodingSheet YES
+///     -StowActionsOpen YES   (the Actions stack fanned out)
 ///
 /// Pair with `-StowSnapshotDelay 5` so thumbnails and previews arrive before the picture.
 enum BrowseDemo {

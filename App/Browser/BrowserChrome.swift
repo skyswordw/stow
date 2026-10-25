@@ -1,19 +1,23 @@
 import SwiftUI
 
-/// The row above the files (#160): the folder list's toggle, Back, Forward and Up, where you are,
-/// Search, and the preview's toggle. Everything for getting around sits here, beside the files it
-/// works on, so it all stays in reach with both optional panes closed.
-struct BrowserHeader: View {
+/// Sizes shared by the Browser's floating glass, so the navigation capsule, Search, the archive's
+/// controls and Actions read as one family: the same capsule, the same inset, buttons concentric
+/// inside it (button radius + inset = capsule radius).
+enum FloatingGlass {
+    /// The navigation capsule and Search.
+    static let barHeight: CGFloat = 36
+    static let barInset: CGFloat = 3
+}
+
+/// The row over the top of the files (#160): Back, Forward and Up beside where you are, in one
+/// glass capsule, and Search on the trailing side. Everything for getting around, beside the files
+/// it works on.
+struct BrowserNavigation: View {
     @Bindable var model: BrowserModel
-    @Binding var showsFolders: Bool
     var isSearchFocused: FocusState<Bool>.Binding
 
     var body: some View {
         HStack(spacing: Space.s) {
-            PaneToggle(title: String(localized: "Folders"), systemImage: "sidebar.left", isOn: $showsFolders,
-                       help: showsFolders ? String(localized: "Hide the folder list") : String(localized: "Show the folder list"))
-                .keyboardShortcut("s", modifiers: [.control, .command])
-
             HStack(spacing: 0) {
                 navigationButton(String(localized: "Back"), "chevron.left", help: String(localized: "See the previous place"),
                                  enabled: model.canGoBack) { model.goBack() }
@@ -21,60 +25,39 @@ struct BrowserHeader: View {
                                  enabled: model.canGoForward) { model.goForward() }
                 navigationButton(String(localized: "Enclosing Folder"), "arrow.up", help: String(localized: "See the folder this one is in"),
                                  enabled: model.canGoUp) { model.goUp() }
+                Rectangle()
+                    .fill(.separator)
+                    .frame(width: 1, height: 16)
+                    .padding(.horizontal, Space.xs)
+                    .accessibilityHidden(true)
+                Breadcrumbs(model: model)
+                    .padding(.trailing, Space.xs)
             }
+            .padding(FloatingGlass.barInset)
+            .frame(height: FloatingGlass.barHeight)
+            .accessibleGlass(in: .capsule)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(String(localized: "Navigation"))
+            .layoutPriority(1)
 
-            Breadcrumbs(model: model)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
 
             ArchiveSearchField(model: model, isFocused: isSearchFocused)
-                .frame(minWidth: 120, idealWidth: 200, maxWidth: 220)
-
-            PaneToggle(title: String(localized: "Preview"), systemImage: "sidebar.right", isOn: $model.showInspector,
-                       help: model.showInspector ? String(localized: "Hide the preview") : String(localized: "Show the preview"))
-                .keyboardShortcut("i", modifiers: [.command, .option])
+                .frame(minWidth: 150, idealWidth: 220, maxWidth: 240)
         }
-        .controlSize(.regular)
         .padding(.horizontal, Space.m)
-        .frame(height: BrowserHeader.height)
-        .accessibleBar()
-        .overlay(alignment: .bottom) { Divider() }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(localized: "Navigation"))
+        .padding(.top, Space.xs)
+        .padding(.bottom, Space.s)
     }
-
-    static let height: CGFloat = 40
 
     private func navigationButton(_ title: String, _ symbol: String, help: String, enabled: Bool,
                                   action: @escaping () -> Void) -> some View {
         Button(title, systemImage: symbol, action: action)
             .labelStyle(.iconOnly)
-            .buttonStyle(.accessoryBar)
+            .buttonStyle(ActionButtonStyle(iconOnly: true, height: FloatingGlass.barHeight - 2 * FloatingGlass.barInset))
             .accessibilityLabel(title)
             .help(help)
             .disabled(!enabled)
-    }
-}
-
-/// A pane's show/hide button: its name beside the icon, so it reads without a hover, and lit
-/// while the pane is open. A key press switches the pane at once; a click lets it slide.
-private struct PaneToggle: View {
-    let title: String
-    let systemImage: String
-    @Binding var isOn: Bool
-    let help: String
-
-    var body: some View {
-        Toggle(isOn: Binding {
-            isOn
-        } set: { shown in
-            withTransaction(Motion.keyboardAware) { isOn = shown }
-        }) {
-            Label(title, systemImage: systemImage)
-                .labelStyle(.titleAndIcon)
-        }
-        .toggleStyle(.button)
-        .buttonStyle(.accessoryBar)
-        .help(help)
     }
 }
 
@@ -105,9 +88,9 @@ struct ArchiveSearchField: View {
                     .help(String(localized: "Clear Search"))
             }
         }
-        .padding(.horizontal, Space.s)
-        .frame(height: 26)
-        .background(.primary.opacity(0.06), in: .capsule)
+        .padding(.horizontal, Space.m)
+        .frame(height: FloatingGlass.barHeight)
+        .accessibleGlass(in: .capsule)
         .overlay {
             Capsule().strokeBorder(Color.accentColor.opacity(isFocused.wrappedValue ? 0.6 : 0), lineWidth: 1.5)
                 .allowsHitTesting(false)
@@ -165,32 +148,21 @@ struct ArchiveTitleMenu<Items: View>: View {
     }
 }
 
-/// The row under the files: Glance, how much is here or selected, and Extract All — the one action
-/// for the whole archive, at the window's trailing edge whatever is selected.
-struct BrowserStatusBar: View {
+/// The whole archive's controls, floating at the bottom's leading edge: Glance, then Extract All,
+/// in one glass capsule. Extract All is the window's primary action until a selection brings up
+/// Actions, whose front button then carries the accent; it keeps its place and words either way.
+struct ArchiveActions: View {
     let model: BrowserModel
-    /// Actions is up with its own Extract for the selection, so Extract All steps back.
-    let selectionHasActions: Bool
+    let prominent: Bool
     let glance: () -> Void
 
     var body: some View {
-        HStack(spacing: Space.m) {
-            Button(action: glance) {
-                Label("Glance", systemImage: "arrow.down.right.and.arrow.up.left")
-                    .labelStyle(.titleAndIcon)
-            }
-            .buttonStyle(.accessoryBar)
-            .accessibilityLabel(String(localized: "Glance"))
-            .help("Switch to Glance, a small window — same folder, selection and history")
-
-            Text(model.statusText)
-                .font(.callout)
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .liveNumber()
-
-            Spacer(minLength: Space.s)
+        HStack(spacing: 2) {
+            Button(String(localized: "Glance"), systemImage: "arrow.down.right.and.arrow.up.left", action: glance)
+                .labelStyle(.iconOnly)
+                .buttonStyle(ActionButtonStyle(iconOnly: true))
+                .accessibilityLabel(String(localized: "Glance"))
+                .help("Switch to Glance, a small window — same folder, selection and history")
 
             Button {
                 model.extractAll()
@@ -198,31 +170,13 @@ struct BrowserStatusBar: View {
                 Label("Extract All", systemImage: "arrow.down.to.line")
                     .labelStyle(.titleAndIcon)
             }
-            .buttonStyle(ExtractAllStyle(prominent: !selectionHasActions))
+            .buttonStyle(ActionButtonStyle(prominent: prominent))
             .help("Extract everything to a folder you choose")
         }
-        .controlSize(.regular)
-        .padding(.horizontal, Space.m)
-        .frame(height: BrowserStatusBar.height)
-        .accessibleBar()
-        .overlay(alignment: .top) { Divider() }
+        .padding(ActionButtonStyle.inset)
+        .accessibleGlass(in: .capsule)
+        .fixedSize()
         .accessibilityElement(children: .contain)
-    }
-
-    static let height: CGFloat = 40
-}
-
-/// Extract All is the window's primary action until a selection brings up Actions, whose own
-/// Extract then carries the accent: one prominent extraction at a time, scoped by where it sits.
-/// The button keeps its place and its words either way; only the emphasis moves.
-private struct ExtractAllStyle: PrimitiveButtonStyle {
-    let prominent: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        if prominent {
-            Button(configuration).buttonStyle(.borderedProminent)
-        } else {
-            Button(configuration).buttonStyle(.bordered)
-        }
+        .accessibilityLabel(String(localized: "Archive"))
     }
 }

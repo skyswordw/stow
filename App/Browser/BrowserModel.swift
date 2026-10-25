@@ -81,7 +81,6 @@ final class BrowserModel {
     /// Edit › Find… (⌘F) asks the Browser's search field for the keyboard; it counts, so each
     /// press is a new request.
     private(set) var searchFocusRequest = 0
-    var showInspector = BrowserLayout.showsInspector
     var showHelperItems = false { didSet { if showHelperItems != oldValue { refresh(); runSearch() } } }
     var isChoosingEncoding = false
     /// A hover preview to show without a pointer (design review: `-StowHover`).
@@ -500,12 +499,30 @@ final class BrowserModel {
          String(localized: "\(archive.files.count) files")].joined(separator: " · ")
     }
 
-    /// The bottom bar's count: what's selected, or how much is here.
-    var statusText: String {
-        let count = visibleEntries.count
-        if isSearching { return String(localized: "\(count) results in \(archive.name)") }
-        if !selection.isEmpty { return String(localized: "\(selection.count) of \(count) selected") }
-        return count == 1 ? String(localized: "1 item") : String(localized: "\(count.formatted()) items")
+    /// Where something in this archive sits, archive by archive and folder by folder, the way the
+    /// breadcrumbs go: "Showcase.zip › Showcase › Docs", or "Outer.zip › Packages › Inner.zip"
+    /// inside a nested archive. `folder` is a folder of the innermost archive ("" for its top level).
+    func location(ofFolder folder: String) -> String {
+        var parts: [String] = []
+        for (index, level) in levels.enumerated() {
+            parts.append(level.archive.name)
+            let inside = index == levels.count - 1 ? folder
+                : ((levels[index + 1].entryPath ?? "") as NSString).deletingLastPathComponent
+            parts += inside.split(separator: "/").map(String.init)
+        }
+        return parts.joined(separator: " › ")
+    }
+
+    /// A search result's place under its name: its folders inside this archive ("Showcase › Docs"),
+    /// or the archive's name for its top level, never an abstract "Top level".
+    func searchLocation(of entry: ArchiveEntry) -> String {
+        entry.parent.isEmpty ? archive.name : entry.parent.split(separator: "/").joined(separator: " › ")
+    }
+
+    /// A search result inside an inner archive: the way to that archive, then the folders inside it.
+    func location(of hit: NestedHit) -> String {
+        ([location(ofFolder: hit.container.parent), hit.container.name] + hit.inner.parent.split(separator: "/").map(String.init))
+            .joined(separator: " › ")
     }
 
     /// The selected search result, when it sits inside an inner archive.

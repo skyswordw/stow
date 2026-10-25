@@ -40,6 +40,43 @@ struct NextStepsSettingsTests {
         #expect(settings.layout(for: []) == .init())
     }
 
+    /// The stack puts installing in front for something to install, Extract in front otherwise,
+    /// and More reaches every action but the front one.
+    @Test func stackFrontIsInstallForInstallablesOtherwiseExtract() {
+        let settings = NextStepsSettings.defaults
+        let app = settings.layout(for: [entry("Harbor.app")])
+        #expect(app.front == .moveToApplications)
+        #expect(app.behind == [.extract])
+        #expect(app.more == [.extract, .pack])
+
+        let fonts = settings.layout(for: [entry("A.otf"), entry("B.ttf")])
+        #expect(fonts.front == .installFonts(count: 2))
+        #expect(fonts.behind == [.quickLook, .extract])
+
+        #expect(settings.layout(for: [entry("Setup.pkg")]).front == .openInstaller)
+
+        let image = settings.layout(for: [entry("Photos/Pier.jpg")])
+        #expect(image.front == .extract)
+        #expect(image.behind == [.quickLook])
+        #expect(image.more == [.quickLook, .pack])
+
+        // An archive inside opens from the stack, but Extract stays in front.
+        let nested = settings.layout(for: [entry("Nested.zip")])
+        #expect(nested.front == .extract)
+        #expect(nested.behind == [.openInside])
+
+        #expect(settings.layout(for: []).front == nil)
+    }
+
+    @Test func hidingInstallLeavesExtractInFront() {
+        var settings = NextStepsSettings.defaults
+        settings.set(.moveToApplications, shown: false)
+        let app = settings.layout(for: [entry("Harbor.app")])
+        #expect(app.front == .extract)
+        #expect(app.behind.isEmpty)
+        #expect(app.more == [.moveToApplications, .pack])
+    }
+
     @Test func applicableStepsInCapsuleOrder() {
         #expect(NextStep.applicable(for: [entry("A.otf"), entry("B.ttf")])
                 == [.installFonts(count: 2), .quickLook, .pack, .extract])

@@ -193,6 +193,7 @@ struct GlanceView: View {
         Group {
             if (!model.selection.isEmpty && showsNextSteps) || model.activity != nil {
                 NextStepsBar(model: model)
+                    .padding(.horizontal, Space.m)
             } else {
                 Button {
                     model.extractAll()
@@ -243,7 +244,7 @@ private struct GlanceList: View {
                         VStack(alignment: .leading, spacing: 0) {
                             EditingName(model: model, entry: entry).lineLimit(1)
                             if model.isSearching {
-                                Text(entry.parent.isEmpty ? String(localized: "Top level") : entry.parent)
+                                Text(model.searchLocation(of: entry))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)

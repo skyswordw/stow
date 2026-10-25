@@ -191,8 +191,8 @@ private struct PreviewColumn: View {
 // MARK: - Breadcrumbs
 
 /// Where you are, archive by archive and folder by folder; every part is a place to go back to.
-/// Sits in the Browser's header row, after Back, Forward and Up; a deep path scrolls, keeping
-/// the current folder in view.
+/// Sits in the Browser's navigation capsule, after Back, Forward and Up. A short path takes only its
+/// own width, so the capsule hugs it; a deep one scrolls, keeping the current folder in view.
 struct Breadcrumbs: View {
     @Environment(\.colorSchemeContrast) private var contrast
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
@@ -204,50 +204,58 @@ struct Breadcrumbs: View {
 
     var body: some View {
         let segments = model.pathSegments
-        ScrollView(.horizontal) {
-            HStack(spacing: 2) {
-                ForEach(Array(segments.enumerated()), id: \.element.id) { index, segment in
-                    if index > 0 {
-                        Image(systemName: "chevron.compact.right").accessibilityHidden(true)
-                            .font(.caption)
-                            .foregroundStyle(contrastStyle.metadata)
-                    }
-                    Button {
-                        model.go(to: segment)
-                    } label: {
-                        Label {
-                            Text(segment.title).lineLimit(1)
-                        } icon: {
-                            Image(systemName: segment.isArchive ? "archivebox.fill" : "folder.fill")
-                                .foregroundStyle(segment.isArchive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                        }
-                        .font(.callout)
-                        .fontWeight(index == segments.count - 1 ? .semibold : .regular)
-                        .foregroundStyle(index == segments.count - 1 ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 3)
-                        .contentShape(.rect)
-                    }
-                    .buttonStyle(PathButtonStyle())
-                    .help(segment.isArchive ? String(localized: "Go to the top of “\(segment.title)”") : String(localized: "Go to “\(segment.title)”"))
-                }
+        ViewThatFits(in: .horizontal) {
+            trail(segments)
+                .fixedSize()
+            ScrollView(.horizontal) {
+                trail(segments)
             }
-            .frame(height: Self.height)
-        }
-        .scrollIndicators(.never)
-        .defaultScrollAnchor(.leading, for: .alignment)
-        .defaultScrollAnchor(.trailing, for: .initialOffset)
-        .onScrollGeometryChange(for: Bool.self) { $0.contentSize.width > $0.containerSize.width + 1 } action: { overflows = $1 }
-        .mask {
-            if overflows {
-                LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12)],
-                               startPoint: .leading, endPoint: .trailing)
-            } else {
-                Color.black
+            .scrollIndicators(.never)
+            .defaultScrollAnchor(.leading, for: .alignment)
+            .defaultScrollAnchor(.trailing, for: .initialOffset)
+            .onScrollGeometryChange(for: Bool.self) { $0.contentSize.width > $0.containerSize.width + 1 } action: { overflows = $1 }
+            .mask {
+                if overflows {
+                    LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12)],
+                                   startPoint: .leading, endPoint: .trailing)
+                } else {
+                    Color.black
+                }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Path")
+    }
+
+    private func trail(_ segments: [BrowserModel.PathSegment]) -> some View {
+        HStack(spacing: 2) {
+            ForEach(Array(segments.enumerated()), id: \.element.id) { index, segment in
+                if index > 0 {
+                    Image(systemName: "chevron.compact.right").accessibilityHidden(true)
+                        .font(.caption)
+                        .foregroundStyle(contrastStyle.metadata)
+                }
+                Button {
+                    model.go(to: segment)
+                } label: {
+                    Label {
+                        Text(segment.title).lineLimit(1)
+                    } icon: {
+                        Image(systemName: segment.isArchive ? "archivebox.fill" : "folder.fill")
+                            .foregroundStyle(segment.isArchive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                    }
+                    .font(.callout)
+                    .fontWeight(index == segments.count - 1 ? .semibold : .regular)
+                    .foregroundStyle(index == segments.count - 1 ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .contentShape(.rect)
+                }
+                .buttonStyle(PathButtonStyle())
+                .help(segment.isArchive ? String(localized: "Go to the top of “\(segment.title)”") : String(localized: "Go to “\(segment.title)”"))
+            }
+        }
+        .frame(height: Self.height)
     }
 }
 
@@ -257,7 +265,7 @@ private struct PathButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(.primary.opacity(configuration.isPressed ? 0.12 : isHovering ? 0.06 : 0),
-                        in: .rect(cornerRadius: 5))
+                        in: .capsule)
             .onHover { isHovering = $0 }
     }
 }

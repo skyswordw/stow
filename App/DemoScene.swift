@@ -201,7 +201,6 @@ enum DemoScene {
             showOptions(InstallOptionsView(), title: String(localized: "Installing"))
         case "batch":
             app.openArchive(named: SampleArchive.make().name)
-            app.browser?.showInspector = false
             app.batch.preview([
                 ("Field Recordings.7z", .done), ("server-logs.tar.xz", .running(0.62)),
                 ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed(Failure(EngineError(.passwordRequired), .extract, name: "Old Backup.rar"))),
@@ -438,16 +437,18 @@ enum DemoScene {
             }
         }
 
-        if defaults.object(forKey: "StowInspector") != nil {
-            app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
-        }
-
         if !scene.hasPrefix("glance"), let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }),
            size.count == 2 {
             Task {
                 try? await Task.sleep(for: .milliseconds(300))
+                // The Browser opens a moment after the welcome window; wait for it rather than
+                // resizing whichever window happens to be up first.
+                for _ in 0..<20 where scene != "settings" && !NSApp.windows.contains(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }) {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
                 let targetWindow = scene == "settings" ? NSApp.keyWindow
-                    : NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible })
+                    : NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible })
+                    ?? NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible })
                 guard let window = targetWindow else { return }
                 window.setContentSize(CGSize(width: size[0], height: size[1]))
             }

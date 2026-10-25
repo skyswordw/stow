@@ -41,6 +41,14 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         }
     }
 
+    /// Puts something on this Mac: an app, fonts, or an installer package.
+    var isInstall: Bool {
+        switch self {
+        case .installFonts, .moveToApplications, .openInstaller: true
+        default: false
+        }
+    }
+
     /// What a failure says Stow couldn't do.
     var failureOperation: Failure.Operation {
         switch self {
