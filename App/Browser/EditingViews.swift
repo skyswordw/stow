@@ -48,18 +48,12 @@ private struct RenameField: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSTextField {
-        let field = NSTextField(string: text)
+        let field = RenameTextField(string: text)
         field.delegate = context.coordinator
         field.isBezeled = true
         field.bezelStyle = .roundedBezel
         field.focusRingType = .default
         field.setAccessibilityLabel(String(localized: "Rename"))
-        DispatchQueue.main.async { [weak field] in
-            guard let field, let window = field.window else { return }
-            window.makeFirstResponder(field)
-            let stem = (field.stringValue as NSString).deletingPathExtension
-            field.currentEditor()?.selectedRange = NSRange(location: 0, length: (stem as NSString).length)
-        }
         return field
     }
     func updateNSView(_ field: NSTextField, context: Context) { context.coordinator.parent = self }
@@ -73,6 +67,24 @@ private struct RenameField: NSViewRepresentable {
             if selector == #selector(NSResponder.insertNewline(_:)) { parent.commit(); return true }
             if selector == #selector(NSResponder.cancelOperation(_:)) { parent.cancel(); return true }
             return false
+        }
+    }
+}
+
+/// Table cells can be created before they join a window. Request focus after attachment,
+/// rather than losing the only request while SwiftUI is still building a detached cell.
+private final class RenameTextField: NSTextField {
+    private var tookInitialFocus = false
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil, !tookInitialFocus else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !tookInitialFocus, let window,
+                  window.makeFirstResponder(self), let editor = currentEditor() else { return }
+            tookInitialFocus = true
+            let stem = (stringValue as NSString).deletingPathExtension
+            editor.selectedRange = NSRange(location: 0, length: (stem as NSString).length)
         }
     }
 }

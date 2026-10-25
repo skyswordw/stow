@@ -8,13 +8,19 @@ Glance now renders Browser's native EditingName/RenameField, including validatio
 tags. It reuses the existing unsaved/external-change bars. The active presentation owns editing
 notices; a retained hidden window cannot present or clear the other window's validation.
 Escape cancels an inline rename before clearing selection or closing the compact window.
+The native editor requests focus after its cell joins the window, so a detached Table cell
+cannot lose the initial focus request; only the filename stem is selected.
 Add/Replace/Delete/Save still use the shared BrowserModel and EditSession. Review the compact
 arrangement under #159; these functional controls need not wait for that design.
 
-The hosted-editor regression verifies that Glance creates the actual native text field, commits
-the rename and retains Undo. Native review reproduced the original invisible editor and checked
-visible stem selection, staged status, Undo/Redo, duplicate-name feedback and saving. The saved
-task ZIP was independently read to verify exact renamed and nested payload bytes.
+Hosted-editor regressions verify the actual native text field, first responder, filename-stem
+selection, delayed window attachment and retained Undo. The delayed-attachment test failed
+before the focus repair. Native review also reproduced the lost-focus problem, then verified
+direct typing after menu activation, Escape cancellation with selection/window preservation,
+staged status, Undo in Glance and Redo in Browser, duplicate-name feedback in Glance, Save and
+Add/Replace panel cancellation. The saved task ZIP was independently read to verify exact renamed
+and nested payload bytes. Normal Quit after this non-drag sequence exited cleanly; that does
+not establish cancelled-drag cleanup.
 
 The earlier review also explored #171 drag preservation. That experiment exposed unresolved
 event tracking and cancelled-promise lifetime (#176). It was removed from this change before
