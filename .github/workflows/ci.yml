@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 430 after native undo/window coverage and compact-editor/drag-selection regressions.
+          # 446 after Tray collection, opening-window ownership and compact-editor regressions.
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "430"
+          MIN_TESTS: "446"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

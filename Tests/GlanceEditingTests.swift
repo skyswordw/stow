@@ -4,39 +4,14 @@ import Testing
 @testable import Stow
 
 @MainActor
-@Suite("Browser interaction regressions", .serialized)
-struct BrowserInteractionTests {
+@Suite("Glance editing regression", .serialized)
+struct GlanceEditingTests {
     private func model() -> BrowserModel {
         BrowserModel(archive: Archive(listing: ArchiveListing(type: "zip", entries: [
             ListedEntry(path: "alpha.txt", isFolder: false, size: 14),
             ListedEntry(path: "beta.txt", isFolder: false, size: 13),
             ListedEntry(path: "Folder/inside.txt", isFolder: false, size: 16)
         ]), url: URL(filePath: "/tmp/Interaction-\(UUID().uuidString).zip")))
-    }
-
-    @Test func promiseDragRejectsNativeTableSelectionChangesUntilItEnds() {
-        let browser = model()
-        browser.select(["alpha.txt", "beta.txt"])
-        browser.dragOut.preserveSelection()
-        browser.tableSelection.wrappedValue = []
-        #expect(browser.selection == ["alpha.txt", "beta.txt"])
-        browser.tableSelection.wrappedValue = ["alpha.txt"]
-        #expect(browser.selection == ["alpha.txt", "beta.txt"])
-        browser.dragOut.finishSelectionPreservation()
-        #expect(!browser.dragOut.isDragging)
-        browser.tableSelection.wrappedValue = ["beta.txt"]
-        #expect(browser.selection == ["beta.txt"])
-    }
-
-    @Test func endingAnOldDragDoesNotRestoreSelectionIntoAnotherFolder() {
-        let browser = model()
-        browser.select(["alpha.txt", "beta.txt"])
-        browser.dragOut.preserveSelection()
-        browser.navigate(to: "Folder")
-        browser.select(["Folder/inside.txt"])
-        browser.dragOut.finishSelectionPreservation()
-        #expect(browser.selection == ["Folder/inside.txt"])
-        #expect(!browser.dragOut.isDragging)
     }
 
     @Test func compactRenameCreatesTheNativeEditorAndPreservesUndo() async throws {

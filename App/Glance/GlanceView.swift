@@ -234,7 +234,7 @@ private struct GlanceList: View {
 
     var body: some View {
         ScrollViewReader { scroller in
-            Table(model.visibleEntries, selection: model.tableSelection) {
+            Table(model.visibleEntries, selection: $model.selection) {
                 TableColumn(String(localized: "Name")) { entry in
                     HStack(spacing: Space.s) {
                         RowIcon(entry: entry, model: model)
