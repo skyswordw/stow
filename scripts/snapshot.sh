@@ -9,7 +9,9 @@ cd "${0:a:h}/.."
 scene=${1:?scene}; look=${2:-light}; size=${3:-}
 app=build/Build/Products/Debug/Stow.app/Contents/MacOS/Stow
 mkdir -p snapshots
-style=(-StowAppearance $look); [[ -n $size ]] && style+=(-StowWindowSize $size); style+=("${@:4}")
+# Ignore saved window state: a Stow that quit with no windows open would otherwise start without the
+# main window, and scenes start from it.
+style=(-StowAppearance $look -ApplePersistenceIgnoreState YES); [[ -n $size ]] && style+=(-StowWindowSize $size); style+=("${@:4}")
 list=$(mktemp)
 "$app" -StowScene "$scene" -StowSnapshot YES $style > "$list" 2>/dev/null &
 pid=$!

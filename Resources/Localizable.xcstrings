@@ -1,122 +1,401 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Re-enter Password" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "再次输入密码"
+    "Choose a destination outside the folders being collected.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择待收集文件夹之外的目标位置。"
           }
         }
       }
     },
-    "Passwords don’t match" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "两次输入的密码不一致"
+    "Couldn’t collect the files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能收集文件。"
           }
         }
       }
     },
-    "Tested after packing" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "压缩后检查"
+    "Partial copies remain in “%@”. Remove that folder before trying again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分副本仍保留在“%@”中。请移除该文件夹后重试。"
+          }
+        }
+      }
+    }
+,
+    "Re-enter Password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再次输入密码"
           }
         }
       }
     },
-    "%@ compression" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@压缩"
+    "Passwords don’t match": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两次输入的密码不一致"
           }
         }
       }
     },
-    "No compression" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不压缩"
+    "Tested after packing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后检查"
           }
         }
       }
     },
-    "Probably fits in one part, %@." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "大概只有一个分卷：%@。"
+    "%@ compression": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@压缩"
           }
         }
       }
     },
-    "About %lld parts, %@ to %@. Opening it needs all of them." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "约 %1$lld 个分卷，%2$@ 到 %3$@。打开时需要全部分卷。"
+    "No compression": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不压缩"
           }
         }
       }
     },
-    "%@ can’t be password-protected. Choose ZIP or 7Z to add one." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 不支持密码保护。要添加密码，请选择 ZIP 或 7Z。"
+    "Probably fits in one part, %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大概只有一个分卷：%@。"
           }
         }
       }
     },
-    "Anyone with the file can open it and see the names inside." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "拿到文件的人都能打开它并看到里面的文件名。"
+    "About %lld parts, %@ to %@. Opening it needs all of them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约 %1$lld 个分卷，%2$@ 到 %3$@。打开时需要全部分卷。"
           }
         }
       }
     },
-    "File names are hidden until the password is entered." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "输入密码前，文件名也是隐藏的。"
+    "%@ can’t be password-protected. Choose ZIP or 7Z to add one.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 不支持密码保护。要添加密码，请选择 ZIP 或 7Z。"
           }
         }
       }
     },
-    "File names stay visible without the password." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有密码也能看到文件名。"
+    "Anyone with the file can open it and see the names inside.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拿到文件的人都能打开它并看到里面的文件名。"
           }
         }
       }
     },
-    "Set to %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前设置：%@"
+    "File names are hidden until the password is entered.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入密码前，文件名也是隐藏的。"
+          }
+        }
+      }
+    },
+    "File names stay visible without the password.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有密码也能看到文件名。"
+          }
+        }
+      }
+    },
+    "Set to %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前设置：%@"
+          }
+        }
+      }
+    }
+,
+    "Remove %lld Items from Tray": {
+      "comment": "The Tray's More menu with several items selected. The files stay where they are.",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Remove %lld Item from Tray"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Remove %lld Items from Tray"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "从托盘中移除 %lld 个项目"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Put back on the Tray": {
+      "comment": "VoiceOver announcement after undoing a removal from the Tray.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已放回托盘"
+          }
+        }
+      }
+    },
+    "Stow puts copies in a new folder. The originals stay where they are.": {
+      "comment": "Collect into a Folder, in the Tray.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 会把副本放进新文件夹，原件保持不动。"
+          }
+        }
+      }
+    },
+    "Choose a Folder…": {
+      "comment": "Collect into a Folder's Where menu before a folder is chosen.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择文件夹…"
+          }
+        }
+      }
+    },
+    "Choose where the new folder goes.": {
+      "comment": "Collect into a Folder: no folder chosen yet; also the Open panel's message.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择新文件夹的位置。"
+          }
+        }
+      }
+    },
+    "Collected in “%@”": {
+      "comment": "The Tray after Collect into a Folder; %@ is the folder the new folder went in.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已收集到“%@”"
+          }
+        }
+      }
+    },
+    "Not chosen": {
+      "comment": "VoiceOver value of Collect into a Folder's Where menu before a folder is chosen.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未选择"
+          }
+        }
+      }
+    },
+    "Other…": {
+      "comment": "Collect into a Folder's Where menu: any folder, from an Open panel.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他…"
+          }
+        }
+      }
+    },
+    "These come from several folders. Choose where to save “%@”.": {
+      "comment": "Pack's Save Here panel when the items come from more than one folder.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些项目来自多个文件夹。请选择存储“%@”的位置。"
+          }
+        }
+      }
+    },
+    "These come from %lld folders. Choose where the new folder goes.": {
+      "comment": "Collect into a Folder when the items come from several folders and none is chosen yet.",
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "这些项目来自 %lld 个文件夹。请选择新文件夹的位置。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Installing “%@”": {
+      "comment": "Progress capsule while one app or font is installed.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在安装“%@”"
+          }
+        }
+      }
+    },
+    "Opening “%@” in Installer": {
+      "comment": "Progress capsule while a package is unpacked for Apple's Installer.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在用安装器打开“%@”"
+          }
+        }
+      }
+    },
+    "Already on the Tray": {
+      "comment": "VoiceOver announcement: everything dropped was already on the Tray.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在托盘中"
+          }
+        }
+      }
+    },
+    "Added %lld items to the Tray": {
+      "comment": "VoiceOver announcement after a drop onto the Tray.",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Added %lld item to the Tray"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Added %lld items to the Tray"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已将 %lld 个项目添加到托盘"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Added %lld items to the Tray, %lld already there": {
+      "comment": "VoiceOver announcement after a drop: new items, then items that were already on the Tray.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$#@arg1@ to the Tray, %2$lld already there"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "Added %lld item"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "Added %lld items"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已将 %1$lld 个项目添加到托盘，%2$lld 个已在其中"
           }
         }
       }
