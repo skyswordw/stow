@@ -7,14 +7,29 @@ starting points for Claude Code's judgment, not approved final visual designs.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
-## Current product-wide brief — 2026-10-24
+## Current Browser direction — PR #177 review, 2026-10-24
+
+Read the [direction reset](browser-design-direction-reset.md) first. The user explicitly
+reported that Codex's prescriptive structure study pulled Claude Code away from the preferred
+Liquid Glass design. The old mockups are retired as implementation/acceptance targets.
+
+Current decisions: full Browser remains the default; Details is fixed and visible there,
+without a collapse toggle. Drop the separate left navigation pane from the proposed composition
+and preserve folder/history/search tasks through other controls. Floating Actions remains;
+remove its repeated selected-filename/size summary beside Quick Look. The user's ArcZip action
+stack crops are direct reference evidence for the next iteration, with trigger/timing still
+to be checked. Claude Code owns the composition, materials and motion; Codex / Grok Bot owns
+functional semantics. This changes the brief, not the app implementation.
+
+## Earlier product-wide audit — superseded composition
 
 The [product design review](product-design-review-2026-10-24.md) adds native ArcZip/Stow
 evidence, proposed panel/action responsibilities, a state matrix and a sequenced issue map.
 The user confirmed the full Browser as the default and **Actions** as the English public
 name for Next Steps, and subsequently confirmed floating Actions. They requested a lighter
 Browser composition: optional folder navigation and preview should give the file list more
-space, using ArcZip as the structural reference (#160). Exact pane defaults remain proposals.
+space, using ArcZip as the structural reference (#160). Those optional-pane proposals have now
+been superseded by the current direction above.
 The running baseline still uses the old name; #161 tracks the transition.
 “快捷操作” remains a proposed Chinese localization. Claude Code owns final visual/motion
 treatment; Codex / Grok Bot owns functional review. No new Claude session is implied.
@@ -30,9 +45,10 @@ to Next Steps below describe the baseline, not a second product feature.
 ## Starting point
 
 Use [DESIGN.md](../DESIGN.md): native SwiftUI/AppKit, content before chrome, Liquid Glass
-for floating controls, a restrained amber accent, semantic status with words and icons,
-and Stow's own Browser / Glance / Actions vocabulary. ArcZip is the comparison target
-for archive interactions, not a visual template to copy.
+for a coherent interface, a restrained amber accent, semantic status with words and icons,
+and Stow's own Browser / Glance / Actions vocabulary. ArcZip is the interaction and visual
+completion reference. Observe its actual behavior and the user's reference details; Claude
+Code should exercise visual judgment instead of reproducing Codex's structural sketches.
 
 Functional changes already merged:
 
