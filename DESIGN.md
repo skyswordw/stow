@@ -72,7 +72,7 @@ evidence; its optional-pane composition and mockups are superseded.
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
 | Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
 | Archive controls, floating bottom leading | One glass capsule: **Glance** · **Extract All** |
-| Actions, floating bottom trailing | ⋯ More, then the **stack**: the front action in the accent with the edges of the others showing behind it. No name or size: Details says what's selected |
+| Actions, floating bottom trailing | ⋯ More, then the **stack**: the front action in the accent with the edges of the others showing behind it. No name or size: Details says what's selected. With nothing selected, **Install App** alone when the archive is one app |
 
 **The Actions stack.** The front button is what the selection is most likely for: **Install** for
 an app, fonts or an installer package, otherwise **Extract**. The other shown steps wait behind it,
@@ -86,12 +86,20 @@ every action except the front one; **File › Actions** lists all of them, front
 keyboard reaches every action without macOS's keyboard navigation turned on. ⌘E still extracts
 from the menu bar whichever button is in front.
 
-One prominent action at a time: Extract All carries the accent while nothing is selected; once
-Actions is up, the stack's front does and Extract All stays put, unaccented. Archive facts live
-in one place, Archive Info, reached from Details with nothing selected, the Checkup button and
-the title menu. Everything floating shares one family: glass capsules, buttons concentric inside
-them (button radius + inset = capsule radius), 36–38 pt tall. Details is a solid reading surface
-with the same light rim, brighter along its top edge.
+With nothing selected, an archive that's one app offers **Install App** for that app, as ArcZip
+does. It's the app Stow selects on opening: the only app or package at the top, beside at most
+two other items, or any number on a disk image. It shows as a single button, with no edges and
+no ⋯, since Extract All is already beside it. Its help tag names the app, and it runs the same
+install, with the same confirmations and checks, on that app only. Hiding Install App or Actions
+in Settings removes it; File › Actions still lists it. Glance shows the same pair: Extract All,
+then Install App.
+
+One prominent action at a time: Extract All carries the accent while Actions is down; once
+Actions is up, for a selection or an archive's app, the stack's front does and Extract All stays
+put, unaccented. Archive facts live in one place, Archive Info, reached from Details with nothing
+selected, the Checkup button and the title menu. Everything floating shares one family: glass
+capsules, buttons concentric inside them (button radius + inset = capsule radius), 36–38 pt tall.
+Details is a solid reading surface with the same light rim, brighter along its top edge.
 
 ## Color
 
