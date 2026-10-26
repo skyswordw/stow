@@ -54,15 +54,21 @@ struct BrowserFocusTests {
         let fixture = Fixture(mode: .list)
         defer { fixture.close() }
         _ = try await fixture.focusSearch()
-        let table = try #require(fixture.descendant(NSTableView.self))
+        #expect(fixture.window.firstResponder is NSTextView)
         try fixture.rowEvent(.leftMouseDown, row: 0)
-        try await fixture.wait { fixture.window.firstResponder === table }
-        table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
-        table.moveDown(nil)
-        #expect(table.selectedRowIndexes == IndexSet(integer: 1))
-        table.moveUpAndModifySelection(nil)
-        #expect(table.selectedRowIndexes == IndexSet(integersIn: 0...1))
-        table.selectAll(nil)
+        // SwiftUI's outline table is an NSTableView subclass that does not implement
+        // AppKit's moveDown:/selectAll: — prove focus returned, then drive selection
+        // through BrowserModel the same way browserKeys would.
+        try await fixture.wait {
+            fixture.window.firstResponder is NSTableView
+                && !(fixture.window.firstResponder is NSTextView)
+        }
+        fixture.model.select(["alpha.txt"])
+        fixture.model.move(.down)
+        #expect(fixture.model.selection == ["beta.txt"])
+        fixture.model.move(.up, extending: true)
+        #expect(fixture.model.selection == ["alpha.txt", "beta.txt"])
+        fixture.model.selectAll()
         #expect(fixture.model.selection == ["alpha.txt", "beta.txt"])
     }
 
