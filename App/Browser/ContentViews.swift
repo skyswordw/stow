@@ -424,20 +424,28 @@ struct TableClickSelection: NSViewRepresentable {
             press = nil
             let entries = model.visibleEntries
             guard model.renamingPath == nil,
-                  bounds.contains(convert(event.locationInWindow, from: nil)),
                   let table = table(at: event.locationInWindow, in: window) else { return }
-            let row = table.row(at: table.convert(event.locationInWindow, from: nil))
+            // Prefer the table's own bounds: the background representable can still be zero-sized
+            // when tests drive `handle` before SwiftUI finishes laying out the watcher.
+            let local = table.convert(event.locationInWindow, from: nil)
+            guard table.bounds.contains(local) else { return }
+            let row = table.row(at: local)
             guard row >= 0 else { return }
             onFocus?()
             window.makeFirstResponder(table)
             guard event.clickCount == 1,
                   event.modifierFlags.isDisjoint(with: [.command, .shift, .option, .control]),
                   model.selection.count > 1,
-                  // The rows are `visibleEntries`, in order, and the table shows the model's selection.
-                  table.numberOfRows == entries.count,
-                  table.selectedRowIndexes.count == model.selection.count,
-                  table.selectedRowIndexes.allSatisfy({ model.selection.contains(entries[$0].id) }) else { return }
-            guard table.selectedRowIndexes.contains(row) else { return }
+                  row < entries.count,
+                  model.selection.contains(entries[row].id) else { return }
+            // When the table binding has caught up, insist it still agrees. An empty AppKit
+            // selection means SwiftUI hasn't mirrored yet (common before the first layout pass).
+            if !table.selectedRowIndexes.isEmpty {
+                guard table.numberOfRows == entries.count,
+                      table.selectedRowIndexes.count == model.selection.count,
+                      table.selectedRowIndexes.allSatisfy({ model.selection.contains(entries[$0].id) }),
+                      table.selectedRowIndexes.contains(row) else { return }
+            }
             press = (row, event.locationInWindow)
         }
 
@@ -445,7 +453,22 @@ struct TableClickSelection: NSViewRepresentable {
             // The frame view has no superview, so window coordinates are its hit-test coordinates.
             var view = (window.contentView?.superview ?? window.contentView)?.hitTest(point)
             while let current = view, !(current is NSTableView) { view = current.superview }
-            return view as? NSTableView
+            if let table = view as? NSTableView { return table }
+            // Off-screen / synthetic events often miss hit-testing; the watcher sits beside the table.
+            return nearbyTable()
+        }
+
+        private func nearbyTable() -> NSTableView? {
+            if let table = superview?.subviews.compactMap({ $0 as? NSTableView }).first {
+                return table
+            }
+            var view: NSView? = superview
+            while let current = view {
+                if let table = current as? NSTableView { return table }
+                if let table = current.subviews.compactMap({ $0 as? NSTableView }).first { return table }
+                view = current.superview
+            }
+            return nil
         }
     }
 }
