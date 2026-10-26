@@ -1217,12 +1217,12 @@
         }
       }
     },
-    "When an app is selected": {
+    "When an app is selected, or the archive holds one app": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择 App 时"
+            "value": "选择 App 时，或压缩包只含一个 App 时"
           }
         }
       }

@@ -2,7 +2,8 @@ import SwiftUI
 
 /// Actions (#161): the selection's actions as a stack of floating glass buttons. The front one is
 /// what this selection is most likely for — installing, for an app, fonts or an installer package,
-/// otherwise Extract — and the others wait behind it with their edges showing. Pointing at the
+/// otherwise Extract — and the others wait behind it with their edges showing. With nothing
+/// selected, an archive that's one app offers installing it, alone (as ArcZip does). Pointing at the
 /// stack or clicking its edges fans them out above it; More (⋯) lists every action as a menu, which
 /// is also the keyboard's way to all of them. Pointing only reveals: every action takes a click.
 /// What the actions apply to is Details' job, so nothing here repeats the selection's name.
@@ -35,6 +36,18 @@ struct NextStepsBar: View {
         } else if entries.isEmpty, !model.selection.isEmpty {
             // Search results inside other archives: the one thing to do is go there.
             NestedResultAction(model: model, glass: glass)
+        } else if model.selection.isEmpty {
+            // Nothing selected: the archive's own step, installing its one app, run on just that
+            // app. Alone: Extract All is beside it, and its help tag names the app.
+            if let target = model.archiveTarget,
+               let front = NextStepsSettings(hidden: NextStepsSettings.decode(hidden)).archiveLayout(installable: target).front {
+                ActionStack(front: front, behind: [], selection: model.selection, scope: target.name,
+                            isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
+                            glass: glass) { step in
+                    model.run(step, on: [target])
+                }
+                .fixedSize()
+            }
         } else {
             let layout = NextStepsSettings(hidden: NextStepsSettings.decode(hidden))
                 .layout(for: entries, dropTargets: model.archive.dropTargets)

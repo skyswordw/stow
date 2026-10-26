@@ -26,7 +26,7 @@ nonisolated extension NextStep {
         var when: String {
             switch self {
             case .installFonts: String(localized: "When everything selected is a font")
-            case .moveToApplications: String(localized: "When an app is selected")
+            case .moveToApplications: String(localized: "When an app is selected, or the archive holds one app")
             case .openInstaller: String(localized: "When an installer package is selected")
             case .copyTo: String(localized: "When a disk image says where an item goes")
             case .openInside: String(localized: "When an archive is selected")
@@ -147,6 +147,16 @@ nonisolated struct NextStepsSettings: Equatable, Sendable {
         let suggestions = Array(shown.filter { $0 != primary }.prefix(Self.maxSuggestions))
         let onCapsule = Set(suggestions + [primary].compactMap(\.self))
         return Layout(suggestions: suggestions, primary: primary, alternatives: all.filter { !onCapsule.contains($0) })
+    }
+
+    /// With nothing selected, the steps for the archive itself: installing it, when it's one app
+    /// (`Archive.installable`), as ArcZip offers. Nothing else, since Extract All has its own button,
+    /// and nothing for an installer package yet. A hidden Install App leaves the stack empty and
+    /// waits in File › Actions, like a selection's hidden steps. It takes a click, as always.
+    func archiveLayout(installable: ArchiveEntry?) -> Layout {
+        guard let installable, installable.kind == .app else { return Layout() }
+        return shows(.moveToApplications) ? Layout(primary: .moveToApplications)
+            : Layout(alternatives: [.moveToApplications])
     }
 
     // MARK: - Stored in UserDefaults

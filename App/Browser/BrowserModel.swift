@@ -475,10 +475,15 @@ final class BrowserModel {
     /// The single app or installer package at the top of a disk image (or archive), if that's
     /// clearly what it's for.
     static func suggestedSelection(in archive: Archive) -> ArchiveEntry.ID? {
-        let top = archive.children(of: archive.volumeRoot)
-        let installable = top.filter { $0.kind == .app || $0.kind == .installer }
-        guard installable.count == 1, archive.isDiskImage || top.count <= 3 else { return nil }
-        return installable[0].id
+        archive.installable?.id
+    }
+
+    /// With nothing selected, what Actions works on: the archive's one app or package, if that's
+    /// what it's for (`Archive.installable`, the same item opening selects). Not while the listing
+    /// is still coming in, when the top level may not be complete.
+    var archiveTarget: ArchiveEntry? {
+        guard selection.isEmpty, !isListing else { return nil }
+        return archive.installable
     }
 
     var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }

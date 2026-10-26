@@ -130,6 +130,7 @@ struct GlanceView: View {
     @State private var editingDelegate = EditingWindowDelegate()
     let glance: GlanceController
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
+    @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
 
     var body: some View {
         content
@@ -188,14 +189,21 @@ struct GlanceView: View {
         }
     }
 
-    /// Next Steps for a selection; otherwise Extract All, in the same place. Selecting is a
-    /// 100-times-a-day action, so the swap doesn't animate (DESIGN.md › Motion).
+    /// Actions for a selection; otherwise Extract All, in the same place. With nothing selected,
+    /// an archive that's one app offers installing it beside Extract All, which gives up the
+    /// accent, as in the full window. Selecting is a 100-times-a-day action, so the swap doesn't
+    /// animate (DESIGN.md › Motion).
     @ViewBuilder
     private var nextSteps: some View {
-        Group {
-            if (!model.selection.isEmpty && showsNextSteps) || model.activity != nil {
+        let installsArchive = showsNextSteps && model.activity == nil && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
+            .archiveLayout(installable: model.archiveTarget).front != nil
+        // One Actions view in every state, so Install morphs into its progress like a selection's.
+        HStack(alignment: .bottom, spacing: Space.s) {
+            if installsArchive {
+                ArchiveActions(model: model, prominent: false)
+            }
+            if (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive {
                 NextStepsBar(model: model)
-                    .padding(.horizontal, Space.m)
             } else {
                 Button {
                     model.extractAll()
@@ -208,6 +216,7 @@ struct GlanceView: View {
                 .help("Extract everything to a folder you choose")
             }
         }
+        .padding(.horizontal, Space.m)
         .padding(.bottom, Space.m)
     }
 

@@ -36,6 +36,8 @@ import SwiftUI
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
 /// Next Steps: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
+/// archive-app and glance-app: an archive that's one app with nothing selected, where Actions offers
+/// Install App (fictional, so it only simulates).
 /// `-nextSteps.hidden quickLook,extract` and `-nextSteps.shown NO` try other choices without saving them.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// `-StowViewMode grid|list|columns` switches the view; `-StowScrollToEnd YES` scrolls to the last item.
@@ -86,6 +88,8 @@ enum DemoScene {
             CheckupToolbarButton.opensForDemo = true
         case "readonly":
             BrowseDemo.readOnly(in: app)
+        case "archive-app":
+            app.browser = oneAppArchive()
         case "next-steps", "next-steps-more":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = defaults.string(forKey: "StowFolder") ?? "Photos"
@@ -301,8 +305,10 @@ enum DemoScene {
         case "integration":
             showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
-        case "glance", "glance-empty", "glance-search-empty":
-            if scene == "glance-search-empty" {
+        case "glance", "glance-empty", "glance-search-empty", "glance-app":
+            if scene == "glance-app" {
+                app.browser = oneAppArchive()
+            } else if scene == "glance-search-empty" {
                 // The same search as the full window's "search-empty" scene.
                 app.openArchive(named: SampleArchive.make().name)
                 app.browser?.query = "invoice"
@@ -645,6 +651,18 @@ enum DemoScene {
         case "installer": browser.run(.openInstaller)
         default: break
         }
+    }
+
+    /// A fictional archive that's one app and a Read Me, with nothing selected: Actions offers to
+    /// install the app. Nothing is on disk, so Install only simulates.
+    private static func oneAppArchive() -> BrowserModel {
+        let modified = Date(timeIntervalSince1970: 1_791_000_000)
+        let model = BrowserModel(archive: Archive(name: "Harbor Prototype.zip", format: .zip, files: [
+            ArchiveEntry(path: "Harbor Prototype.app", isFolder: false, size: 48_600_000, packedSize: 21_400_000, modified: modified),
+            ArchiveEntry(path: "Read Me.txt", isFolder: false, size: 2_400, packedSize: 1_100, modified: modified),
+        ]))
+        model.select([])
+        return model
     }
 
     private static func glanceEdge(_ defaults: UserDefaults) -> GlancePlacement.Edge {

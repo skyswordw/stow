@@ -149,20 +149,23 @@ struct ArchiveTitleMenu<Items: View>: View {
 }
 
 /// The whole archive's controls, floating at the bottom's leading edge: Glance, then Extract All,
-/// in one glass capsule. Extract All is the window's primary action until a selection brings up
-/// Actions, whose front button then carries the accent; it keeps its place and words either way.
+/// in one glass capsule. Extract All is the window's primary action until Actions shows, whose
+/// front button then carries the accent; it keeps its place and words either way. Glance itself
+/// shows Extract All alone this way beside Actions, with no `glance` button.
 struct ArchiveActions: View {
     let model: BrowserModel
     let prominent: Bool
-    let glance: () -> Void
+    var glance: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 2) {
-            Button(String(localized: "Glance"), systemImage: "arrow.down.right.and.arrow.up.left", action: glance)
-                .labelStyle(.iconOnly)
-                .buttonStyle(ActionButtonStyle(iconOnly: true))
-                .accessibilityLabel(String(localized: "Glance"))
-                .help("Switch to Glance, a small window — same folder, selection and history")
+            if let glance {
+                Button(String(localized: "Glance"), systemImage: "arrow.down.right.and.arrow.up.left", action: glance)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(ActionButtonStyle(iconOnly: true))
+                    .accessibilityLabel(String(localized: "Glance"))
+                    .help("Switch to Glance, a small window — same folder, selection and history")
+            }
 
             Button {
                 model.extractAll()

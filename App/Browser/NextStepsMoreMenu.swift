@@ -36,6 +36,8 @@ struct NextStepsMoreItems: View {
     let alternatives: [NextStep]
     /// Off in the menu bar, where Extract, Quick Look and Open already have their keys.
     var showsShortcuts = true
+    /// What the steps work on when it isn't the selection: the archive's one app, with nothing selected.
+    var entries: [ArchiveEntry]?
 
     var body: some View {
         ForEach(alternatives) { step in
@@ -54,6 +56,6 @@ struct NextStepsMoreItems: View {
 
     /// A key that's also in the menu bar does exactly what the menu bar does.
     private func run(_ step: NextStep) {
-        if step == .quickLook { model.toggleQuickLook() } else { model.run(step) }
+        if step == .quickLook { model.toggleQuickLook() } else { model.run(step, on: entries) }
     }
 }

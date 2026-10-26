@@ -35,10 +35,20 @@ struct BrowseCommands: Commands {
                 .disabled(browser?.selection.isEmpty != false || browser?.activity != nil)
             // Every action for the selection, the stack's front one first: the way to all of them
             // from the keyboard (⌃F2, or Help's search) without macOS's keyboard navigation turned on.
-            let layout = browser.map { NextStepsSettings.load().layout(for: $0.selectedEntries, dropTargets: $0.archive.dropTargets) }
+            // With nothing selected, installing an archive that's one app — on that app, never on
+            // whatever comes first.
+            let settings = NextStepsSettings.load()
+            let archiveTarget = browser?.archiveTarget
+            let layout = browser.map { browser in
+                browser.selection.isEmpty ? settings.archiveLayout(installable: archiveTarget)
+                    : settings.layout(for: browser.selectedEntries, dropTargets: browser.archive.dropTargets)
+            }
             let steps = layout.map { [$0.front].compactMap(\.self) + $0.more } ?? []
             Menu("Actions") {
-                if let browser { NextStepsMoreItems(model: browser, alternatives: steps, showsShortcuts: false) }
+                if let browser {
+                    NextStepsMoreItems(model: browser, alternatives: steps, showsShortcuts: false,
+                                       entries: archiveTarget.map { [$0] })
+                }
             }
             .disabled(steps.isEmpty || browser?.activity != nil)
         }

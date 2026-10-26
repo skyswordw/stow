@@ -3,7 +3,8 @@ import SwiftUI
 /// The Browser (#160): the archive's files and, beside them, Details, which is always there. The
 /// title bar says which archive this is and how Checkup went. Floating glass controls sit over the
 /// files: getting around and Search above them, and below them the whole archive's controls
-/// (Glance, Extract All) on the leading side and the selection's Actions on the trailing side.
+/// (Glance, Extract All) on the leading side and Actions on the trailing side: the selection's, or
+/// with nothing selected, installing an archive that's one app.
 /// There is no folder pane: the files, the path, Back, Forward, Up and Search get you everywhere.
 struct BrowserView: View {
     @Bindable var model: BrowserModel
@@ -11,6 +12,7 @@ struct BrowserView: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
+    @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
     @FocusState private var isSearchFocused: Bool
     /// Archive Info, opened from Checkup or the title's menu.
     @State private var showsArchiveInfo = false
@@ -166,12 +168,14 @@ struct BrowserView: View {
         }
     }
 
-    /// The glass along the bottom: the whole archive on the leading side, the selection's Actions
-    /// on the trailing side, so each scope has its own place. One prominent extraction at a time:
-    /// Extract All carries the accent until a selection brings up Actions.
+    /// The glass along the bottom: the whole archive on the leading side, Actions on the trailing
+    /// side. One prominent action at a time: Extract All carries the accent until Actions shows,
+    /// for a selection or, with nothing selected, to install an archive that's one app.
     @ViewBuilder
     private var floatingControls: some View {
-        let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil
+        let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
+            .archiveLayout(installable: model.archiveTarget).front != nil
+        let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
         HStack(alignment: .bottom, spacing: Space.s) {
             ArchiveActions(model: model, prominent: !showsActions) { app.glance.collapse() }
                 .accessibilitySortPriority(0.5)
