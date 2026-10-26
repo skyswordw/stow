@@ -72,6 +72,8 @@ struct ContrastStyle: Equatable {
 /// the system's own glass buttons do under Reduce Transparency.
 private struct AccessibleGlass<S: Shape>: ViewModifier {
     let shape: S
+    /// Lights up under the pointer and when pressed, like the system's glass buttons.
+    var interactive = false
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
@@ -83,15 +85,15 @@ private struct AccessibleGlass<S: Shape>: ViewModifier {
                         .allowsHitTesting(false).accessibilityHidden(true)
                 }
         } else {
-            content.glassEffect(.regular, in: shape)
+            content.glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
                 .overlay { shape.stroke(.primary.opacity(ContrastStyle.resolve(contrast).increased ? 0.45 : 0), lineWidth: 1).allowsHitTesting(false).accessibilityHidden(true) }
         }
     }
 }
 
 extension View {
-    func accessibleGlass(in shape: some Shape) -> some View {
-        modifier(AccessibleGlass(shape: shape))
+    func accessibleGlass(in shape: some Shape, interactive: Bool = false) -> some View {
+        modifier(AccessibleGlass(shape: shape, interactive: interactive))
     }
 }
 

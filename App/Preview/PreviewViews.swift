@@ -46,13 +46,25 @@ struct RichPreviewView: View {
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let entry: ArchiveEntry
     let model: BrowserModel
+    /// The inspector's way: take the height the content needs, up to `fittedMaxHeight`, instead of
+    /// filling a frame the caller sets — a few lines of text stay a few lines tall, a photo keeps its
+    /// shape. Hover previews and the column view's preview keep their fixed frames.
+    let fitsContent: Bool
 
     /// What was read, and for which entry — a reused view never shows the last entry's content.
     @State private var loaded: (id: String, preview: RichPreview)?
+    /// For `fitsContent`: the width on offer, and the height a page of text or a table needs.
+    @State private var width: CGFloat = 0
+    @State private var pageContentHeight: CGFloat = 0
 
-    init(entry: ArchiveEntry, model: BrowserModel, preview: RichPreview? = nil) {
+    static let fittedMaxHeight: CGFloat = 260
+    private static let fittedMinHeight: CGFloat = 44
+    private static let fittedPlaceholderHeight: CGFloat = 120
+
+    init(entry: ArchiveEntry, model: BrowserModel, preview: RichPreview? = nil, fitsContent: Bool = false) {
         self.entry = entry
         self.model = model
+        self.fitsContent = fitsContent
         _loaded = State(initialValue: preview.map { ("\(model.archive.id)\(entry.id)\(model.previewRevision)", $0) })
     }
 
@@ -69,9 +81,10 @@ struct RichPreviewView: View {
                     NativeIcon(type: entry.contentType).frame(width: 64, height: 64)
                     ProgressView().controlSize(.small)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .previewFrame(fitting: fitsContent, height: Self.fittedPlaceholderHeight)
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .task(id: id) {
             guard archive.source != nil, loaded?.id != id else { return }
             let result = await model.previews.richPreview(for: entry, in: archive)
@@ -89,7 +102,7 @@ struct RichPreviewView: View {
                 .interpolation(.high)
                 .aspectRatio(contentMode: .fit)
                 .clipShape(.rect(cornerRadius: Radius.chip))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .previewFrame(fitting: fitsContent, height: fittedHeight(for: image.size))
         case .text(let text, let markdown):
             page {
                 Group {
@@ -111,7 +124,7 @@ struct RichPreviewView: View {
                         .font(.system(size: 10, design: .monospaced))
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: fitsContent ? nil : .infinity, alignment: .topLeading)
                 .padding(Space.m)
             }
         case .table(let rows):
@@ -129,7 +142,7 @@ struct RichPreviewView: View {
                     }
                 }
                 .font(.system(size: 10).monospacedDigit())
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: fitsContent ? nil : .infinity, alignment: .topLeading)
                 .padding(Space.m)
             }
         case .font(let font, let name):
@@ -142,7 +155,7 @@ struct RichPreviewView: View {
                         .lineLimit(1)
                 }
                 .padding(Space.m)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: fitsContent ? nil : .infinity)
             }
         case .audio(let artwork, let title, let artist, let duration):
             VStack(spacing: Space.s) {
@@ -165,6 +178,7 @@ struct RichPreviewView: View {
                         .font(.caption).foregroundStyle(.secondary).monospacedDigit()
                 }
             }
+            .frame(height: fitsContent ? 180 : nil)
         case .video(let frame, let duration):
             ZStack(alignment: .bottomTrailing) {
                 if let frame {
@@ -184,7 +198,7 @@ struct RichPreviewView: View {
                         .padding(6)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .previewFrame(fitting: fitsContent, height: frame.map { fittedHeight(for: $0.size) } ?? Self.fittedPlaceholderHeight)
         case .unavailable(let reason):
             let isLocked = reason == String(localized: "Locked — needs the archive’s password")
             VStack(spacing: Space.s) {
@@ -237,27 +251,44 @@ struct RichPreviewView: View {
                     .padding(.top, Space.xs)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, fitsContent ? Space.m : 0)
+            .previewFrame(fitting: fitsContent)
         }
     }
 
     private func page(@ViewBuilder _ content: () -> some View) -> some View {
         // The card takes exactly the space it's offered. Long text hangs below it and is cut off,
         // instead of stretching the card past its frame and spilling over the views around it.
-        Color.clear
+        // Fitting content, the card is as tall as the page up to `fittedMaxHeight`.
+        let overflows = !fitsContent || pageContentHeight > Self.fittedMaxHeight
+        return Color.clear
+            .frame(height: fitsContent ? min(max(pageContentHeight, Self.fittedMinHeight), Self.fittedMaxHeight) : nil)
             .overlay(alignment: .top) {
                 content()
                     .foregroundStyle(.primary)
+                    // Measured at its own height, so the card's height never feeds back into it.
+                    .fixedSize(horizontal: false, vertical: fitsContent)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { pageContentHeight = $0 }
             }
             .clipped()
             .mask {
-                // The page runs on past the card; fade the words out rather than cut a line in half.
-                LinearGradient(stops: [.init(color: .black, location: 0.8), .init(color: .clear, location: 0.97)],
-                               startPoint: .top, endPoint: .bottom)
+                if overflows {
+                    // The page runs on past the card; fade the words out rather than cut a line in half.
+                    LinearGradient(stops: [.init(color: .black, location: 0.8), .init(color: .clear, location: 0.97)],
+                                   startPoint: .top, endPoint: .bottom)
+                } else {
+                    Color.black
+                }
             }
             .background(Color(nsColor: .textBackgroundColor))
             .clipShape(.rect(cornerRadius: Radius.chip))
             .overlay { RoundedRectangle(cornerRadius: Radius.chip).strokeBorder(.primary.opacity(contrastStyle.borderOpacity)) }
+    }
+
+    /// A picture's height at the width on offer, kept between a sliver and `fittedMaxHeight`.
+    private func fittedHeight(for size: CGSize) -> CGFloat {
+        guard width > 0, size.width > 0, size.height > 0 else { return Self.fittedPlaceholderHeight }
+        return min(max(width * size.height / size.width, 80), Self.fittedMaxHeight)
     }
 
     /// Enough Markdown for a glance: headings, bullets and inline styles, line by line.
@@ -280,6 +311,19 @@ struct RichPreviewView: View {
 
     static func clock(_ seconds: Double) -> String {
         Duration.seconds(seconds).formatted(.time(pattern: seconds >= 3600 ? .hourMinuteSecond : .minuteSecond))
+    }
+}
+
+private extension View {
+    /// A preview's frame: all the room it's offered, or — fitting its content — the full width at
+    /// `height` (its own height when nil).
+    @ViewBuilder
+    func previewFrame(fitting: Bool, height: CGFloat? = nil) -> some View {
+        if fitting {
+            frame(maxWidth: .infinity).frame(height: height)
+        } else {
+            frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 

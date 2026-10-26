@@ -36,11 +36,14 @@ import SwiftUI
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
 /// Next Steps: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
+/// archive-app and glance-app: an archive that's one app with nothing selected, where Actions offers
+/// Install App (fictional, so it only simulates).
 /// `-nextSteps.hidden quickLook,extract` and `-nextSteps.shown NO` try other choices without saving them.
 /// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
 /// `-StowViewMode grid|list|columns` switches the view; `-StowScrollToEnd YES` scrolls to the last item.
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
+/// `-StowLogLayout YES` also prints who has the keyboard and which toolbar items are showing.
 enum DemoScene {
     static func apply(to app: AppState) {
         let defaults = UserDefaults.standard
@@ -82,9 +85,11 @@ enum DemoScene {
             let scan = Checkup.FormatScan(name: sample.name, real: .sevenZip, realType: "7z", tailSize: 2_048)
             app.browser = BrowserModel(archive: Archive(name: sample.name, format: .sevenZip, files: sample.files,
                                                         checkup: scan.findings + sample.checkup.filter { $0.severity == .info }))
-            ArchiveCard.opensCheckupForDemo = true
+            CheckupToolbarButton.opensForDemo = true
         case "readonly":
             BrowseDemo.readOnly(in: app)
+        case "archive-app":
+            app.browser = oneAppArchive()
         case "next-steps", "next-steps-more":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = defaults.string(forKey: "StowFolder") ?? "Photos"
@@ -200,7 +205,6 @@ enum DemoScene {
             showOptions(InstallOptionsView(), title: String(localized: "Installing"))
         case "batch":
             app.openArchive(named: SampleArchive.make().name)
-            app.browser?.showInspector = false
             app.batch.preview([
                 ("Field Recordings.7z", .done), ("server-logs.tar.xz", .running(0.62)),
                 ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed(Failure(EngineError(.passwordRequired), .extract, name: "Old Backup.rar"))),
@@ -301,8 +305,10 @@ enum DemoScene {
         case "integration":
             showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
-        case "glance", "glance-empty", "glance-search-empty":
-            if scene == "glance-search-empty" {
+        case "glance", "glance-empty", "glance-search-empty", "glance-app":
+            if scene == "glance-app" {
+                app.browser = oneAppArchive()
+            } else if scene == "glance-search-empty" {
                 // The same search as the full window's "search-empty" scene.
                 app.openArchive(named: SampleArchive.make().name)
                 app.browser?.query = "invoice"
@@ -437,17 +443,21 @@ enum DemoScene {
             }
         }
 
-        if defaults.object(forKey: "StowInspector") != nil {
-            app.browser?.showInspector = defaults.bool(forKey: "StowInspector")
-        }
-
         if !scene.hasPrefix("glance"), let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }),
            size.count == 2 {
             Task {
                 try? await Task.sleep(for: .milliseconds(300))
+                // The Browser opens a moment after the welcome window; wait for it rather than
+                // resizing whichever window happens to be up first.
+                for _ in 0..<20 where scene != "settings" && !NSApp.windows.contains(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }) {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
                 let targetWindow = scene == "settings" ? NSApp.keyWindow
-                    : NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible })
+                    : NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible })
+                    ?? NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible })
                 guard let window = targetWindow else { return }
+                // A scene's size is for its picture only: never save it as the window's everyday frame.
+                window.setFrameAutosaveName("")
                 window.setContentSize(CGSize(width: size[0], height: size[1]))
             }
         }
@@ -466,6 +476,13 @@ enum DemoScene {
                     let kind = window.sheetParent != nil ? "sheet" : window is NSPanel ? "panel" : "window"
                     let name = index == 0 ? "\(label)-\(kind)" : "\(label)-\(kind)\(index)"
                     if let url = snapshot(window, name: name) { print(url.path) }
+                }
+                if defaults.bool(forKey: "StowLogLayout") {
+                    // Who has the keyboard, and which toolbar items made it out of the overflow menu.
+                    print("focus:", NSApp.keyWindow?.firstResponder.map { String(describing: type(of: $0)) } ?? "none")
+                    if let toolbar = NSApp.windows.compactMap(\.toolbar).first {
+                        print("toolbar:", toolbar.visibleItems?.map(\.label).filter { !$0.isEmpty } ?? [])
+                    }
                 }
                 if scene == "glance", let url = glancePlacement(app, name: "\(label)-screen") { print(url.path) }
                 if scene == "next-steps-more", let url = NextStepsDemo.captureWithMenu(name: "\(label)-menu") { print(url.path) }
@@ -634,6 +651,18 @@ enum DemoScene {
         case "installer": browser.run(.openInstaller)
         default: break
         }
+    }
+
+    /// A fictional archive that's one app and a Read Me, with nothing selected: Actions offers to
+    /// install the app. Nothing is on disk, so Install only simulates.
+    private static func oneAppArchive() -> BrowserModel {
+        let modified = Date(timeIntervalSince1970: 1_791_000_000)
+        let model = BrowserModel(archive: Archive(name: "Harbor Prototype.zip", format: .zip, files: [
+            ArchiveEntry(path: "Harbor Prototype.app", isFolder: false, size: 48_600_000, packedSize: 21_400_000, modified: modified),
+            ArchiveEntry(path: "Read Me.txt", isFolder: false, size: 2_400, packedSize: 1_100, modified: modified),
+        ]))
+        model.select([])
+        return model
     }
 
     private static func glanceEdge(_ defaults: UserDefaults) -> GlancePlacement.Edge {

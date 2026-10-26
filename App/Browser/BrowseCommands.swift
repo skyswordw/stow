@@ -33,6 +33,24 @@ struct BrowseCommands: Commands {
             Button("Extract") { browser?.run(.extract) }
                 .keyboardShortcut("e")
                 .disabled(browser?.selection.isEmpty != false || browser?.activity != nil)
+            // Every action for the selection, the stack's front one first: the way to all of them
+            // from the keyboard (⌃F2, or Help's search) without macOS's keyboard navigation turned on.
+            // With nothing selected, installing an archive that's one app — on that app, never on
+            // whatever comes first.
+            let settings = NextStepsSettings.load()
+            let archiveTarget = browser?.archiveTarget
+            let layout = browser.map { browser in
+                browser.selection.isEmpty ? settings.archiveLayout(installable: archiveTarget)
+                    : settings.layout(for: browser.selectedEntries, dropTargets: browser.archive.dropTargets)
+            }
+            let steps = layout.map { [$0.front].compactMap(\.self) + $0.more } ?? []
+            Menu("Actions") {
+                if let browser {
+                    NextStepsMoreItems(model: browser, alternatives: steps, showsShortcuts: false,
+                                       entries: archiveTarget.map { [$0] })
+                }
+            }
+            .disabled(steps.isEmpty || browser?.activity != nil)
         }
         CommandGroup(after: .pasteboard) {
             // Keep menu invocations available in read-only archives so they explain the refusal;
@@ -56,6 +74,13 @@ struct BrowseCommands: Commands {
                 .disabled(browser?.selection.count != 1 || browser?.editSession.isSaving == true)
             Button("Replace…") { if let browser, let entry = browser.selectedEntries.first { browser.chooseReplacement(entry) } }
                 .disabled(browser?.selection.count != 1 || browser?.selectedEntries.first?.isFolder != false || browser?.editSession.isSaving == true)
+        }
+        CommandGroup(after: .textEditing) {
+            // The Browser's search lives in the toolbar, where a narrow window folds it into a
+            // button; ⌘F reaches it either way. Glance has no search of its own.
+            Button("Find…") { browser?.focusSearch() }
+                .keyboardShortcut("f")
+                .disabled(browser == nil || app.glance.isShown)
         }
         CommandGroup(before: .toolbar) {
             Button("as Icons") { browser?.viewMode = .grid }

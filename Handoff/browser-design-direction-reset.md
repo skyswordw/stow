@@ -44,6 +44,38 @@ choices when expanded. They do not establish what triggers expansion, its timing
 behavior or the rule selecting the front action. Check those in the actual app before
 claiming parity. The user's lower-left filename concern is a separate duplication issue.
 
+### Observed in ArcZip 1.1.4 (2026-10-26)
+
+Claude Code observed the running app with a real pointer (computer use), on a test ZIP holding
+a placeholder app bundle and a text file, in both the Mini and the full workspace. Install and
+Extract were never clicked; the edges were not clicked either, since they sit against the Install
+button. These are observations, not design decisions.
+
+| Question | ArcZip 1.1.4 | Stow (PR #177, `e49f85e` and after) |
+| --- | --- | --- |
+| What opens the stack | Hover on the front button. Opens at once (already open in the first capture, under ~0.1–0.2 s) | Hover after resting 140 ms, or a click on the edges strip |
+| Quick pass over it | Opens, then folds: it flashes on every pass | Stays folded |
+| Pointer in the gap, on the choice behind | Stays open; the choice highlights | Same |
+| After the pointer leaves | Folds after ~0.5–1 s | Folds after 450 ms |
+| Help tags | ~1 s on a button: “Install “Probe Tool…”, “Extract selected item…” | Front button: “Install App: Harbor Prototype.app”; the fanned-out choices have none (see below) |
+| Expanded colours | Both choices in the accent purple; the hovered one lighter | One prominent action: the front in amber, the others neutral glass |
+| Front action | App selected: Install Application, Extract behind. Text file: a single Extract, no stack. **Nothing selected but the archive holds an app: Install Application with Extract behind** | App, fonts or a package selected: Install in front. Nothing selected: **Install App** alone when the archive is one app (decided 2026-10-26, see below), Extract All beside it unaccented; otherwise Extract All, no stack |
+| Keyboard, macOS keyboard navigation off | Tab stays in the file list; the menu bar has no Install command (Archive: Preview / Extract / Delete Selected Items, Save Archive). Return is Extract All | Same Tab behaviour; File › Actions lists every action, Install included |
+| VoiceOver | The folded stack exposes only the front button; the action behind it has no element and no “show more” | “Show All Actions” for the edges, the choices once open, ⋯ More |
+
+**Decided by the user (2026-10-26) and implemented in PR #177:** with nothing selected, Stow
+offers installing an archive's app, as ArcZip does. Which item: the one Stow already selects on
+opening (`Archive.installable`): the only app or installer package at the top level, beside at
+most two other items (any number on a disk image); helper items don't count, and an app in a
+folder of its own or next to a second app or package gets no offer. Installer packages get no offer
+yet. The stack shows Install App alone (Extract All is already beside it, and loses its accent);
+it runs on that app only, takes a click, and goes through the same confirmations, signature and
+running-app checks. Settings › Actions can hide it; File › Actions lists it either way.
+
+In Stow, SwiftUI gives no hover to buttons that appear inside the stack as it grows, so their
+highlight is drawn from the stack's own pointer tracking and they have no help tags; the front
+button's tag names the same target.
+
 Claude Code should explore this interaction using Stow's own appearance. The earlier demand
 for a single enclosing capsule or a permanently printed Actions/filename block is withdrawn.
 Expansion must have a usable keyboard/click path as well as any pointer treatment. Passing

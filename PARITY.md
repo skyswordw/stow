@@ -51,7 +51,7 @@ Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 
 | Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ✅ | Grid: arrows by row/column, ⇧ extends, ⌘/⇧ click, marquee (⇧/⌘ adds), type-to-select, Return opens, Space Quick Look. No animation on keyboard moves |
 | Archive search by name **or path**, background full-file index with progress | ✅ | Terms match anywhere in the path (“docs/ handoff”), case/accent/width-insensitive, name matches first. Index builds in the background in chunks; the search field reads “Indexing… 12,000 of 40,000” and results grow while you keep browsing. ✅ search across nested archives: one level in, read once into the preview cache, matches listed as “Inner.7z/path”, Show opens the inner archive with the match selected; password-protected inner archives are skipped |
 | Nested archives opened in place, depth limit, encrypted nested containers | ✅ | Depth limit 8. Passwords use the shared password sheet through an injectable `PasswordHook`; without a hook, “needs a password” is reported |
-| Archive details / inspector, archive overview | ✅ | ➕ Checkup; inspector shows real previews, several selected stack real thumbnails |
+| Archive details / inspector, archive overview | ✅ | ➕ Checkup; Details is always beside the files with real previews and the item's real location; several selected stack real thumbnails |
 | Show/hide macOS auxiliary items (__MACOSX, .DS_Store) | ✅ View › Show macOS Helper Items (⌘⇧.) | Hidden by default, dimmed when shown, never extracted |
 | Mixed / legacy filename encodings (GBK etc.), garbled-name repair | ✅ | ➕ Raw name bytes come from a second listing under a Latin-1 locale, so nothing is lost; each name is read in the encoding that suits it (mixed archives read right), a banner says how, and Read Names As… previews every encoding live. Extraction renames to the shown names |
 | Extension ≠ real format detection; ZIP with prepended/appended data; SFX RAR/7Z | ✅ | Checkup says it in words: “Named .zip, but it’s really 7Z”, “Self-extracting 7Z archive” (stub size, never run), extra data before/after the archive (left out when extracting). ZIP with raw prepended data whose offsets weren't adjusted opens only behind a program's extension (.exe) — that's 7-Zip's rule |
@@ -69,9 +69,9 @@ Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 
 | Hover preview after ~1 s (images, PDF, Office, text, Markdown, CSV, code, audio artwork, video frames); toggle in Settings | ✅ content paths · 🧪 hover timing/settings | Real content read from the archive: images (downsampled), PDF/Office/others (Quick Look), Markdown (rendered), CSV (table), code/logs (monospaced, unwrapped), fonts (the real face), audio (artwork, title, length), video (a frame, length). ➕ design target: 450 ms, then immediate warm neighbors; actual pointer timing remains unverified |
 | Thumbnails in icon view | ✅ | Quick Look thumbnails, only for tiles on screen, batched into one engine trip; files over 48 MB keep their icon |
 | Quick Look extension for archives in Finder | ✅ | ➕ all 34 types, not just zip/7z/tar; one-line Checkup, encryption, sizes; 3 s timeout with fallbacks; Open in Stow. .tar.xz/.tar.gz show the inner .tar until tarballs are unwrapped |
-| Encrypted entries: preview after unlock | ✅ | The Browser and Glance expose a lock/password action, including with the inspector hidden. Explicit unlock verifies encrypted file data; Space Quick Look and Open can ask and retry directly. Hover never prompts. Previews refresh after a password changes; passwords are shared with extraction and nested levels, with optional Keychain storage |
+| Encrypted entries: preview after unlock | ✅ | The Browser and Glance expose a lock/password action. Explicit unlock verifies encrypted file data; Space Quick Look and Open can ask and retry directly. Hover never prompts. Previews refresh after a password changes; passwords are shared with extraction and nested levels, with optional Keychain storage |
 | Extract to temp & open with default app | ✅ | Open / double-click / ⌘↓. Files land read-only in a per-window cache (512 MB, least recently used first, keyed by archive identity + entry path + date), removed on close and quit, swept at launch |
-| Drag out to Finder | ✅ | `NSFilePromiseProvider` per item; extracted only when dropped, through the usual staging and no-clobber placement, progress in Next Steps |
+| Drag out to Finder | ✅ | `NSFilePromiseProvider` per item; extracted only when dropped, through the usual staging and no-clobber placement, progress in Actions |
 
 ## 3. Extraction
 
@@ -107,7 +107,7 @@ Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.
-Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
+Progress and result appear in an Actions-style capsule (Stop, Show in Finder).
 
 ## 5. Editing existing archives
 
@@ -120,24 +120,24 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | Keep browsing position after save | 🧪 | Folder, selection and history; pending macOS verification |
 | Read-only formats; extract and repack as ZIP / 7Z | 🧪 | RAR, compressed TAR, split and nested archives; pending macOS verification |
 
-## 6. Next Steps (ArcZip “Flow”)
+## 6. Actions (ArcZip “Flow”)
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | Install app from archive/DMG to /Applications; replace existing; reveal in Finder | ✅ one-time folder grant (see README › Installing) | replace shows both versions, old copy to the Trash; refuses while the app is running |
-| Signature & notarization check (unsigned / ad-hoc / unnotarized / unknown) with warnings | ✅ SecStaticCode + requirements | ➕ plain-word verdict in Checkup and the inspector (“Check Signature” before installing) |
+| Signature & notarization check (unsigned / ad-hoc / unnotarized / unknown) with warnings | ✅ SecStaticCode + requirements | ➕ plain-word verdict in Checkup and Details (“Check Signature” before installing) |
 | Optional quarantine-flag removal | ✅ off by default, explained | installed apps keep the archive’s quarantine so Gatekeeper still checks them; if macOS refuses removal, Checkup says so |
 | Honour developer “drag to X” DMG layouts | ✅ | APFS images give the target; HFS+ ones only reveal a link named “Applications” |
 | Install fonts (OTF/TTF/TTC) to user library, replace existing | ✅ native scratch Replace / Skip · 🧪 global activation | Valid TTF bytes and unsupported WOFF2 reporting passed; real user font library remained untouched |
 | PKG: prepare safely, hand off to Installer | ✅ native current-user-only original fixture | Apple Installer completed the no-script text package; exact payload and handoff cleanup checked; vendor/admin/signed release matrix remains in #38 |
 | After install: keep/trash archive, close window | ✅ | |
-| Alternative actions list; customise which actions show; restore suggestions | ✅ More menu (⋯) on Next Steps; Settings › Next Steps | every step that applies is in More with the menu bar's icons and keys, hidden ones included; show or hide each step, or Next Steps itself; Restore Defaults ➕ Pack… for a selection (off by default) |
+| Alternative actions list; customise which actions show; restore suggestions | ✅ the Actions stack and its More menu (⋯); Settings › Actions | like ArcZip's stack, the front action (Install for apps, fonts and packages, otherwise Extract; with nothing selected, Install App when the archive is one app, as in ArcZip) has the others behind it, fanned out by pointing at it or clicking its edges; More lists every step but the front one with the menu bar's icons and keys, hidden ones included; show or hide each step, or Actions itself; Restore Defaults ➕ Pack… for a selection (off by default). Observed in ArcZip 1.1.4: opens at once on hover, folds ~0.5–1 s after leaving, no keyboard or menu path to Install; Stow opens after 140 ms, folds after 450 ms and adds File › Actions (see [the brief](Handoff/browser-design-direction-reset.md#observed-in-arczip-114-2026-10-26)) |
 
 ## 7. Compact window (ArcZip “Mini”) → **Glance**
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Opens near the pointer, compact browse/extract | ✅ | clamped to the visible screen; name + size list, Next Steps, Extract All |
+| Opens near the pointer, compact browse/extract | ✅ | clamped to the visible screen; name + size list, Actions, Extract All |
 | Pin on top | ✅ | remembered |
 | Switch Glance ↔ full window keeping location, selection, history | ✅ | one shared browser; ⌥⌘G |
 | Default to Glance when opening from Finder/Quick Look | ✅ | Settings › General |
@@ -168,7 +168,7 @@ Progress and result appear in a Next Steps-style capsule (Stop, Show in Finder).
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | General: appearance (light/dark/auto), default view, CPU cores | 🧪 pending verification | |
-| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Next Steps panes; Glance and Tray controls live in General |
+| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Actions panes; Glance and Tray controls live in General |
 | Password field: show by default (for CJK input) | 🧪 pending verification | |
 | Advanced: temp-file usage & cleanup, reset all preferences | 🧪 pending verification | |
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |

@@ -122,6 +122,56 @@
         }
       }
     },
+    "Checks names, links, sizes and format as the archive opens, not what’s inside the files." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开压缩包时检查名称、链接、大小和格式，不检查文件内容。"
+          }
+        }
+      }
+    },
+    "Checkup: no warnings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全检查：没有警告"
+          }
+        }
+      }
+    },
+    "Checkup: no warnings, %lld handled" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全检查：没有警告，已处理 %lld 项"
+          }
+        }
+      }
+    },
+    "Compressed size" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "压缩后大小"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "详情"
+          }
+        }
+      }
+    },
     "File names are hidden until the password is entered.": {
       "localizations": {
         "zh-Hans": {
@@ -138,6 +188,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有密码也能看到文件名。"
+          }
+        }
+      }
+    },
+    "Location" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置"
           }
         }
       }
@@ -195,6 +255,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "已放回托盘"
+          }
+        }
+      }
+    },
+    "Show All Actions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示全部操作"
+          }
+        }
+      }
+    },
+    "Show all actions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示全部操作"
+          }
+        }
+      }
+    },
+    "Shows the other actions for the selection above this one" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此按钮上方显示所选项目的其他操作"
           }
         }
       }
@@ -396,6 +486,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "已将 %1$lld 个项目添加到托盘，%2$lld 个已在其中"
+          }
+        }
+      }
+    },
+    "Total size" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总大小"
           }
         }
       }
@@ -877,16 +977,6 @@
         }
       }
     },
-    "Show in Archive": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在压缩包中显示"
-          }
-        }
-      }
-    },
     "inside other archives — select one to show it": {
       "localizations": {
         "zh-Hans": {
@@ -907,12 +997,82 @@
         }
       }
     },
-    "Customize Next Steps…": {
+    "Customize Actions…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "自定义“下一步”…"
+            "value": "自定义快捷操作…"
+          }
+        }
+      }
+    },
+    "Archive Info": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包信息"
+          }
+        }
+      }
+    },
+    "Archive Info, Show in Finder, Rename and Close": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包信息、在访达中显示、重新命名和关闭"
+          }
+        }
+      }
+    },
+    "Find…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查找…"
+          }
+        }
+      }
+    },
+    "Navigation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导航"
+          }
+        }
+      }
+    },
+    "Nothing to report": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要注意的问题"
+          }
+        }
+      }
+    },
+    "See the folder this one is in": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看上层文件夹"
+          }
+        }
+      }
+    },
+    "Shows what Checkup found and the archive’s details": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示安全检查结果和压缩包的详细信息"
           }
         }
       }
@@ -967,32 +1127,32 @@
         }
       }
     },
-    "Next Steps": {
+    "Actions": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "下一步"
+            "value": "快捷操作"
           }
         }
       }
     },
-    "Next Steps floats above the files you select and offers the right next step. When it’s off, every action is still in the menus.": {
+    "Actions float above the files you select, with the right one first. When they’re off, every action is still in the menus.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "“下一步”浮在你选择的文件上方，提供合适的下一步操作。关闭后，所有操作仍在菜单中。"
+            "value": "快捷操作浮在你选择的文件上方，最合适的操作排在最前。关闭后，所有操作仍在菜单中。"
           }
         }
       }
     },
-    "Next Steps shows up to two suggestions beside Extract, most specific first. Steps you turn off stay in its More menu.": {
+    "Up to two suggestions appear beside Extract, most specific first. Suggestions you turn off stay in the More menu.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "“下一步”在“解压缩”旁最多显示两个建议，最具体的排在前面。关闭的操作仍在它的“更多”菜单中。"
+            "value": "“解压缩”旁最多显示两个建议，最具体的排在前面。关闭的建议仍在“更多”菜单中。"
           }
         }
       }
@@ -1027,17 +1187,17 @@
         }
       }
     },
-    "Show Next Steps when you select something": {
+    "Show Actions when you select something": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择项目时显示“下一步”"
+            "value": "选择项目时显示快捷操作"
           }
         }
       }
     },
-    "Suggested Steps": {
+    "Suggested Actions": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
@@ -1057,12 +1217,12 @@
         }
       }
     },
-    "When an app is selected": {
+    "When an app is selected, or the archive holds one app": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择 App 时"
+            "value": "选择 App 时，或压缩包只含一个 App 时"
           }
         }
       }
@@ -1103,16 +1263,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "有可预览的项目时"
-          }
-        }
-      }
-    },
-    "Inside": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "所在压缩包"
           }
         }
       }
@@ -2262,56 +2412,12 @@
         }
       }
     },
-    "%lld files · %@": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%1$lld file · %2$@"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%1$lld files · %2$@"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%1$lld 个文件 · %2$@"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%@ items": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "%@ 个项目"
-          }
-        }
-      }
-    },
-    "%@ packed": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "压缩后 %@"
           }
         }
       }
@@ -2326,66 +2432,12 @@
         }
       }
     },
-    "%lld results in %@": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%1$lld result in %2$@"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%1$lld results in %2$@"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%2$@中有 %1$lld 个结果"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%@ · %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%@ · %lld%% smaller": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ · 减小 %2$lld%%"
-          }
-        }
-      }
-    },
-    "%@ · already compressed": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · 已压缩"
           }
         }
       }
@@ -3152,16 +3204,6 @@
         }
       }
     },
-    "1 item": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 个项目"
-          }
-        }
-      }
-    },
     "1 path tried to leave the folder": {
       "localizations": {
         "zh-Hans": {
@@ -3318,16 +3360,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已全部解压缩，共 %lld 个。"
-          }
-        }
-      }
-    },
-    "All Files": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "所有文件"
           }
         }
       }
@@ -3773,26 +3805,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "Checkup: looks safe": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "安全检查：看起来安全"
-          }
-        }
-      }
-    },
-    "Checkup: safe, %lld handled": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "安全检查：安全，已处理 %lld 项"
           }
         }
       }
@@ -4697,12 +4709,12 @@
         }
       }
     },
-    "Every other step for the selection, and Customize Next Steps": {
+    "Every other action for the selection, and Customize Actions": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "所选项目的其他所有操作，以及“自定义‘下一步’”"
+            "value": "所选项的其他所有操作，以及“自定义快捷操作”"
           }
         }
       }
@@ -5357,16 +5369,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有打开的窗口时隐藏程序坞图标"
-          }
-        }
-      }
-    },
-    "Hide Inspector": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "隐藏检查器"
           }
         }
       }
@@ -7241,16 +7243,6 @@
         }
       }
     },
-    "Show Inspector": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示检查器"
-          }
-        }
-      }
-    },
     "Show Package Contents": {
       "localizations": {
         "zh-Hans": {
@@ -7731,16 +7723,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stow 未收到任何文件。"
-          }
-        }
-      }
-    },
-    "Stow inspects every archive before anything touches your disk.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在写入磁盘之前，Stow 会先检查每个压缩包。"
           }
         }
       }
@@ -8432,16 +8414,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Unix compress 文件"
-          }
-        }
-      }
-    },
-    "Unpacked": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "解压缩后"
           }
         }
       }

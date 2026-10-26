@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings › Next Steps: whether the capsule appears, and which steps it suggests.
+/// Settings › Actions: whether the capsule appears, and which actions it suggests.
 struct NextStepsSettingsView: View {
     @AppStorage(SettingsKeys.nextStepsShown) private var isShown = true
     @AppStorage(SettingsKeys.nextStepsHidden) private var hidden = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
@@ -12,9 +12,9 @@ struct NextStepsSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Show Next Steps when you select something", isOn: $isShown)
+                Toggle("Show Actions when you select something", isOn: $isShown)
             } footer: {
-                Text("Next Steps floats above the files you select and offers the right next step. When it’s off, every action is still in the menus.")
+                Text("Actions float above the files you select, with the right one first. When they’re off, every action is still in the menus.")
             }
             Section {
                 ForEach(NextStep.Kind.allCases) { kind in
@@ -34,11 +34,11 @@ struct NextStepsSettingsView: View {
                 }
                 .disabled(!isShown)
             } header: {
-                Text("Suggested Steps")
+                Text("Suggested Actions")
             } footer: {
                 VStack(alignment: .leading, spacing: Space.m) {
-                    Text("Next Steps shows up to two suggestions beside Extract, most specific first. Steps you turn off stay in its More menu.")
-                    // Also brings Next Steps back when it's turned off, so it stays enabled.
+                    Text("Up to two suggestions appear beside Extract, most specific first. Suggestions you turn off stay in the More menu.")
+                    // Also brings Actions back when it's turned off, so it stays enabled.
                     Button("Restore Defaults") { NextStepsSettings.restoreDefaults() }
                         .disabled(settings.isDefault)
                 }

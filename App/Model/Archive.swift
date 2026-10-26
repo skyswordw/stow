@@ -271,6 +271,24 @@ nonisolated struct Archive: Identifiable, Sendable {
 
     var isDiskImage: Bool { format == .dmg || format == .iso }
 
+    /// The single app or installer package at the top (a disk image's volume), if that's clearly
+    /// what the archive is for: the only one there, beside at most two other items unless it's a
+    /// disk image. Helper items don't count. Opening selects it, and with nothing selected Actions
+    /// offers to install it. Stops early, so a flat archive of 100,000 files costs a few lookups.
+    var installable: ArchiveEntry? {
+        var found: ArchiveEntry?
+        var count = 0
+        // With helpers, the children come straight from the index's cache; they're skipped here.
+        for entry in children(of: volumeRoot, includingHelpers: true) where !entry.isHelper {
+            count += 1
+            if count > 3, !isDiskImage { return nil }
+            guard entry.kind == .app || entry.kind == .installer else { continue }
+            if found != nil { return nil }
+            found = entry
+        }
+        return found
+    }
+
     /// Builds folder entries (with aggregated sizes) from a flat list of files,
     /// the same shape a real archive listing comes in. `helpers` are macOS helper items.
     init(name: String, format: ArchiveFormat, isEncrypted: Bool = false,

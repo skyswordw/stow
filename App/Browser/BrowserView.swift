@@ -1,113 +1,155 @@
 import SwiftUI
 
+/// The Browser (#160): the archive's files and, beside them, Details, which is always there. The
+/// title bar says which archive this is and how Checkup went. Floating glass controls sit over the
+/// files: getting around and Search above them, and below them the whole archive's controls
+/// (Glance, Extract All) on the leading side and Actions on the trailing side: the selection's, or
+/// with nothing selected, installing an archive that's one app.
+/// There is no folder pane: the files, the path, Back, Forward, Up and Search get you everywhere.
 struct BrowserView: View {
     @Bindable var model: BrowserModel
     @State private var editingDelegate = EditingWindowDelegate()
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
+    @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
+    @FocusState private var isSearchFocused: Bool
+    /// Archive Info, opened from Checkup or the title's menu.
+    @State private var showsArchiveInfo = false
+    /// How tall the floating controls are (taller while a failure card shows), so the files keep
+    /// exactly that much room below their last row.
+    @State private var floatingHeight: CGFloat = 62
 
     var body: some View {
-        NavigationSplitView {
-            SidebarView(model: model)
-                .accessibilityElement(children: .contain)
-                .accessibilitySortPriority(3)
-                .sidebarColumnWidth()
-                // Search sits at the top of the sidebar, beside the folders it searches across,
-                // which keeps the inspector's toolbar section to just its toggle.
-                .searchable(text: $model.query, placement: .sidebar, prompt: searchPrompt)
-        } detail: {
-            content
-                .accessibilityElement(children: .contain)
-                .accessibilitySortPriority(2)
-                .archiveDrop(model: model, folder: model.folder)
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    VStack(alignment: .leading, spacing: Space.s) {
-                        if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
-                        if let summary = model.searchCoverageSummary {
-                            DisclosureGroup {
-                                ScrollView {
-                                    VStack(alignment: .leading, spacing: Space.s) {
-                                        ForEach(model.searchOmissions) { omission in
-                                            HStack {
-                                                VStack(alignment: .leading) {
-                                                    Text(verbatim: omission.container.path)
-                                                    Text(omission.reason.description)
-                                                        .foregroundStyle(.secondary)
-                                                }
-                                                Spacer()
-                                                Button("Locate") { model.locateSearchOmission(omission) }
-                                                    .accessibilityLabel(String(localized: "Locate \(omission.container.path)"))
-                                                    .help("Show this archive in its folder without opening it")
-                                            }
-                                        }
-                                    }
-                                }
-                                .frame(maxHeight: 180)
-                            } label: {
-                                Text(summary)
-                            }
-                            .padding(Space.s)
-                        }
+        content
+            .accessibilityElement(children: .contain)
+            .accessibilitySortPriority(2)
+            .archiveDrop(model: model, folder: model.folder)
+            .frame(minWidth: Self.minFilesWidth)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
+                    BrowserNavigation(model: model, isSearchFocused: $isSearchFocused)
+                    banners
+                }
+            }
+            // Room for the floating controls: grid, list and columns scroll their last row clear of
+            // them, and the files show through around the glass.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear
+                    .frame(height: floatingHeight)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            // The controls themselves float in an overlay over the files rather than in that inset,
+            // so Actions can grow upward over the files when it fans out.
+            .overlay(alignment: .bottom) {
+                floatingControls
+                    // While Actions is fanned out it rises over the files; the room below them stays
+                    // the row's, so the list doesn't jump under the pointer.
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        if !model.isActionStackOpen { floatingHeight = height }
                     }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
+                    else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
                 }
-                // Next Steps takes real room above the bars: grid, list and columns scroll their last
-                // row clear of it, and nothing is reserved while it's hidden.
-                .safeAreaInset(edge: .bottom, spacing: 0) { nextSteps }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    VStack(spacing: 0) {
-                        if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
-                        else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
-                        PathBar(model: model)
-                    }
+            }
+            // Details is part of the window, not an option: no toggle, no close button.
+            .inspector(isPresented: .constant(true)) {
+                DetailsPane(model: model)
+                    .accessibilityElement(children: .contain)
+                    .accessibilitySortPriority(1)
+                    .inspectorColumnWidth(min: 250, ideal: DetailsPane.idealWidth, max: 400)
+            }
+            // The window keeps its title (Window menu, Mission Control); the title bar shows
+            // it as the archive's menu instead (`ArchiveTitleMenu`), with a visible chevron.
+            .navigationTitle(model.title)
+            .navigationSubtitle(model.subtitle)
+            .toolbar(removing: .title)
+            .toolbar { toolbar }
+            // ⌘F (Edit › Find…) puts the keyboard in the search field.
+            .onChange(of: model.searchFocusRequest) { isSearchFocused = true }
+            .onKeyPress(.escape) {
+                if model.renamingPath != nil {
+                    model.renamingPath = nil
+                    return .handled
                 }
-                .navigationTitle(model.title)
-                .navigationSubtitle(model.subtitle)
-        }
-        .inspector(isPresented: $model.showInspector) {
-            InspectorView(model: model)
-                .accessibilityElement(children: .contain)
-                .accessibilitySortPriority(1)
-                .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
-                // The toggle mirrors the sidebar's: at the inspector's leading edge, inside its own
-                // toolbar section — never straddling the column divider. SwiftUI keeps it in the
-                // toolbar while the inspector is collapsed, so it needs no second copy.
-                .toolbar {
-                    ToolbarItem { inspectorToggle }
-                    ToolbarSpacer(.flexible)
+                if model.quickLook.isActive {
+                    model.quickLook.close()
+                    return .handled
                 }
-        }
-        .toolbar { toolbar }
-        .onKeyPress(.escape) {
-            if model.renamingPath != nil {
-                model.renamingPath = nil
+                // The innermost thing first: a fanned-out Actions stack folds before the selection goes.
+                if model.isActionStackOpen {
+                    model.isActionStackOpen = false
+                    return .handled
+                }
+                guard !model.selection.isEmpty else { return .ignored }
+                model.select([])
                 return .handled
             }
-            if model.quickLook.isActive {
-                model.quickLook.close()
-                return .handled
+            .onChange(of: model.selection) { model.quickLook.selectionChanged() }
+            .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
+            .editingNotice(model, isActive: !app.glance.isShown) { app.extractAndRepack(model) }
+            .background {
+                WindowReader { window in
+                    editingDelegate.attach(window, model: model)
+                    model.quickLook.attach(to: window)
+                    model.dragOut.install(in: window)
+                    app.glance.prepareMainWindow(window)
+                }
+                .id(ObjectIdentifier(model))
             }
-            guard !model.selection.isEmpty else { return .ignored }
-            model.select([])
-            return .handled
-        }
-        .onChange(of: model.selection) { model.quickLook.selectionChanged() }
-        .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
-        .editingNotice(model, isActive: !app.glance.isShown) { app.extractAndRepack(model) }
-        .background {
-            WindowReader { window in
-                editingDelegate.attach(window, model: model)
-                model.quickLook.attach(to: window)
-                model.dragOut.install(in: window)
-                ToolbarPriority.install(in: window)
-                app.glance.prepareMainWindow(window)
-            }
-            .id(ObjectIdentifier(model))
-        }
     }
 
-    private var searchPrompt: String {
-        model.indexingProgress ?? String(localized: "Search \(model.archive.files.count) files")
+    /// Room for the files, their columns and the floating controls before Details gives way.
+    static let minFilesWidth: CGFloat = 480
+
+    /// The title's menu: the archive as a whole.
+    @ViewBuilder
+    private var titleMenu: some View {
+        Button("Archive Info", systemImage: "info.circle") { showsArchiveInfo = true }
+        if let url = model.levels.first?.archive.source?.url {
+            Button("Show in Finder", systemImage: "folder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+        }
+        Button("Rename Archive…", systemImage: "pencil") { Task { await model.renameArchive() } }
+            .disabled(model.archive.source == nil || model.editSession.isSaving || model.levels.count != 1)
+        Divider()
+        Button("Close Archive", systemImage: "xmark") { app.closeArchive() }
+    }
+
+    /// Notices about the listing itself, under the navigation row.
+    @ViewBuilder
+    private var banners: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
+            if let summary = model.searchCoverageSummary {
+                DisclosureGroup {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: Space.s) {
+                            ForEach(model.searchOmissions) { omission in
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(verbatim: omission.container.path)
+                                        Text(omission.reason.description)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Button("Locate") { model.locateSearchOmission(omission) }
+                                        .accessibilityLabel(String(localized: "Locate \(omission.container.path)"))
+                                        .help("Show this archive in its folder without opening it")
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 180)
+                } label: {
+                    Text(summary)
+                }
+                .padding(Space.s)
+            }
+        }
     }
 
     @ViewBuilder
@@ -126,41 +168,46 @@ struct BrowserView: View {
         }
     }
 
+    /// The glass along the bottom: the whole archive on the leading side, Actions on the trailing
+    /// side. One prominent action at a time: Extract All carries the accent until Actions shows,
+    /// for a selection or, with nothing selected, to install an archive that's one app.
     @ViewBuilder
-    private var nextSteps: some View {
-        let visible = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil
-        ZStack {
-            if visible {
-                NextStepsBar(model: model)
-                    .accessibilityElement(children: .contain)
-                    .accessibilitySortPriority(0)
-                    .padding(.top, Space.s)
-                    .padding(.bottom, Space.l)
-                    .transition(.rise(reduceMotion: reduceMotion))
+    private var floatingControls: some View {
+        let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
+            .archiveLayout(installable: model.archiveTarget).front != nil
+        let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
+        HStack(alignment: .bottom, spacing: Space.s) {
+            ArchiveActions(model: model, prominent: !showsActions) { app.glance.collapse() }
+                .accessibilitySortPriority(0.5)
+            Spacer(minLength: 0)
+            ZStack {
+                if showsActions {
+                    NextStepsBar(model: model)
+                        .accessibilityElement(children: .contain)
+                        .accessibilitySortPriority(0)
+                        .transition(.rise(reduceMotion: reduceMotion))
+                }
             }
+            // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
+            .animation(Motion.presence(showsActions, reduceMotion: reduceMotion), value: showsActions)
         }
-        // Never ask the column for the capsule's width: a minimum here feeds the split view's own
-        // sizing and loops (the "Update Constraints in Window" crash).
-        .frame(minWidth: 0, maxWidth: .infinity)
-        // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
-        .animation(Motion.presence(visible, reduceMotion: reduceMotion), value: visible)
+        .padding(.horizontal, Space.l)
+        .padding(.top, Space.s)
+        .padding(.bottom, Space.l)
     }
 
+    /// The title bar holds the archive itself: its name and menu (the title), how to look at it,
+    /// and Checkup with the password beside it. Tray and New Archive aren't about this archive;
+    /// they stay in the menu bar (Window › Show Tray ⌥⌘T, File › New Archive… ⌘N) and the Tray's
+    /// menu-bar icon.
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
-            ControlGroup {
-                Button("Back", systemImage: "chevron.left") { model.goBack() }
-                    .accessibilityLabel(String(localized: "Back"))
-                    .disabled(!model.canGoBack)
-                    .help("See the previous place")
-                Button("Forward", systemImage: "chevron.right") { model.goForward() }
-                    .accessibilityLabel(String(localized: "Forward"))
-                    .disabled(!model.canGoForward)
-                    .help("See the next place")
-            }
-            .controlGroupStyle(.navigation)
+            ArchiveTitleMenu(title: model.title, subtitle: model.subtitle) { titleMenu }
         }
+        .sharedBackgroundVisibility(.hidden)
+
+        ToolbarSpacer(.flexible)
 
         ToolbarItem {
             Picker("View", selection: $model.viewMode) {
@@ -170,55 +217,16 @@ struct BrowserView: View {
             }
             .pickerStyle(.segmented)
         }
+        .overflowPriority(keepsVisible: false)
 
-        ToolbarSpacer(.fixed)
-
-        ToolbarItem(placement: .navigation) { ArchiveUnlockControl(model: model) }
-
-        ToolbarItem {
-            Button("Tray", systemImage: "tray") { app.tray.toggle() }
-                .accessibilityLabel(String(localized: "Tray"))
-                .help("Show the Tray — gather files from anywhere")
-        }
-
-        ToolbarItem {
-            Button("Glance", systemImage: "arrow.down.right.and.arrow.up.left") { app.glance.collapse() }
-                .accessibilityLabel(String(localized: "Glance"))
-                .help("Switch to Glance, a small window — same folder, selection and history")
-        }
-
-        ToolbarItem {
-            Button("New Archive", systemImage: "plus.rectangle.on.folder") {
-                app.chooseFilesToPack()
+        // The archive's own state — safe or not, locked or not — always in reach.
+        ToolbarItemGroup(placement: .primaryAction) {
+            CheckupToolbarButton(model: model, isPresented: $showsArchiveInfo)
+            if model.archive.isEncrypted {
+                ArchiveUnlockControl(model: model, showsTitle: true)
             }
-            .accessibilityLabel(String(localized: "New Archive"))
-            .help("Pack files into a new archive")
         }
-
-        ToolbarSpacer(.fixed)
-
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                model.extractAll()
-            } label: {
-                Label("Extract All", systemImage: "arrow.down.to.line")
-                    .labelStyle(.titleAndIcon)
-                    .padding(.horizontal, Space.xs)
-            }
-            .buttonStyle(.glassProminent)
-            .help("Extract everything to a folder you choose")
-        }
-
-    }
-
-    private var inspectorToggle: some View {
-        Button(model.showInspector ? String(localized: "Hide Inspector") : String(localized: "Show Inspector"), systemImage: "sidebar.right") {
-            // ⌥⌘I is a keyboard action: the inspector snaps; a click on the toggle still slides it.
-            withTransaction(Motion.keyboardAware) { model.showInspector.toggle() }
-        }
-        .accessibilityLabel(model.showInspector ? String(localized: "Hide Inspector") : String(localized: "Show Inspector"))
-        .help(model.showInspector ? String(localized: "Hide Inspector") : String(localized: "Show Inspector"))
-        .keyboardShortcut("i", modifiers: [.command, .option])
+        .overflowPriority(keepsVisible: true)
     }
 }
 

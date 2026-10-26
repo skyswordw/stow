@@ -40,6 +40,43 @@ struct NextStepsSettingsTests {
         #expect(settings.layout(for: []) == .init())
     }
 
+    /// The stack puts installing in front for something to install, Extract in front otherwise,
+    /// and More reaches every action but the front one.
+    @Test func stackFrontIsInstallForInstallablesOtherwiseExtract() {
+        let settings = NextStepsSettings.defaults
+        let app = settings.layout(for: [entry("Harbor.app")])
+        #expect(app.front == .moveToApplications)
+        #expect(app.behind == [.extract])
+        #expect(app.more == [.extract, .pack])
+
+        let fonts = settings.layout(for: [entry("A.otf"), entry("B.ttf")])
+        #expect(fonts.front == .installFonts(count: 2))
+        #expect(fonts.behind == [.quickLook, .extract])
+
+        #expect(settings.layout(for: [entry("Setup.pkg")]).front == .openInstaller)
+
+        let image = settings.layout(for: [entry("Photos/Pier.jpg")])
+        #expect(image.front == .extract)
+        #expect(image.behind == [.quickLook])
+        #expect(image.more == [.quickLook, .pack])
+
+        // An archive inside opens from the stack, but Extract stays in front.
+        let nested = settings.layout(for: [entry("Nested.zip")])
+        #expect(nested.front == .extract)
+        #expect(nested.behind == [.openInside])
+
+        #expect(settings.layout(for: []).front == nil)
+    }
+
+    @Test func hidingInstallLeavesExtractInFront() {
+        var settings = NextStepsSettings.defaults
+        settings.set(.moveToApplications, shown: false)
+        let app = settings.layout(for: [entry("Harbor.app")])
+        #expect(app.front == .extract)
+        #expect(app.behind.isEmpty)
+        #expect(app.more == [.moveToApplications, .pack])
+    }
+
     @Test func applicableStepsInCapsuleOrder() {
         #expect(NextStep.applicable(for: [entry("A.otf"), entry("B.ttf")])
                 == [.installFonts(count: 2), .quickLook, .pack, .extract])
@@ -166,5 +203,87 @@ struct NextStepsSettingsTests {
             #expect(SettingsKeys.defaultValue(for: SettingsKeys.nextStepsHidden) == .string("pack"))
             #expect(SettingsKeys.defaultValue(for: SettingsKeys.nextStepsShown) == .bool(true))
         }
+    }
+}
+
+/// With nothing selected, Actions offers installing the archive's one app, as ArcZip 1.1.4 does.
+@Suite("Actions with nothing selected")
+@MainActor
+struct ArchiveActionsTests {
+    private static let plist = "Harbor.app/Contents/Info.plist"
+    private static let executable = "Harbor.app/Contents/MacOS/Harbor"
+
+    /// Through the real listing path, which tells helper items (`__MACOSX`, `.DS_Store`) apart.
+    private func archive(_ paths: [String], type: String = "zip") -> Archive {
+        Archive(listing: ArchiveListing(type: type, entries: paths.map { ListedEntry(path: $0, isFolder: false, size: 1) }),
+                url: URL(filePath: "/tmp/Harbor.\(type.lowercased())"))
+    }
+
+    private func entry(_ path: String) -> ArchiveEntry {
+        ArchiveEntry(path: path, isFolder: false, size: 1, packedSize: 1, modified: .now)
+    }
+
+    @Test func theArchivesOneAppIsWhatItsFor() {
+        #expect(archive([Self.plist, Self.executable]).installable?.path == "Harbor.app")
+        // The helper items a Mac packs beside it don't count.
+        #expect(archive([Self.plist, "__MACOSX/Harbor.app/Contents/._Info.plist", ".DS_Store"]).installable?.path == "Harbor.app")
+        // Nor do a couple of other things: ArcZip's test archive was an app and a text file.
+        #expect(archive([Self.plist, "Read Me.txt", "LICENSE"]).installable?.path == "Harbor.app")
+        #expect(archive(["Setup.pkg"]).installable?.path == "Setup.pkg")
+        // A disk image is for installing, however much window dressing is left beside the app.
+        #expect(archive([Self.plist, "a.txt", "b.txt", "c.txt", "d.txt"], type: "Dmg").installable?.path == "Harbor.app")
+    }
+
+    @Test func notWhenTheAppIsOneThingAmongMany() {
+        // Two candidates, a folder around it, or more than two other things: nothing to guess at.
+        #expect(archive([Self.plist, "Other.app/Contents/Info.plist"]).installable == nil)
+        #expect(archive([Self.plist, "Setup.pkg"]).installable == nil)
+        #expect(archive(["Harbor/" + Self.plist]).installable == nil)
+        #expect(archive([Self.plist, "a.txt", "b.txt", "c.txt"]).installable == nil)
+        #expect(archive(["notes.txt"]).installable == nil)
+        #expect(archive([]).installable == nil)
+    }
+
+    @Test func installIsTheStacksOnlyAction() throws {
+        let settings = NextStepsSettings.defaults
+        let harbor = try #require(archive([Self.plist]).installable)
+        let layout = settings.archiveLayout(installable: harbor)
+        #expect(layout.front == .moveToApplications)
+        // Extract All has its own button beside the stack: nothing behind, nothing in More.
+        #expect(layout.behind.isEmpty)
+        #expect(layout.more.isEmpty)
+        // An installer package or anything else: no stack, Extract All alone.
+        #expect(settings.archiveLayout(installable: entry("Setup.pkg")) == .init())
+        #expect(settings.archiveLayout(installable: entry("notes.txt")) == .init())
+        #expect(settings.archiveLayout(installable: nil) == .init())
+    }
+
+    @Test func hidingInstallAppLeavesTheStackEmpty() throws {
+        let harbor = try #require(archive([Self.plist]).installable)
+        var settings = NextStepsSettings.defaults
+        settings.set(.extract, shown: false)
+        #expect(settings.archiveLayout(installable: harbor).front == .moveToApplications)
+        settings.set(.moveToApplications, shown: false)
+        let layout = settings.archiveLayout(installable: harbor)
+        #expect(layout.front == nil)
+        // Still in File › Actions, like a selection's hidden steps.
+        #expect(layout.more == [.moveToApplications])
+    }
+
+    @Test func theBrowserOffersItOnlyWithNothingSelected() {
+        let files = [Self.plist, Self.executable, "Read Me.txt"].map(entry)
+        let model = BrowserModel(archive: Archive(name: "Harbor.zip", format: .zip, files: files))
+        // Opening selects the app, so Actions works on the selection.
+        #expect(model.selection == ["Harbor.app"])
+        #expect(model.archiveTarget == nil)
+        model.select([])
+        #expect(model.archiveTarget?.path == "Harbor.app")
+        model.select(["Read Me.txt"])
+        #expect(model.archiveTarget == nil)
+
+        // While the listing is still coming in, the top level may not be complete.
+        let listing = BrowserModel(archive: Archive(name: "Harbor.zip", format: .zip, files: files), isListing: true)
+        listing.select([])
+        #expect(listing.archiveTarget == nil)
     }
 }

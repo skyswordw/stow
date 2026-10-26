@@ -78,7 +78,11 @@ final class BrowserModel {
     var selection: Set<ArchiveEntry.ID> = []
     var viewMode: ViewMode = SettingsKeys.browserView()
     var query = "" { didSet { if query != oldValue { runSearch() } } }
-    var showInspector = true
+    /// Edit › Find… (⌘F) asks the Browser's search field for the keyboard; it counts, so each
+    /// press is a new request.
+    private(set) var searchFocusRequest = 0
+    /// Whether Actions' stack is fanned out. Esc folds it before it clears the selection.
+    var isActionStackOpen = false
     var showHelperItems = false { didSet { if showHelperItems != oldValue { refresh(); runSearch() } } }
     var isChoosingEncoding = false
     /// A hover preview to show without a pointer (design review: `-StowHover`).
@@ -471,29 +475,61 @@ final class BrowserModel {
     /// The single app or installer package at the top of a disk image (or archive), if that's
     /// clearly what it's for.
     static func suggestedSelection(in archive: Archive) -> ArchiveEntry.ID? {
-        let top = archive.children(of: archive.volumeRoot)
-        let installable = top.filter { $0.kind == .app || $0.kind == .installer }
-        guard installable.count == 1, archive.isDiskImage || top.count <= 3 else { return nil }
-        return installable[0].id
+        archive.installable?.id
+    }
+
+    /// With nothing selected, what Actions works on: the archive's one app or package, if that's
+    /// what it's for (`Archive.installable`, the same item opening selects). Not while the listing
+    /// is still coming in, when the top level may not be complete.
+    var archiveTarget: ArchiveEntry? {
+        guard selection.isEmpty, !isListing else { return nil }
+        return archive.installable
     }
 
     var isSearching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    /// Edit › Find…: put the keyboard in the search field (opening it if the toolbar folded it).
+    func focusSearch() { searchFocusRequest += 1 }
 
     /// Selected entries in path order (looked up, not filtered: the list may hold 100,000 rows).
     var selectedEntries: [ArchiveEntry] {
         selection.compactMap(archive.entry(at:)).sorted { $0.path < $1.path }
     }
 
-    var title: String {
-        if isSearching { return String(localized: "Search") }
-        return folder.isEmpty ? archive.name : (folder as NSString).lastPathComponent
+    /// The window is the archive's (#160): its name in the title (the inner one, inside a nested
+    /// archive), what it is in the subtitle. Where you are inside it is the header's breadcrumbs.
+    var title: String { archive.name }
+
+    /// "ZIP archive · 17 files".
+    var subtitle: String {
+        [String(localized: "\(archive.format.displayName) archive"),
+         String(localized: "\(archive.files.count) files")].joined(separator: " · ")
     }
 
-    var subtitle: String {
-        let count = visibleEntries.count
-        let items = count == 1 ? String(localized: "1 item")
-            : String(localized: "\(count.formatted()) items")
-        return isSearching ? String(localized: "\(count) results in \(archive.name)") : items
+    /// Where something in this archive sits, archive by archive and folder by folder, the way the
+    /// breadcrumbs go: "Showcase.zip › Showcase › Docs", or "Outer.zip › Packages › Inner.zip"
+    /// inside a nested archive. `folder` is a folder of the innermost archive ("" for its top level).
+    func location(ofFolder folder: String) -> String {
+        var parts: [String] = []
+        for (index, level) in levels.enumerated() {
+            parts.append(level.archive.name)
+            let inside = index == levels.count - 1 ? folder
+                : ((levels[index + 1].entryPath ?? "") as NSString).deletingLastPathComponent
+            parts += inside.split(separator: "/").map(String.init)
+        }
+        return parts.joined(separator: " › ")
+    }
+
+    /// A search result's place under its name: its folders inside this archive ("Showcase › Docs"),
+    /// or the archive's name for its top level, never an abstract "Top level".
+    func searchLocation(of entry: ArchiveEntry) -> String {
+        entry.parent.isEmpty ? archive.name : entry.parent.split(separator: "/").joined(separator: " › ")
+    }
+
+    /// A search result inside an inner archive: the way to that archive, then the folders inside it.
+    func location(of hit: NestedHit) -> String {
+        ([location(ofFolder: hit.container.parent), hit.container.name] + hit.inner.parent.split(separator: "/").map(String.init))
+            .joined(separator: " › ")
     }
 
     /// The selected search result, when it sits inside an inner archive.

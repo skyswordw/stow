@@ -203,7 +203,7 @@ private struct GridTile: View {
 
     /// Size (or where, while searching), then a staged edit's tag: "3.9 MB · Renamed".
     private var detail: Text {
-        let base = Text(showsPath ? entry.parent.isEmpty ? String(localized: "Top level") : entry.parent : entry.size.bytes)
+        let base = Text(showsPath ? model.searchLocation(of: entry) : entry.size.bytes)
         guard let state = model.editSession.state(for: entry.path) else { return base }
         return Text("\(base) · \(Text(state).foregroundStyle(EditingTag.style(for: state)))")
     }
@@ -264,6 +264,10 @@ extension View {
 struct ContentList: View {
     @Bindable var model: BrowserModel
     @State private var hover = HoverPreviewModel()
+    /// Takes the keyboard when it appears, as the grid does. Without it nothing held focus in List,
+    /// and with the folder list open AppKit gave the window's first focus to the toolbar's search
+    /// field instead (#160; see #172).
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         ScrollViewReader { scroller in
@@ -276,7 +280,7 @@ struct ContentList: View {
                         VStack(alignment: .leading, spacing: 0) {
                             EditingName(model: model, entry: entry).lineLimit(1)
                             if model.isSearching {
-                                Text(entry.parent.isEmpty ? String(localized: "Top level") : entry.parent)
+                                Text(model.searchLocation(of: entry))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
@@ -294,6 +298,7 @@ struct ContentList: View {
                     .hoverPreview(for: entry, model: hover, browser: model)
                     .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
                 }
+                // The name takes whatever room the others leave; their maximums keep it that way.
                 .width(min: 220, ideal: 320)
 
                 TableColumn(String(localized: "Size")) { entry in
@@ -301,20 +306,20 @@ struct ContentList: View {
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
-                .width(min: 70, ideal: 90)
+                .width(min: 70, ideal: 84, max: 110)
                 .alignment(.trailing)
 
                 TableColumn(String(localized: "Kind")) { entry in
                     Text(entry.kindDescription).foregroundStyle(.secondary).lineLimit(1)
                 }
-                .width(min: 80, ideal: 120)
+                .width(min: 80, ideal: 150, max: 220)
 
                 TableColumn(String(localized: "Modified")) { entry in
                     Text(entry.modified, format: .dateTime.day().month(.abbreviated).year())
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
-                .width(min: 90, ideal: 120)
+                .width(min: 90, ideal: 110, max: 140)
             }
             .contextMenu(forSelectionType: ArchiveEntry.ID.self) { ids in
                 if let id = ids.first, let entry = model.archive.entry(at: id) {
@@ -326,6 +331,8 @@ struct ContentList: View {
                 }
             }
             .alternatingRowBackgrounds(.disabled)
+            .focused($isFocused)
+            .onAppear { isFocused = true }
             .collapsesSelectionOnClick(model)
             .quickLookKeys(model)
             .onChange(of: model.selection) { model.selectionDidChange() }

@@ -130,6 +130,7 @@ struct GlanceView: View {
     @State private var editingDelegate = EditingWindowDelegate()
     let glance: GlanceController
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
+    @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
 
     var body: some View {
         content
@@ -149,6 +150,8 @@ struct GlanceView: View {
                     model.renamingPath = nil
                 } else if model.quickLook.isActive {
                     model.quickLook.close()
+                } else if model.isActionStackOpen {
+                    model.isActionStackOpen = false
                 } else if !model.selection.isEmpty {
                     model.select([])
                 } else {
@@ -186,12 +189,20 @@ struct GlanceView: View {
         }
     }
 
-    /// Next Steps for a selection; otherwise Extract All, in the same place. Selecting is a
-    /// 100-times-a-day action, so the swap doesn't animate (DESIGN.md › Motion).
+    /// Actions for a selection; otherwise Extract All, in the same place. With nothing selected,
+    /// an archive that's one app offers installing it beside Extract All, which gives up the
+    /// accent, as in the full window. Selecting is a 100-times-a-day action, so the swap doesn't
+    /// animate (DESIGN.md › Motion).
     @ViewBuilder
     private var nextSteps: some View {
-        Group {
-            if (!model.selection.isEmpty && showsNextSteps) || model.activity != nil {
+        let installsArchive = showsNextSteps && model.activity == nil && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
+            .archiveLayout(installable: model.archiveTarget).front != nil
+        // One Actions view in every state, so Install morphs into its progress like a selection's.
+        HStack(alignment: .bottom, spacing: Space.s) {
+            if installsArchive {
+                ArchiveActions(model: model, prominent: false)
+            }
+            if (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive {
                 NextStepsBar(model: model)
             } else {
                 Button {
@@ -205,6 +216,7 @@ struct GlanceView: View {
                 .help("Extract everything to a folder you choose")
             }
         }
+        .padding(.horizontal, Space.m)
         .padding(.bottom, Space.m)
     }
 
@@ -243,7 +255,7 @@ private struct GlanceList: View {
                         VStack(alignment: .leading, spacing: 0) {
                             EditingName(model: model, entry: entry).lineLimit(1)
                             if model.isSearching {
-                                Text(entry.parent.isEmpty ? String(localized: "Top level") : entry.parent)
+                                Text(model.searchLocation(of: entry))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)

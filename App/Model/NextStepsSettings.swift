@@ -26,7 +26,7 @@ nonisolated extension NextStep {
         var when: String {
             switch self {
             case .installFonts: String(localized: "When everything selected is a font")
-            case .moveToApplications: String(localized: "When an app is selected")
+            case .moveToApplications: String(localized: "When an app is selected, or the archive holds one app")
             case .openInstaller: String(localized: "When an installer package is selected")
             case .copyTo: String(localized: "When a disk image says where an item goes")
             case .openInside: String(localized: "When an archive is selected")
@@ -127,6 +127,17 @@ nonisolated struct NextStepsSettings: Equatable, Sendable {
         var primary: NextStep?
         /// Everything else that applies — hidden steps included — for the More menu.
         var alternatives: [NextStep] = []
+
+        /// The stack's front button: installing, when the selection is something to install (an
+        /// app, fonts, an installer package), otherwise the main button. Never runs by itself; it
+        /// takes a click like every other action.
+        var front: NextStep? { suggestions.first(where: \.isInstall) ?? primary }
+
+        /// The shown steps behind the front one, nearest first: the order they fan out above it.
+        var behind: [NextStep] { (suggestions + [primary].compactMap(\.self)).filter { $0 != front } }
+
+        /// More (⋯): every action but the front one, so the menu alone reaches all of them.
+        var more: [NextStep] { behind + alternatives }
     }
 
     func layout(for entries: [ArchiveEntry], dropTargets: [DiskImageLayout.DropTarget] = []) -> Layout {
@@ -136,6 +147,16 @@ nonisolated struct NextStepsSettings: Equatable, Sendable {
         let suggestions = Array(shown.filter { $0 != primary }.prefix(Self.maxSuggestions))
         let onCapsule = Set(suggestions + [primary].compactMap(\.self))
         return Layout(suggestions: suggestions, primary: primary, alternatives: all.filter { !onCapsule.contains($0) })
+    }
+
+    /// With nothing selected, the steps for the archive itself: installing it, when it's one app
+    /// (`Archive.installable`), as ArcZip offers. Nothing else, since Extract All has its own button,
+    /// and nothing for an installer package yet. A hidden Install App leaves the stack empty and
+    /// waits in File › Actions, like a selection's hidden steps. It takes a click, as always.
+    func archiveLayout(installable: ArchiveEntry?) -> Layout {
+        guard let installable, installable.kind == .app else { return Layout() }
+        return shows(.moveToApplications) ? Layout(primary: .moveToApplications)
+            : Layout(alternatives: [.moveToApplications])
     }
 
     // MARK: - Stored in UserDefaults
