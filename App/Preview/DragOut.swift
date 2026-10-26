@@ -140,7 +140,9 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 
     nonisolated func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint,
                                      operation: NSDragOperation) {
-        MainActor.assumeIsolated { finishDrag(pasteboard: session.draggingPasteboard, operation: operation) }
+        // Pull values out before crossing into MainActor — capturing `session` trips RegionIsolation.
+        let box = FinishBox(pasteboard: session.draggingPasteboard, operation: operation)
+        MainActor.assumeIsolated { finishDrag(pasteboard: box.pasteboard, operation: box.operation) }
     }
 
     nonisolated func draggingSession(_ session: NSDraggingSession,
@@ -175,4 +177,10 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 /// Events never leave the main thread here; the box only gets them through `assumeIsolated`.
 private struct EventBox: @unchecked Sendable {
     let event: NSEvent?
+}
+
+/// Pasteboard + op never leave the main thread here; the box only gets them through `assumeIsolated`.
+private struct FinishBox: @unchecked Sendable {
+    let pasteboard: NSPasteboard
+    let operation: NSDragOperation
 }
