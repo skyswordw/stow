@@ -80,7 +80,8 @@ nearest first, and fan out above it, the same width as the front, when the point
 stack or its edges are clicked; leaving folds them back, and Esc folds them before it clears the
 selection. Only the strip above the front button opens the stack, so a click or an accessibility
 press aimed at it can never land on the front action. Pointing only reveals: every action takes a
-click, and the existing install confirmations and signature checks are unchanged. More (⋯) lists
+click, and the existing install confirmations and signature checks are unchanged. The front
+button's help tag names what it acts on ("Install App: Harbor Prototype.app"). More (⋯) lists
 every action except the front one; **File › Actions** lists all of them, front first, so the
 keyboard reaches every action without macOS's keyboard navigation turned on. ⌘E still extracts
 from the menu bar whichever button is in front.
@@ -134,7 +135,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
 | Actions shown/hidden or its stack opened/closed by a key (arrows, ⌘A, Esc) | **None** | — |
-| Actions stack fans out (pointer rests 140 ms on it, or its edges clicked) | Spring: each action rises from behind the front button, scale 0.9 → 1 + opacity; folds back with an ease-out 280 ms after the pointer leaves. Choosing an action or a new selection folds it at once, unanimated. Fade only under Reduce Motion | `response 0.32, damping 1.0` in, 180 ms out |
+| Actions stack fans out (pointer rests 140 ms on it, or its edges clicked) | Spring: each action rises from behind the front button, scale 0.9 → 1 + opacity; folds back with an ease-out 450 ms after the pointer leaves (ArcZip lingers 0.5–1 s; it also opens at once, which flashes on every pass, so Stow waits 140 ms). Choosing an action or a new selection folds it at once, unanimated. Fade only under Reduce Motion | `response 0.32, damping 1.0` in, 180 ms out |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
 | Tray rows a drop (or Add Files…) brought in, new or already there | Accent ring and faint tint **at once**; fade out after 1.2 s; scrolled into view if below the fold (no scroll animation under Reduce Motion) | fade `Motion.status` 200 ms |
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |

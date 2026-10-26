@@ -42,6 +42,7 @@ struct NextStepsBar: View {
                 NextStepsMoreMenu(model: model, alternatives: layout.more)
                 if let front = layout.front {
                     ActionStack(front: front, behind: layout.behind, selection: model.selection,
+                                scope: entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items"),
                                 isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
                                 glass: glass) { step in
                         if step == .quickLook { model.toggleQuickLook() } else { model.run(step) }
@@ -65,6 +66,9 @@ private struct ActionStack: View {
     let behind: [NextStep]
     /// A new selection folds the stack again.
     let selection: Set<ArchiveEntry.ID>
+    /// What the actions apply to ("notes.txt", "3 items"), for their help tags: the buttons don't
+    /// repeat it, Details shows it, and the tag answers "on what?" right where the pointer is.
+    let scope: String
     /// Fanned out: by the pointer resting on it or a click on its edges. The model holds it so the
     /// window's Esc can fold it first.
     @Binding var isOpen: Bool
@@ -72,7 +76,13 @@ private struct ActionStack: View {
     let run: (NextStep) -> Void
 
     @State private var pointerTask: Task<Void, Never>?
+    @State private var watchTask: Task<Void, Never>?
     @State private var isPointedAt = false
+    /// The stack's frame in the window, to check the pointer against.
+    @State private var frameInWindow: CGRect = .zero
+    /// The fanned-out action under the pointer. SwiftUI's hover doesn't reach buttons that appear
+    /// inside the stack as it grows, so the stack lights them from where the pointer is.
+    @State private var pointedChoice: NextStep?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Two edges show at most; the rest are as easy to reach from More.
@@ -87,10 +97,11 @@ private struct ActionStack: View {
                 // The other actions, nearest the front button at the bottom.
                 ForEach(Array(behind.enumerated()).reversed(), id: \.element) { index, step in
                     Button(step.title, systemImage: step.symbol) { fold(); run(step) }
-                        .buttonStyle(StackButtonStyle(prominent: false))
+                        .buttonStyle(StackButtonStyle(prominent: false, highlighted: pointedChoice == step))
                         .accessibilityLabel(step.title)
                         .padding(.bottom, Self.gap)
                         .transition(rise(from: index))
+                        .help(String(localized: "\(step.title): \(scope)"))
                 }
             } else if edges > 0 {
                 edgeStrip
@@ -99,18 +110,15 @@ private struct ActionStack: View {
                 .background(alignment: .top) {
                     if !isOpen { edgesView.transition(.opacity) }
                 }
+                .onContinuousHover(perform: arrival)
         }
         .fixedSize()
-        // One region for the pointer, gaps included: the front button, its edges and the choices.
-        // SwiftUI's hover reported the pointer gone as soon as it moved after the stack grew under
-        // it, so `PointerTracker` decides from where the pointer really is.
-        .background {
-            PointerTracker { inside in
-                guard inside != isPointedAt else { return }
-                isPointedAt = inside
-                pointerMoved()
-            }
-        }
+        // The pointer arrives over the front button or the edges (`arrival`). Once it's here,
+        // leaving is decided by where it really is against the stack's whole frame, gaps included:
+        // after the stack grows under it, SwiftUI's hover reports the pointer gone at its next
+        // move while it's still on the stack. No hover handler sits over the choices, so they keep
+        // their own highlight and help tags.
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frameInWindow = $0 }
         .onKeyPress(.escape) {
             guard isOpen else { return .ignored }
             setOpen(false)
@@ -119,6 +127,7 @@ private struct ActionStack: View {
         .onChange(of: selection) { fold() }
         .onDisappear {
             pointerTask?.cancel()
+            watchTask?.cancel()
             isOpen = false
         }
         .task {
@@ -139,6 +148,7 @@ private struct ActionStack: View {
                 // ⌘E as in File › Extract; the others keep their menu-bar keys.
                 .keyboardShortcut(front == .extract ? front.menuShortcut : nil)
                 .accessibilityLabel(front.title)
+                .help(String(localized: "\(front.title): \(scope)"))
                 .glassEffectID("summary", in: glass)
         }
     }
@@ -156,6 +166,7 @@ private struct ActionStack: View {
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .onContinuousHover(perform: arrival)
         .accessibilityLabel(String(localized: "Show All Actions"))
         .accessibilityHint(String(localized: "Shows the other actions for the selection above this one"))
         .help(String(localized: "Show all actions"))
@@ -183,14 +194,65 @@ private struct ActionStack: View {
             removal: .offset(y: distance * 0.6).combined(with: .opacity))
     }
 
-    /// Pointing at the stack opens it after a moment, so passing over doesn't flicker it; leaving
-    /// closes it after a moment, so a pointer that strays off an edge and back doesn't either.
+    /// Where the pointer is in the window, from the window's own idea of it (top-left origin, like
+    /// the stack's frame).
+    private var pointerInWindow: CGPoint? {
+        guard let window = NSApp.keyWindow, let content = window.contentView else { return nil }
+        var point = content.convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        if !content.isFlipped { point.y = content.bounds.height - point.y }
+        return point
+    }
+
+    private var pointerIsOverStack: Bool {
+        pointerInWindow.map(frameInWindow.contains) ?? false
+    }
+
+    /// The fanned-out action at a point: rows of button + gap from the top, the front button last.
+    private func choice(at point: CGPoint?) -> NextStep? {
+        guard isOpen, let point, frameInWindow.contains(point) else { return nil }
+        let row = StackButtonStyle.height + Self.gap
+        let y = point.y - frameInWindow.minY
+        let index = Int(y / row)
+        guard y.truncatingRemainder(dividingBy: row) < StackButtonStyle.height, index < behind.count else { return nil }
+        return behind.reversed()[index]
+    }
+
+    private func arrival(_ phase: HoverPhase) {
+        if case .active = phase { pointer(inside: true) } else { pointer(inside: pointerIsOverStack) }
+    }
+
+    private func pointer(inside: Bool) {
+        guard inside != isPointedAt else { return }
+        isPointedAt = inside
+        pointerMoved()
+        watchTask?.cancel()
+        guard inside else {
+            pointedChoice = nil
+            return
+        }
+        // SwiftUI may not say when the pointer leaves, so look now and then while it's here, and
+        // light the action under it.
+        watchTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(50))
+                guard !Task.isCancelled else { return }
+                let point = pointerInWindow
+                let pointed = choice(at: point)
+                if pointed != pointedChoice { pointedChoice = pointed }
+                if !(point.map(frameInWindow.contains) ?? false) { return pointer(inside: false) }
+            }
+        }
+    }
+
+    /// Pointing at the stack opens it after a moment, so passing over doesn't flicker it (ArcZip's
+    /// opens at once and flashes on every pass). Leaving closes it after a longer moment, so a
+    /// pointer that overshoots and comes back finds it still open (ArcZip lingers 0.5–1 s).
     private func pointerMoved() {
         guard !behind.isEmpty else { return }
         let inside = isPointedAt
         pointerTask?.cancel()
         pointerTask = Task {
-            try? await Task.sleep(for: .milliseconds(inside ? 140 : 280))
+            try? await Task.sleep(for: .milliseconds(inside ? 140 : 450))
             guard !Task.isCancelled else { return }
             setOpen(inside)
         }
@@ -215,9 +277,12 @@ private struct ActionStack: View {
 private struct StackButtonStyle: ButtonStyle {
     static let height: CGFloat = ActionButtonStyle.height + 2 * ActionButtonStyle.inset
     let prominent: Bool
+    /// Lit as if under the pointer, for buttons the stack tracks itself.
+    var highlighted = false
 
     func makeBody(configuration: Configuration) -> some View {
-        StackLabel(label: configuration.label, prominent: prominent, isPressed: configuration.isPressed)
+        StackLabel(label: configuration.label, prominent: prominent, isPressed: configuration.isPressed,
+                   highlighted: highlighted)
     }
 }
 
@@ -226,6 +291,7 @@ private struct StackLabel<L: View>: View {
     let label: L
     var prominent = false
     var isPressed = false
+    var highlighted = false
     @State private var isHovering = false
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.colorSchemeContrast) private var contrast
@@ -243,10 +309,10 @@ private struct StackLabel<L: View>: View {
                     Capsule()
                         .fill(Color.accentColor)
                         .overlay {
-                            Capsule().fill(isPressed ? Color.black.opacity(0.16) : Color.white.opacity(isHovering ? 0.1 : 0))
+                            Capsule().fill(isPressed ? Color.black.opacity(0.16) : Color.white.opacity(isLit ? 0.1 : 0))
                         }
                 } else {
-                    Capsule().fill(.primary.opacity(isPressed ? 0.14 : isHovering ? 0.07 : 0))
+                    Capsule().fill(.primary.opacity(isPressed ? 0.16 : isLit ? 0.1 : 0))
                 }
             }
             .overlay {
@@ -261,6 +327,8 @@ private struct StackLabel<L: View>: View {
             .onHover { isHovering = $0 }
             .opacity(isEnabled ? 1 : 0.45)
     }
+
+    private var isLit: Bool { isHovering || highlighted }
 }
 
 extension StackLabel where L == Label<Text, Image> {
@@ -382,69 +450,6 @@ private struct NestedResultAction: View {
                 .padding(.horizontal, Space.l)
                 .accessibleGlass(in: .capsule)
                 .glassEffectID("summary", in: glass)
-        }
-    }
-}
-
-/// Whether the pointer is over a view. An AppKit tracking area notices it arriving, over any
-/// part, even parts that appeared under a resting pointer, and never takes a click or a hover
-/// from the views on top. Leaving is decided by where the pointer really is: while it's inside,
-/// the view checks every so often, and it checks again on every exit AppKit reports, because a view
-/// that grows under the pointer (the stack fanning out) gets an exit while the pointer is still on it.
-private struct PointerTracker: NSViewRepresentable {
-    let changed: (Bool) -> Void
-
-    func makeNSView(context: Context) -> TrackingView { TrackingView(changed: changed) }
-    func updateNSView(_ view: TrackingView, context: Context) { view.changed = changed }
-
-    final class TrackingView: NSView {
-        var changed: (Bool) -> Void
-        private var inside = false
-        private var timer: Timer?
-
-        init(changed: @escaping (Bool) -> Void) {
-            self.changed = changed
-            super.init(frame: .zero)
-            addTrackingArea(NSTrackingArea(rect: .zero,
-                                           options: [.mouseEnteredAndExited, .mouseMoved, .activeInActiveApp, .inVisibleRect],
-                                           owner: self))
-        }
-
-        required init?(coder: NSCoder) { fatalError() }
-
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
-        override func mouseEntered(with event: NSEvent) { check() }
-        override func mouseMoved(with event: NSEvent) { check() }
-        override func mouseExited(with event: NSEvent) { check() }
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            if window == nil { stopChecking() }
-        }
-
-        private func check() {
-            guard let window else { return set(false) }
-            set(bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil)))
-        }
-
-        private func set(_ value: Bool) {
-            guard value != inside else { return }
-            inside = value
-            if value {
-                let timer = Timer(timeInterval: 0.08, repeats: true) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.check() }
-                }
-                RunLoop.main.add(timer, forMode: .common)
-                self.timer = timer
-            } else {
-                stopChecking()
-            }
-            changed(value)
-        }
-
-        private func stopChecking() {
-            timer?.invalidate()
-            timer = nil
         }
     }
 }
