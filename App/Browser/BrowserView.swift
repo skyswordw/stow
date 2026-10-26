@@ -14,6 +14,9 @@ struct BrowserView: View {
     @FocusState private var isSearchFocused: Bool
     /// Archive Info, opened from Checkup or the title's menu.
     @State private var showsArchiveInfo = false
+    /// How tall the floating controls are (taller while a failure card shows), so the files keep
+    /// exactly that much room below their last row.
+    @State private var floatingHeight: CGFloat = 62
 
     var body: some View {
         content
@@ -27,11 +30,26 @@ struct BrowserView: View {
                     banners
                 }
             }
-            // The floating controls take real room above the editing bars: grid, list and columns
-            // scroll their last row clear of them, and the files show through around the glass.
+            // Room for the floating controls: grid, list and columns scroll their last row clear of
+            // them, and the files show through around the glass.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear
+                    .frame(height: floatingHeight)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            // The controls themselves float in an overlay over the files rather than in that inset,
+            // so Actions can grow upward over the files when it fans out.
+            .overlay(alignment: .bottom) {
+                floatingControls
+                    // While Actions is fanned out it rises over the files; the room below them stays
+                    // the row's, so the list doesn't jump under the pointer.
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        if !model.isActionStackOpen { floatingHeight = height }
+                    }
+            }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
-                    floatingControls
                     if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
                     else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
                 }

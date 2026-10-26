@@ -56,6 +56,10 @@ struct NextStepsBar: View {
 /// The front action with the others stacked behind it. The stack is as wide as its widest label,
 /// so the buttons line up when they fan out; the ones behind rise from under the front button and
 /// sink back into it.
+///
+/// Everything that takes the pointer is part of the stack's own layout, never drawn outside its
+/// frame: the strip with the edges above the front button, and the choices once they fan out. The
+/// stack grows upward to hold them and the row keeps its bottom edge.
 private struct ActionStack: View {
     let front: NextStep
     let behind: [NextStep]
@@ -68,33 +72,45 @@ private struct ActionStack: View {
     let run: (NextStep) -> Void
 
     @State private var pointerTask: Task<Void, Never>?
+    @State private var isPointedAt = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Two edges show at most; the rest are as easy to reach from More.
     private var edges: Int { min(behind.count, 2) }
     private static let gap: CGFloat = Space.s
+    /// The edges show 4–9 pt above the front button; the strip that opens the stack is a little taller.
+    private static let edgeStrip: CGFloat = 14
 
     var body: some View {
-        ZStack {
-            // The widest label sets the width of every button in the stack.
-            ForEach([front] + behind) { step in
-                StackLabel(step: step).hidden()
+        VStack(spacing: 0) {
+            if isOpen {
+                // The other actions, nearest the front button at the bottom.
+                ForEach(Array(behind.enumerated()).reversed(), id: \.element) { index, step in
+                    Button(step.title, systemImage: step.symbol) { fold(); run(step) }
+                        .buttonStyle(StackButtonStyle(prominent: false))
+                        .accessibilityLabel(step.title)
+                        .padding(.bottom, Self.gap)
+                        .transition(rise(from: index))
+                }
+            } else if edges > 0 {
+                edgeStrip
             }
-            Button(front.title, systemImage: front.symbol) { fold(); run(front) }
-                .buttonStyle(StackButtonStyle(prominent: true))
-                // ⌘E as in File › Extract; the others keep their menu-bar keys.
-                .keyboardShortcut(front == .extract ? front.menuShortcut : nil)
-                .accessibilityLabel(front.title)
-                .glassEffectID("summary", in: glass)
+            frontButton
+                .background(alignment: .top) {
+                    if !isOpen { edgesView.transition(.opacity) }
+                }
         }
         .fixedSize()
-        .background(alignment: .bottom) {
-            ZStack(alignment: .bottom) {
-                if !isOpen { edgesView.transition(.opacity) }
-                if isOpen { choices }
+        // One region for the pointer, gaps included: the front button, its edges and the choices.
+        // SwiftUI's hover reported the pointer gone as soon as it moved after the stack grew under
+        // it, so `PointerTracker` decides from where the pointer really is.
+        .background {
+            PointerTracker { inside in
+                guard inside != isPointedAt else { return }
+                isPointedAt = inside
+                pointerMoved()
             }
         }
-        .onHover { pointer(inside: $0) }
         .onKeyPress(.escape) {
             guard isOpen else { return .ignored }
             setOpen(false)
@@ -112,58 +128,50 @@ private struct ActionStack: View {
         }
     }
 
-    /// The edges of the buttons behind the front one, a little narrower each step back, like a
-    /// stack of cards. Clicking them fans the stack out.
-    @ViewBuilder
-    private var edgesView: some View {
-        if edges > 0 {
-            ZStack(alignment: .bottom) {
-                ForEach((0..<edges).reversed(), id: \.self) { depth in
-                    StackEdge(depth: depth)
-                        .scaleEffect(1 - 0.07 * CGFloat(depth + 1), anchor: .top)
-                        .offset(y: -CGFloat(depth + 1) * 4.5)
-                }
-                // What takes the click: the strip above the front button and nothing of the front
-                // button itself, so a click or an accessibility press aimed at the middle of this
-                // control can never land on the front action instead.
-                VStack(spacing: 0) {
-                    Button {
-                        setOpen(true)
-                    } label: {
-                        Color.clear
-                            .frame(height: Self.edgeStrip)
-                            .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "Show All Actions"))
-                    .accessibilityHint(String(localized: "Shows the other actions for the selection above this one"))
-                    .help(String(localized: "Show all actions"))
-                    Color.clear
-                        .frame(height: StackButtonStyle.height)
-                        .accessibilityHidden(true)
-                }
+    private var frontButton: some View {
+        ZStack {
+            // The widest label sets the width of every button in the stack.
+            ForEach([front] + behind) { step in
+                StackLabel(step: step).hidden()
             }
+            Button(front.title, systemImage: front.symbol) { fold(); run(front) }
+                .buttonStyle(StackButtonStyle(prominent: true))
+                // ⌘E as in File › Extract; the others keep their menu-bar keys.
+                .keyboardShortcut(front == .extract ? front.menuShortcut : nil)
+                .accessibilityLabel(front.title)
+                .glassEffectID("summary", in: glass)
         }
     }
 
-    /// The edges show 4–9 pt above the front button; the strip that opens the stack is a little taller.
-    private static let edgeStrip: CGFloat = 14
-
-    /// The other actions, nearest the front button at the bottom. They rise out from under it.
-    private var choices: some View {
-        VStack(spacing: Self.gap) {
-            ForEach(Array(behind.enumerated()).reversed(), id: \.element) { index, step in
-                Button(step.title, systemImage: step.symbol) { fold(); run(step) }
-                    .buttonStyle(StackButtonStyle(prominent: false))
-                    .accessibilityLabel(step.title)
-                    .transition(rise(from: index))
-            }
-            // Room for the front button the choices sit on.
+    /// What takes the click on the edges: the strip above the front button and nothing of the
+    /// front button itself, so a click or an accessibility press aimed at its middle can never land
+    /// on the front action instead.
+    private var edgeStrip: some View {
+        Button {
+            setOpen(true)
+        } label: {
             Color.clear
-                .frame(height: StackButtonStyle.height)
-                .accessibilityHidden(true)
+                .frame(maxWidth: .infinity)
+                .frame(height: Self.edgeStrip)
+                .contentShape(.rect)
         }
-        .onHover { pointer(inside: $0) }
+        .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "Show All Actions"))
+        .accessibilityHint(String(localized: "Shows the other actions for the selection above this one"))
+        .help(String(localized: "Show all actions"))
+    }
+
+    /// The edges of the buttons behind the front one, a little narrower each step back, like a
+    /// stack of cards. Drawing only: the strip above takes the click.
+    private var edgesView: some View {
+        ZStack(alignment: .top) {
+            ForEach((0..<edges).reversed(), id: \.self) { depth in
+                StackEdge(depth: depth)
+                    .scaleEffect(1 - 0.07 * CGFloat(depth + 1), anchor: .top)
+                    .offset(y: -CGFloat(depth + 1) * 4.5)
+            }
+        }
+        .allowsHitTesting(false)
     }
 
     /// Up from behind the front button (`index` steps away), with the system's fade under Reduce Motion.
@@ -176,9 +184,10 @@ private struct ActionStack: View {
     }
 
     /// Pointing at the stack opens it after a moment, so passing over doesn't flicker it; leaving
-    /// closes it after a moment, so crossing the gap between buttons doesn't either.
-    private func pointer(inside: Bool) {
+    /// closes it after a moment, so a pointer that strays off an edge and back doesn't either.
+    private func pointerMoved() {
         guard !behind.isEmpty else { return }
+        let inside = isPointedAt
         pointerTask?.cancel()
         pointerTask = Task {
             try? await Task.sleep(for: .milliseconds(inside ? 140 : 280))
@@ -373,6 +382,69 @@ private struct NestedResultAction: View {
                 .padding(.horizontal, Space.l)
                 .accessibleGlass(in: .capsule)
                 .glassEffectID("summary", in: glass)
+        }
+    }
+}
+
+/// Whether the pointer is over a view. An AppKit tracking area notices it arriving, over any
+/// part, even parts that appeared under a resting pointer, and never takes a click or a hover
+/// from the views on top. Leaving is decided by where the pointer really is: while it's inside,
+/// the view checks every so often, and it checks again on every exit AppKit reports, because a view
+/// that grows under the pointer (the stack fanning out) gets an exit while the pointer is still on it.
+private struct PointerTracker: NSViewRepresentable {
+    let changed: (Bool) -> Void
+
+    func makeNSView(context: Context) -> TrackingView { TrackingView(changed: changed) }
+    func updateNSView(_ view: TrackingView, context: Context) { view.changed = changed }
+
+    final class TrackingView: NSView {
+        var changed: (Bool) -> Void
+        private var inside = false
+        private var timer: Timer?
+
+        init(changed: @escaping (Bool) -> Void) {
+            self.changed = changed
+            super.init(frame: .zero)
+            addTrackingArea(NSTrackingArea(rect: .zero,
+                                           options: [.mouseEnteredAndExited, .mouseMoved, .activeInActiveApp, .inVisibleRect],
+                                           owner: self))
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+        override func mouseEntered(with event: NSEvent) { check() }
+        override func mouseMoved(with event: NSEvent) { check() }
+        override func mouseExited(with event: NSEvent) { check() }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if window == nil { stopChecking() }
+        }
+
+        private func check() {
+            guard let window else { return set(false) }
+            set(bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil)))
+        }
+
+        private func set(_ value: Bool) {
+            guard value != inside else { return }
+            inside = value
+            if value {
+                let timer = Timer(timeInterval: 0.08, repeats: true) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.check() }
+                }
+                RunLoop.main.add(timer, forMode: .common)
+                self.timer = timer
+            } else {
+                stopChecking()
+            }
+            changed(value)
+        }
+
+        private func stopChecking() {
+            timer?.invalidate()
+            timer = nil
         }
     }
 }
