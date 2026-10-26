@@ -334,7 +334,7 @@ struct ContentList: View {
             .alternatingRowBackgrounds(.disabled)
             .focused($isFocused)
             .onAppear { if !isSearchFocused.wrappedValue { isFocused = true } }
-            .collapsesSelectionOnClick(model)
+            .collapsesSelectionOnClick(model) { isSearchFocused.wrappedValue = false }
             .quickLookKeys(model)
             .onChange(of: model.selection) { model.selectionDidChange() }
             .onChange(of: model.demoHover, initial: true) { if let id = model.demoHover { hover.present(id) } }
@@ -350,8 +350,8 @@ struct ContentList: View {
 extension View {
     /// A plain click on one row of a multi-selection selects just that row, as in the grid (#169).
     /// Applied to a `Table` of `model.visibleEntries`.
-    func collapsesSelectionOnClick(_ model: BrowserModel) -> some View {
-        background(TableClickSelection(model: model))
+    func collapsesSelectionOnClick(_ model: BrowserModel, onFocus: (() -> Void)? = nil) -> some View {
+        background(TableClickSelection(model: model, onFocus: onFocus))
     }
 }
 
@@ -360,20 +360,26 @@ extension View {
 /// Selecting the row through the model on mouse-up leaves AppKit's late change nothing to do.
 /// Sits behind the table, so its frame says which clicks are the table's. Remove once #169's
 /// steps keep the row without it.
-private struct TableClickSelection: NSViewRepresentable {
+struct TableClickSelection: NSViewRepresentable {
     let model: BrowserModel
+    var onFocus: (() -> Void)?
 
-    func makeNSView(context: Context) -> Watcher { Watcher(model: model) }
-    func updateNSView(_ watcher: Watcher, context: Context) { watcher.model = model }
+    func makeNSView(context: Context) -> Watcher { Watcher(model: model, onFocus: onFocus) }
+    func updateNSView(_ watcher: Watcher, context: Context) {
+        watcher.model = model
+        watcher.onFocus = onFocus
+    }
 
     final class Watcher: NSView {
         var model: BrowserModel
+        var onFocus: (() -> Void)?
         private var monitor: Any?
         /// The selected row a plain press landed on, while it can still become a click.
         private var press: (row: Int, point: NSPoint)?
 
-        init(model: BrowserModel) {
+        init(model: BrowserModel, onFocus: (() -> Void)? = nil) {
             self.model = model
+            self.onFocus = onFocus
             super.init(frame: .zero)
         }
 
@@ -398,7 +404,7 @@ private struct TableClickSelection: NSViewRepresentable {
             if let monitor { NSEvent.removeMonitor(monitor) }
         }
 
-        private func handle(_ event: NSEvent) {
+        func handle(_ event: NSEvent) {
             guard let window, event.window === window else { return }
             guard event.type == .leftMouseDown else {
                 guard let press else { return }
@@ -417,17 +423,21 @@ private struct TableClickSelection: NSViewRepresentable {
             }
             press = nil
             let entries = model.visibleEntries
+            guard model.renamingPath == nil,
+                  bounds.contains(convert(event.locationInWindow, from: nil)),
+                  let table = table(at: event.locationInWindow, in: window) else { return }
+            let row = table.row(at: table.convert(event.locationInWindow, from: nil))
+            guard row >= 0 else { return }
+            onFocus?()
+            window.makeFirstResponder(table)
             guard event.clickCount == 1,
                   event.modifierFlags.isDisjoint(with: [.command, .shift, .option, .control]),
-                  model.renamingPath == nil, model.selection.count > 1,
-                  bounds.contains(convert(event.locationInWindow, from: nil)),
-                  let table = table(at: event.locationInWindow, in: window),
+                  model.selection.count > 1,
                   // The rows are `visibleEntries`, in order, and the table shows the model's selection.
                   table.numberOfRows == entries.count,
                   table.selectedRowIndexes.count == model.selection.count,
                   table.selectedRowIndexes.allSatisfy({ model.selection.contains(entries[$0].id) }) else { return }
-            let row = table.row(at: table.convert(event.locationInWindow, from: nil))
-            guard row >= 0, table.selectedRowIndexes.contains(row) else { return }
+            guard table.selectedRowIndexes.contains(row) else { return }
             press = (row, event.locationInWindow)
         }
 

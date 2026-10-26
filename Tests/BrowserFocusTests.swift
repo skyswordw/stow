@@ -50,6 +50,44 @@ struct BrowserFocusTests {
         try await fixture.wait { fixture.window.firstResponder is NSTableView }
     }
 
+    @Test func clickingAListRowReturnsFocusFromSearchToTheNativeTable() async throws {
+        let fixture = Fixture(mode: .list)
+        defer { fixture.close() }
+        _ = try await fixture.focusSearch()
+        let table = try #require(fixture.descendant(NSTableView.self))
+        try fixture.rowEvent(.leftMouseDown, row: 0)
+        try await fixture.settle()
+        #expect(fixture.window.firstResponder === table)
+        table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        table.moveDown(nil)
+        #expect(table.selectedRowIndexes == IndexSet(integer: 1))
+        table.moveUpAndModifySelection(nil)
+        #expect(table.selectedRowIndexes == IndexSet(integersIn: 0...1))
+        table.selectAll(nil)
+        #expect(fixture.model.selection == ["alpha.txt", "beta.txt"])
+    }
+
+    @Test func plainClickStillCollapsesAMultiSelection() async throws {
+        let fixture = Fixture(mode: .list)
+        defer { fixture.close() }
+        fixture.model.selectAll()
+        try await fixture.settle()
+        try fixture.rowEvent(.leftMouseDown, row: 0)
+        try fixture.rowEvent(.leftMouseUp, row: 0)
+        try await fixture.wait { fixture.model.selection == ["alpha.txt"] }
+    }
+
+    @Test func draggingDoesNotCollapseAMultiSelectionOnMouseUp() async throws {
+        let fixture = Fixture(mode: .list)
+        defer { fixture.close() }
+        fixture.model.selectAll()
+        try await fixture.settle()
+        try fixture.rowEvent(.leftMouseDown, row: 0)
+        try fixture.rowEvent(.leftMouseUp, row: 1)
+        try await fixture.settle()
+        #expect(fixture.model.selection == ["alpha.txt", "beta.txt"])
+    }
+
     private final class Fixture {
         let model: BrowserModel
         let window: NSWindow
@@ -75,6 +113,25 @@ struct BrowserFocusTests {
             model.focusSearch()
             try await wait { self.window.firstResponder is NSTextView }
             return try #require(window.firstResponder as? NSTextView)
+        }
+
+        func descendant<View: NSView>(_ type: View.Type) -> View? {
+            func find(in view: NSView) -> View? {
+                if let match = view as? View { return match }
+                return view.subviews.lazy.compactMap { find(in: $0) }.first
+            }
+            return find(in: host.view)
+        }
+
+        func rowEvent(_ type: NSEvent.EventType, row: Int) throws {
+            let table = try #require(descendant(NSTableView.self))
+            let watcher = try #require(descendant(TableClickSelection.Watcher.self))
+            let rect = table.rect(ofRow: row)
+            let point = table.convert(NSPoint(x: rect.midX, y: rect.midY), to: nil)
+            let event = try #require(NSEvent.mouseEvent(with: type, location: point,
+                modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber,
+                context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
+            watcher.handle(event)
         }
 
         func settle() async throws {
