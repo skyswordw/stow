@@ -44,6 +44,7 @@ struct GridMetrics {
 
 struct ContentGrid: View {
     @Bindable var model: BrowserModel
+    var isSearchFocused: FocusState<Bool>.Binding
     @State private var hover = HoverPreviewModel()
     @State private var marquee: (start: CGPoint, current: CGPoint, base: Set<ArchiveEntry.ID>, toggling: Bool)?
     @FocusState private var isFocused: Bool
@@ -84,7 +85,7 @@ struct ContentGrid: View {
         .focusable()
         .focusEffectDisabled()
         .focused($isFocused)
-        .onAppear { isFocused = true }
+        .onAppear { if !isSearchFocused.wrappedValue { isFocused = true } }
         .browserKeys(model)
         .onChange(of: model.demoHover, initial: true) { if let id = model.demoHover { hover.present(id) } }
     }
@@ -263,10 +264,10 @@ extension View {
 
 struct ContentList: View {
     @Bindable var model: BrowserModel
+    var isSearchFocused: FocusState<Bool>.Binding
     @State private var hover = HoverPreviewModel()
-    /// Takes the keyboard when it appears, as the grid does. Without it nothing held focus in List,
-    /// and with the folder list open AppKit gave the window's first focus to the toolbar's search
-    /// field instead (#160; see #172).
+    /// Takes initial keyboard focus unless Search owns it: filtering can recreate this table
+    /// while someone is typing (#177).
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -332,7 +333,7 @@ struct ContentList: View {
             }
             .alternatingRowBackgrounds(.disabled)
             .focused($isFocused)
-            .onAppear { isFocused = true }
+            .onAppear { if !isSearchFocused.wrappedValue { isFocused = true } }
             .collapsesSelectionOnClick(model)
             .quickLookKeys(model)
             .onChange(of: model.selection) { model.selectionDidChange() }

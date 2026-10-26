@@ -5,6 +5,7 @@ import SwiftUI
 /// selected file at the end. A selected folder opens as the next column.
 struct ContentColumns: View {
     @Bindable var model: BrowserModel
+    var isSearchFocused: FocusState<Bool>.Binding
     @FocusState private var isFocused: Bool
 
     static let columnWidth: CGFloat = 240
@@ -36,7 +37,7 @@ struct ContentColumns: View {
         .focusable()
         .focusEffectDisabled()
         .focused($isFocused)
-        .onAppear { isFocused = true }
+        .onAppear { if !isSearchFocused.wrappedValue { isFocused = true } }
         .browserKeys(model)
     }
 

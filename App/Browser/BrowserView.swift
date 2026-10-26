@@ -21,7 +21,8 @@ struct BrowserView: View {
     @State private var floatingHeight: CGFloat = 62
 
     var body: some View {
-        content
+        // Keep the navigation/search inset attached to one stable container as the file view changes.
+        ZStack { content }
             .accessibilityElement(children: .contain)
             .accessibilitySortPriority(2)
             .archiveDrop(model: model, folder: model.folder)
@@ -159,11 +160,12 @@ struct BrowserView: View {
         } else if model.visibleEntries.isEmpty, model.folder.isEmpty || model.viewMode != .columns {
             EmptyContentView(model: model) { app.isChoosingArchive = true }
         } else {
-            // View-mode switches are keyboard-speed actions: no animation.
+            // View-mode switches are keyboard-speed actions: no animation. Search keeps the
+            // keyboard when results appear or clearing it restores Columns.
             switch model.isSearching && model.viewMode == .columns ? .list : model.viewMode {
-            case .grid: ContentGrid(model: model)
-            case .list: ContentList(model: model)
-            case .columns: ContentColumns(model: model)
+            case .grid: ContentGrid(model: model, isSearchFocused: $isSearchFocused)
+            case .list: ContentList(model: model, isSearchFocused: $isSearchFocused)
+            case .columns: ContentColumns(model: model, isSearchFocused: $isSearchFocused)
             }
         }
     }
