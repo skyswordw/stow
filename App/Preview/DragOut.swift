@@ -17,6 +17,15 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     private var monitor: Any?
     private var press: (point: NSPoint, entry: ArchiveEntry.ID)?
     private var started = false
+    private var selectionSnapshot: SelectionSnapshot?
+
+    private struct SelectionSnapshot {
+        let token = UUID()
+        let ids: Set<ArchiveEntry.ID>
+        let level: UUID
+        let folder: String
+        let query: String
+    }
 
     func install(in window: NSWindow) {
         guard self.window !== window else { return }
@@ -25,7 +34,10 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             // Local monitors run on the main thread, inside event dispatch.
             let box = EventBox(event: event)
-            return MainActor.assumeIsolated { EventBox(event: self?.handle(box.event) ?? box.event) }.event
+            return MainActor.assumeIsolated {
+                guard let self else { return box }
+                return EventBox(event: self.handle(box.event))
+            }.event
         }
     }
 
@@ -33,19 +45,20 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         if let monitor { NSEvent.removeMonitor(monitor) }
     }
 
-    private func handle(_ event: NSEvent?) -> NSEvent? {
-        guard let event, event.window === window, model?.archive.source != nil else { return event }
+    func handle(_ event: NSEvent?) -> NSEvent? {
+        guard let event else { return nil }
+        if started, event.type == .leftMouseDragged { return nil }
+        guard event.window === window, model?.archive.source != nil else { return event }
         switch event.type {
         case .leftMouseDown:
+            selectionSnapshot = nil
             press = hovered.map { (event.locationInWindow, $0) }
             started = false
         case .leftMouseDragged:
             guard let press, !started else { return started ? nil : event }
             let moved = hypot(event.locationInWindow.x - press.point.x, event.locationInWindow.y - press.point.y)
             guard moved > 4 else { return event }
-            started = true
-            beginDrag(from: press.entry, event: event)
-            return nil
+            return beginDrag(from: press.entry, event: event) ? nil : event
         default:
             press = nil
             started = false
@@ -53,14 +66,27 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         return event
     }
 
-    private func beginDrag(from id: ArchiveEntry.ID, event: NSEvent) {
-        guard let model, let view = window?.contentView else { return }
+    func prepareDrag(from id: ArchiveEntry.ID) -> [ArchiveEntry] {
+        guard let model else { return [] }
         if !model.selection.contains(id) { model.select([id]) }
         let selected = model.selectedEntries
         let folders = selected.filter(\.isFolder).map { $0.path + "/" }
         let entries = selected.filter { entry in !folders.contains { entry.path.hasPrefix($0) } }
         // Results inside other archives aren't in this one to drag out.
-        guard !entries.isEmpty else { return }
+        guard !entries.isEmpty else { return [] }
+        selectionSnapshot = SelectionSnapshot(ids: model.selection, level: model.level.id,
+                                              folder: model.folder, query: model.query)
+        started = true
+        dragging = entries.map(\.path)
+        let token = selectionSnapshot?.token
+        DispatchQueue.main.async { [weak self] in self?.restoreSelection(token: token) }
+        return entries
+    }
+
+    private func beginDrag(from id: ArchiveEntry.ID, event: NSEvent) -> Bool {
+        guard let model, let view = window?.contentView else { return false }
+        let entries = prepareDrag(from: id)
+        guard !entries.isEmpty else { return false }
         let point = view.convert(event.locationInWindow, from: nil)
         let items = entries.enumerated().map { index, entry in
             let type = entry.isFolder && !entry.isPackage ? UTType.folder : entry.contentType
@@ -74,10 +100,31 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
                                   contents: icon)
             return item
         }
-        guard !items.isEmpty else { return }
-        dragging = entries.map(\.path)
         model.quickLook.close()
         view.beginDraggingSession(with: items, event: event, source: self)
+        return true
+    }
+
+    private func restoreSelection(token: UUID?) {
+        guard let snapshot = selectionSnapshot, snapshot.token == token, let model,
+              model.level.id == snapshot.level, model.folder == snapshot.folder,
+              model.query == snapshot.query else { return }
+        let ids = snapshot.ids.filter { model.archive.entry(at: $0) != nil }
+        if model.selection != ids { model.select(ids) }
+    }
+
+    func finishDrag(pasteboard: NSPasteboard, operation: NSDragOperation) {
+        if operation.isEmpty { pasteboard.clearContents() }
+        let token = selectionSnapshot?.token
+        restoreSelection(token: token)
+        dragging = []
+        press = nil
+        started = false
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.selectionSnapshot?.token == token else { return }
+            self.restoreSelection(token: token)
+            self.selectionSnapshot = nil
+        }
     }
 
     /// Design review and verification runs: told what a drag carries when it starts.
@@ -89,6 +136,17 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 
     nonisolated func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
         MainActor.assumeIsolated { onBegin?(dragging) }
+    }
+
+    nonisolated func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint,
+                                     operation: NSDragOperation) {
+        // AppKit ends the session on the main thread. Mark the session unsafe so we can read its
+        // MainActor pasteboard inside assumeIsolated without RegionIsolation on the capture.
+        nonisolated(unsafe) let session = session
+        let endedOperation = operation
+        MainActor.assumeIsolated {
+            finishDrag(pasteboard: session.draggingPasteboard, operation: endedOperation)
+        }
     }
 
     nonisolated func draggingSession(_ session: NSDraggingSession,
@@ -124,3 +182,4 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 private struct EventBox: @unchecked Sendable {
     let event: NSEvent?
 }
+

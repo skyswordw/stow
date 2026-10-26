@@ -34,7 +34,7 @@ nonisolated enum MacHelperFiles {
         guard let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { return }
         let matches = walker.compactMap { $0 as? URL }.filter {
             let relative = String($0.path.dropFirst(root.path.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            return matches(relative) && !preserved.contains { selected in
+            return Self.matches(relative) && !preserved.contains { selected in
                 relative == selected || relative.hasPrefix(selected + "/") || selected.hasPrefix(relative + "/")
             }
         }
