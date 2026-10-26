@@ -94,7 +94,9 @@ nonisolated enum SettingsKeys {
     }
     static func splitSize(in store: UserDefaults = .standard) -> SplitSize {
         guard let number = store.object(forKey: volumeSize) as? NSNumber else { return .none }
-        return SplitSize(rawValue: number.int64Value) ?? .none
+        let value = number.int64Value
+        guard value > 0 else { return .none }
+        return SplitSize.stored(value)
     }
     static func trayIdleSeconds(in store: UserDefaults = .standard) -> Int {
         guard let number = store.object(forKey: trayIdleSeconds) as? NSNumber,

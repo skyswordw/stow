@@ -94,6 +94,12 @@ struct PackingSettingsView: View {
     @AppStorage("PackAudience") private var audience = Audience.windows.rawValue
     @AppStorage("PackVerify") private var verify = false
     @AppStorage(SettingsKeys.volumeSize) private var volume = 0
+    @State private var showCustom = false
+    @State private var customText = ""
+    @State private var customUnit: SplitSize.CustomUnit = .megabyte
+
+    private var current: SplitSize { SplitSize.stored(Int64(volume)) }
+
     var body: some View {
         Form {
             Picker("Pack for", selection: $audience) {
@@ -102,14 +108,78 @@ struct PackingSettingsView: View {
             Section("Compression level for each destination") {
                 ForEach(Audience.allCases) { item in LevelSetting(audience: item) }
             }
-            Picker("Split archives", selection: $volume) {
+            Picker("Split archives", selection: volumeSelection) {
                 ForEach(SplitSize.allCases) { item in Text(item.phrase.sentenceCased).tag(Int(item.rawValue)) }
+                if current.isCustom {
+                    Text(current.phrase.sentenceCased).tag(Int(current.rawValue))
+                }
+                Text("Custom…").tag(-1)
+            }
+            if showCustom || current.isCustom {
+                HStack {
+                    TextField("Size", text: $customText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 88)
+                        .onSubmit(applyCustom)
+                    Picker("Unit", selection: $customUnit) {
+                        ForEach(SplitSize.CustomUnit.allCases) { Text($0.symbol).tag($0) }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    Button("Use") { applyCustom() }
+                        .disabled(SplitSize.parseCustom(customText, unit: customUnit) == nil)
+                }
             }
             Toggle("Check archives after packing", isOn: $verify)
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
         .fixedSize(horizontal: false, vertical: true)
+        .onAppear {
+            if current.isCustom {
+                showCustom = true
+                seedCustom(from: current)
+            }
+        }
+    }
+
+    private var volumeSelection: Binding<Int> {
+        Binding(
+            get: { showCustom && !current.isCustom ? -1 : volume },
+            set: { chosen in
+                if chosen == -1 {
+                    showCustom = true
+                    seedCustom(from: current)
+                    return
+                }
+                showCustom = false
+                volume = chosen
+            }
+        )
+    }
+
+    private func seedCustom(from size: SplitSize) {
+        guard size.rawValue > 0 else {
+            customText = ""
+            customUnit = .megabyte
+            return
+        }
+        if size.rawValue >= 1_000_000_000, size.rawValue % 1_000_000_000 == 0 {
+            customText = String(size.rawValue / 1_000_000_000)
+            customUnit = .gigabyte
+        } else if size.rawValue % 1_000_000 == 0 {
+            customText = String(size.rawValue / 1_000_000)
+            customUnit = .megabyte
+        } else {
+            customText = String(format: "%g", Double(size.rawValue) / 1_000_000)
+            customUnit = .megabyte
+        }
+    }
+
+    private func applyCustom() {
+        guard let size = SplitSize.parseCustom(customText, unit: customUnit) else { return }
+        volume = Int(size.rawValue)
+        showCustom = true
     }
 }
 
