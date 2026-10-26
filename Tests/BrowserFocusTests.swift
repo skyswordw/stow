@@ -56,8 +56,7 @@ struct BrowserFocusTests {
         _ = try await fixture.focusSearch()
         let table = try #require(fixture.descendant(NSTableView.self))
         try fixture.rowEvent(.leftMouseDown, row: 0)
-        try await fixture.settle()
-        #expect(fixture.window.firstResponder === table)
+        try await fixture.wait { fixture.window.firstResponder === table }
         table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         table.moveDown(nil)
         #expect(table.selectedRowIndexes == IndexSet(integer: 1))

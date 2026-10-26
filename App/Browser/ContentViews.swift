@@ -334,7 +334,10 @@ struct ContentList: View {
             .alternatingRowBackgrounds(.disabled)
             .focused($isFocused)
             .onAppear { if !isSearchFocused.wrappedValue { isFocused = true } }
-            .collapsesSelectionOnClick(model) { isSearchFocused.wrappedValue = false }
+            .collapsesSelectionOnClick(model) {
+                isSearchFocused.wrappedValue = false
+                isFocused = true
+            }
             .quickLookKeys(model)
             .onChange(of: model.selection) { model.selectionDidChange() }
             .onChange(of: model.demoHover, initial: true) { if let id = model.demoHover { hover.present(id) } }
@@ -405,7 +408,13 @@ struct TableClickSelection: NSViewRepresentable {
         }
 
         func handle(_ event: NSEvent) {
-            guard let window, event.window === window else { return }
+            guard let window else { return }
+            // Synthetic test events may omit `event.window`; fall back to windowNumber.
+            if let eventWindow = event.window {
+                guard eventWindow === window else { return }
+            } else if event.windowNumber != 0 {
+                guard event.windowNumber == window.windowNumber else { return }
+            }
             guard event.type == .leftMouseDown else {
                 guard let press else { return }
                 self.press = nil
@@ -454,8 +463,10 @@ struct TableClickSelection: NSViewRepresentable {
             var view = (window.contentView?.superview ?? window.contentView)?.hitTest(point)
             while let current = view, !(current is NSTableView) { view = current.superview }
             if let table = view as? NSTableView { return table }
-            // Off-screen / synthetic events often miss hit-testing; the watcher sits beside the table.
-            return nearbyTable()
+            // Off-screen / synthetic events miss hit-testing; pick any table that owns the point.
+            return tables(in: window.contentView).first { table in
+                table.bounds.contains(table.convert(point, from: nil))
+            } ?? nearbyTable()
         }
 
         private func nearbyTable() -> NSTableView? {
@@ -469,6 +480,17 @@ struct TableClickSelection: NSViewRepresentable {
                 view = current.superview
             }
             return nil
+        }
+
+        private func tables(in root: NSView?) -> [NSTableView] {
+            guard let root else { return [] }
+            var found: [NSTableView] = []
+            func walk(_ view: NSView) {
+                if let table = view as? NSTableView { found.append(table) }
+                view.subviews.forEach(walk)
+            }
+            walk(root)
+            return found
         }
     }
 }
