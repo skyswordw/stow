@@ -305,13 +305,16 @@ nonisolated struct PackOptions: Equatable, Sendable {
     }
 
     /// Effective thread count for CreateRequest (`nil` = all cores / engine default).
-    func effectiveThreads(global: Int? = PackPreferences.threads) -> Int? {
+    /// Pass `PackPreferences.threads` (or a test double) as `global` — that preference is MainActor-isolated.
+    func effectiveThreads(global: Int?) -> Int? {
         guard let threads else { return global }
         let cap = max(1, ProcessInfo.processInfo.activeProcessorCount)
         return min(max(1, threads), cap)
     }
 
     /// Restores purpose-driven defaults for the current audience/format without clearing format itself.
+    /// Reads remembered Pack/Settings defaults on the main actor.
+    @MainActor
     mutating func resetToPurposeDefaults() {
         includeMacHelperFiles = nil
         keepsMacMetadata = nil

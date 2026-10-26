@@ -563,7 +563,7 @@ enum DemoScene {
             var create = CreateRequest(operationID: UUID().uuidString, archiveName: name, format: options.format,
                                        level: options.level, password: options.usesPassword ? password : nil,
                                        volumeSize: split > 0 ? split : nil, keepsMacMetadata: keepsMetadata,
-                                       verify: PackPreferences.verify, threads: options.effectiveThreads(),
+                                       verify: PackPreferences.verify, threads: options.effectiveThreads(global: PackPreferences.threads),
                                        diskImageFilesystem: options.format == .dmg ? options.diskImageFilesystem : .hfsPlus,
                                        diskImageApplicationsLink: options.format == .dmg && options.diskImageApplicationsLink)
             create.encryptFilenames = options.format == .sevenZip && options.encryptFilenames

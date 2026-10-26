@@ -16,7 +16,7 @@ struct EnginePacker: ArchivePacking {
         var create = CreateRequest(operationID: UUID().uuidString, archiveName: name, format: options.format,
                                    level: options.level, password: nil, volumeSize: nil,
                                    keepsMacMetadata: keepsMetadata, verify: PackPreferences.verify,
-                                   threads: options.effectiveThreads())
+                                   threads: options.effectiveThreads(global: PackPreferences.threads))
         create.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
         _ = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,
                                           request: create, named: name, in: archive.deletingLastPathComponent(),

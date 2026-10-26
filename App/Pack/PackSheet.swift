@@ -692,7 +692,7 @@ struct PackSheet: View {
                 volumeSize: options.split.isNone ? nil : options.split.rawValue,
                 keepsMacMetadata: keepsMetadata,
                 verify: options.verify,
-                threads: options.effectiveThreads(),
+                threads: options.effectiveThreads(global: PackPreferences.threads),
                 diskImageFilesystem: format == .dmg ? options.diskImageFilesystem : .hfsPlus,
                 diskImageApplicationsLink: format == .dmg && options.diskImageApplicationsLink
             )

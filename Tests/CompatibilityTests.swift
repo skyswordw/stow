@@ -103,7 +103,7 @@ struct PackReportTests {
         #expect(visible.notes.contains { $0.title == "Contents are encrypted; file names stay visible" })
     }
 
-    @Test func resetToPurposeDefaultsClearsOverrides() {
+    @Test @MainActor func resetToPurposeDefaultsClearsOverrides() {
         var options = PackOptions()
         options.setAudience(.windows)
         options.includeMacHelperFiles = true
