@@ -90,7 +90,11 @@ extension SevenZip {
             var switches = [level, "-snl"]
             if request.format == .zip { switches.append("-mcu=on") }
             if request.password != nil {
-                switches += request.format == .zip ? ["-mem=AES256", "-p"] : ["-mhe=on", "-p"]
+                if request.format == .zip {
+                    switches += ["-mem=AES256", "-p"]
+                } else {
+                    switches += [request.encryptFilenames ? "-mhe=on" : "-mhe=off", "-p"]
+                }
             }
             let type = request.format == .zip ? "zip" : "7z"
             return [CreateStep(arguments: add(type, switches + volume, to: archive, ["*"]), directory: input,
