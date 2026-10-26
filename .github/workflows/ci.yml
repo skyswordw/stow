@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 447 after Tray collection, opening-window ownership and compact-editor regressions.
+          # 462 after the Browser search-focus regressions.
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "447"
+          MIN_TESTS: "462"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
