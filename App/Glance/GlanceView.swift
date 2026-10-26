@@ -7,6 +7,7 @@ struct GlanceRoot: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulControls = false
+    @AppStorage(SettingsKeys.glanceMaterial) private var materialPreference = SettingsKeys.GlanceMaterialPreference.liquidGlass.rawValue
     @State private var settled = true
 
     var body: some View {
@@ -67,8 +68,10 @@ struct GlanceRoot: View {
 
     @ViewBuilder
     private var background: some View {
-        switch GlanceMaterial.resolve(reduceTransparency: reduceTransparency) {
+        let preference = SettingsKeys.GlanceMaterialPreference(rawValue: materialPreference) ?? .liquidGlass
+        switch GlanceMaterial.resolve(reduceTransparency: reduceTransparency, preference: preference) {
         case .glass: Rectangle().fill(.clear).accessibleGlass(in: .rect)
+        case .frosted: Rectangle().fill(.regularMaterial)
         case .solid: Color(nsColor: .windowBackgroundColor)
         }
     }

@@ -20,7 +20,7 @@ struct SettingsTests {
                 "PackCPUCores", "FinderMenuOnExternalDrives", "HideDockIconWithoutWindows",
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
                 "browse.hoverPreviews", "password.showByDefault", "password.rememberInKeychain",
-                "glance.openFromFinder", "glance.pinned", "glance.colourfulControls",
+                "glance.openFromFinder", "glance.pinned", "glance.colourfulControls", "glance.material",
                 "tray.menuBarIcon", "tray.showWhileDragging", "tray.idleSeconds", "tray.border", "tray.pinned",
                 "nextSteps.shown", "nextSteps.hidden", "SUEnableAutomaticChecks", "SUAutomaticallyUpdate",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
