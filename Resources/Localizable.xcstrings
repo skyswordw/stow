@@ -1,6 +1,6 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
+  "sourceLanguage": "en",
+  "strings": {
     "Choose a destination outside the folders being collected.": {
       "localizations": {
         "zh-Hans": {
@@ -30,8 +30,7 @@
           }
         }
       }
-    }
-,
+    },
     "Re-enter Password": {
       "localizations": {
         "zh-Hans": {
@@ -122,52 +121,52 @@
         }
       }
     },
-    "Checks names, links, sizes and format as the archive opens, not what’s inside the files." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开压缩包时检查名称、链接、大小和格式，不检查文件内容。"
+    "Checks names, links, sizes and format as the archive opens, not what’s inside the files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开压缩包时检查名称、链接、大小和格式，不检查文件内容。"
           }
         }
       }
     },
-    "Checkup: no warnings" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "安全检查：没有警告"
+    "Checkup: no warnings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全检查：没有警告"
           }
         }
       }
     },
-    "Checkup: no warnings, %lld handled" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "安全检查：没有警告，已处理 %lld 项"
+    "Checkup: no warnings, %lld handled": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全检查：没有警告，已处理 %lld 项"
           }
         }
       }
     },
-    "Compressed size" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "压缩后大小"
+    "Compressed size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后大小"
           }
         }
       }
     },
-    "Details" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "详情"
+    "Details": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "详情"
           }
         }
       }
@@ -192,12 +191,12 @@
         }
       }
     },
-    "Location" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "位置"
+    "Location": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位置"
           }
         }
       }
@@ -211,8 +210,7 @@
           }
         }
       }
-    }
-,
+    },
     "Remove %lld Items from Tray": {
       "comment": "The Tray's More menu with several items selected. The files stay where they are.",
       "localizations": {
@@ -259,32 +257,32 @@
         }
       }
     },
-    "Show All Actions" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示全部操作"
+    "Show All Actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示全部操作"
           }
         }
       }
     },
-    "Show all actions" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示全部操作"
+    "Show all actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示全部操作"
           }
         }
       }
     },
-    "Shows the other actions for the selection above this one" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在此按钮上方显示所选项目的其他操作"
+    "Shows the other actions for the selection above this one": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此按钮上方显示所选项目的其他操作"
           }
         }
       }
@@ -490,32 +488,32 @@
         }
       }
     },
-    "Total size" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "总大小"
+    "Total size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "总大小"
           }
         }
       }
     },
-    "Undo" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "撤销"
+    "Undo": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撤销"
           }
         }
       }
     },
-    "Redo" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重做"
+    "Redo": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重做"
           }
         }
       }
@@ -540,238 +538,238 @@
         }
       }
     },
-    "Password required" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Password required"
+    "Password required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password required"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "需要密码"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要密码"
           }
         }
       }
     },
-    "Could not read archive" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Could not read archive"
+    "Could not read archive": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read archive"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法读取归档"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取归档"
           }
         }
       }
     },
-    "Archive size limit" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archive size limit"
+    "Archive size limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive size limit"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "归档大小限制"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "归档大小限制"
           }
         }
       }
     },
-    "Total search size limit" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total search size limit"
+    "Total search size limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total search size limit"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搜索总大小限制"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索总大小限制"
           }
         }
       }
     },
-    "Archive count limit" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archive count limit"
+    "Archive count limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive count limit"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "归档数量限制"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "归档数量限制"
           }
         }
       }
     },
-    "1 inner archive was not searched." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 inner archive was not searched."
+    "1 inner archive was not searched.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 inner archive was not searched."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "有 1 个内部归档未被搜索。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 1 个内部归档未被搜索。"
           }
         }
       }
     },
-    "%lld inner archives were not searched." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld inner archives were not searched."
+    "%lld inner archives were not searched.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld inner archives were not searched."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "有 %lld 个内部归档未被搜索。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 %lld 个内部归档未被搜索。"
           }
         }
       }
     },
-    "Locate" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Locate"
+    "Locate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Locate"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "定位"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定位"
           }
         }
       }
     },
-    "Locate %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Locate %@"
+    "Locate %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Locate %@"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "定位 %@"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定位 %@"
           }
         }
       }
     },
-    "Show this archive in its folder without opening it" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show this archive in its folder without opening it"
+    "Show this archive in its folder without opening it": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show this archive in its folder without opening it"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在所在文件夹中显示此归档，不打开它"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在所在文件夹中显示此归档，不打开它"
           }
         }
       }
     },
-    "No match among the searched items. Check the spelling, or search for part of a name." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No match among the searched items. Check the spelling, or search for part of a name."
+    "No match among the searched items. Check the spelling, or search for part of a name.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No match among the searched items. Check the spelling, or search for part of a name."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已搜索的项目中没有匹配项。请检查拼写，或搜索名称的一部分。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已搜索的项目中没有匹配项。请检查拼写，或搜索名称的一部分。"
           }
         }
       }
     },
-    "Choose the folder containing all archive parts so Stow can read the complete archive." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择包含所有分卷的文件夹，以便 Stow 读取完整归档。"
+    "Choose the folder containing all archive parts so Stow can read the complete archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择包含所有分卷的文件夹，以便 Stow 读取完整归档。"
           }
         }
       }
     },
-    "Archive parts are missing or inconsistent. Put every numbered part in the same folder and open the .001 part again." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "归档分卷缺失或不一致。请将所有编号分卷放在同一文件夹中，然后重新打开 .001 分卷。"
+    "Archive parts are missing or inconsistent. Put every numbered part in the same folder and open the .001 part again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "归档分卷缺失或不一致。请将所有编号分卷放在同一文件夹中，然后重新打开 .001 分卷。"
           }
         }
       }
     },
-    "“%@” needs all its archive parts" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“%@”需要所有归档分卷"
+    "“%@” needs all its archive parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”需要所有归档分卷"
           }
         }
       }
     },
-    "Unavailable" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不可用"
+    "Unavailable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不可用"
           }
         }
       }
     },
-    "Stow couldn’t read the archive. Try opening it again. Your files weren’t changed." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stow 无法读取归档。请尝试重新打开。你的文件未被更改。"
+    "Stow couldn’t read the archive. Try opening it again. Your files weren’t changed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 无法读取归档。请尝试重新打开。你的文件未被更改。"
           }
         }
       }
     },
-    "Can’t read the archive" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法读取归档"
+    "Can’t read the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取归档"
           }
         }
       }
@@ -937,32 +935,32 @@
         }
       }
     },
-    "Colourful Glance window controls" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Glance 窗口彩色控制按钮"
+    "Colourful Glance window controls": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glance 窗口彩色控制按钮"
           }
         }
       }
     },
-    "Use red for Close, yellow for Pin on Top, and green for Open in Full Window" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "用红色表示关闭，黄色表示置顶，绿色表示在完整窗口中打开"
+    "Use red for Close, yellow for Pin on Top, and green for Open in Full Window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用红色表示关闭，黄色表示置顶，绿色表示在完整窗口中打开"
           }
         }
       }
     },
-    "Listing… %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在列出… %@"
+    "Listing… %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在列出… %@"
           }
         }
       }
@@ -10463,6 +10461,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stow 会忘掉钥匙串里保存的所有压缩包密码。已经打开的压缩包仍会保留密码，直到你关闭它们。"
+          }
+        }
+      }
+    },
+    "Custom…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义…"
+          }
+        }
+      }
+    },
+    "Enter a size between 1 KB and 100 TB.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入 1 KB 到 100 TB 之间的大小。"
+          }
+        }
+      }
+    },
+    "Unit": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单位"
+          }
+        }
+      }
+    },
+    "in %@ parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分为 %@ 的分卷"
+          }
+        }
+      }
+    },
+    "in 1 GB parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分为 1 GB 的分卷"
+          }
+        }
+      }
+    },
+    "in 500 MB parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分为 500 MB 的分卷"
           }
         }
       }
