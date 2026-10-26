@@ -25,6 +25,10 @@ struct PackSheet: View {
     @State private var overflow = ScrollEdges()
     @State private var isChoosing = false
     @State private var handedOffCleanup = false
+    /// Custom split draft shown under More Options / when the sentence menu picks Custom…
+    @State private var showCustomSplit = false
+    @State private var customSplitText = ""
+    @State private var customSplitUnit: SplitSize.CustomUnit = .megabyte
 
     private var report: PackReport {
         Compatibility.report(for: request.files, options: options, password: password, overrides: overrides)
@@ -137,7 +141,16 @@ struct PackSheet: View {
             Token(title: options.split.phrase, suffix: suffix, isEnabled: options.format.supportsSplit,
                   disabledHelp: String(localized: "A \(options.format.displayName) is always one file")) {
                 ForEach(SplitSize.allCases) { split in
-                    Button(split.phrase.sentenceCased) { options.split = split }
+                    Button(split.phrase.sentenceCased) {
+                        showCustomSplit = false
+                        options.split = split
+                    }
+                }
+                Divider()
+                Button("Custom…") {
+                    showMore = true
+                    showCustomSplit = true
+                    seedCustomSplitFields(from: options.split)
                 }
             }
         }
@@ -321,11 +334,18 @@ struct PackSheet: View {
                 // The same choices as the sentence's last words, bound to the same state.
                 optionRow("Split archives") {
                     if options.format.supportsSplit {
-                        Picker("Split archives", selection: $options.split) {
+                        Picker("Split archives", selection: splitPickerSelection) {
                             ForEach(SplitSize.allCases) { Text($0.phrase.sentenceCased).tag($0) }
+                            if options.split.isCustom {
+                                Text(options.split.phrase.sentenceCased).tag(options.split)
+                            }
+                            Text("Custom…").tag(SplitSize(rawValue: -1))
                         }
                         .labelsHidden()
                         .fixedSize()
+                        if showCustomSplit || options.split.isCustom {
+                            customSplitEditor
+                        }
                     } else {
                         Text(SplitSize.none.phrase.sentenceCased)
                     }
@@ -467,6 +487,10 @@ struct PackSheet: View {
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
         options.split = options.format.supportsSplit ? SettingsKeys.splitSize() : .none
+        if options.split.isCustom {
+            showCustomSplit = true
+            seedCustomSplitFields(from: options.split)
+        }
         // Settings › Passwords: visible by default also lets Chinese and Japanese input methods work.
         revealsPassword = SettingsKeys.flag(SettingsKeys.showPassword)
         // Design review: -StowPackDetails YES opens both disclosures.
@@ -484,6 +508,68 @@ struct PackSheet: View {
     private func setAudience(_ audience: Audience) {
         options.setAudience(audience)
         options.level = PackPreferences.level(for: audience)
+    }
+
+    /// Picker tags presets, the live custom size, and a −1 sentinel for “Custom…”.
+    private var splitPickerSelection: Binding<SplitSize> {
+        Binding(
+            get: { showCustomSplit && !options.split.isCustom ? SplitSize(rawValue: -1) : options.split },
+            set: { chosen in
+                if chosen.rawValue == -1 {
+                    showCustomSplit = true
+                    seedCustomSplitFields(from: options.split)
+                    return
+                }
+                showCustomSplit = chosen.isCustom
+                options.split = chosen
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var customSplitEditor: some View {
+        HStack(spacing: Space.s) {
+            TextField("Size", text: $customSplitText)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 88)
+                .onSubmit(applyCustomSplit)
+            Picker("Unit", selection: $customSplitUnit) {
+                ForEach(SplitSize.CustomUnit.allCases) { Text($0.symbol).tag($0) }
+            }
+            .labelsHidden()
+            .fixedSize()
+            .onChange(of: customSplitUnit) { _, _ in applyCustomSplit() }
+            Button("Use") { applyCustomSplit() }
+                .disabled(SplitSize.parseCustom(customSplitText, unit: customSplitUnit) == nil)
+        }
+        if SplitSize.parseCustom(customSplitText, unit: customSplitUnit) == nil, !customSplitText.isEmpty {
+            caption(String(localized: "Enter a size between 1 KB and 100 TB."))
+        }
+    }
+
+    private func seedCustomSplitFields(from size: SplitSize) {
+        guard size.rawValue > 0 else {
+            customSplitText = ""
+            customSplitUnit = .megabyte
+            return
+        }
+        if size.rawValue >= 1_000_000_000, size.rawValue % 1_000_000_000 == 0 {
+            customSplitText = String(size.rawValue / 1_000_000_000)
+            customSplitUnit = .gigabyte
+        } else if size.rawValue % 1_000_000 == 0 {
+            customSplitText = String(size.rawValue / 1_000_000)
+            customSplitUnit = .megabyte
+        } else {
+            let mb = Double(size.rawValue) / 1_000_000
+            customSplitText = String(format: "%g", mb)
+            customSplitUnit = .megabyte
+        }
+    }
+
+    private func applyCustomSplit() {
+        guard let size = SplitSize.parseCustom(customSplitText, unit: customSplitUnit) else { return }
+        options.split = size
+        showCustomSplit = true
     }
 
     private func pack(_ report: PackReport) {
@@ -520,7 +606,7 @@ struct PackSheet: View {
                 format: format,
                 level: options.level,
                 password: options.usesPassword ? password : nil,
-                volumeSize: options.split == .none ? nil : options.split.rawValue,
+                volumeSize: options.split.isNone ? nil : options.split.rawValue,
                 keepsMacMetadata: keepsMetadata,
                 verify: options.verify,
                 threads: PackPreferences.threads,

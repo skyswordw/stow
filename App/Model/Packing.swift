@@ -128,21 +128,95 @@ nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
     var hasCaseInsensitiveNames: Bool { self != .linux }
 }
 
-nonisolated enum SplitSize: Int64, CaseIterable, Identifiable, Sendable {
-    case none = 0
-    case mb100 = 100_000_000
-    case mb700 = 700_000_000
-    case fat32 = 4_000_000_000
+/// How large each volume of a split archive should be (#151).
+///
+/// Presets cover common media limits; any other positive byte count is a custom size
+/// (Settings and Pack both persist the raw byte value under `PackVolumeSize`).
+nonisolated struct SplitSize: Hashable, Identifiable, Sendable {
+    /// Volume size in bytes. Zero means the archive stays one file.
+    var rawValue: Int64
 
-    var id: Self { self }
+    var id: Int64 { rawValue }
+
+    static let none = SplitSize(rawValue: 0)
+    static let mb100 = SplitSize(rawValue: 100_000_000)
+    static let mb500 = SplitSize(rawValue: 500_000_000)
+    static let mb700 = SplitSize(rawValue: 700_000_000)
+    static let gb1 = SplitSize(rawValue: 1_000_000_000)
+    static let fat32 = SplitSize(rawValue: 4_000_000_000)
+
+    /// Menu and Settings picker choices (presets only). Custom sizes are chosen separately.
+    static let allCases: [SplitSize] = [.none, .mb100, .mb500, .mb700, .gb1, .fat32]
+
+    /// Smallest custom volume the engine accepts (1 KB keeps parts usable).
+    static let minimumCustomBytes: Int64 = 1_024
+    /// Soft upper bound so a typo cannot ask for multi-petabyte volumes.
+    static let maximumCustomBytes: Int64 = 100_000_000_000_000
+
+    var isNone: Bool { rawValue == 0 }
+    var isPreset: Bool { Self.allCases.contains(self) }
+    var isCustom: Bool { rawValue > 0 && !isPreset }
+
+    /// Builds a size from a stored preference. Unknown positive values become custom; ≤0 → none.
+    static func stored(_ value: Int64) -> SplitSize {
+        guard value > 0 else { return .none }
+        return SplitSize(rawValue: value)
+    }
+
+    /// Validated custom size, or `nil` when out of range.
+    static func custom(_ bytes: Int64) -> SplitSize? {
+        guard bytes >= minimumCustomBytes, bytes <= maximumCustomBytes else { return nil }
+        return SplitSize(rawValue: bytes)
+    }
+
+    /// Parses a human size such as "250", "1.5", with a unit of MB or GB (decimal).
+    static func parseCustom(_ text: String, unit: CustomUnit) -> SplitSize? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let amount = Double(trimmed), amount.isFinite, amount > 0 else { return nil }
+        let bytes = Int64((amount * Double(unit.bytes)).rounded())
+        return custom(bytes)
+    }
+
+    enum CustomUnit: String, CaseIterable, Identifiable, Sendable {
+        case megabyte, gigabyte
+        var id: Self { self }
+        var bytes: Int64 {
+            switch self {
+            case .megabyte: 1_000_000
+            case .gigabyte: 1_000_000_000
+            }
+        }
+        var symbol: String {
+            switch self {
+            case .megabyte: "MB"
+            case .gigabyte: "GB"
+            }
+        }
+    }
 
     var phrase: String {
-        switch self {
-        case .none: String(localized: "as one file")
-        case .mb100: String(localized: "in 100 MB parts")
-        case .mb700: String(localized: "in 700 MB parts")
-        case .fat32: String(localized: "in 4 GB parts")
+        switch rawValue {
+        case 0: String(localized: "as one file")
+        case 100_000_000: String(localized: "in 100 MB parts")
+        case 500_000_000: String(localized: "in 500 MB parts")
+        case 700_000_000: String(localized: "in 700 MB parts")
+        case 1_000_000_000: String(localized: "in 1 GB parts")
+        case 4_000_000_000: String(localized: "in 4 GB parts")
+        default:
+            String(localized: "in \(Self.formatBytes(rawValue)) parts")
         }
+    }
+
+    /// Compact decimal label for custom sizes ("250 MB", "1.5 GB").
+    static func formatBytes(_ bytes: Int64) -> String {
+        if bytes >= 1_000_000_000 {
+            let gb = Double(bytes) / 1_000_000_000
+            if gb == floor(gb) { return String(format: "%.0f GB", gb) }
+            return String(format: "%g GB", (gb * 100).rounded() / 100)
+        }
+        let mb = Double(bytes) / 1_000_000
+        if mb == floor(mb) { return String(format: "%.0f MB", mb) }
+        return String(format: "%g MB", (mb * 100).rounded() / 100)
     }
 }
 
