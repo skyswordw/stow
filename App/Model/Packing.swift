@@ -172,12 +172,55 @@ nonisolated struct SplitSize: Hashable, Identifiable, Sendable {
         return SplitSize(rawValue: bytes)
     }
 
+    /// What the custom part-size field currently holds (#194).
+    enum CustomInput: Equatable, Sendable {
+        /// Nothing typed yet.
+        case empty
+        /// Not a number Stow can read, e.g. "abc", or "1,000" where the comma isn't a decimal mark.
+        case notANumber
+        /// A number, but the size is below 1 KB or above 100 TB.
+        case outOfRange
+        case size(SplitSize)
+    }
+
     /// Parses a human size such as "250", "1.5", with a unit of MB or GB (decimal).
-    static func parseCustom(_ text: String, unit: CustomUnit) -> SplitSize? {
+    static func parseCustom(_ text: String, unit: CustomUnit, locale: Locale = .current) -> SplitSize? {
+        if case .size(let size) = readCustom(text, unit: unit, locale: locale) { return size }
+        return nil
+    }
+
+    /// Reads the custom part-size field, telling "not a number" apart from "out of range".
+    static func readCustom(_ text: String, unit: CustomUnit, locale: Locale = .current) -> CustomInput {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let amount = Double(trimmed), amount.isFinite, amount > 0 else { return nil }
-        let bytes = Int64((amount * Double(unit.bytes)).rounded())
-        return custom(bytes)
+        guard !trimmed.isEmpty else { return .empty }
+        guard let amount = parseAmount(trimmed, locale: locale) else { return .notANumber }
+        let scaled = (amount * Double(unit.bytes)).rounded()
+        guard scaled >= Double(minimumCustomBytes), scaled <= Double(maximumCustomBytes),
+              let size = custom(Int64(scaled)) else { return .outOfRange }
+        return .size(size)
+    }
+
+    /// Reads a plain decimal amount.
+    ///
+    /// Full-width digits and punctuation (an East Asian input method in full-width mode) are
+    /// folded to ASCII first. A `.` decimal point is always accepted, so what the editor writes
+    /// back ("1.5") reads the same in every language. A `,` is accepted as the decimal mark only
+    /// when it is the locale's decimal separator ("1,5" in German or French). Grouping marks,
+    /// exponents, signs and other number spellings are rejected rather than guessed at, so
+    /// "1,000" under English is not a number instead of silently becoming 1.
+    static func parseAmount(_ text: String, locale: Locale = .current) -> Double? {
+        var folded = text.precomposedStringWithCompatibilityMapping
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if locale.decimalSeparator == ",", !folded.contains("."),
+           folded.filter({ $0 == "," }).count == 1 {
+            folded = folded.replacingOccurrences(of: ",", with: ".")
+        }
+        let parts = folded.split(separator: ".", omittingEmptySubsequences: false)
+        guard (1...2).contains(parts.count),
+              parts.allSatisfy({ $0.allSatisfy { $0.isASCII && $0.isNumber } }),
+              parts.contains(where: { !$0.isEmpty }),
+              let amount = Double(folded), amount.isFinite, amount >= 0 else { return nil }
+        return amount
     }
 
     enum CustomUnit: String, CaseIterable, Identifiable, Sendable {
