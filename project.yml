@@ -25,6 +25,9 @@ settings:
       ARCHS: $(ARCHS_STANDARD)
       ONLY_ACTIVE_ARCH: NO
 packages:
+  DSStore:
+    url: https://github.com/sindresorhus/DSStore
+    exactVersion: 1.0.0
   # Zstandard (BSD) for .tar.zst: the bundled 7zz reads zstd but can't write it. Linked into the
   # app and the engine; Quick Look never creates archives, so it goes without.
   zstd:
@@ -68,6 +71,7 @@ targets:
       - package: zstd
         product: libzstd
       - package: Sparkle
+      - package: DSStore
     # Merged with the generated Info.plist. Every type here mirrors Shared/ArchiveTypes.swift
     # (a test checks); the second document type is Alternate so Stow never takes over disk images
     # or installers unless people choose it in File Types.
@@ -390,6 +394,7 @@ targets:
         buildPhase: resources
     dependencies:
       - target: Stow
+      - package: DSStore
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

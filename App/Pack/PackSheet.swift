@@ -442,6 +442,8 @@ struct PackSheet: View {
                     optionRow("Layout") {
                         Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
                         caption(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
+                        Toggle("Finder window layout", isOn: $options.diskImageFinderChrome)
+                        caption(String(localized: "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting."))
                     }
                 }
             }
@@ -697,7 +699,8 @@ struct PackSheet: View {
                 verify: options.verify,
                 threads: options.effectiveThreads(global: PackPreferences.threads),
                 diskImageFilesystem: format == .dmg ? options.diskImageFilesystem : .hfsPlus,
-                diskImageApplicationsLink: format == .dmg && options.diskImageApplicationsLink
+                diskImageApplicationsLink: format == .dmg && options.diskImageApplicationsLink,
+                diskImageFinderChrome: format == .dmg && options.diskImageFinderChrome
             )
             request.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
             handedOffCleanup = true

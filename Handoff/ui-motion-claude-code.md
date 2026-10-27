@@ -7,6 +7,26 @@ starting points for Claude Code's judgment, not approved final visual designs.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Pack › DMG Finder layout — #85
+
+Confirmed scope: optional Finder window layout, default off, next to the Applications shortcut.
+It adds icon positions, a solid-color background and a best-effort app-derived volume icon in
+staging, without attaching the image or changing sandbox entitlements. Picture backgrounds
+remain excluded: DSStore documents that their Carbon Alias requires the final mounted volume.
+AES (#84) remains deferred.
+
+Functional requirements: the labeled toggle is keyboard accessible, only available for DMG,
+and clears when leaving DMG or restoring purpose defaults. Pack notes explain the extras;
+Browser and extraction hide them through the existing installer-extra rules. A metadata write
+failure fails packing; a missing icon does not. The initial layout places the first app left,
+Applications right and other visible items in a grid. This is an exploratory functional baseline,
+not visual approval or a claim of observed ArcZip trigger/timing behavior. Actual ArcZip Finder
+interaction comparison and macOS Finder validation remain pending.
+
+Codex owns implementation, state, errors, security and tests. Claude Code owns the toggle's
+visual treatment and generated Finder composition, spacing, color, icon sizing and motion.
+No Claude Code review, acceptance or active assignment is implied.
+
 ## Current Browser direction — PR #177 review, 2026-10-24
 
 Read the [direction reset](browser-design-direction-reset.md) first. The user explicitly

@@ -7,13 +7,16 @@ import Synchronization
 ///    appear on the disk. With one folder chosen, its contents sit at the top, the way Finder does it.
 /// 2. Optional drag-to-install layout (#77) adds an `Applications → /Applications` symlink so Next
 ///    Steps can offer "drag here" installs the same way it does for developer DMGs.
-/// 3. Default: `hdiutil makehybrid -hfs` writes an HFS+ image without mounting, then `convert`
+/// 3. Optional Finder chrome (#85) writes `.DS_Store` icon positions, a solid-color window
+///    background, and a best-effort `.VolumeIcon.icns` into staging before imaging — no attach.
+///    Picture backgrounds stay out: their Carbon Alias needs a mounted volume (sandbox).
+/// 4. Default: `hdiutil makehybrid -hfs` writes an HFS+ image without mounting, then `convert`
 ///    compresses by level. `create -srcfolder` mounts a scratch image, which the App Sandbox
 ///    doesn't allow — so unencrypted packing stays on the hybrid path.
-/// 4. Optional APFS (#77): tries `hdiutil create -fs APFS -srcfolder`. When that fails (typical in
+/// 5. Optional APFS (#77): tries `hdiutil create -fs APFS -srcfolder`. When that fails (typical in
 ///    the App Sandbox), falls back to the HFS+ hybrid path so packing still succeeds.
-/// 5. `hdiutil verify` checks it when asked.
-/// 6. It moves into place with the same no-clobber rename as every archive.
+/// 6. `hdiutil verify` checks it when asked.
+/// 7. It moves into place with the same no-clobber rename as every archive.
 ///
 /// AES password packing is deferred: on macOS 27 both `hdiutil create -encryption` ("Device not
 /// configured") and `diskutil image create from --encrypt` (MediaKit / EPERM) fail inside the App
@@ -77,6 +80,7 @@ enum DiskImageCreation {
         onProgress(0.02)
         try await stage(items, in: volume, applicationsLink: request.diskImageApplicationsLink)
         if Task.isCancelled { throw EngineError(.cancelled) }
+        if request.diskImageFinderChrome { try DiskImageChrome.apply(to: volume) }
         onProgress(0.3)
 
         // APFS → hdiutil create -srcfolder, with hybrid fallback.
