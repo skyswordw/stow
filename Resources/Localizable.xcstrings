@@ -10835,6 +10835,67 @@
         }
       }
     },
+    "Collected for packing": {
+      "comment": "Tray note after Collect into a temporary group (#179).",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已收集，用于打包"
+          }
+        }
+      }
+    },
+    "Temporary": {
+      "comment": "Collect Where menu: app-managed temporary group (#179).",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "临时"
+          }
+        }
+      }
+    },
+    "Deleted after packing": {
+      "comment": "Collect Where menu detail for Temporary (#179).",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打包后删除"
+          }
+        }
+      }
+    },
+    "Stow copies into a temporary folder for packing. Choose Where to keep it.": {
+      "comment": "Collect form subtitle when Where is Temporary (#179).",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 会复制到临时文件夹以便打包。若要保留，请选择位置。"
+          }
+        }
+      }
+    },
+    "These come from %lld folders. Temporary keeps them together for packing.": {
+      "comment": "Collect hint when items span folders and Temporary is selected (#179).",
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "这些项目来自 %lld 个文件夹。临时文件夹会把它们收在一起以便打包。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Liquid Glass": {
       "localizations": {
         "zh-Hans": {
@@ -10875,6 +10936,7 @@
         }
       }
     }
+
   },
   "version": "1.0"
 }

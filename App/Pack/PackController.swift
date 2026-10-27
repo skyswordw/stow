@@ -32,7 +32,11 @@ final class PackController {
         var destination: URL
         var conflict: ArchiveCreation.Conflict = .keepBoth
         var cleanupDirectory: URL?
+        var cleanupOnlyOnSuccess = false
     }
+
+    /// Fired on the main actor after an owned cleanup directory is removed (Tray #179).
+    var onDirectoryCleaned: ((URL) -> Void)?
 
     private(set) var activity: Activity?
     private var task: Task<Void, Never>?
@@ -49,7 +53,6 @@ final class PackController {
         let fileName = job.name + "." + job.request.format.fileExtension
         activity = Activity(name: fileName, phase: .running(0))
         task = Task { [weak self] in
-            defer { if let directory = job.cleanupDirectory { try? FileManager.default.removeItem(at: directory) } }
             do {
                 let result = try await ArchiveCreation.run(
                     job.items, totalBytes: job.totalBytes, attributes: job.attributes, request: job.request,
@@ -57,13 +60,23 @@ final class PackController {
                 ) { fraction in
                     Task { @MainActor in self?.advance(to: fraction) }
                 }
+                // Successful publication: always eligible for cleanup when a directory was attached.
+                let cleaned = job.cleanupDirectory
+                if let directory = cleaned {
+                    try? FileManager.default.removeItem(at: directory)
+                }
                 guard let self else { return }
                 activity?.placed = result.placed
                 activity?.verified = result.report.verified
                 withAnimation(Motion.current(Motion.status)) { activity?.phase = .done }
+                if let cleaned { onDirectoryCleaned?(cleaned) }
             } catch {
                 let failure = Failure(error, .pack, name: fileName, destination: job.destination, needs: job.totalBytes)
                 let cancelled = EngineError(error).failure == .cancelled
+                // Tray temporary groups keep material on cancel/failure (#179); extract-and-repack still cleans.
+                if !job.cleanupOnlyOnSuccess, let directory = job.cleanupDirectory {
+                    try? FileManager.default.removeItem(at: directory)
+                }
                 withAnimation(Motion.current(cancelled ? Motion.exit : Motion.status)) {
                     if cancelled {
                         self?.activity = nil
