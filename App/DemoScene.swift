@@ -553,19 +553,20 @@ enum DemoScene {
             let split = Int64(defaults.integer(forKey: "StowSplit"))
             let report = Compatibility.report(for: request.files, options: options, password: password ?? "")
             let name = Compatibility.archiveName(request.suggestedName, for: options.audience)
-            let keepsMetadata = options.audience.keepsMacMetadata && options.format == .zip
+            let keepsMetadata = options.effectiveKeepsMacMetadata
             if defaults.bool(forKey: "StowPackApplications"), options.format == .dmg {
                 options.diskImageApplicationsLink = true
             }
             if let fs = defaults.string(forKey: "StowPackFilesystem"), options.format == .dmg {
                 options.diskImageFilesystem = DiskImageFilesystem(rawValue: fs) ?? .hfsPlus
             }
-            let create = CreateRequest(operationID: UUID().uuidString, archiveName: name, format: options.format,
+            var create = CreateRequest(operationID: UUID().uuidString, archiveName: name, format: options.format,
                                        level: options.level, password: options.usesPassword ? password : nil,
                                        volumeSize: split > 0 ? split : nil, keepsMacMetadata: keepsMetadata,
-                                       verify: PackPreferences.verify, threads: PackPreferences.threads,
+                                       verify: PackPreferences.verify, threads: options.effectiveThreads(global: PackPreferences.threads),
                                        diskImageFilesystem: options.format == .dmg ? options.diskImageFilesystem : .hfsPlus,
                                        diskImageApplicationsLink: options.format == .dmg && options.diskImageApplicationsLink)
+            create.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
             do {
                 let result = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes,
                                                            attributes: keepsMetadata, request: create, named: name,

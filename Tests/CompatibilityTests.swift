@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Stow
 
@@ -60,6 +61,73 @@ struct PackReportTests {
         #expect(!options.usesPassword)  // tar can't carry a password
         options.setAudience(.web)
         #expect(options.format == .zip)
+    }
+
+    @Test func perJobHelperOverrideKeepsMacHelpersOnWindows() {
+        var options = PackOptions()
+        options.includeMacHelperFiles = true
+        let report = Compatibility.report(for: SampleArchive.packCandidates, options: options)
+        #expect(report.excluded.isEmpty)
+        #expect(options.dropsMacHelperFiles == false)
+    }
+
+    @Test func perJobHelperOverrideDropsHelpersOnMac() {
+        var options = PackOptions()
+        options.setAudience(.mac)
+        options.includeMacHelperFiles = false
+        let report = Compatibility.report(for: SampleArchive.packCandidates, options: options)
+        #expect(report.excluded.count == 4)
+        #expect(options.dropsMacHelperFiles)
+    }
+
+    @Test func perJobMacMetadataOverrideForZip() {
+        var options = PackOptions()
+        options.setAudience(.windows)
+        options.setFormat(.zip)
+        #expect(!options.effectiveKeepsMacMetadata)
+        options.keepsMacMetadata = true
+        #expect(options.effectiveKeepsMacMetadata)
+        options.setFormat(.sevenZip)
+        #expect(options.keepsMacMetadata == nil)
+        #expect(!options.effectiveKeepsMacMetadata)
+    }
+
+    @Test func encryptFilenamesDefaultAndNotes() {
+        var options = PackOptions()
+        options.setFormat(.sevenZip)
+        options.usesPassword = true
+        #expect(options.encryptFilenames)
+        let hidden = Compatibility.report(for: SampleArchive.packCandidates, options: options, password: "pw")
+        #expect(hidden.notes.contains { $0.title == "Contents and file names are encrypted" })
+        options.encryptFilenames = false
+        let visible = Compatibility.report(for: SampleArchive.packCandidates, options: options, password: "pw")
+        #expect(visible.notes.contains { $0.title == "Contents are encrypted; file names stay visible" })
+    }
+
+    @Test @MainActor func resetToPurposeDefaultsClearsOverrides() {
+        var options = PackOptions()
+        options.setAudience(.windows)
+        options.includeMacHelperFiles = true
+        options.keepsMacMetadata = true
+        options.encryptFilenames = false
+        options.threads = 2
+        options.resetToPurposeDefaults()
+        #expect(options.includeMacHelperFiles == nil)
+        #expect(options.keepsMacMetadata == nil)
+        #expect(options.encryptFilenames)
+        #expect(options.threads == nil)
+        #expect(options.dropsMacHelperFiles) // windows default
+    }
+
+    @Test func effectiveThreadsRespectsBounds() {
+        var options = PackOptions()
+        options.threads = 0
+        #expect(options.effectiveThreads(global: 4) == 1)
+        options.threads = 9_999
+        let capped = options.effectiveThreads(global: nil)!
+        #expect(capped == ProcessInfo.processInfo.activeProcessorCount)
+        options.threads = nil
+        #expect(options.effectiveThreads(global: 3) == 3)
     }
 
     @Test func splitCountsParts() {
