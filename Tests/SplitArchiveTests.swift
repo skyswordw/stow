@@ -24,10 +24,10 @@ struct SplitArchiveTests {
         try Data([1]).write(to: first)
         let third = folder.url.appending(path: "a.zip.003")
         try Data([3]).write(to: third)
-        #expect(throws: EngineError(.missingVolume)) { try SplitArchive.parts(for: first) }
-        #expect(throws: EngineError(.missingVolume)) { try SplitArchive.parts(for: third) }
+        expectEngineFailure(.missingVolume) { try SplitArchive.parts(for: first) }
+        expectEngineFailure(.missingVolume) { try SplitArchive.parts(for: third) }
         try FileManager.default.moveItem(at: third, to: folder.url.appending(path: "a.zip.0002"))
-        #expect(throws: EngineError(.missingVolume)) { try SplitArchive.parts(for: first) }
+        expectEngineFailure(.missingVolume) { try SplitArchive.parts(for: first) }
     }
 
     @Test func rejectsSymlinkParts() async throws {
@@ -37,7 +37,7 @@ struct SplitArchiveTests {
         try Data([1]).write(to: target)
         let link = folder.url.appending(path: "a.7z.001")
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
-        await #expect(throws: EngineError(.missingVolume)) { _ = try await SplitArchive.open([link]) }
+        await expectEngineFailure(.missingVolume) { _ = try await SplitArchive.open([link]) }
     }
 
     @Test func cancelledAssemblyLeavesNoNamedCopy() async throws {
@@ -49,7 +49,7 @@ struct SplitArchiveTests {
             withUnsafeCurrentTask { $0?.cancel() }
             return try await SplitArchive.open([part])
         }
-        await #expect(throws: EngineError(.cancelled)) { _ = try await task.value }
+        await expectEngineFailure(.cancelled) { _ = try await task.value }
         #expect(TemporaryFolder.contents(of: folder.url) == ["a.7z.001"])
     }
 
@@ -85,15 +85,15 @@ struct SplitArchiveEngineTests {
         let first = output.appending(path: report.files[0])
         #expect(first.pathExtension == "001")
         if encrypted && format == .sevenZip {
-            await #expect(throws: EngineError(.passwordRequired)) { _ = try await ArchiveEngine.shared.list(first) }
+            await expectEngineFailure(.passwordRequired) { _ = try await ArchiveEngine.shared.list(first) }
         }
         let listing = try await ArchiveEngine.shared.list(first, password: password)
         #expect(listing.type.lowercased() == (format == .zip ? "zip" : "7z"))
         #expect(listing.entries.map(\.path) == ["payload.bin"])
         if encrypted {
             #expect(listing.entries.allSatisfy { $0.isEncrypted })
-            await #expect(throws: EngineError(.passwordRequired)) { try await ArchiveEngine.shared.verify(first) }
-            await #expect(throws: EngineError(.wrongPassword)) { try await ArchiveEngine.shared.verify(first, password: "wrong") }
+            await expectEngineFailure(.passwordRequired) { try await ArchiveEngine.shared.verify(first) }
+            await expectEngineFailure(.wrongPassword) { try await ArchiveEngine.shared.verify(first, password: "wrong") }
         }
         let extracted = try await ArchiveEngine.shared.extract(first, paths: [], password: password) { _ in }
         defer { ArchiveEngine.shared.discard(extracted) }
@@ -105,10 +105,10 @@ struct SplitArchiveEngineTests {
         let last = output.appending(path: report.files.last!)
         let tail = try Data(contentsOf: last)
         try FileManager.default.removeItem(at: last)
-        await #expect(throws: EngineError(.missingVolume)) { try await ArchiveEngine.shared.verify(first, password: password) }
+        await expectEngineFailure(.missingVolume) { try await ArchiveEngine.shared.verify(first, password: password) }
         try tail.write(to: last)
         // Removing an interior volume must fail before a format/password error can obscure it.
         try FileManager.default.removeItem(at: output.appending(path: report.files[1]))
-        await #expect(throws: EngineError(.missingVolume)) { _ = try await ArchiveEngine.shared.list(first, password: password) }
+        await expectEngineFailure(.missingVolume) { _ = try await ArchiveEngine.shared.list(first, password: password) }
     }
 }

@@ -408,5 +408,10 @@ schemes:
         Stow: all
         StowTests: [test]
     test:
+      # Tests assert English strings; pin the test host to English so a Mac set to
+      # another language (e.g. Simplified Chinese) runs the same suite as CI.
+      # LocalizationTests checks zh-Hans explicitly.
+      language: en
+      region: US
       targets:
         - StowTests

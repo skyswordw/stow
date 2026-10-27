@@ -58,7 +58,7 @@ struct CloudPlaceholderTests {
     @Test func cancelStopsWaiting() async {
         let cloud = FakeCloud(polls: .max)
         let download = CloudDownload(url: url)
-        await #expect(throws: EngineError(.cancelled)) {
+        await expectEngineFailure(.cancelled) {
             try await CloudPlaceholder.waitForDownload(self.url, probe: cloud.probe, interval: .milliseconds(1),
                                                        isCancelled: { download.isCancelled }) { _ in download.cancel() }
         }
@@ -71,7 +71,7 @@ struct CloudPlaceholderTests {
         }
         try? await Task.sleep(for: .milliseconds(30))
         task.cancel()
-        await #expect(throws: EngineError(.cancelled)) { try await task.value }
+        await expectEngineFailure(.cancelled) { try await task.value }
     }
 
     @Test func aFailedDownloadSaysWhy() async {
