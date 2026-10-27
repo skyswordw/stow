@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 524 after Settings category map, page-scoped reset and router helpers (#162).
+          # 529 after bundled sample path and credits integrity coverage (#69).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "527"
+          MIN_TESTS: "529"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

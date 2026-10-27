@@ -35,12 +35,70 @@ struct SampleZIPTests {
         #expect(archive.entry(at: "Video/Logo Reveal.jpg") != nil)
         #expect(archive.entry(at: "Earlier Rounds/Old Explorations/Notes.txt") != nil)
 
-        // Fictional release promises removed from the genuine ZIP (#91 / #69 scope).
-        #expect(archive.entry(at: "Prototype/Harbor Prototype.app") == nil)
-        #expect(archive.entry(at: "Prototype/Install Helper.pkg") == nil)
-        #expect(archive.entry(at: "Audio/Brand Sting.wav") == nil)
-        #expect(archive.entry(at: "Video/Logo Reveal.mov") == nil)
-        #expect(archive.entry(at: "Earlier Rounds/Old Explorations.7z") == nil)
+        let excludedExtensions: Set<String> = ["app", "pkg", "mov", "wav", "7z"]
+        for entry in listing.entries {
+            for component in entry.path.split(separator: "/") {
+                #expect(component.lowercased() != "prototype", "Unexpected sample path: \(entry.path)")
+                let extensionName = (String(component) as NSString).pathExtension.lowercased()
+                #expect(!excludedExtensions.contains(extensionName), "Unexpected sample path: \(entry.path)")
+            }
+        }
+    }
+
+    @Test func bundledZIPContainsRealHandoffPaths() async throws {
+        let listing = try await ArchiveEngine.shared.list(zipURL)
+        let expectedPaths = [
+            "README.md",
+            "Specs/Brand Guidelines.pdf",
+            "Photos/Pier at Dawn.jpg",
+            "Photos/Lighthouse.jpg",
+            "Photos/Rope Detail.jpg",
+            "Photos/Old Jetty.heic",
+            "Photos/Harbor at Night.jpg",
+            "Fonts/Atkinson Hyperlegible Regular.ttf",
+            "Fonts/Atkinson Hyperlegible Bold.ttf",
+            "Fonts/Instrument Serif Italic.ttf",
+            "Screens/Home.png",
+            "Screens/Checkout.png",
+            "Screens/Onboarding 1.png",
+            "Screens/Onboarding 2.png",
+            "Screens/Onboarding 3.png",
+            "Screens/Settings.png",
+            "Screens/Dark/Home.png",
+            "Screens/Dark/Checkout.png",
+            "Logo/Harbor Mark.svg",
+            "Logo/Harbor Wordmark.svg",
+            "Logo/Harbor Mark@2x.png",
+            "Video/Logo Reveal.jpg",
+        ]
+        for path in expectedPaths {
+            let entry = try #require(listing.entries.first { $0.path == path }, "Missing sample file: \(path)")
+            #expect(!entry.isFolder)
+            #expect(!entry.isSymlink)
+            #expect(entry.size > 0, "Empty sample file: \(path)")
+        }
+    }
+
+    @Test func creditedTableFilesExistInBundledZIP() async throws {
+        let url = try zipURL
+        let creditsURL = url.deletingLastPathComponent().appending(path: "CREDITS.md")
+        let credits = try String(contentsOf: creditsURL, encoding: .utf8)
+        let listing = try await ArchiveEngine.shared.list(url)
+        let filePaths = Set(listing.entries.filter { !$0.isFolder && !$0.isSymlink }.map(\.path))
+        var creditedPaths: [String] = []
+        for line in credits.split(whereSeparator: \.isNewline) {
+            let row = line.trimmingCharacters(in: .whitespaces)
+            guard row.hasPrefix("|") else { continue }
+            let cells = row.split(separator: "|", omittingEmptySubsequences: false)
+            guard cells.count > 2 else { continue }
+            let fileCell = cells[1].trimmingCharacters(in: .whitespaces)
+            guard fileCell.hasPrefix("`") else { continue }
+            try #require(fileCell.hasSuffix("`"), "Malformed credits file cell: \(fileCell)")
+            let path = String(fileCell.dropFirst().dropLast())
+            creditedPaths.append(path)
+            #expect(filePaths.contains(path), "Credited file missing from sample ZIP: \(path)")
+        }
+        #expect(creditedPaths.count >= 8, "Expected at least the five photo and three font credits")
     }
 
     @Test func extractWritesRealFilesThroughTheEngine() async throws {
