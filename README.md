@@ -7,8 +7,9 @@ recipient's computer. *Stow* is a working name.
 
 **Status:** prototype. Real archives open, browse, preview and extract through a sandboxed 7-Zip
 engine; packing creates real archives; the install Actions (apps, fonts, installer packages) and
-Finder integration (Quick Look, context menu, Services, file types) are real. "Try the Sample", the
-Recent list and most design-review scenes still use fictional sample data.
+Finder integration (Quick Look, context menu, Services, file types) are real. "Try the Sample" opens a
+bundled genuine ZIP through the normal engine. The Recent list and most design-review scenes still use
+fictional sample data.
 
 - 🧪 Staged ZIP / 7Z / TAR editing: add, delete, rename, replace, undo/redo, and atomic Save (pending macOS verification).
 - 🧪 Read-only archives explain the limitation and offer Extract and Repack as ZIP or 7Z (pending macOS verification).

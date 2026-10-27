@@ -76,8 +76,7 @@ struct OnboardingView: View {
         switch step {
         case .archives:
             Button("Try the Sample") {
-                app.openArchive(named: SampleArchive.make().name)
-                app.showMainWindow()
+                app.openSample()
             }
         case .fileTypes:
             Button("Choose File Types…") { showSettings(.fileTypes) }

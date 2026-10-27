@@ -1,9 +1,22 @@
 import Foundation
 
-/// "Harbor Rebrand Handoff", the archive Try the Sample opens and the demo scenes show: a design
-/// studio's handoff for a fictional ferry app. It's a listing only; the files behind its previews
-/// are in Resources/Sample (see `SampleContent`).
+/// "Harbor Rebrand Handoff": Try the Sample opens the bundled genuine ZIP (`bundledURL`); design-review
+/// scenes still use `make()` for an in-memory listing (including fictional Prototype/Audio entries that
+/// are not in the release ZIP). Real preview files live under Resources/Sample (see `SampleContent`).
 enum SampleArchive {
+    /// The genuine ZIP Try the Sample opens. Sizes and Extract/Install go through the normal engine.
+    static var bundledURL: URL? {
+        let name = "Harbor Rebrand Handoff"
+        if let url = Bundle.main.url(forResource: name, withExtension: "zip", subdirectory: "Sample") {
+            return url
+        }
+        let fallback = Bundle.main.resourceURL?.appending(path: "Sample/\(name).zip")
+        if let fallback, FileManager.default.fileExists(atPath: fallback.path) { return fallback }
+        return nil
+    }
+
+    /// In-memory listing for design-review scenes and tests that do not open the bundled ZIP.
+    /// Fictional sizes and entries (Prototype.app, nested .7z, …) stay here; they are not in `bundledURL`.
     static func make(named name: String = "Harbor Rebrand Handoff.zip") -> Archive {
         let files: [(String, Int64)] = [
             ("README.md", 4_200),
