@@ -174,7 +174,15 @@ tuning. Preserve these interaction constraints:
 Include before/after evidence in the design PR, explain the hierarchy and motion choices,
 and link the functional issues/PRs above. Check English and Simplified Chinese, light and
 dark appearances, compact Glance and small windows, long filenames/password lists,
-keyboard focus, VoiceOver labels, Reduced Motion, and Reduced Transparency.
+keyboard focus, Reduced Motion, and Reduced Transparency. Preserve meaningful accessibility
+labels as part of implementation.
+
+**Confirmed priority, 2026-10-26:** dedicated VoiceOver refinement and native VoiceOver
+acceptance are deferred while the core product is being completed. Missing VoiceOver validation
+is not a merge or release blocker for the current milestone. This supersedes VoiceOver gates
+in earlier briefs and PR checklists. Basic keyboard access, focus behavior, existing accessibility
+semantics, and display/motion preferences remain functional requirements. Computer Use AX
+inspection/activation is useful evidence, but must not be reported as a completed VoiceOver pass.
 
 Exercise a real public-header encrypted ZIP, encrypted filenames, wrong password, cancel,
 successful read, and mixed-password entries. Functional tests should protect state and
@@ -183,8 +191,10 @@ tests, localization checks, Universal 2 build, packaged-app launch, and en/zh li
 snapshot CI; that does not establish final visual quality.
 
 [Issue #93](https://github.com/skyswordw/stow/issues/93), an accessibility activation crash
-reproduced in published 0.1.1, remains a separate technical investigation. Do not close it
-on the strength of this visual review or assume #103 fixed it.
+reproduced in published 0.1.1, remains open as a low-priority, deferred investigation, not a
+current milestone blocker. Do not close it on the strength of this visual review or assume #103
+fixed it. If the crash is reproduced during ordinary mouse or keyboard use, prioritize that
+evidence as a stability defect independently of the deferred VoiceOver work.
 
 ## Split-volume recovery (#116)
 
