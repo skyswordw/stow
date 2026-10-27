@@ -207,14 +207,14 @@ struct PackingTests {
 
         if format == .sevenZip {
             // File names are encrypted too: nothing to list without the password.
-            await #expect(throws: EngineError(.passwordRequired)) { try await sevenZip.list(archive) }
+            await expectEngineFailure(.passwordRequired) { try await sevenZip.list(archive) }
         } else {
             let listing = try await sevenZip.list(archive)
             #expect(listing.entries.first { $0.path == "Project/README.md" }?.isEncrypted == true)
         }
         let wrong = out.appending(path: "wrong", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: wrong, withIntermediateDirectories: false)
-        await #expect(throws: EngineError(.wrongPassword)) {
+        await expectEngineFailure(.wrongPassword) {
             _ = try await sevenZip.extract(archive, into: wrong, password: "battery staple") { _ in }
         }
         let right = out.appending(path: "right", directoryHint: .isDirectory)
@@ -307,7 +307,7 @@ struct PackingTests {
         try #require(started.withLock { $0 }, "compression never started")
         task.cancel()
 
-        await #expect(throws: EngineError(.cancelled)) { try await task.value }
+        await expectEngineFailure(.cancelled) { try await task.value }
         #expect(TemporaryFolder.contents(of: out).isEmpty)
     }
 

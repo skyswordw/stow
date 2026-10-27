@@ -107,7 +107,7 @@ struct ZstdStreamTests {
         let out = folder.url.appending(path: "out", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
         var checks = 0
-        #expect(throws: EngineError(.cancelled)) {
+        expectEngineFailure(.cancelled) {
             try Zstd.compressNow(source, into: out.appending(path: "dump.bin.zst"), level: 1, volumeSize: nil,
                                  cancelled: { checks += 1; return checks > 1 })
         }

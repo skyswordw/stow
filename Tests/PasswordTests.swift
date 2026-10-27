@@ -44,7 +44,7 @@ struct PasswordPromptTests {
     }
 
     @Test func otherFailuresPassThroughWithoutAsking() async {
-        await #expect(throws: EngineError(.notAnArchive)) {
+        await expectEngineFailure(.notAnArchive) {
             try await prompt.retrying("notes.zip", for: .open) { _ in throw EngineError(.notAnArchive) }
         }
     }
@@ -55,7 +55,7 @@ struct PasswordPromptTests {
         }
         let question = try await nextQuestion(from: prompt)
         prompt.answer(nil, to: question.id)
-        await #expect(throws: EngineError(.cancelled)) { try await task.value }
+        await expectEngineFailure(.cancelled) { try await task.value }
     }
 
     @Test func cancellingTheTaskDismissesTheQuestion() async throws {
@@ -64,7 +64,7 @@ struct PasswordPromptTests {
         }
         _ = try await nextQuestion(from: prompt)
         task.cancel()
-        await #expect(throws: EngineError(.cancelled)) { try await task.value }
+        await expectEngineFailure(.cancelled) { try await task.value }
         #expect(prompt.question == nil)
     }
 
@@ -88,14 +88,14 @@ struct PasswordPromptTests {
             try await prompt.retrying("locked.zip", for: .unlock, known: "swordfish") { _ in 42 }
         }
         direct.cancel()
-        await #expect(throws: EngineError(.cancelled)) { try await direct.value }
+        await expectEngineFailure(.cancelled) { try await direct.value }
 
         let hook = PasswordHook(prompt: prompt)
         let throughHook = Task {
             try await hook.retrying("locked.zip", for: .unlock, known: "swordfish") { _ in 42 }
         }
         throughHook.cancel()
-        await #expect(throws: EngineError(.cancelled)) { try await throughHook.value }
+        await expectEngineFailure(.cancelled) { try await throughHook.value }
         #expect(prompt.question == nil)
     }
 }
@@ -137,8 +137,8 @@ struct EncryptedArchiveTests {
         let archive = try makeArchive("locked.7z", ["-mhe=on"])
         let engine = ArchiveEngine.shared
 
-        await #expect(throws: EngineError(.passwordRequired)) { try await engine.list(archive) }
-        await #expect(throws: EngineError(.wrongPassword)) { try await engine.list(archive, password: "guess") }
+        await expectEngineFailure(.passwordRequired) { try await engine.list(archive) }
+        await expectEngineFailure(.wrongPassword) { try await engine.list(archive, password: "guess") }
         let listing = try await engine.list(archive, password: "swordfish")
         #expect(Set(listing.entries.map(\.path)) == ["Docs", "Docs/secret.txt", "Docs/plan.txt"])
     }
@@ -152,12 +152,12 @@ struct EncryptedArchiveTests {
         #expect(archive.checkup.contains { $0.title == "Contents are encrypted" })
 
         let destination = try makeDestination()
-        await #expect(throws: EngineError(.passwordRequired)) {
+        await expectEngineFailure(.passwordRequired) {
             try await Extraction.run(archive, selection: nil, to: destination) { _ in }
         }
         var wrong = archive
         wrong.source?.password = "guess"
-        await #expect(throws: EngineError(.wrongPassword)) {
+        await expectEngineFailure(.wrongPassword) {
             try await Extraction.run(wrong, selection: nil, to: destination) { _ in }
         }
         #expect(TemporaryFolder.contents(of: destination).isEmpty) // failed attempts leave nothing behind

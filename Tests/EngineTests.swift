@@ -350,7 +350,7 @@ struct SevenZipTests {
                                                                         archive.path, source.path])
         process.waitUntilExit()
 
-        await #expect(throws: EngineError(.passwordRequired)) { try await sevenZip.list(archive) }
+        await expectEngineFailure(.passwordRequired) { try await sevenZip.list(archive) }
         let listing = try await sevenZip.list(archive, password: "swordfish")
         #expect(listing.entries.map(\.path) == ["secret.txt"])
     }
@@ -360,7 +360,7 @@ struct SevenZipTests {
         defer { folder.cleanUp() }
         let text = folder.url.appending(path: "notes.txt")
         try Data("just text".utf8).write(to: text)
-        await #expect(throws: EngineError(.notAnArchive)) { try await sevenZip.list(text) }
+        await expectEngineFailure(.notAnArchive) { try await sevenZip.list(text) }
     }
 }
 
@@ -525,7 +525,7 @@ struct ExtractionTests {
         try #require(!started.values.isEmpty, "no progress arrived from the engine")
         task.cancel()
 
-        await #expect(throws: EngineError(.cancelled)) { try await task.value }
+        await expectEngineFailure(.cancelled) { try await task.value }
         #expect(TemporaryFolder.contents(of: destination).isEmpty)
     }
 
@@ -534,7 +534,7 @@ struct ExtractionTests {
         defer { folder.cleanUp() }
         let text = folder.url.appending(path: "notes.zip")
         try Data("not really a zip".utf8).write(to: text)
-        await #expect(throws: EngineError(.notAnArchive)) { try await ArchiveEngine.shared.list(text) }
+        await expectEngineFailure(.notAnArchive) { try await ArchiveEngine.shared.list(text) }
     }
 
     @Test func numberedNamesKeepTheExtension() {
