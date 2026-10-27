@@ -1,3 +1,4 @@
+import DSStore
 import Foundation
 import Testing
 @testable import Stow
@@ -69,5 +70,124 @@ struct DiskImageCreationTests {
         #expect(DiskImageFilesystem.apfs.title == "APFS")
         #expect(!DiskImageFilesystem.hfsPlus.detail.isEmpty)
         #expect(DiskImageFilesystem.apfs.detail.contains("HFS+"))
+    }
+}
+
+
+/// #85: Finder chrome is generated before image creation, with no mounted volume.
+@MainActor
+struct DiskImageChromeTests {
+    @Test func writesFinderRecords() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        try FileManager.default.createDirectory(at: folder.url.appending(path: "Foo.app"), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(atPath: folder.url.appending(path: "Applications").path,
+                                                  withDestinationPath: "/Applications")
+        try Data().write(to: folder.url.appending(path: "Readme.txt"))
+        try FileManager.default.createDirectory(at: folder.url.appending(path: ".background"), withIntermediateDirectories: false)
+        try DiskImageChrome.apply(to: folder.url)
+        let store = try DSStore.read(from: folder.url.appending(path: ".DS_Store"))
+        #expect(store.viewStyle() == .iconView)
+        #expect(store.windowBounds()?.width == 620)
+        #expect(store.windowBounds()?.height == 400)
+        #expect(store.background() == .color(red: 0.96, green: 0.96, blue: 0.96))
+        #expect(store.iconPosition(for: "Foo.app")?.x == 140)
+        #expect(store.iconPosition(for: "Foo.app")?.y == 180)
+        #expect(store.iconPosition(for: "Applications")?.x == 480)
+        #expect(store.iconPosition(for: "Readme.txt")?.y == 300)
+        #expect(store.iconPosition(for: ".DS_Store") == nil)
+        #expect(store.iconPosition(for: ".background") == nil)
+    }
+
+    @Test func worksWithoutAnAppOrShortcut() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        try Data().write(to: folder.url.appending(path: "Notes.txt"))
+        try DiskImageChrome.apply(to: folder.url)
+        let store = try DSStore.read(from: folder.url.appending(path: ".DS_Store"))
+        #expect(store.iconPosition(for: "Notes.txt")?.x == 100)
+        #expect(store.iconPosition(for: "Applications") == nil)
+        #expect(!FileManager.default.fileExists(atPath: folder.url.appending(path: ".VolumeIcon.icns").path))
+    }
+
+    @Test func replacesMetadataSymlinkWithoutWritingOutsideStaging() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let volume = folder.url.appending(path: "Volume")
+        try FileManager.default.createDirectory(at: volume, withIntermediateDirectories: false)
+        let outside = folder.url.appending(path: "outside")
+        let original = Data("unchanged".utf8)
+        try original.write(to: outside)
+        try FileManager.default.createSymbolicLink(atPath: volume.appending(path: ".DS_Store").path,
+                                                  withDestinationPath: outside.path)
+        try DiskImageChrome.apply(to: volume)
+        #expect(try Data(contentsOf: outside) == original)
+        #expect(try DSStore.read(from: volume.appending(path: ".DS_Store")).viewStyle() == .iconView)
+    }
+
+    @Test func metadataFailureSurfacesAsEngineError() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        #expect(throws: EngineError.self) {
+            try DiskImageChrome.apply(to: folder.url.appending(path: "missing"))
+        }
+    }
+
+    @Test func copiesVolumeIconAndSetsFinderFlag() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let resources = folder.url.appending(path: "Foo.app/Contents/Resources")
+        try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
+        let icon = Data([0x69, 0x63, 0x6e, 0x73, 0, 0, 0, 8])
+        try icon.write(to: resources.appending(path: "Foo.icns"))
+        try DiskImageChrome.apply(to: folder.url)
+        #expect(try Data(contentsOf: folder.url.appending(path: ".VolumeIcon.icns")) == icon)
+        var info = [UInt8](repeating: 0, count: 32)
+        #expect(getxattr(folder.url.path, "com.apple.FinderInfo", &info, info.count, 0, 0) == 32)
+        #expect(info[8] & 0x04 != 0)
+    }
+
+    @Test func volumeIconDoesNotFollowResourcesOutsideStaging() throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let volume = folder.url.appending(path: "Volume")
+        let contents = volume.appending(path: "Foo.app/Contents")
+        try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+        let outside = folder.url.appending(path: "Outside")
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: false)
+        try Data("outside icon".utf8).write(to: outside.appending(path: "Foo.icns"))
+        try FileManager.default.createSymbolicLink(atPath: contents.appending(path: "Resources").path,
+                                                  withDestinationPath: outside.path)
+        try DiskImageChrome.apply(to: volume)
+        #expect(!FileManager.default.fileExists(atPath: volume.appending(path: ".VolumeIcon.icns").path))
+        #expect(try DSStore.read(from: volume.appending(path: ".DS_Store")).viewStyle() == .iconView)
+    }
+
+    @Test func chromeResetsWithFormatAudienceAndPurpose() {
+        var options = PackOptions()
+        #expect(!options.diskImageFinderChrome)
+        options.setAudience(.mac)
+        options.setFormat(.dmg)
+        options.diskImageFinderChrome = true
+        options.setFormat(.zip)
+        #expect(!options.diskImageFinderChrome)
+        options.setFormat(.dmg)
+        options.diskImageFinderChrome = true
+        options.setAudience(.windows)
+        #expect(!options.diskImageFinderChrome)
+        options.setAudience(.mac)
+        options.setFormat(.dmg)
+        options.diskImageFinderChrome = true
+        options.resetToPurposeDefaults()
+        #expect(!options.diskImageFinderChrome)
+    }
+
+    @Test func createRequestPreservesChromeThroughEncoding() throws {
+        let defaults = CreateRequest(operationID: "test", archiveName: "Foo", format: .dmg)
+        #expect(!defaults.diskImageFinderChrome)
+        var request = defaults
+        request.diskImageFinderChrome = true
+        let decoded = try JSONDecoder().decode(CreateRequest.self, from: JSONEncoder().encode(request))
+        #expect(decoded.diskImageFinderChrome)
     }
 }

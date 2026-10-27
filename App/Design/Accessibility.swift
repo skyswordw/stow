@@ -21,6 +21,17 @@ enum AccessibilityText {
         let bounded = fraction.isFinite ? min(1, max(0, fraction)) : 0
         return String(localized: "\(Int((bounded * 100).rounded())) percent")
     }
+
+    /// Spoken label for an activity capsule / failure card. Pure strings — never read observable UI.
+    static func activity(title: String, note: String? = nil) -> String {
+        [title, note].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
+    /// Failure title + advice as one AX label (#93). Empty advice omits the separator.
+    static func failure(_ failure: Failure) -> String {
+        let advice = failure.advice.trimmingCharacters(in: .whitespacesAndNewlines)
+        return advice.isEmpty ? failure.title : "\(failure.title). \(advice)"
+    }
 }
 
 /// Keep AX attribute resolution independent of the observable browser and visual children.
@@ -34,12 +45,11 @@ private struct ArchiveEntryAccessibility: ViewModifier {
         if isRenaming {
             content
         } else {
+            // A String-titled Button is a true AX leaf: no child Text for label resolution to re-enter.
             content.accessibilityRepresentation {
-                Button(action: {
+                Button(label) {
                     // Leave the AX callback before selection, navigation, or sheets mutate the tree.
                     Task { @MainActor in activate() }
-                }) {
-                    Text(verbatim: label)
                 }
             }
         }

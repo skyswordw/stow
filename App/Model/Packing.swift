@@ -313,6 +313,8 @@ nonisolated struct PackOptions: Equatable, Sendable {
     var diskImageFilesystem: DiskImageFilesystem = .hfsPlus
     /// DMG only (#77). Adds an Applications → /Applications shortcut.
     var diskImageApplicationsLink = false
+    /// DMG only (#85). Writes Finder layout into staging without mounting.
+    var diskImageFinderChrome = false
 
     /// Per-job Mac helper-file policy (#152). `nil` follows the audience default.
     var includeMacHelperFiles: Bool? = nil
@@ -368,6 +370,7 @@ nonisolated struct PackOptions: Equatable, Sendable {
         split = format.supportsSplit ? SettingsKeys.splitSize() : .none
         diskImageFilesystem = .hfsPlus
         diskImageApplicationsLink = false
+        diskImageFinderChrome = false
     }
 
     /// Keeps format and password consistent when the audience changes.
@@ -389,6 +392,7 @@ nonisolated struct PackOptions: Equatable, Sendable {
         if format != .dmg {
             diskImageFilesystem = .hfsPlus
             diskImageApplicationsLink = false
+            diskImageFinderChrome = false
         }
         if format != .zip { keepsMacMetadata = nil }
         // encryptFilenames is only applied for password-protected 7Z; keep the preference for when
@@ -612,6 +616,13 @@ nonisolated enum Compatibility {
                     tone: .info,
                     title: String(localized: "APFS when the system allows"),
                     detail: String(localized: "Falls back to HFS+ if making an APFS image isn’t possible here (for example in the App Sandbox).")
+                ))
+            }
+            if options.diskImageFinderChrome {
+                notes.append(.init(
+                    tone: .info,
+                    title: String(localized: "Finder window layout"),
+                    detail: String(localized: "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting. Stow hides these extras when browsing.")
                 ))
             }
             if options.diskImageApplicationsLink {

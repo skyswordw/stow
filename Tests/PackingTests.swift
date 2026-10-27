@@ -34,6 +34,7 @@ private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, pa
                   conflict: ArchiveCreation.Conflict = .keepBoth,
                   diskImageFilesystem: DiskImageFilesystem = .hfsPlus,
                   diskImageApplicationsLink: Bool = false,
+                  diskImageFinderChrome: Bool = false,
                   into destination: URL) async throws -> (ArchiveCreation.Result, PackReport) {
     let request = PackRequest.collect([tree.project])
     var options = PackOptions()
@@ -42,12 +43,14 @@ private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, pa
     options.usesPassword = password != nil
     options.diskImageFilesystem = diskImageFilesystem
     options.diskImageApplicationsLink = diskImageApplicationsLink
+    options.diskImageFinderChrome = diskImageFinderChrome
     let report = Compatibility.report(for: request.files, options: options, password: password ?? "", overrides: overrides)
     let metadata = options.effectiveKeepsMacMetadata
     var create = CreateRequest(operationID: UUID().uuidString, archiveName: "Project", format: format,
                                password: password, volumeSize: volumeSize, keepsMacMetadata: metadata, verify: verify,
                                diskImageFilesystem: format == .dmg ? diskImageFilesystem : .hfsPlus,
-                               diskImageApplicationsLink: format == .dmg && diskImageApplicationsLink)
+                               diskImageApplicationsLink: format == .dmg && diskImageApplicationsLink,
+                               diskImageFinderChrome: format == .dmg && diskImageFinderChrome)
     create.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
     let result = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes, attributes: metadata,
                                                request: create, named: "Project", in: destination,
@@ -109,6 +112,27 @@ struct PackingTests {
         let top = Set(archive.children(of: archive.volumeRoot).map(\.name))
         #expect(top.isSuperset(of: ["README.md", "Docs", "run.sh"]))
         #expect(!top.contains("Applications")) // hidden as installer layout
+    }
+
+    @Test func diskImageFinderChromeIsHiddenInstallerMetadata() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let resources = tree.project.appending(path: "Foo.app/Contents/Resources")
+        try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
+        try Data([0x69, 0x63, 0x6e, 0x73, 0, 0, 0, 8]).write(to: resources.appending(path: "Foo.icns"))
+        let out = tree.folder.url.appending(path: "Out")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+        let (result, report) = try await pack(tree, audience: .mac, format: .dmg,
+                                              diskImageApplicationsLink: true, diskImageFinderChrome: true, into: out)
+        #expect(report.notes.contains { $0.title == "Finder window layout" })
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        let archive = Archive(listing: listing, url: result.placed[0])
+        #expect(archive.installerExtras.contains { $0.hasSuffix(".DS_Store") })
+        #expect(archive.installerExtras.contains { $0.hasSuffix(".VolumeIcon.icns") })
+        #expect(archive.dropTargets.contains { $0.folder == "/Applications" })
+        let names = Set(archive.children(of: archive.volumeRoot).map(\.name))
+        #expect(names.contains("Foo.app"))
+        #expect(!names.contains(".DS_Store") && !names.contains(".VolumeIcon.icns"))
     }
 
     /// #77: Pack › DMG does not offer a password (AES packing deferred — sandbox blocks MediaKit).

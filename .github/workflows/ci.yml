@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 500 after the Pack part-size editor, checkbox and metadata-note tests (#153).
+          # 512 after the Pack part-size editor, checkbox and metadata-note tests (#153).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "500"
+          MIN_TESTS: "512"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

@@ -225,7 +225,6 @@ struct Breadcrumbs: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Path")
     }
 
     private func trail(_ segments: [BrowserModel.PathSegment]) -> some View {

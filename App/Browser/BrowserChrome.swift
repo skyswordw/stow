@@ -37,7 +37,6 @@ struct BrowserNavigation: View {
             .frame(height: FloatingGlass.barHeight)
             .accessibleGlass(in: .capsule)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel(String(localized: "Navigation"))
             .layoutPriority(1)
 
             Spacer(minLength: 0)
@@ -180,6 +179,5 @@ struct ArchiveActions: View {
         .accessibleGlass(in: .capsule)
         .fixedSize()
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(localized: "Archive"))
     }
 }

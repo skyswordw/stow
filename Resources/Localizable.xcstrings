@@ -1,6 +1,36 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Finder window layout": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访达窗口布局"
+          }
+        }
+      }
+    },
+    "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无需挂载即可添加图标位置、纯色窗口背景，并在有可用应用图标时添加卷图标。"
+          }
+        }
+      }
+    },
+    "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting. Stow hides these extras when browsing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无需挂载即可添加图标位置、纯色窗口背景，并在有可用应用图标时添加卷图标。Stow 会在浏览时隐藏这些附加项目。"
+          }
+        }
+      }
+    },
     "Choose a destination outside the folders being collected.": {
       "localizations": {
         "zh-Hans": {

@@ -136,8 +136,32 @@ struct ActivityLabel: View {
             }
         }
         .font(.callout)
-        .accessibilityElement(children: perform == nil && dismiss == nil ? .combine : .contain)
+        // #93: never combine/contain nested labels under glass — AX label resolution re-entered and
+        // blew the stack on failure capsules (Install App running, disk-full Extract, Glance→Full).
+        // One leaf label from pure strings; actions stay reachable without walking children.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spokenLabel)
         .accessibilityValue(progressValue)
+        .accessibilityActions {
+            if case .failed(let failure) = phase {
+                if let action = failure.action, let perform {
+                    Button(action.title) { perform(action) }
+                }
+                Button("Copy Details") { ErrorReport.Copyable(failure).copy() }
+            }
+            if let dismiss {
+                Button("Dismiss", action: dismiss)
+            }
+        }
+    }
+
+    private var spokenLabel: String {
+        switch phase {
+        case .failed(let failure):
+            return AccessibilityText.failure(failure)
+        case .running, .done:
+            return AccessibilityText.activity(title: title, note: note)
+        }
     }
 
     private var progressValue: String {
@@ -204,7 +228,7 @@ struct ProgressRing: View {
                 .rotationEffect(.degrees(-90))
         }
         .frame(width: 15, height: 15)
-        .accessibilityLabel(String(localized: "Progress"))
-        .accessibilityValue(AccessibilityText.progress(progress))
+        // Spoken by ActivityLabel's accessibilityValue; a nested labeled ring re-entered AX on macOS 27.
+        .accessibilityHidden(true)
     }
 }

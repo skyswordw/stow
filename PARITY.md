@@ -103,7 +103,7 @@ Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 
 | Verify integrity after creating | ✅ More Options | Failed test keeps nothing |
 | CPU core limit for compression | ✅ `PackCPUCores` key (0 = all) · 🧪 Settings UI (pending verification) | |
 | Replace / Keep Both when archive exists | ✅ | Replace moves the old archive and its volumes to the Trash |
-| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | Default HFS+ via `hdiutil makehybrid` (no mounting, sandbox-safe), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); optional APFS with HFS+ fallback; Applications → /Applications shortcut (#77). No split. ⏳ AES password (#84; sandbox MediaKit), Finder window chrome (#85; `.DS_Store` / background) |
+| Create disk image (DMG) | ✅ Pack › DMG (for Macs) | Default HFS+ via `hdiutil makehybrid` (no mounting, sandbox-safe), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); optional APFS with HFS+ fallback; Applications → /Applications shortcut (#77). Optional Finder window chrome implemented (#85; 🧪 macOS/Finder validation pending): `.DS_Store` icon positions, solid-color background, best-effort app-derived volume icon, all staged without mounting. Picture backgrounds excluded (Carbon Alias needs a mounted volume; sandbox). No split. ⏳ AES password (#84; sandbox MediaKit) |
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
 Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.

@@ -114,6 +114,7 @@ struct ArchiveLockRow: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(state == .locked && model.isListing)
+                    .accessibilityElement(children: .ignore)
                     .accessibilityLabel(state == .checking ? String(localized: "Unlocking…")
                                         : String(localized: "Encrypted"))
                     .accessibilityValue(state == .checking ? "" : String(localized: "File names are visible; contents need the password."))
