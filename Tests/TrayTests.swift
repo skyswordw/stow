@@ -40,6 +40,8 @@ struct TrayTests {
         #expect(!zone.contains(CGPoint(x: 1150, y: 700)), "175 pt below: still just a drag")
         #expect(!zone.contains(CGPoint(x: 980, y: 860)), "beside the Tray's width")
         #expect(!zone.contains(CGPoint(x: 720, y: 450)), "the middle of the screen, where drags start")
+        // With an icon the Tray comes out under it, so the right edge is just another place.
+        #expect(!zone.contains(CGPoint(x: 1435, y: 450)), "the screen's right edge, far from the icon")
     }
 
     @Test func dragReachesTheTrayAtTheScreenEdgeWithoutAnIcon() {

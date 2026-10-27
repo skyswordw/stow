@@ -12,6 +12,8 @@ nonisolated enum SettingsKeys {
     static let openInGlance = "glance.openFromFinder"
     static let glancePinned = "glance.pinned"
     static let glanceColourfulControls = "glance.colourfulControls"
+    /// Liquid Glass vs classic frosted Glance background (#158). Default preserves Liquid Glass.
+    static let glanceMaterial = "glance.material"
     static let trayMenuBarIcon = "tray.menuBarIcon"
     static let trayShowWhileDragging = "tray.showWhileDragging"
     static let trayIdleSeconds = "tray.idleSeconds"
@@ -24,6 +26,18 @@ nonisolated enum SettingsKeys {
     static let updatesAutomaticallyDownload = "SUAutomaticallyUpdate"
 
     enum Appearance: String, CaseIterable, Sendable { case system, light, dark }
+    /// Glance window material preference (#158). Independent of colourful controls.
+    enum GlanceMaterialPreference: String, CaseIterable, Sendable, Identifiable {
+        case liquidGlass
+        case classic
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .liquidGlass: String(localized: "Liquid Glass")
+            case .classic: String(localized: "Classic frosted")
+            }
+        }
+    }
     enum DefaultValue: Equatable, Sendable {
         case string(String), integer(Int64), bool(Bool)
 
@@ -66,6 +80,7 @@ nonisolated enum SettingsKeys {
         .init(key: openInGlance, defaultValue: .bool(false)),
         .init(key: glancePinned, defaultValue: .bool(false)),
         .init(key: glanceColourfulControls, defaultValue: .bool(false)),
+        .init(key: glanceMaterial, defaultValue: .string(GlanceMaterialPreference.liquidGlass.rawValue)),
         .init(key: trayMenuBarIcon, defaultValue: .bool(true)),
         .init(key: trayShowWhileDragging, defaultValue: .bool(true)),
         .init(key: trayIdleSeconds, defaultValue: .integer(30)),
@@ -106,6 +121,11 @@ nonisolated enum SettingsKeys {
     static func trayBorder(in store: UserDefaults = .standard) -> TrayBorder {
         TrayBorder(rawValue: store.string(forKey: trayBorder) ?? "") ?? .accent
     }
+    
+    static func glanceMaterialPreference(in store: UserDefaults = .standard) -> GlanceMaterialPreference {
+        GlanceMaterialPreference(rawValue: store.string(forKey: glanceMaterial) ?? "") ?? .liquidGlass
+    }
+
     static func flag(_ key: String, in store: UserDefaults = .standard) -> Bool {
         if let number = store.object(forKey: key) as? NSNumber, number == 0 || number == 1 {
             return number.boolValue

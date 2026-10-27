@@ -75,6 +75,48 @@ struct GlanceTests {
         #expect(glance.model === browser && Place(browser) == inGlance)
     }
 
+    @Test func enclosingFolderUsesParentNotBack() throws {
+        let harness = Harness()
+        let app = harness.app, glance = app.glance
+        app.openArchive(named: SampleArchive.make().name)
+        let browser = try #require(app.browser)
+        // Nested folder so Up is parent, while history Back would be a sibling path.
+        browser.navigate(to: "Screens")
+        browser.navigate(to: "Screens/Dark")
+        #expect(browser.canGoUp)
+        #expect(browser.folder == "Screens/Dark")
+
+        glance.collapse(near: .zero, animated: false)
+        glance.model?.goUp()
+        #expect(browser.folder == "Screens")
+        // Parent is not the same as Back: history still has Screens/Dark ahead.
+        #expect(browser.canGoForward)
+        #expect(browser.history.map(\.folder) == ["", "Screens", "Screens/Dark"])
+
+        glance.model?.goUp()
+        #expect(browser.folder.isEmpty)
+        #expect(!browser.canGoUp)
+    }
+
+    @Test func glanceSubtitleKeepsArchiveAndScopedCount() throws {
+        let harness = Harness()
+        let app = harness.app
+        app.openArchive(named: SampleArchive.make().name)
+        let browser = try #require(app.browser)
+        #expect(browser.title == browser.archive.name)
+        #expect(browser.glanceContextSubtitle.contains("archive"))
+        #expect(browser.glanceContextSubtitle.contains(browser.archive.name))
+        let rootCount = browser.visibleEntries.count
+        #expect(browser.glanceContextSubtitle.contains("\(rootCount) item"))
+
+        browser.navigate(to: "Photos")
+        let folderCount = browser.visibleEntries.count
+        #expect(browser.glanceContextSubtitle.contains("Photos"))
+        #expect(browser.glanceContextSubtitle.contains("\(folderCount) item"))
+        // Scoped folder count, not the whole-archive "N files" subtitle.
+        #expect(!browser.glanceContextSubtitle.contains("\(browser.archive.files.count) files"))
+    }
+
     @Test func noArchiveNoGlance() {
         let harness = Harness()
         harness.app.glance.collapse(near: .zero, animated: false)
@@ -183,5 +225,12 @@ struct GlanceTests {
         #expect(GlanceMaterial.resolve(reduceTransparency: false, override: false) == .glass)
         #expect(GlanceMaterial.resolve(reduceTransparency: true, override: false) == .solid)
         #expect(GlanceMaterial.resolve(reduceTransparency: false, override: true) == .solid)
+    }
+
+    @Test func classicPreferenceUsesFrostedUnlessReduceTransparency() {
+        #expect(GlanceMaterial.resolve(reduceTransparency: false, preference: .classic, override: false) == .frosted)
+        #expect(GlanceMaterial.resolve(reduceTransparency: false, preference: .liquidGlass, override: false) == .glass)
+        #expect(GlanceMaterial.resolve(reduceTransparency: true, preference: .classic, override: false) == .solid)
+        #expect(GlanceMaterial.resolve(reduceTransparency: false, preference: .classic, override: true) == .solid)
     }
 }

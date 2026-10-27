@@ -163,8 +163,12 @@ final class TrayController {
         let pasteboard = NSPasteboard(name: .drag)
         if pasteboard.changeCount != dragChangeCount {
             dragChangeCount = pasteboard.changeCount
-            // A new drag. Only files count; text or a window being moved never shows the Tray.
-            guard pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) else { return }
+            // A new drag. Only files count; text or a window being moved never shows the Tray, and
+            // ends anything a missed mouse-up left behind.
+            guard pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) else {
+                if isDragging { mouseUp() }
+                return
+            }
             isDragging = true
             touch()
             if !isShown { showHint(true) }
