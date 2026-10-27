@@ -128,5 +128,9 @@ final class SettingsRouter {
         open()
     }
 
+    func show(rawValue: String?) {
+        show(rawValue.flatMap(SettingsPane.init(rawValue:)) ?? .general)
+    }
+
     var category: SettingsCategory { pane.category }
 }

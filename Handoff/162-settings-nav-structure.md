@@ -84,3 +84,26 @@ Call sites: Customize Actions, Welcome, demo scenes. Prefer `show` for new deep 
 - Final sidebar / Liquid Glass treatment.
 - Native VoiceOver acceptance (#93 deferred).
 - #91 sample / #69 assets.
+
+## Functional follow-up (#162)
+
+- Packing reset now includes `PackCPUCores`, audience, verification, split size and all
+  per-audience compression levels. The existing CPU picker moves from General to Packing
+  so the visible control and reset scope agree; its key and default (0 = All) are unchanged.
+- Actions page reset and its Restore Defaults button share the same reset helper: Actions
+  becomes visible, Pack is hidden, and other suggestions return. The public title remains
+  **Actions**; the stored pane value remains `nextSteps`.
+- Customize Actions and Welcome's File Types / Integration links still use `show(_:)`.
+  The `-StowSettingsPane` demo routes through `show(rawValue:)`, which delegates to `show(_:)`
+  and defaults missing/unknown values to General. Standalone associations/integration
+  snapshot scenes retain their existing dedicated windows and diagnostic behavior.
+- Isolated-store regression tests cover Packing/Actions resets and preservation of previous
+  apps, onboarding, unrelated values, current/legacy folder bookmarks, recent archives and
+  destination memory. Router tests check pane/category at the open hook and stable raw values;
+  they are not native click-through or VoiceOver acceptance evidence.
+- Claude-only work remains navigation composition, control grouping, materials, spacing and
+  motion, including review of the minimally relocated CPU picker. Glance regrouping is not
+  implemented here. No Claude review is claimed; #162 remains open and #93 stays deferred.
+- Local verification (2026-10-27): `xcodegen generate` and the full `xcodebuild test` passed;
+  the CI result checker confirmed 531 passed, zero failed/skipped. Simplified Chinese
+  localization check passed (0 missing of 1,057). No extension registration was performed.

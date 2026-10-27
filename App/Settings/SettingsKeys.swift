@@ -108,7 +108,7 @@ nonisolated enum SettingsKeys {
         switch pane {
         case .general:
             keys = [
-                appearance, defaultView, "PackCPUCores",
+                appearance, defaultView,
                 openInGlance, glancePinned, glanceColourfulControls, glanceMaterial,
                 trayMenuBarIcon, trayShowWhileDragging, trayIdleSeconds, trayBorder, trayPinned,
                 updatesAutomaticallyCheck, updatesAutomaticallyDownload
@@ -122,7 +122,7 @@ nonisolated enum SettingsKeys {
         case .installing:
             keys = [Preferences.Key.afterInstall, Preferences.Key.removeQuarantine]
         case .packing:
-            keys = Set(["PackAudience", "PackVerify", volumeSize]
+            keys = Set(["PackAudience", "PackVerify", volumeSize, "PackCPUCores"]
                        + Audience.allCases.map { "PackLevel.\($0.rawValue)" })
         case .nextSteps:
             keys = [nextStepsShown, nextStepsHidden]
