@@ -506,16 +506,6 @@ final class BrowserModel {
          String(localized: "\(archive.files.count) files")].joined(separator: " · ")
     }
 
-    /// Compact Glance context (#157): format, items in the current folder, and the path back to the archive.
-    /// Uses the visible folder count (not the whole-archive total) so nested browsing stays truthful.
-    var glanceContextSubtitle: String {
-        let count = visibleEntries.count
-        let items = count == 1 ? String(localized: "1 item") : String(localized: "\(count) items")
-        return [String(localized: "\(archive.format.displayName) archive"),
-                items,
-                location(ofFolder: folder)].joined(separator: " · ")
-    }
-
     /// Where something in this archive sits, archive by archive and folder by folder, the way the
     /// breadcrumbs go: "Showcase.zip › Showcase › Docs", or "Outer.zip › Packages › Inner.zip"
     /// inside a nested archive. `folder` is a folder of the innermost archive ("" for its top level).
