@@ -90,7 +90,9 @@ struct PackSheet: View {
         }
         .onAppear(perform: restore)
         .onDisappear {
-            if !handedOffCleanup, let directory = request.cleanupDirectory { try? FileManager.default.removeItem(at: directory) }
+            if !handedOffCleanup, let directory = request.cleanupDirectory, !request.cleanupOnlyOnSuccess {
+                try? FileManager.default.removeItem(at: directory)
+            }
         }
     }
 
@@ -683,6 +685,7 @@ struct PackSheet: View {
             }
             let keepsMetadata = options.effectiveKeepsMacMetadata
             let cleanupDirectory = self.request.cleanupDirectory
+            let cleanupOnlyOnSuccess = self.request.cleanupOnlyOnSuccess
             var request = CreateRequest(
                 operationID: UUID().uuidString,
                 archiveName: archiveName,
@@ -699,7 +702,8 @@ struct PackSheet: View {
             request.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
             handedOffCleanup = true
             app.packing.start(.init(items: report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,
-                                    request: request, name: archiveName, destination: destination, conflict: conflict, cleanupDirectory: cleanupDirectory))
+                                    request: request, name: archiveName, destination: destination, conflict: conflict,
+                                    cleanupDirectory: cleanupDirectory, cleanupOnlyOnSuccess: cleanupOnlyOnSuccess))
             dismiss()
         }
     }

@@ -26,9 +26,14 @@ final class TrayController {
     var collectingName: String? { didSet { if collectingName != oldValue { collectProblem = nil } } }
     /// Why that name can't be used, said under the field so the question stays open.
     private(set) var collectProblem: String?
-    /// The folder the new folder goes in, shown in the question's Where menu. Nil until people
-    /// choose, when the items come from several folders and nothing was chosen for a mix before.
+    /// The folder the new folder goes in, shown in the question's Where menu. Defaults to the
+    /// app-managed temporary root (#179); a Where choice keeps the folder after packing.
     private(set) var collectDestination: URL?
+    /// True while Collect's Where is the temporary root (default for #179).
+    var isCollectingTemporarily: Bool {
+        guard let collectDestination else { return false }
+        return TrayTemporaryGroups.isOwned(collectDestination)
+    }
     /// The folder Collect just made, so the summary can say where it went; cleared by the next action.
     private(set) var collected: URL?
     /// Rows a drop (or Add Files…) just named — new ones and ones already on the Tray — so the
@@ -347,6 +352,8 @@ final class TrayController {
     }
 
     /// Takes rows off the Tray and registers putting them back, so ⌘Z restores them in place.
+    /// Owned temporary groups (#179) are deleted from disk when their row leaves; Undo only
+    /// restores the row when the folder is still present.
     private func takeOff(_ ids: Set<UUID>, actionName: String) {
         let removed = items.enumerated().filter { ids.contains($0.element.id) }.map { (index: $0.offset, item: $0.element) }
         guard !removed.isEmpty else { return }
@@ -354,9 +361,29 @@ final class TrayController {
         items.removeAll { ids.contains($0.id) }
         selection.subtract(ids)
         collected = nil
+        for entry in removed where entry.item.isTemporaryGroup {
+            if let url = entry.item.url, TrayTemporaryGroups.isOwned(url) {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
         registerUndo(actionName) { tray in
             tray.putBack(removed, selection: selected.intersection(ids), actionName: actionName)
         }
+    }
+
+    /// Drops a temporary group row after successful pack cleanup without deleting again.
+    func removeCleanedTemporaryGroup(at url: URL) {
+        let path = url.resolvingSymlinksInPath().standardizedFileURL.path
+        let ids = Set(items.filter {
+            $0.isTemporaryGroup && $0.url?.resolvingSymlinksInPath().standardizedFileURL.path == path
+        }.map(\.id))
+        guard !ids.isEmpty else { return }
+        items.removeAll { ids.contains($0.id) }
+        selection.subtract(ids)
+        if let collected, collected.resolvingSymlinksInPath().standardizedFileURL.path == path {
+            self.collected = nil
+        }
+        touch()
     }
 
     /// One undo step. While undoing or redoing, the manager is already collecting the inverse step.
@@ -375,6 +402,9 @@ final class TrayController {
         var back: [TrayItem] = []
         for entry in removed.sorted(by: { $0.index < $1.index }) {
             if let path = entry.item.url?.standardizedFileURL.path, present.contains(path) { continue }
+            // Temporary groups deleted on takeOff cannot return unless the folder was restored.
+            if entry.item.isTemporaryGroup, let url = entry.item.url,
+               !FileManager.default.fileExists(atPath: url.path) { continue }
             items.insert(entry.item, at: min(entry.index, items.count))
             back.append(entry.item)
         }
@@ -440,7 +470,11 @@ final class TrayController {
         if urls.isEmpty { // sample items
             app?.packRequest = PackRequest(files: targets.map { PackFile(path: $0.name, size: $0.size) })
         } else {
-            app?.pack(urls)
+            // Only top-level owned temporary groups: packing their children must not delete the parent.
+            let cleanup = path.isEmpty
+                ? targets.filter(\.isTemporaryGroup).compactMap(\.url).filter { TrayTemporaryGroups.isOwned($0) }
+                : []
+            app?.pack(urls, cleanupTemporaryGroups: cleanup)
         }
         NSApp.activate()
     }
@@ -453,15 +487,16 @@ final class TrayController {
         app?.system.perform(.extractHere, on: archives)
     }
 
-    /// Asks for the folder's name and where it goes, inside the Tray. Where follows
-    /// `GatherDestination`: the items' own folder when they share one, otherwise the folder last
-    /// chosen for a mix, otherwise nothing until people choose.
+    /// Asks for the folder's name inside the Tray. Defaults to an app-managed temporary group
+    /// (#179); Where remains available to Keep / save the group somewhere persistent.
     func beginCollecting(remembered: URL? = GatherDestination.remembered()) {
         let urls = targetURLs
         guard !urls.isEmpty else { return }
         failure = nil
         collected = nil
-        collectDestination = GatherDestination.suggestion(for: urls, remembered: remembered)
+        // remembered still feeds collectPlaces; the default destination is temporary.
+        _ = remembered
+        collectDestination = TrayTemporaryGroups.root()
         collectingName = suggestedName(in: collectDestination)
         panel?.makeKey()
         touch()
@@ -484,7 +519,9 @@ final class TrayController {
         let home = FolderAccess.home
         let candidates = [GatherDestination.remembered(), home.appending(path: "Desktop", directoryHint: .isDirectory),
                           home.appending(path: "Downloads", directoryHint: .isDirectory)].compactMap { $0 }
-        return candidates.filter { seen.insert($0.standardizedFileURL.path).inserted }
+        return candidates.filter {
+            !TrayTemporaryGroups.isOwned($0) && seen.insert($0.standardizedFileURL.path).inserted
+        }
     }
 
     var collectsFromSeveralFolders: Bool { collectSources.count > 1 }
@@ -565,21 +602,32 @@ final class TrayController {
             failure = Failure(error, .copy, name: name, destination: folder)
             return
         }
-        // The folder actually used: people may pick another one in the access panel.
-        GatherDestination.remember(folder, for: urls)
+        // Remember mix destinations only for persistent folders — never the temporary root (#179).
+        let temporary = TrayTemporaryGroups.isOwned(folder)
+        if !temporary {
+            GatherDestination.remember(folder, for: urls)
+        }
         let ids = Set(chosen.map(\.id))
+        let absorbedTemps = chosen.filter(\.isTemporaryGroup).compactMap(\.url)
         path = []
         items.removeAll { ids.contains($0.id) }
-        let made = TrayItem(url: destination)
+        // Inputs that were themselves owned temps are disposable once copied into the new folder.
+        for url in absorbedTemps where TrayTemporaryGroups.isOwned(url) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        let made = TrayItem(url: destination, isTemporaryGroup: temporary)
         items.append(made)
         selection = []
         withAnimation(Motion.current(Motion.status)) { collected = destination }
-        mark([made.id], announcing: Self.collectedTitle(destination))
+        mark([made.id], announcing: Self.collectedTitle(destination, temporary: temporary))
     }
 
-    /// "Collected in “Desktop”" — the folder the new folder went in.
-    static func collectedTitle(_ made: URL) -> String {
-        String(localized: "Collected in “\(FileManager.default.displayName(atPath: made.deletingLastPathComponent().path))”")
+    /// "Collected in “Desktop”", or a temporary note when the group is app-owned (#179).
+    static func collectedTitle(_ made: URL, temporary: Bool = false) -> String {
+        if temporary {
+            return String(localized: "Collected for packing")
+        }
+        return String(localized: "Collected in “\(FileManager.default.displayName(atPath: made.deletingLastPathComponent().path))”")
     }
 
     func revealCollected() {
@@ -1062,7 +1110,9 @@ struct TrayView: View {
         VStack(alignment: .leading, spacing: Space.s) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Collect into a Folder").font(.headline)
-                Text("Stow puts copies in a new folder. The originals stay where they are.")
+                Text(tray.isCollectingTemporarily
+                     ? "Stow copies into a temporary folder for packing. Choose Where to keep it."
+                     : "Stow puts copies in a new folder. The originals stay where they are.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1084,6 +1134,11 @@ struct TrayView: View {
             // Items from several folders and nothing chosen yet: say why Stow is asking.
             if tray.collectDestination == nil, tray.collectsFromSeveralFolders {
                 Text("These come from \(tray.collectSources.count) folders. Choose where the new folder goes.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if tray.isCollectingTemporarily, tray.collectsFromSeveralFolders {
+                Text("These come from \(tray.collectSources.count) folders. Temporary keeps them together for packing.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1113,6 +1168,10 @@ struct TrayView: View {
     private var whereMenu: some View {
         Menu {
             Section {
+                destinationChoice(TrayTemporaryGroups.root(), detail: String(localized: "Deleted after packing"),
+                                  title: String(localized: "Temporary"))
+            }
+            Section {
                 ForEach(tray.collectSources, id: \.folder) { source in
                     destinationChoice(source.folder, detail: String(localized: "\(source.count) items"))
                 }
@@ -1125,7 +1184,10 @@ struct TrayView: View {
             Divider()
             Button("Other…") { tray.chooseOtherCollectDestination() }
         } label: {
-            Label(tray.collectDestination.map(Self.folderName) ?? String(localized: "Choose a Folder…"), systemImage: "folder")
+            Label(tray.isCollectingTemporarily
+                  ? String(localized: "Temporary")
+                  : (tray.collectDestination.map(Self.folderName) ?? String(localized: "Choose a Folder…")),
+                  systemImage: tray.isCollectingTemporarily ? "clock" : "folder")
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
@@ -1135,12 +1197,12 @@ struct TrayView: View {
         .accessibilityValue(tray.collectDestination.map(Self.folderName) ?? String(localized: "Not chosen"))
     }
 
-    private func destinationChoice(_ folder: URL, detail: String?) -> some View {
+    private func destinationChoice(_ folder: URL, detail: String?, title: String? = nil) -> some View {
         let chosen = tray.collectDestination?.standardizedFileURL.path == folder.standardizedFileURL.path
         let path = GatherDestination.abbreviated(folder)
         return Toggle(isOn: Binding(get: { chosen }, set: { _ in tray.chooseCollectDestination(folder) })) {
-            Text(Self.folderName(folder))
-            Text(detail.map { "\(path) · \($0)" } ?? path)
+            Text(title ?? Self.folderName(folder))
+            Text(detail.map { title == nil ? "\(path) · \($0)" : $0 } ?? path)
         }
     }
 
@@ -1154,7 +1216,7 @@ struct TrayView: View {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
                 .accessibilityHidden(true)
-            Text(TrayController.collectedTitle(made))
+            Text(TrayController.collectedTitle(made, temporary: TrayTemporaryGroups.isOwned(made)))
                 .fontWeight(.medium)
                 .lineLimit(1)
                 .truncationMode(.middle)

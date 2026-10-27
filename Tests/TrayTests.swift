@@ -154,7 +154,9 @@ struct TrayTests {
         let tray = TrayController()
         tray.add([a])
         tray.beginCollecting(remembered: nil)
-        #expect(tray.collectDestination?.standardizedFileURL == root.standardizedFileURL) // one folder: that one
+        #expect(tray.isCollectingTemporarily) // #179 default
+        tray.chooseCollectDestination(root) // Keep: conflict checks use the persistent folder
+        #expect(tray.collectDestination?.standardizedFileURL == root.standardizedFileURL)
         tray.collectingName = "a/b"
         await tray.collectIntoFolder()
         #expect(tray.collectingName == "a/b")
@@ -187,7 +189,7 @@ struct TrayTests {
         #expect(GatherDestination.remembered(in: store)?.path == "/tmp/Chosen")
     }
 
-    @Test @MainActor func collectingFromSeveralFoldersAsksWhere() async throws {
+    @Test @MainActor func collectingFromSeveralFoldersDefaultsTemporary() async throws {
         let root = try folder()
         defer { try? FileManager.default.removeItem(at: root) }
         // Remembering writes the app's own defaults: put back what was there.
@@ -203,22 +205,61 @@ struct TrayTests {
         tray.add([a, b])
         tray.beginCollecting(remembered: nil)
         #expect(tray.collectsFromSeveralFolders)
-        #expect(tray.collectDestination == nil)
-        await tray.collectIntoFolder() // nowhere chosen: asks, makes nothing
-        #expect(tray.collectingName == "New Folder")
-        #expect(tray.collectProblem != nil)
+        #expect(tray.isCollectingTemporarily) // #179: temporary is the default, not an ask
+        await tray.collectIntoFolder()
+        #expect(tray.items.count == 1)
+        #expect(tray.items[0].isTemporaryGroup)
+        #expect(tray.items[0].name == "New Folder")
+        let temporary = try #require(tray.items[0].url)
+        #expect(TrayTemporaryGroups.isOwned(temporary))
+        #expect(FileManager.default.fileExists(atPath: temporary.appending(path: "one.txt").path))
+        #expect(FileManager.default.fileExists(atPath: a.path)) // copies: the originals stay
+        // Keep / save: a deliberate Where choice makes a persistent group from the originals.
+        // Select only the new drops so Collect does not absorb the existing temporary group.
+        tray.add([a, b])
+        let keepIDs = Set(tray.items.filter { $0.url == a || $0.url == b }.map(\.id))
+        tray.selection = keepIDs
+        tray.beginCollecting(remembered: nil)
         tray.chooseCollectDestination(out)
-        #expect(tray.collectProblem == nil)
+        #expect(!tray.isCollectingTemporarily)
         await tray.collectIntoFolder()
         let made = out.appending(path: "New Folder")
         #expect(FileManager.default.fileExists(atPath: made.appending(path: "one.txt").path))
-        #expect(FileManager.default.fileExists(atPath: made.appending(path: "two.txt").path))
-        #expect(FileManager.default.fileExists(atPath: a.path)) // copies: the originals stay
-        #expect(tray.collected?.standardizedFileURL == made.standardizedFileURL)
-        #expect(tray.items.map(\.name) == ["New Folder"])
+        #expect(tray.items.contains { $0.url?.standardizedFileURL == made.standardizedFileURL && !$0.isTemporaryGroup })
         #expect(GatherDestination.remembered()?.standardizedFileURL.path == out.standardizedFileURL.path)
+        #expect(FileManager.default.fileExists(atPath: temporary.path)) // still present until cleared
         tray.clear()
         #expect(tray.collected == nil)
+        #expect(!FileManager.default.fileExists(atPath: temporary.path)) // owned temp removed with Clear
+        #expect(FileManager.default.fileExists(atPath: made.path)) // persistent Keep folder stays
+    }
+
+    @Test @MainActor func temporaryGroupCleansUpOnlyOnSuccessfulPackPolicy() throws {
+        let root = TrayTemporaryGroups.root()
+        let group = root.appending(path: "PackMe-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: group, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: group) }
+        #expect(TrayTemporaryGroups.isOwned(group))
+        var request = PackRequest(files: [PackFile(path: "PackMe", size: 1, isFolder: true, source: group)])
+        request.cleanupDirectory = group
+        request.cleanupOnlyOnSuccess = true
+        #expect(request.cleanupOnlyOnSuccess)
+        // Failure/cancel must not infer ownership from path alone without the flag.
+        let plain = PackRequest(files: [PackFile(path: "Other", size: 1, isFolder: true, source: group)])
+        #expect(!plain.cleanupOnlyOnSuccess)
+        #expect(plain.cleanupDirectory == nil)
+    }
+
+    @Test func temporaryGroupsPurgeAbandoned() throws {
+        let root = TrayTemporaryGroups.root()
+        let keep = root.appending(path: "Keep-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let drop = root.appending(path: "Drop-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: keep, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: drop, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: keep) }
+        TrayTemporaryGroups.purgeAbandoned(keeping: [keep])
+        #expect(FileManager.default.fileExists(atPath: keep.path))
+        #expect(!FileManager.default.fileExists(atPath: drop.path))
     }
 
     @Test @MainActor func aSuggestedNameFollowsTheChosenFolder() throws {
@@ -230,7 +271,8 @@ struct TrayTests {
         let tray = TrayController()
         tray.add([a])
         tray.beginCollecting(remembered: nil)
-        #expect(tray.collectingName == "New Folder")
+        #expect(tray.isCollectingTemporarily)
+        #expect(tray.collectingName?.hasPrefix("New Folder") == true)
         tray.chooseCollectDestination(other)
         #expect(tray.collectingName == "New Folder 2") // Stow's suggestion follows the folder
         tray.collectingName = "Mine"

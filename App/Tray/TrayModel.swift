@@ -2,6 +2,40 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// App-managed Tray groups for temporary packing (#179). Ownership is explicit: only folders
+/// created under `root` are disposable. User-chosen Collect destinations are never attached.
+nonisolated enum TrayTemporaryGroups {
+    static let folderName = "TrayGroups"
+
+    static func root(fileManager: FileManager = .default) -> URL {
+        let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? fileManager.temporaryDirectory
+        let base = caches.appending(path: "Stow", directoryHint: .isDirectory)
+            .appending(path: folderName, directoryHint: .isDirectory)
+        try? fileManager.createDirectory(at: base, withIntermediateDirectories: true)
+        return base
+    }
+
+    static func isOwned(_ url: URL, fileManager: FileManager = .default) -> Bool {
+        let path = url.resolvingSymlinksInPath().standardizedFileURL.path
+        let rootPath = root(fileManager: fileManager).resolvingSymlinksInPath().standardizedFileURL.path
+        return path == rootPath || path.hasPrefix(rootPath + "/")
+    }
+
+    /// Removes owned group folders that are no longer referenced (quit / abandoned).
+    static func purgeAbandoned(keeping urls: [URL], fileManager: FileManager = .default) {
+        let root = root(fileManager: fileManager)
+        let keep = Set(urls.map { $0.resolvingSymlinksInPath().standardizedFileURL.path })
+        let children = (try? fileManager.contentsOfDirectory(
+            at: root, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])) ?? []
+        for child in children {
+            let path = child.resolvingSymlinksInPath().standardizedFileURL.path
+            guard !keep.contains(path) else { continue }
+            try? fileManager.removeItem(at: child)
+        }
+    }
+}
+
 /// Collect publishes one complete directory. Failed copies stay private and are removed;
 /// an exclusive rename never replaces a destination created while the inputs were copying.
 nonisolated enum TrayCollection {
@@ -55,18 +89,27 @@ nonisolated struct TrayItem: Identifiable, Hashable, Sendable {
     var size: Int64
     var url: URL?
     var isFolder = false
+    /// Created under `TrayTemporaryGroups` for packing; Stow may delete it after a successful pack
+    /// or when the row leaves the Tray. Never set for user-chosen Collect destinations.
+    var isTemporaryGroup = false
 
-    init(name: String, size: Int64, url: URL? = nil, isFolder: Bool = false) {
+    init(name: String, size: Int64, url: URL? = nil, isFolder: Bool = false, isTemporaryGroup: Bool = false) {
         self.name = name
         self.size = size
         self.url = url
         self.isFolder = isFolder
+        self.isTemporaryGroup = isTemporaryGroup
     }
 
     init(url: URL) {
+        self.init(url: url, isTemporaryGroup: false)
+    }
+
+    init(url: URL, isTemporaryGroup: Bool) {
         let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey, .fileSizeKey])
         let folder = values?.isDirectory == true && values?.isPackage != true
-        self.init(name: url.lastPathComponent, size: Int64(values?.fileSize ?? 0), url: url, isFolder: folder)
+        self.init(name: url.lastPathComponent, size: Int64(values?.fileSize ?? 0), url: url, isFolder: folder,
+                  isTemporaryGroup: isTemporaryGroup)
     }
 
     var contentType: UTType {
