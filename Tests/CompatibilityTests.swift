@@ -92,6 +92,66 @@ struct PackReportTests {
         #expect(!options.effectiveKeepsMacMetadata)
     }
 
+    /// A checkbox that matches the purpose follows it again; one that differs stays through purpose changes (#153).
+    @Test func checkboxesFollowThePurposeUnlessTheyDiffer() {
+        var options = PackOptions()
+        options.setAudience(.windows)
+        options.setIncludesMacHelperFiles(true)
+        #expect(options.includeMacHelperFiles == true)
+        options.setIncludesMacHelperFiles(false)
+        #expect(options.includeMacHelperFiles == nil)
+        #expect(options.dropsMacHelperFiles)
+
+        options.setIncludesMacHelperFiles(true)
+        options.setAudience(.mac)
+        #expect(!options.dropsMacHelperFiles)
+        options.setAudience(.linux)
+        #expect(options.includeMacHelperFiles == true)
+        #expect(!options.dropsMacHelperFiles)
+
+        var mac = PackOptions()
+        mac.setAudience(.mac)
+        mac.setIncludesMacHelperFiles(true) // what Macs do anyway
+        #expect(mac.includeMacHelperFiles == nil)
+        mac.setAudience(.windows)
+        #expect(mac.dropsMacHelperFiles) // so Windows' own default applies
+
+        var zip = PackOptions()
+        zip.setAudience(.mac)
+        zip.setFormat(.zip)
+        zip.setKeepsMacMetadata(true)
+        #expect(zip.keepsMacMetadata == nil)
+        zip.setKeepsMacMetadata(false)
+        #expect(zip.keepsMacMetadata == false)
+        #expect(!zip.effectiveKeepsMacMetadata)
+        zip.setAudience(.windows)
+        zip.setKeepsMacMetadata(true)
+        #expect(zip.keepsMacMetadata == true)
+        #expect(zip.effectiveKeepsMacMetadata)
+    }
+
+    /// The report says what the effective metadata choice does, not what the purpose usually does (#153).
+    @Test func metadataNotesFollowTheOverride() {
+        var mac = PackOptions()
+        mac.setAudience(.mac)
+        mac.setFormat(.zip)
+        let keeps = Compatibility.report(for: SampleArchive.packCandidates, options: mac, password: "")
+        #expect(keeps.notes.contains { $0.title == "Keeps everything a Mac cares about" })
+        mac.keepsMacMetadata = false
+        let leaves = Compatibility.report(for: SampleArchive.packCandidates, options: mac, password: "")
+        #expect(!leaves.notes.contains { $0.title == "Keeps everything a Mac cares about" })
+        #expect(leaves.notes.contains { $0.detail == "Finder tags and other extended attributes are left out of this archive." })
+
+        var windows = PackOptions()
+        windows.setAudience(.windows)
+        windows.setFormat(.zip)
+        let plain = Compatibility.report(for: SampleArchive.packCandidates, options: windows, password: "")
+        #expect(!plain.notes.contains { $0.title == "Includes Finder tags and extended attributes" })
+        windows.keepsMacMetadata = true
+        let tagged = Compatibility.report(for: SampleArchive.packCandidates, options: windows, password: "")
+        #expect(tagged.notes.contains { $0.title == "Includes Finder tags and extended attributes" })
+    }
+
     @Test func encryptFilenamesDefaultAndNotes() {
         var options = PackOptions()
         options.setFormat(.sevenZip)
