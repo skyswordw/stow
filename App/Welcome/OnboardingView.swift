@@ -89,8 +89,7 @@ struct OnboardingView: View {
     }
 
     private func showSettings(_ pane: SettingsPane) {
-        SettingsRouter.shared.pane = pane
-        SettingsRouter.shared.open()
+        SettingsRouter.shared.show(pane)
     }
 
     private func refresh() {

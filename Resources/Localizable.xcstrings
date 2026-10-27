@@ -11015,8 +11015,107 @@
           }
         }
       }
+    },
+    "Archive Work": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩工作"
+          }
+        }
+      }
+    },
+    "Interaction": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "交互"
+          }
+        }
+      }
+    },
+    "Security": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全"
+          }
+        }
+      }
+    },
+    "System Integration": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统集成"
+          }
+        }
+      }
+    },
+    "Page": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面"
+          }
+        }
+      }
+    },
+    "Reset This Page…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置此页面…"
+          }
+        }
+      }
+    },
+    "Reset this page’s preferences?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要重置此页面的偏好设置吗？"
+          }
+        }
+      }
+    },
+    "Reset Page": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置页面"
+          }
+        }
+      }
+    },
+    "Reset This Page clears only that page’s preferences. Reset All restores every Stow preference. File types keep their previous apps so you can still switch back. Folder permissions, Keychain passwords and login items are managed separately.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“重置此页面”只清除该页的偏好设置。“全部重置”会恢复 Stow 的全部偏好设置。文件类型仍保留以前的默认 app，方便你改回去。文件夹权限、钥匙串密码和登录项另行管理。"
+          }
+        }
+      }
+    },
+    "Restore this page to its defaults. Other pages, archives, folder grants and remembered previous apps are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将此页面恢复为默认设置。其他页面、压缩包、文件夹授权和已记住的以前的默认 app 会保留。"
+          }
+        }
+      }
     }
-
   },
   "version": "1.0"
 }

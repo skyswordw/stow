@@ -98,6 +98,60 @@ nonisolated enum SettingsKeys {
     static func reset(in store: UserDefaults) {
         for entry in resettable { store.removeObject(forKey: entry.key) }
     }
+
+    /// Preferences hosted on one Settings page (#162). Empty for pages that only show
+    /// system state (File Types associations memory, Licenses) or tools (Advanced cache).
+    /// Resetting a page never touches Keychain contents, folder grants, PreviousDefaultApps,
+    /// onboarding completion, or GatherDestination memory.
+    static func resettableEntries(for pane: SettingsPane) -> [Entry] {
+        let keys: Set<String>
+        switch pane {
+        case .general:
+            keys = [
+                appearance, defaultView, "PackCPUCores",
+                openInGlance, glancePinned, glanceColourfulControls, glanceMaterial,
+                trayMenuBarIcon, trayShowWhileDragging, trayIdleSeconds, trayBorder, trayPinned,
+                updatesAutomaticallyCheck, updatesAutomaticallyDownload
+            ]
+        case .extraction:
+            keys = [
+                Preferences.Key.extractAllFolder, Preferences.Key.afterExtractAll,
+                Preferences.Key.closeWindowAfter, Preferences.Key.folderConflict,
+                Preferences.Key.fileConflict, Preferences.Key.skipSystemFiles
+            ]
+        case .installing:
+            keys = [Preferences.Key.afterInstall, Preferences.Key.removeQuarantine]
+        case .packing:
+            keys = Set(["PackAudience", "PackVerify", volumeSize]
+                       + Audience.allCases.map { "PackLevel.\($0.rawValue)" })
+        case .nextSteps:
+            keys = [nextStepsShown, nextStepsHidden]
+        case .previews:
+            keys = [hoverPreviews]
+        case .passwords:
+            keys = [showPassword, rememberPasswords]
+        case .integration:
+            keys = ["FinderMenuOnExternalDrives", "HideDockIconWithoutWindows"]
+        case .fileTypes, .advanced, .licenses:
+            keys = []
+        }
+        return resettable.filter { keys.contains($0.key) }
+    }
+
+    /// Clears one page's preferences, or every resettable preference.
+    enum ResetScope: Equatable, Sendable {
+        case all
+        case pane(SettingsPane)
+    }
+
+    static func reset(_ scope: ResetScope, in store: UserDefaults) {
+        switch scope {
+        case .all:
+            reset(in: store)
+        case .pane(let pane):
+            for entry in resettableEntries(for: pane) { store.removeObject(forKey: entry.key) }
+        }
+    }
     static func defaultValue(for key: String) -> DefaultValue {
         resettable.first { $0.key == key }!.defaultValue
     }

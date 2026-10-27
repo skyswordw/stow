@@ -116,4 +116,94 @@ struct SettingsTests {
             #expect(SettingsKeys.flag(SettingsKeys.glanceColourfulControls, in: store))
         }
     }
+
+    @Test func categoriesGroupEveryPaneExactlyOnce() {
+        let grouped = SettingsCategory.allCases.flatMap(\.panes)
+        #expect(grouped == SettingsPane.allCases)
+        #expect(Set(grouped).count == SettingsPane.allCases.count)
+        for pane in SettingsPane.allCases {
+            #expect(pane.category.panes.contains(pane))
+            #expect(SettingsCategory.allCases.filter { $0.panes.contains(pane) }.count == 1)
+        }
+        #expect(SettingsCategory.allCases.map(\.rawValue) == [
+            "general", "archiveWork", "interaction", "security", "systemIntegration", "advanced"
+        ])
+        #expect(SettingsCategory.archiveWork.panes == [.extraction, .installing, .packing])
+        #expect(SettingsCategory.interaction.panes == [.nextSteps, .previews])
+        #expect(SettingsCategory.systemIntegration.panes == [.fileTypes, .integration])
+        #expect(SettingsCategory.advanced.panes == [.advanced, .licenses])
+        #expect(SettingsCategory.allCases.allSatisfy { !$0.title.isEmpty && !$0.systemImage.isEmpty })
+        #expect(Set(SettingsCategory.allCases.map(\.title)).count == SettingsCategory.allCases.count)
+    }
+
+    @Test func everyResettableKeyBelongsToExactlyOnePage() {
+        let mapped = SettingsPane.allCases.flatMap { SettingsKeys.resettableEntries(for: $0).map(\.key) }
+        #expect(Set(mapped) == Set(SettingsKeys.resettable.map(\.key)))
+        #expect(mapped.count == SettingsKeys.resettable.count)
+        #expect(SettingsKeys.resettableEntries(for: .fileTypes).isEmpty)
+        #expect(SettingsKeys.resettableEntries(for: .advanced).isEmpty)
+        #expect(SettingsKeys.resettableEntries(for: .licenses).isEmpty)
+        #expect(SettingsKeys.resettableEntries(for: .nextSteps).map(\.key)
+                == [SettingsKeys.nextStepsShown, SettingsKeys.nextStepsHidden])
+    }
+
+    @Test func pageResetLeavesOtherPagesAndNonPreferences() throws {
+        try withStore { store in
+            store.set("dark", forKey: SettingsKeys.appearance)
+            store.set(false, forKey: SettingsKeys.hoverPreviews)
+            store.set(true, forKey: SettingsKeys.showPassword)
+            store.set("zip", forKey: Preferences.Key.extractAllFolder)
+            store.set(["public.zip-archive": "previous.app"], forKey: "PreviousDefaultApps")
+            store.set("keep", forKey: "Unrelated")
+            store.set(true, forKey: "onboarding.completed")
+
+            SettingsKeys.reset(.pane(.general), in: store)
+            #expect(store.object(forKey: SettingsKeys.appearance) == nil)
+            #expect(SettingsKeys.appearance(in: store) == .system)
+            #expect(store.object(forKey: SettingsKeys.hoverPreviews) as? Bool == false)
+            #expect(store.bool(forKey: SettingsKeys.showPassword))
+            #expect(store.string(forKey: Preferences.Key.extractAllFolder) == "zip")
+            #expect(store.dictionary(forKey: "PreviousDefaultApps") as? [String: String]
+                    == ["public.zip-archive": "previous.app"])
+            #expect(store.string(forKey: "Unrelated") == "keep")
+            #expect(store.bool(forKey: "onboarding.completed"))
+
+            SettingsKeys.reset(.pane(.previews), in: store)
+            #expect(store.object(forKey: SettingsKeys.hoverPreviews) == nil)
+            #expect(SettingsKeys.flag(SettingsKeys.hoverPreviews, in: store))
+            #expect(store.bool(forKey: SettingsKeys.showPassword))
+
+            SettingsKeys.reset(.pane(.passwords), in: store)
+            #expect(store.object(forKey: SettingsKeys.showPassword) == nil)
+            #expect(!SettingsKeys.flag(SettingsKeys.showPassword, in: store))
+
+            store.set("always", forKey: Preferences.Key.extractAllFolder)
+            store.set(true, forKey: SettingsKeys.rememberPasswords)
+            SettingsKeys.reset(.all, in: store)
+            #expect(store.object(forKey: Preferences.Key.extractAllFolder) == nil)
+            #expect(store.object(forKey: SettingsKeys.rememberPasswords) == nil)
+            #expect(store.dictionary(forKey: "PreviousDefaultApps") as? [String: String]
+                    == ["public.zip-archive": "previous.app"])
+            #expect(store.string(forKey: "Unrelated") == "keep")
+        }
+    }
+
+    @MainActor @Test func routerShowUpdatesPaneWithoutLosingOpenHook() {
+        let router = SettingsRouter.shared
+        let previous = router.pane
+        var opened = 0
+        let previousOpen = router.open
+        router.open = { opened += 1 }
+        router.show(.nextSteps)
+        #expect(router.pane == .nextSteps)
+        #expect(router.category == .interaction)
+        #expect(opened == 1)
+        router.show(.integration)
+        #expect(router.pane == .integration)
+        #expect(router.category == .systemIntegration)
+        #expect(opened == 2)
+        router.pane = previous
+        router.open = previousOpen
+    }
+
 }

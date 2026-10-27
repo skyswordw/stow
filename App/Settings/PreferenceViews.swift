@@ -246,8 +246,14 @@ struct PasswordSettingsView: View {
 struct AdvancedSettingsView: View {
     @Environment(AppState.self) private var app
     @State private var usedBytes: Int64 = 0
-    @State private var confirmsReset = false
+    @State private var confirmsResetAll = false
+    @State private var confirmsResetPage = false
+    /// Page whose preferences "Reset This Page" clears (#162). Defaults to General.
+    @State private var pageToReset: SettingsPane = .general
     private var busy: Bool { app.isBusy }
+    private var resettablePages: [SettingsPane] {
+        SettingsPane.allCases.filter { !SettingsKeys.resettableEntries(for: $0).isEmpty }
+    }
     var body: some View {
         Form {
             Section("Temporary files") {
@@ -261,19 +267,41 @@ struct AdvancedSettingsView: View {
                 .disabled(busy)
             }
             Section {
-                Button("Reset All Preferences…", role: .destructive) { confirmsReset = true }
+                Picker("Page", selection: $pageToReset) {
+                    ForEach(resettablePages) { pane in
+                        Text(pane.title).tag(pane)
+                    }
+                }
+                Button("Reset This Page…", role: .destructive) { confirmsResetPage = true }
+                    .disabled(SettingsKeys.resettableEntries(for: pageToReset).isEmpty)
+                Button("Reset All Preferences…", role: .destructive) { confirmsResetAll = true }
+            } header: {
+                Text("Reset")
             } footer: {
-                Text("File types keep their previous apps so you can still switch back. Folder permissions and login items are managed separately.")
+                Text("Reset This Page clears only that page’s preferences. Reset All restores every Stow preference. File types keep their previous apps so you can still switch back. Folder permissions, Keychain passwords and login items are managed separately.")
             }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
         .fixedSize(horizontal: false, vertical: true)
         .onAppear { usedBytes = PreviewCache.directoryBytes }
-        .alert("Reset all preferences?", isPresented: $confirmsReset) {
+        .alert("Reset this page’s preferences?", isPresented: $confirmsResetPage) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset Page", role: .destructive) {
+                SettingsKeys.reset(.pane(pageToReset), in: .standard)
+                if pageToReset == .integration { IntegrationSettings.shared.reloadPreferences() }
+                if pageToReset == .general {
+                    AppUpdater.shared.reload()
+                    SettingsAppearance.apply()
+                }
+            }
+        } message: {
+            Text("Restore this page to its defaults. Other pages, archives, folder grants and remembered previous apps are kept.")
+        }
+        .alert("Reset all preferences?", isPresented: $confirmsResetAll) {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) {
-                SettingsKeys.reset(in: .standard)
+                SettingsKeys.reset(.all, in: .standard)
                 IntegrationSettings.shared.reloadPreferences()
                 AppUpdater.shared.reload()
                 SettingsAppearance.apply()
