@@ -23,6 +23,9 @@ nonisolated struct PackRequest: Identifiable, Sendable {
     var origins: [URL] = []
     var suggestedNameOverride: String?
     var cleanupDirectory: URL?
+    /// When true, `cleanupDirectory` is removed only after a successful pack (Tray temporary
+    /// groups, #179). Extract-and-repack keeps the default (also remove on cancel/failure).
+    var cleanupOnlyOnSuccess = false
     var initialFormat: PackFormat?
 
     /// Sample files: roots are their top-level names.

@@ -38,6 +38,10 @@ final class AppState {
         tray.app = self
         system.app = self
         glance.app = self
+        packing.onDirectoryCleaned = { [weak self] url in
+            self?.tray.removeCleanedTemporaryGroup(at: url)
+        }
+        TrayTemporaryGroups.purgeAbandoned(keeping: [])
         batch.onOpen = { [weak self] url in
             self?.showMainWindow()
             self?.open(url)
@@ -194,11 +198,24 @@ final class AppState {
     }
 
     /// Shows the Pack sentence for files and folders from anywhere (drops, the Tray, New Archive).
-    func pack(_ urls: [URL]) {
+    /// `cleanupTemporaryGroups` are app-owned Tray folders removed only after a successful pack (#179).
+    func pack(_ urls: [URL], cleanupTemporaryGroups: [URL] = []) {
         guard !urls.isEmpty else { return }
         Task {
-            let request = await PackRequest.gather(urls)
+            var request = await PackRequest.gather(urls)
             guard !request.files.isEmpty else { return }
+            // Ownership is explicit: only attach directories that are known temporary groups.
+            let owned = cleanupTemporaryGroups.filter(TrayTemporaryGroups.isOwned)
+            if owned.count == 1, let folder = owned.first,
+               urls.map({ $0.resolvingSymlinksInPath().standardizedFileURL }) == [folder.resolvingSymlinksInPath().standardizedFileURL] {
+                request.cleanupDirectory = folder
+                request.cleanupOnlyOnSuccess = true
+                // Don't offer the caches TrayGroups folder as the archive destination.
+                if let directory = request.directory, TrayTemporaryGroups.isOwned(directory) {
+                    request.directory = GatherDestination.remembered()
+                        ?? FolderAccess.home.appending(path: "Desktop", directoryHint: .isDirectory)
+                }
+            }
             packRequest = request
         }
     }
