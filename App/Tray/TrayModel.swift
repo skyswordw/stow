@@ -148,34 +148,74 @@ nonisolated enum TrayBorder: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Where the Tray lives: what it comes out of, and where a drag of files finds it.
+nonisolated enum TrayHome: Equatable, Sendable {
+    /// Under its menu-bar icon.
+    case menuBar
+    /// At the right edge of the screen, when there's no menu-bar icon.
+    case screenEdge
+    /// Wherever people dragged it to.
+    case placed
+}
+
 /// Pure rules the Tray follows; kept apart from AppKit so they can be tested.
 nonisolated enum TrayRules {
     /// Idle times offered in Settings, in seconds; 0 means never hide by itself.
     static let idleChoices: [Int] = [0, 10, 30, 60, 300]
-
-    /// How near the cursor must be to the menu-bar icon or the screen's trailing edge before a
-    /// file drag reveals the Tray (#180). Ordinary drags elsewhere stay quiet.
-    static let dragRevealProximity: CGFloat = 72
-
-    /// Whether a file drag should raise the Tray: cursor near the status item (when present) or
-    /// the trailing edge where the panel docks without a menu-bar icon.
-    static func shouldRevealForDrag(cursor: CGPoint, statusItemFrame: CGRect?,
-                                    screenVisible: CGRect,
-                                    proximity: CGFloat = dragRevealProximity) -> Bool {
-        if let statusItemFrame {
-            let hit = statusItemFrame.insetBy(dx: -proximity, dy: -proximity)
-            if hit.contains(cursor) { return true }
-        }
-        let edge = CGRect(x: screenVisible.maxX - proximity, y: screenVisible.minY,
-                          width: proximity, height: screenVisible.height)
-        return edge.contains(cursor)
-    }
 
     /// Whether an unpinned Tray should tuck itself away now.
     static func shouldHide(lastActivity: Date, now: Date, idleSeconds: Int, pinned: Bool,
                            isDragging: Bool, isHovered: Bool) -> Bool {
         guard idleSeconds > 0, !pinned, !isDragging, !isHovered else { return false }
         return now.timeIntervalSince(lastActivity) >= TimeInterval(idleSeconds)
+    }
+
+    // MARK: Drags (#180)
+
+    /// How far out from its home a drag of files reaches the Tray. Dragging files anywhere else
+    /// is just a drag. ArcZip's Box opens about this far under the menu bar, over its own width
+    /// (measured with ArcZip 1.1.5, 2026-10-26).
+    static let approachReach: CGFloat = 160
+
+    /// The area in front of the Tray's home: a drag of files that comes into it brings the Tray out.
+    /// `tray` is the panel's frame (without its shadow); `screen` and `visible` are its screen's
+    /// full and visible frames, in screen coordinates (y up).
+    static func approachZone(home: TrayHome, tray: CGRect, screen: CGRect, visible: CGRect) -> CGRect {
+        switch home {
+        case .menuBar:
+            // As wide as the Tray, from the icon at the top of the screen down past the menu bar.
+            let bottom = visible.maxY - approachReach
+            return CGRect(x: tray.minX, y: bottom, width: tray.width, height: screen.maxY - bottom)
+        case .screenEdge:
+            // As tall as the Tray, from the screen's edge in.
+            let leading = visible.maxX - approachReach
+            return CGRect(x: leading, y: tray.minY, width: screen.maxX - leading, height: tray.height)
+        case .placed:
+            return tray
+        }
+    }
+
+    /// Where the drag hint sits (its centre) for a Tray at `tray`: tucked inside the Tray's trailing
+    /// edge, halfway down, when it lives at the screen's edge; in its middle where people put it.
+    /// Both are where the Tray grows from and inside the approach zone, so reaching the hint
+    /// always brings the Tray out over it.
+    static func hintCenter(home: TrayHome, tray: CGRect, hintSize: CGFloat) -> CGPoint {
+        switch home {
+        case .screenEdge: CGPoint(x: tray.maxX - hintSize / 2, y: tray.midY)
+        case .placed: CGPoint(x: tray.midX, y: tray.midY)
+        // Never shown: the menu-bar icon is the hint there.
+        case .menuBar: CGPoint(x: tray.midX, y: tray.maxY - hintSize / 2)
+        }
+    }
+
+    /// How long a Tray that a drag brought out waits after the drag ends before it goes back, if
+    /// nothing was dropped on it: long enough to see a drop land, short enough not to linger.
+    static let unusedDragGrace: Duration = .milliseconds(800)
+
+    /// Whether a Tray a drag brought out should go back now: the drag is over, nothing was dropped
+    /// on it (`revealedByDrag` is cleared by a drop), and it isn't pinned or under the pointer.
+    static func shouldTuckAfterDrag(revealedByDrag: Bool, isDragging: Bool, pinned: Bool, isHovered: Bool) -> Bool {
+        revealedByDrag && !isDragging && !pinned && !isHovered
     }
 
     /// New URLs to append, skipping ones already there (by standardized path) and repeats.

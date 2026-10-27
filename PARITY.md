@@ -147,7 +147,7 @@ Progress and result appear in an Actions-style capsule (Stop, Show in Finder).
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
-| Menu-bar icon, auto-show on drag, collapse after inactivity (configurable), pin open | 🧪 menu-bar icon (optional), shows when files are dragged anywhere (mouse-drag monitor + drag pasteboard, no Accessibility permission), hides after 10 s–5 min or never, pin | idle timer pauses while hovered or dragging |
+| Menu-bar icon, auto-show on drag, collapse after inactivity (configurable), pin open | 🧪 menu-bar icon (optional), shows when dragged files reach it — under the icon, or at the screen's edge with a small hint when there's no icon (mouse-drag monitor + drag pasteboard, no Accessibility permission); goes back when a drag that brought it out ends with no drop; hides after 10 s–5 min or never, pin | ArcZip's Box also waits for the drag to come near its icon (#180); idle timer pauses while hovered or dragging |
 | Folder browsing, previews, multi-select, drag out | 🧪 browse into folders, Quick Look (Space) and Finder thumbnails, ⌘/⇧ selection, drags every selected item out | |
 | Actions: compress, extract, collect into a folder (then rename), share, reveal, send to main window | 🧪 Pack, Extract Here, Collect into a Folder (name asked first), Share, Show in Finder, Send to Main Window, Clear | ➕ Collect copies — the originals stay where they were |
 | Border colour setting | 🧪 Settings › General › Tray | accent, blue, green, pink, purple, graphite |

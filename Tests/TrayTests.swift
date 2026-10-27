@@ -10,28 +10,6 @@ struct TrayTests {
         return url
     }
 
-    @Test func dragRevealNeedsProximityToIconOrTrailingEdge() {
-        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
-        let icon = CGRect(x: 700, y: 870, width: 24, height: 24)
-        // Far from icon and trailing edge: stay quiet.
-        #expect(!TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 200, y: 400), statusItemFrame: icon,
-                                               screenVisible: screen))
-        // Near the menu-bar icon.
-        #expect(TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 710, y: 860), statusItemFrame: icon,
-                                              screenVisible: screen))
-        // Trailing edge even when an icon exists (panel can dock there too).
-        #expect(TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 1430, y: 450), statusItemFrame: icon,
-                                              screenVisible: screen))
-        // Without a menu-bar icon, only the trailing edge counts.
-        #expect(!TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 710, y: 860), statusItemFrame: nil,
-                                               screenVisible: screen))
-        #expect(TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 1400, y: 100), statusItemFrame: nil,
-                                              screenVisible: screen, proximity: 72))
-        // Just outside the default proximity band.
-        #expect(!TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 1440 - 80, y: 450), statusItemFrame: nil,
-                                               screenVisible: screen, proximity: 72))
-    }
-
     @Test func idleHidesOnlyWhenNothingKeepsItOpen() {
         let start = Date(timeIntervalSinceReferenceDate: 0)
         let later = start.addingTimeInterval(31)
@@ -44,6 +22,64 @@ struct TrayTests {
         #expect(!TrayRules.shouldHide(lastActivity: start, now: start.addingTimeInterval(9999), idleSeconds: 0,
                                       pinned: false, isDragging: false, isHovered: false))
         #expect(TrayRules.idleChoices.contains(0) && TrayRules.idleChoices.contains(30))
+    }
+
+    // MARK: Drags (#180)
+
+    /// A 1440 × 900 screen with a 25 pt menu bar and a 70 pt Dock.
+    private let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+    private let visible = CGRect(x: 0, y: 70, width: 1440, height: 805)
+
+    @Test func dragReachesTheTrayOnlyUnderItsMenuBarIcon() {
+        // Under an icon at x = 1150: 300 wide, 8 below the menu bar.
+        let tray = CGRect(x: 1000, y: 427, width: 300, height: 440)
+        let zone = TrayRules.approachZone(home: .menuBar, tray: tray, screen: screen, visible: visible)
+        #expect(zone.contains(CGPoint(x: 1150, y: 890)), "on the icon itself")
+        #expect(zone.contains(CGPoint(x: 1010, y: 860)), "just under the menu bar, near the Tray's side")
+        #expect(zone.contains(CGPoint(x: 1150, y: 720)), "155 pt below the menu bar")
+        #expect(!zone.contains(CGPoint(x: 1150, y: 700)), "175 pt below: still just a drag")
+        #expect(!zone.contains(CGPoint(x: 980, y: 860)), "beside the Tray's width")
+        #expect(!zone.contains(CGPoint(x: 720, y: 450)), "the middle of the screen, where drags start")
+        // With an icon the Tray comes out under it, so the right edge is just another place.
+        #expect(!zone.contains(CGPoint(x: 1435, y: 450)), "the screen's right edge, far from the icon")
+    }
+
+    @Test func dragReachesTheTrayAtTheScreenEdgeWithoutAnIcon() {
+        // At the right edge, 16 in, halfway up the visible screen.
+        let tray = CGRect(x: 1124, y: 252, width: 300, height: 440)
+        let zone = TrayRules.approachZone(home: .screenEdge, tray: tray, screen: screen, visible: visible)
+        #expect(zone.contains(CGPoint(x: 1439, y: 470)), "against the edge")
+        #expect(zone.contains(CGPoint(x: 1290, y: 470)), "150 pt in")
+        #expect(!zone.contains(CGPoint(x: 1270, y: 470)), "170 pt in: still just a drag")
+        #expect(!zone.contains(CGPoint(x: 1430, y: 720)), "above the Tray's height")
+        #expect(!zone.contains(CGPoint(x: 1430, y: 200)), "below it")
+    }
+
+    @Test func dragReachesAPlacedTrayOverItsOwnFrame() {
+        let tray = CGRect(x: 300, y: 200, width: 300, height: 440)
+        #expect(TrayRules.approachZone(home: .placed, tray: tray, screen: screen, visible: visible) == tray)
+    }
+
+    @Test func reachingTheHintAlwaysBringsTheTrayOutOverIt() {
+        let edgeTray = CGRect(x: 1124, y: 252, width: 300, height: 440)
+        let placedTray = CGRect(x: 300, y: 200, width: 300, height: 440)
+        for (home, tray) in [(TrayHome.screenEdge, edgeTray), (.placed, placedTray)] {
+            let center = TrayRules.hintCenter(home: home, tray: tray, hintSize: 44)
+            let hint = CGRect(x: center.x - 22, y: center.y - 22, width: 44, height: 44)
+            let zone = TrayRules.approachZone(home: home, tray: tray, screen: screen, visible: visible)
+            #expect(zone.contains(hint), "\(home): the hint is inside the approach zone")
+            #expect(tray.contains(hint), "\(home): the Tray covers the hint once it's out")
+        }
+    }
+
+    @Test func aTrayADragBroughtOutGoesBackOnlyIfNothingCame() {
+        #expect(TrayRules.shouldTuckAfterDrag(revealedByDrag: true, isDragging: false, pinned: false, isHovered: false))
+        #expect(!TrayRules.shouldTuckAfterDrag(revealedByDrag: false, isDragging: false, pinned: false, isHovered: false),
+                "something was dropped, or it was opened by hand")
+        #expect(!TrayRules.shouldTuckAfterDrag(revealedByDrag: true, isDragging: true, pinned: false, isHovered: false),
+                "a new drag is under way")
+        #expect(!TrayRules.shouldTuckAfterDrag(revealedByDrag: true, isDragging: false, pinned: true, isHovered: false))
+        #expect(!TrayRules.shouldTuckAfterDrag(revealedByDrag: true, isDragging: false, pinned: false, isHovered: true))
     }
 
     @Test func addingSkipsDuplicates() {
