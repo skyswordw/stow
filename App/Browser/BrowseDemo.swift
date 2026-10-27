@@ -8,7 +8,7 @@ import Quartz
 ///     -StowFolder Showcase/Photos   -StowView grid|list|columns   -StowHelpers YES
 ///     -StowSelect "Mac-Blue.jpg|Sonoma.jpg"   (names in the folder)   -StowQuery "tide"   -StowFind YES (⌘F)
 ///     -StowQuickLook YES   -StowHover "README.md"   -StowMove down   -StowEncodingSheet YES
-///     -StowActionsOpen YES   (the Actions stack fanned out)
+///     -StowActionsOpen YES   (the Actions stack fanned out)   -StowUnlock YES   (asks for the password)
 ///
 /// Pair with `-StowSnapshotDelay 5` so thumbnails and previews arrive before the picture.
 enum BrowseDemo {
@@ -133,6 +133,7 @@ enum BrowseDemo {
                 }
             }
             if defaults.bool(forKey: "StowEncodingSheet") { model.isChoosingEncoding = true }
+            if defaults.bool(forKey: "StowUnlock") { model.unlockArchive() }
             if defaults.bool(forKey: "StowDragTest"), let window = NSApp.windows.first(where: { $0.isVisible && !($0 is NSPanel) }),
                let first = model.selectedEntries.first {
                 // A press on the first selected entry that turns into a drag, through the app's own

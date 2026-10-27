@@ -104,22 +104,30 @@ Details is a solid reading surface with the same light rim, brighter along its t
 ## Glance layout (#159)
 
 Glance is the Browser made small: the same archive, folder, selection and history, the same
-floating family, and no Details or Search. ArcZip's Mini keeps the archive in its header and the
-folder in a bar under it; Glance does the same with Stow's own pieces.
+floating family, and no Details or Search. It's **borderless**, as ArcZip's Mini is (user's
+choice, 2026-10-27): no title bar and no traffic lights. The archive is named in a header inside
+the window and the folder in a bar under it, with Stow's own pieces.
 
 | Region | Holds |
 | --- | --- |
-| Title bar | The archive's name with “ZIP archive · 17 files” under it, as in the full window, wherever you are inside it; the password lock when encrypted and **Pin on Top** at the trailing edge |
-| Card | The files, name and size, on a solid card inside the window's material (Liquid Glass or classic frosted from Settings › General; solid under Reduce Transparency). Its corners are concentric with the window's (16 pt less the 8 pt inset) and it has Details' light rim |
-| Navigation, floating over the card's top | The Browser's capsule: Back · Forward · Up │ the path from the archive down. With no Search beside it, it can take the card's width; a deep path fades at its start and keeps where you are in view |
-| Archive controls, floating bottom leading | **Open in Full Window** · **Extract All**: the full window's Glance · Extract All turned round, so switching is in the same place in both windows |
+| Header (no title bar) | The archive's format badge (32 pt), its name semibold with “ZIP archive · 17 files” under it, wherever you are inside it; when encrypted, a 20 pt lock badge right after the name: accent-filled while locked, a spinner while a password is checked, a quiet open lock once one has worked. Dragging the header moves the window; the window keeps its title for the Window menu |
+| Navigation, floating under the header | The Browser's capsule: Back · Forward · Up │ the path from the archive down, running the window's width (no Search beside it); a deep path fades at its start and keeps where you are in view |
+| Files | Name and size, straight on the window's one surface: Liquid Glass with a wash of the window colour for legibility, or classic frosted (Settings › General); solid under Reduce Transparency. No card, no frame. The badge and the rows' icons share the 16 pt margin |
+| Window controls, floating bottom leading | **Close** · **Pin on Top** · **Open in Full Window** in one glass capsule of icon buttons, like the navigation capsule's. Pinned: the pin fills in the accent with a ring round it |
+| Archive controls, floating after them | **Extract All**. When the row has no room for its words (400 pt with Actions showing), it keeps its icon alone |
 | Actions, floating bottom trailing | The full window's stack and rules: one prominent action at a time, Install App alone for an archive that's one app |
-| Under the card | The full window's unsaved-changes and changed-on-disk bars |
+| Under the files | The full window's unsaved-changes and changed-on-disk bars |
 
-**Colourful window controls** (Settings › General) take the traffic lights' place: red Close,
-yellow Pin on Top and green Open in Full Window, three separate circles with their symbols always
-showing, dark as the traffic lights' are. Open in Full Window is then among them, so the capsule at
-the bottom holds Extract All alone; nothing shows twice.
+**Colourful window controls** (Settings › General) fill the same three buttons, in the same
+capsule, with the traffic lights' colours: red Close, yellow Pin on Top and green Open in Full
+Window, their symbols always showing, dark as the traffic lights' are (white wouldn't read on
+yellow). Nothing moves or changes size when the setting changes. Pinned adds a darker ring round
+the pin's button. Not ArcZip's separate circles (user's call, 2026-10-27): the capsule keeps the
+window's controls one group, and at 400 pt a compact Extract All would otherwise read as a fourth
+window control.
+
+The password is still asked for in the system sheet the full window uses; an in-window card like
+ArcZip's is a possible follow-up only if every password behaviour stays the same.
 
 ## Color
 

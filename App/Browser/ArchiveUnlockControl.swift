@@ -25,42 +25,54 @@ enum ArchiveLockState: Equatable {
 struct ArchiveUnlockControl: View {
     let model: BrowserModel
     /// The Browser's toolbar says what the lock means beside it, so a locked archive reads as one
-    /// without a hover; Glance's compact toolbar keeps the icon alone.
+    /// without a hover.
     var showsTitle = false
+    /// Glance's header: a small badge after the archive's name, filled in the accent while the
+    /// archive is locked. Same actions, labels and help.
+    var badge = false
 
     var body: some View {
-        switch ArchiveLockState(model) {
-        case nil:
-            EmptyView()
-        case .checking:
-            Button { model.cancelUnlocking() } label: {
-                Label {
-                    if showsTitle { title(String(localized: "Unlocking…")) } else { Text("Cancel Unlocking") }
-                } icon: {
-                    ProgressView().controlSize(.small)
+        let state = ArchiveLockState(model)
+        Group {
+            switch state {
+            case nil:
+                EmptyView()
+            case .checking:
+                Button { model.cancelUnlocking() } label: {
+                    Label {
+                        if showsTitle { title(String(localized: "Unlocking…")) } else { Text("Cancel Unlocking") }
+                    } icon: {
+                        ProgressView().controlSize(badge ? .mini : .small)
+                    }
+                    .labelStyle(labelStyle)
                 }
-                .labelStyle(showsTitle ? AnyLabelStyle(.titleAndIcon) : AnyLabelStyle(.automatic))
-            }
-            .accessibilityLabel(String(localized: "Cancel Unlocking"))
-            .help("Unlocking — click to cancel")
-        case .locked:
-            Button { model.unlockArchive() } label: {
-                Label {
-                    if showsTitle { title(String(localized: "Enter Password…")) } else { Text("Unlock Archive…") }
-                } icon: {
-                    Image(systemName: "lock.fill")
+                .accessibilityLabel(String(localized: "Cancel Unlocking"))
+                .help("Unlocking — click to cancel")
+            case .locked:
+                Button { model.unlockArchive() } label: {
+                    Label {
+                        if showsTitle { title(String(localized: "Enter Password…")) } else { Text("Unlock Archive…") }
+                    } icon: {
+                        Image(systemName: "lock.fill")
+                    }
+                    .labelStyle(labelStyle)
                 }
-                .labelStyle(showsTitle ? AnyLabelStyle(.titleAndIcon) : AnyLabelStyle(.automatic))
-            }
-            .accessibilityLabel(String(localized: "Unlock Archive…"))
-            .help("Enter the archive’s password to preview or extract files")
-            .disabled(model.isListing)
-        case .passwordAvailable:
-            // Quieter once a password has worked: the open lock alone, the words in its help.
-            Button(String(localized: "Password Available"), systemImage: "lock.open.fill") { model.unlockArchive() }
-                .help("A password is available for this archive. Individual files may still ask for a different password.")
+                .accessibilityLabel(String(localized: "Unlock Archive…"))
+                .help("Enter the archive’s password to preview or extract files")
                 .disabled(model.isListing)
+            case .passwordAvailable:
+                // Quieter once a password has worked: the open lock alone, the words in its help.
+                Button(String(localized: "Password Available"), systemImage: "lock.open.fill") { model.unlockArchive() }
+                    .labelStyle(badge ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.automatic))
+                    .help("A password is available for this archive. Individual files may still ask for a different password.")
+                    .disabled(model.isListing)
+            }
         }
+        .modifier(LockBadge(state: state, isBadge: badge))
+    }
+
+    private var labelStyle: AnyLabelStyle {
+        showsTitle ? AnyLabelStyle(.titleAndIcon) : badge ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.automatic)
     }
 
     /// Locked and checking share one width, so the button doesn't resize while a password is checked.
@@ -71,6 +83,64 @@ struct ArchiveUnlockControl: View {
             Text(shown)
         }
         .accessibilityHidden(true)
+    }
+}
+
+/// Glance's lock badge, or the control as it is.
+private struct LockBadge: ViewModifier {
+    let state: ArchiveLockState?
+    let isBadge: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        if isBadge, let state {
+            content.buttonStyle(ArchiveLockBadgeStyle(state: state))
+                // The state changes on its own (a check finishing), so it eases rather than springs.
+                .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: state)
+        } else {
+            content
+        }
+    }
+}
+
+/// A circle the size of the name's line: accent-filled with a white lock while the archive is
+/// locked, a spinner while a password is checked, and once one has worked a quiet open lock.
+private struct ArchiveLockBadgeStyle: ButtonStyle {
+    let state: ArchiveLockState
+
+    func makeBody(configuration: Configuration) -> some View {
+        Badge(configuration: configuration, state: state)
+    }
+
+    private struct Badge: View {
+        let configuration: ButtonStyleConfiguration
+        let state: ArchiveLockState
+        @State private var isHovering = false
+        @Environment(\.isEnabled) private var isEnabled
+        @Environment(\.colorSchemeContrast) private var contrast
+
+        var body: some View {
+            let locked = state == .locked
+            configuration.label
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(locked ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                .frame(width: 20, height: 20)
+                .background {
+                    Circle().fill(locked ? AnyShapeStyle(Color.accentColor)
+                                  : AnyShapeStyle(.primary.opacity(isHovering ? 0.1 : 0.05)))
+                }
+                .overlay {
+                    Circle().fill(configuration.isPressed ? Color.black.opacity(0.16)
+                                  : Color.white.opacity(locked && isHovering ? 0.12 : 0))
+                    // Increase Contrast outlines it, so it reads by shape as well as colour.
+                    if ContrastStyle.resolve(contrast).increased {
+                        Circle().strokeBorder(.primary.opacity(0.45))
+                    }
+                }
+                .contentShape(.circle)
+                .onHover { isHovering = $0 && isEnabled }
+                .opacity(isEnabled ? 1 : 0.5)
+        }
     }
 }
 

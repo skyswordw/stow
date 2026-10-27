@@ -6,7 +6,6 @@ struct GlanceRoot: View {
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulControls = false
     @AppStorage(SettingsKeys.glanceMaterial) private var materialPreference = SettingsKeys.GlanceMaterialPreference.liquidGlass.rawValue
     @State private var settled = true
 
@@ -24,8 +23,6 @@ struct GlanceRoot: View {
         .opacity(settled ? 1 : 0)
         .frame(minWidth: GlancePlacement.minimumSize.width, minHeight: GlancePlacement.minimumSize.height)
         .background { background.ignoresSafeArea() }
-        .toolbar { windowControls }
-        .onChange(of: colourfulControls) { glance.updateWindowControls() }
         .onChange(of: glance.appearance) {
             // Spatial and rare: the content springs out of the pointer (DESIGN.md › Motion).
             var start = Transaction()
@@ -66,96 +63,24 @@ struct GlanceRoot: View {
         }
     }
 
+    /// The window's one surface, which the files sit on directly. Liquid Glass gets a wash of the
+    /// window colour so rows stay readable over a busy desktop; classic frosted is already dense
+    /// enough; Reduce Transparency is solid.
     @ViewBuilder
     private var background: some View {
         let preference = SettingsKeys.GlanceMaterialPreference(rawValue: materialPreference) ?? .liquidGlass
         switch GlanceMaterial.resolve(reduceTransparency: reduceTransparency, preference: preference) {
-        case .glass: Rectangle().fill(.clear).accessibleGlass(in: .rect)
+        case .glass: Rectangle().fill(Color(nsColor: .windowBackgroundColor).opacity(0.5)).accessibleGlass(in: .rect)
         case .frosted: Rectangle().fill(.regularMaterial)
         case .solid: Color(nsColor: .windowBackgroundColor)
         }
     }
-
-    @ToolbarContentBuilder
-    private var windowControls: some ToolbarContent {
-        if colourfulControls {
-            // In the traffic lights' place and their colours, each its own circle with its symbol
-            // always showing, so they read as this window's controls rather than one tinted capsule.
-            ToolbarItem(placement: .navigation) {
-                HStack(spacing: Space.s) {
-                    Button("Close", systemImage: "xmark") { glance.close() }
-                        .buttonStyle(ColourfulWindowControl(colour: .red))
-                        .accessibilityLabel(String(localized: "Close"))
-                        .help("Close")
-                    Button(glance.isPinned ? String(localized: "Unpin") : String(localized: "Pin on Top"),
-                           systemImage: glance.isPinned ? "pin.fill" : "pin") { glance.isPinned.toggle() }
-                        .buttonStyle(ColourfulWindowControl(colour: .yellow))
-                        .accessibilityAddTraits(glance.isPinned ? .isSelected : [])
-                        .help(pinHelp)
-                    Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
-                        .buttonStyle(ColourfulWindowControl(colour: .green))
-                        .accessibilityLabel(String(localized: "Open in Full Window"))
-                        .help("Show this archive in the full window — same folder, selection and history")
-                }
-                .padding(.leading, Space.xs)
-            }
-            .sharedBackgroundVisibility(.hidden)
-        } else {
-            // Open in Full Window is with Extract All, where the full window has Glance.
-            ToolbarItem {
-                Toggle(isOn: Binding(get: { glance.isPinned }, set: { glance.isPinned = $0 })) {
-                    Label(glance.isPinned ? String(localized: "Unpin") : String(localized: "Pin on Top"),
-                          systemImage: glance.isPinned ? "pin.fill" : "pin")
-                }
-                .toggleStyle(.button)
-                .help(pinHelp)
-            }
-        }
-    }
-
-    private var pinHelp: String {
-        glance.isPinned ? String(localized: "Stop keeping Glance above other windows")
-                        : String(localized: "Keep Glance above other windows")
-    }
 }
 
-/// One of the colourful window controls (Settings › General): a filled circle the size of the
-/// toolbar's buttons, in a traffic light's colour, with its symbol dark on it as theirs are.
-private struct ColourfulWindowControl: ButtonStyle {
-    let colour: Color
-
-    func makeBody(configuration: Configuration) -> some View {
-        Control(configuration: configuration, colour: colour)
-    }
-
-    private struct Control: View {
-        let configuration: ButtonStyleConfiguration
-        let colour: Color
-        @Environment(\.colorSchemeContrast) private var contrast
-
-        var body: some View {
-            configuration.label
-                .labelStyle(.iconOnly)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.black.opacity(0.62))
-                .frame(width: 24, height: 24)
-                .background(colour, in: .circle)
-                .overlay {
-                    Circle().fill(.black.opacity(configuration.isPressed ? 0.18 : 0))
-                    // Increase Contrast outlines each one, so it reads by shape as well as colour.
-                    if ContrastStyle.resolve(contrast).increased {
-                        Circle().strokeBorder(.black.opacity(0.5))
-                    }
-                }
-                .contentShape(.circle)
-        }
-    }
-}
-
-/// The compact browser (#159): the Browser's files on a solid card inside the window's glass, with
-/// the Browser's floating glass over them — getting around above, and below the archive's controls
-/// (Open in Full Window, Extract All) on the leading side and Actions on the trailing side. The title
-/// bar says which archive this is, as the full window's does; where you are inside it is the path.
+/// The compact browser (#159), borderless as ArcZip's Mini is: no title bar, the archive named in
+/// a header that moves the window, the Browser's navigation capsule under it, and the files on the
+/// window's own surface. Along the bottom, the window's controls (Close, Pin on Top, Open in Full
+/// Window), then Extract All, and Actions on the trailing side.
 struct GlanceView: View {
     @Bindable var model: BrowserModel
     @Environment(AppState.self) private var app
@@ -164,59 +89,67 @@ struct GlanceView: View {
     let glance: GlanceController
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
     @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
-    @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulControls = false
 
     var body: some View {
+        VStack(spacing: 0) {
+            GlanceHeader(model: model)
+            files
+        }
+        // The header takes the title bar's place, so it starts at the window's top edge.
+        .ignoresSafeArea(.container, edges: .top)
+        // The window keeps its title for the Window menu, Mission Control and accessibility;
+        // the header shows it.
+        .navigationTitle(model.title)
+        .navigationSubtitle(model.subtitle)
+        .onKeyPress(.escape) {
+            if model.renamingPath != nil {
+                model.renamingPath = nil
+            } else if model.quickLook.isActive {
+                model.quickLook.close()
+            } else if model.isActionStackOpen {
+                model.isActionStackOpen = false
+            } else if !model.selection.isEmpty {
+                model.select([])
+            } else {
+                glance.close()
+            }
+            return .handled
+        }
+        .onChange(of: model.selection) { model.quickLook.selectionChanged() }
+        .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
+        .editingNotice(model, isActive: glance.isShown) {
+            glance.expand()
+            app.extractAndRepack(model)
+        }
+        .background {
+            WindowReader { window in
+                editingDelegate.attach(window, model: model)
+                model.quickLook.attach(to: window)
+                model.dragOut.install(in: window)
+            }
+            .id(ObjectIdentifier(model))
+        }
+    }
+
+    /// The files, with the navigation capsule floating over their top and the controls over their
+    /// bottom, and the full window's unsaved-changes and changed-on-disk bars under them.
+    private var files: some View {
         content
             .safeAreaInset(edge: .top, spacing: 0) {
-                // Glance has no Search, so the path has the card's width.
-                NavigationCapsule(model: model)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding([.horizontal, .top], GlanceCard.inset)
+                // Glance has no Search, so the path has the window's width.
+                NavigationCapsule(model: model, fillsWidth: true)
+                    .padding(.horizontal, GlanceLayout.inset)
             }
             .overlay(alignment: .bottom) { floatingControls }
-            .glanceCard()
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
                 else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
-            }
-            .padding([.horizontal, .bottom], GlanceCard.inset)
-            .navigationTitle(model.title)
-            .navigationSubtitle(model.subtitle)
-            .toolbar { toolbar }
-            .onKeyPress(.escape) {
-                if model.renamingPath != nil {
-                    model.renamingPath = nil
-                } else if model.quickLook.isActive {
-                    model.quickLook.close()
-                } else if model.isActionStackOpen {
-                    model.isActionStackOpen = false
-                } else if !model.selection.isEmpty {
-                    model.select([])
-                } else {
-                    glance.close()
-                }
-                return .handled
-            }
-            .onChange(of: model.selection) { model.quickLook.selectionChanged() }
-            .sheet(isPresented: $model.isChoosingEncoding) { EncodingSheet(model: model) }
-            .editingNotice(model, isActive: glance.isShown) {
-                glance.expand()
-                app.extractAndRepack(model)
-            }
-            .background {
-                WindowReader { window in
-                    editingDelegate.attach(window, model: model)
-                    model.quickLook.attach(to: window)
-                    model.dragOut.install(in: window)
-                }
-                .id(ObjectIdentifier(model))
             }
     }
 
     @ViewBuilder
     private var content: some View {
-        // The card is their background.
+        // On the window's surface, like the rows.
         if model.isSearching, model.visibleEntries.isEmpty {
             NoSearchResultsView(model: model)
         } else if model.visibleEntries.isEmpty {
@@ -227,19 +160,23 @@ struct GlanceView: View {
         }
     }
 
-    /// The full window's bottom row, smaller: the archive's controls on the leading side, Actions
-    /// on the trailing side, and one prominent action at a time. Extract All carries the accent
-    /// until Actions shows, for a selection or to install an archive that's one app.
+    /// The window's controls on the leading side, then the archive's Extract All, and Actions on
+    /// the trailing side, with one prominent action at a time: Extract All carries the accent until
+    /// Actions shows, for a selection or to install an archive that's one app. When the row runs
+    /// out of room, Extract All keeps its icon and drops its words.
     @ViewBuilder
     private var floatingControls: some View {
         let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
             .archiveLayout(installable: model.archiveTarget).front != nil
         let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
         HStack(alignment: .bottom, spacing: Space.s) {
-            // The colourful window controls already have a green Open in Full Window; it shows once.
-            ArchiveActions(model: model, prominent: !showsActions,
-                           switchTo: colourfulControls ? nil : .fullWindow { glance.expand() })
-                .accessibilitySortPriority(0.5)
+            GlanceWindowControls(glance: glance)
+                .accessibilitySortPriority(0.6)
+            ViewThatFits(in: .horizontal) {
+                ArchiveActions(model: model, prominent: !showsActions)
+                ArchiveActions(model: model, prominent: !showsActions, compact: true)
+            }
+            .accessibilitySortPriority(0.5)
             Spacer(minLength: 0)
             ZStack {
                 if showsActions {
@@ -253,54 +190,157 @@ struct GlanceView: View {
             // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
             .animation(Motion.presence(showsActions, reduceMotion: reduceMotion), value: showsActions)
         }
-        .padding(GlanceCard.inset)
-    }
-
-    /// The title bar is the archive's: its name and what it is (`navigationTitle`), and its
-    /// password at the trailing edge, as in the full window. Getting around is over the files.
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        if model.archive.isEncrypted {
-            ToolbarItem(placement: .primaryAction) { ArchiveUnlockControl(model: model) }
-        }
+        .padding([.horizontal, .bottom], GlanceLayout.inset)
     }
 }
 
-/// Glance's files: a solid surface for reading inside the window's glass, its corners concentric
-/// with the window's, and the light rim Details and the floating glass have.
-enum GlanceCard {
-    /// The glass around the card, and the floating glass's inset inside it.
-    static let inset = Space.s
-    /// The window's own corner radius (macOS 26: 16 pt) less the inset, so the card's corners and
-    /// the window's run parallel.
-    static let cornerRadius: CGFloat = 16 - inset
+/// Glance's measures.
+enum GlanceLayout {
+    /// The floating glass's distance from the window's sides and bottom.
+    static let inset = Space.s + Space.xs
+    /// The header's leading and trailing margin; the badge lines up with the rows' icons.
+    static let margin = Space.l
 }
 
-private extension View {
-    func glanceCard() -> some View { modifier(GlanceCardSurface()) }
-}
+/// The archive Glance shows: its format badge, its name and what it is, wherever you are inside
+/// it, and its password beside the name when it's encrypted. It's where the title bar was, so it
+/// moves the window; the lock keeps its click.
+private struct GlanceHeader: View {
+    let model: BrowserModel
 
-private struct GlanceCardSurface: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var contrast
-
-    func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: GlanceCard.cornerRadius, style: .continuous)
-        let dark = colorScheme == .dark
-        content
-            .background(Color(nsColor: .controlBackgroundColor))
-            .clipShape(shape)
-            .overlay {
-                // Brighter along the top, as if lit from above; it keeps the card apart from the glass
-                // when both are dark.
-                shape.strokeBorder(ContrastStyle.resolve(contrast).increased ? AnyShapeStyle(Color.primary.opacity(0.45))
-                                   : AnyShapeStyle(LinearGradient(colors: [.white.opacity(dark ? 0.16 : 0.9), .primary.opacity(dark ? 0.08 : 0.1)],
-                                                                  startPoint: .top, endPoint: .bottom)),
-                                   lineWidth: 1)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+    var body: some View {
+        HStack(spacing: Space.m) {
+            FormatBadge(format: model.archive.format, height: 32)
+                // The subtitle under the name says the same.
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 6) {
+                    Text(model.title)
+                        .font(.title3.weight(.semibold))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .accessibilityAddTraits(.isHeader)
+                    // A long name gives way first; the lock always shows.
+                    ArchiveUnlockControl(model: model, badge: true)
+                        .fixedSize()
+                }
+                Text(model.subtitle)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            .shadow(color: .black.opacity(dark ? 0.3 : 0.07), radius: dark ? 10 : 8, y: 2)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, GlanceLayout.margin)
+        .padding(.top, Space.m + 2)
+        .padding(.bottom, GlanceLayout.inset - 2)
+        .help(model.title)
+        // Dragging anywhere but the lock moves the window, as the title bar did. (SwiftUI never
+        // passes a background drag to AppKit, so `isMovableByWindowBackground` alone wouldn't.)
+        .contentShape(.rect)
+        .gesture(WindowDragGesture())
+        .allowsWindowActivationEvents(true)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// Close, Pin on Top and Open in Full Window: the window's own controls, now that it has no title
+/// bar, in one glass capsule of icon buttons like the navigation capsule's. Colourful controls
+/// (Settings › General) fill the same three buttons in the traffic lights' colours; nothing moves
+/// or changes size. Pinned: the pin fills and a ring goes round its button.
+private struct GlanceWindowControls: View {
+    let glance: GlanceController
+    @AppStorage(SettingsKeys.glanceColourfulControls) private var colourful = false
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if colourful {
+                close.buttonStyle(ColourfulWindowControl(colour: .trafficRed))
+                pin.buttonStyle(ColourfulWindowControl(colour: .trafficYellow, isOn: glance.isPinned))
+                expand.buttonStyle(ColourfulWindowControl(colour: .trafficGreen))
+            } else {
+                close.buttonStyle(ActionButtonStyle(iconOnly: true))
+                pin.buttonStyle(ActionButtonStyle(iconOnly: true, isOn: glance.isPinned))
+                expand.buttonStyle(ActionButtonStyle(iconOnly: true))
+            }
+        }
+        .padding(ActionButtonStyle.inset)
+        .accessibleGlass(in: .capsule)
+        .labelStyle(.iconOnly)
+        .fixedSize()
+        .accessibilityElement(children: .contain)
+    }
+
+    private var close: some View {
+        Button("Close", systemImage: "xmark") { glance.close() }
+            .accessibilityLabel(String(localized: "Close"))
+            .help("Close")
+    }
+
+    private var pin: some View {
+        Button(glance.isPinned ? String(localized: "Unpin") : String(localized: "Pin on Top"),
+               systemImage: glance.isPinned ? "pin.fill" : "pin") { glance.isPinned.toggle() }
+            .accessibilityAddTraits(glance.isPinned ? .isSelected : [])
+            .help(glance.isPinned ? String(localized: "Stop keeping Glance above other windows")
+                                  : String(localized: "Keep Glance above other windows"))
+    }
+
+    private var expand: some View {
+        Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
+            .accessibilityLabel(String(localized: "Open in Full Window"))
+            .help("Show this archive in the full window — same folder, selection and history")
+    }
+}
+
+private extension Color {
+    /// The traffic lights' own fills, softer than the system's red, yellow and green.
+    static let trafficRed = Color(red: 1, green: 0.373, blue: 0.341)
+    static let trafficYellow = Color(red: 0.996, green: 0.737, blue: 0.180)
+    static let trafficGreen = Color(red: 0.157, green: 0.784, blue: 0.251)
+}
+
+/// One of the colourful window controls: the capsule's button filled in a traffic light's colour,
+/// its symbol always showing and dark on it as theirs are, so it stays legible on yellow. On
+/// (pinned), a darker ring runs round its edge, inside the capsule like the plain button's.
+private struct ColourfulWindowControl: ButtonStyle {
+    let colour: Color
+    var isOn = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        Control(configuration: configuration, colour: colour, isOn: isOn)
+    }
+
+    static let diameter = ActionButtonStyle.height
+
+    private struct Control: View {
+        let configuration: ButtonStyleConfiguration
+        let colour: Color
+        let isOn: Bool
+        @State private var isHovering = false
+        @Environment(\.colorSchemeContrast) private var contrast
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.black.opacity(0.62))
+                .frame(width: ColourfulWindowControl.diameter, height: ColourfulWindowControl.diameter)
+                .background(colour, in: .circle)
+                .overlay {
+                    Circle().fill(configuration.isPressed ? Color.black.opacity(0.16) : Color.white.opacity(isHovering ? 0.14 : 0))
+                    // Increase Contrast outlines each one, so it reads by shape as well as colour.
+                    if ContrastStyle.resolve(contrast).increased {
+                        Circle().strokeBorder(.black.opacity(0.5))
+                    }
+                }
+                .overlay {
+                    Circle()
+                        .strokeBorder(.black.opacity(0.4), lineWidth: 2)
+                        .opacity(isOn ? 1 : 0)
+                        .allowsHitTesting(false)
+                }
+                .contentShape(.circle)
+                .onHover { isHovering = $0 }
+        }
     }
 }
 
@@ -356,6 +396,8 @@ private struct GlanceList: View {
                 }
             }
             .alternatingRowBackgrounds(.disabled)
+            // The rows sit on the window's surface.
+            .scrollContentBackground(.hidden)
             .collapsesSelectionOnClick(model)
             .safeAreaPadding(.bottom, 56)
             .quickLookKeys(model)
