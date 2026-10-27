@@ -82,4 +82,28 @@ struct AccessibilityTests {
         #expect(AccessibilityText.selectionSummary([one]) == "report.pdf, \(Int64(2_400).bytes)")
         #expect(AccessibilityText.selectionSummary([one, entry("b.txt", size: 600)]) == "2 items, \(Int64(3_000).bytes)")
     }
+
+    @Test func failureJoinsTitleAndAdvice() {
+        let failure = Failure(Installer.RunningApp(name: "Harbor"), .install, name: "Harbor")
+        let spoken = AccessibilityText.failure(failure)
+        #expect(spoken.hasPrefix(failure.title))
+        #expect(spoken.contains(failure.advice.prefix(20)))
+        #expect(spoken.contains(". "))
+    }
+
+    @Test func failureWithoutAdviceIsTitleOnly() {
+        var failure = Failure(Installer.RunningApp(name: "Harbor"), .install, name: "Harbor")
+        failure.advice = ""
+        #expect(AccessibilityText.failure(failure) == failure.title)
+        failure.advice = "   "
+        #expect(AccessibilityText.failure(failure) == failure.title)
+    }
+
+    @Test func activityLabelJoinsOptionalNote() {
+        #expect(AccessibilityText.activity(title: "Extracting 2 items") == "Extracting 2 items")
+        #expect(AccessibilityText.activity(title: "Extracted to Downloads", note: "· tested")
+                == "Extracted to Downloads, · tested")
+        #expect(AccessibilityText.activity(title: "Packing", note: "") == "Packing")
+    }
+
 }

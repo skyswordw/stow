@@ -8,7 +8,6 @@ struct SettingsView: View {
             ForEach(SettingsPane.allCases) { pane in
                 pane.content
                     .accessibilityElement(children: .contain)
-                    .accessibilityLabel(pane.title)
                     .tabItem { Label(pane.title, systemImage: pane.systemImage) }
                     .tag(pane)
             }
