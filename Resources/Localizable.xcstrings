@@ -2165,12 +2165,32 @@
         }
       }
     },
-    "Show Tray while dragging files": {
+    "Show Tray when files are dragged to it": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "拖移文件时显示托盘"
+            "value": "将文件拖移到托盘时显示托盘"
+          }
+        }
+      }
+    },
+    "Drag files up to the Tray icon in the menu bar.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将文件向上拖移到菜单栏中的托盘图标。"
+          }
+        }
+      }
+    },
+    "Drag files to the right edge of the screen.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将文件拖移到屏幕右边缘。"
           }
         }
       }

@@ -5,8 +5,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// The Tray: a shelf that lives in the menu bar and collects files from anywhere. It comes out
-/// while something is dragged, tucks itself away after an idle time unless pinned, and enters and
-/// leaves along the same edge.
+/// when files are dragged to it, tucks itself away after an idle time unless pinned (or as soon as
+/// a drag that brought it out ends with nothing dropped), and enters and leaves along the same edge.
 @Observable
 final class TrayController {
     /// What was dropped on the Tray (the top level).
@@ -16,7 +16,13 @@ final class TrayController {
     var selection: Set<UUID> = []
     private(set) var anchor: UUID?
     private(set) var isShown = false
-    var isHovered = false { didSet { touch() } }
+    var isHovered = false {
+        didSet {
+            touch()
+            // The pointer on it after a drag means people turned to it: it stays like any Tray.
+            if isHovered, !isDragging { revealedByDrag = false }
+        }
+    }
     var isPinned = SettingsKeys.flag(SettingsKeys.trayPinned) {
         didSet { UserDefaults.standard.set(isPinned, forKey: SettingsKeys.trayPinned); touch() }
     }
@@ -50,7 +56,14 @@ final class TrayController {
     @ObservationIgnored private var dragMonitor: Any?
     @ObservationIgnored private var dragEndMonitor: Any?
     @ObservationIgnored private var dragChangeCount = NSPasteboard(name: .drag).changeCount
+    /// Files are being dragged in another app, from the drag's first move to the button coming up.
     @ObservationIgnored private var isDragging = false
+    /// A drag of files brought the Tray out and nothing has been dropped on it yet: it goes back
+    /// once the drag ends. A drop, the pointer on it or opening it by hand clears this.
+    @ObservationIgnored private var revealedByDrag = false
+    @ObservationIgnored private var tuckTask: Task<Void, Never>?
+    /// Shows where the Tray comes out while files are dragged, when that isn't the menu-bar icon.
+    @ObservationIgnored private var hint: TrayHint?
     @ObservationIgnored private var idleTimer: Timer?
     @ObservationIgnored private var lastActivity = Date()
     @ObservationIgnored private var rowMonitor: Any?
@@ -95,7 +108,7 @@ final class TrayController {
     private func installStatusItem() {
         guard statusItem == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "tray", accessibilityDescription: String(localized: "Tray"))
+        item.button?.image = Self.statusImage(receiving: false)
         item.button?.toolTip = String(localized: "Tray — gather files from anywhere")
         item.button?.action = #selector(StatusTarget.toggleTray)
         let target = StatusTarget(tray: self)
@@ -115,18 +128,26 @@ final class TrayController {
 
     var hasMenuBarIcon: Bool { statusItem != nil }
 
-    /// A drag of files anywhere on screen brings the Tray out. Mouse-drag monitors need no
-    /// Accessibility permission; the drag pasteboard's change count tells a new drag from an old one.
+    /// The menu-bar icon; while files are dragged it shows the tray taking something in.
+    private static func statusImage(receiving: Bool) -> NSImage? {
+        NSImage(systemSymbolName: receiving ? "tray.and.arrow.down" : "tray",
+                accessibilityDescription: String(localized: "Tray"))
+    }
+
+    // MARK: - Drags (#180)
+
+    /// Dragging files only brings the Tray out once the drag comes to where it lives: under its
+    /// menu-bar icon, at the screen's edge, or where people put it (`TrayRules.approachZone`).
+    /// Until then the icon, or a small hint at that edge, shows where to go. Mouse-drag monitors
+    /// need no Accessibility permission; the drag pasteboard's change count tells a new drag from
+    /// an old one.
     private func startWatchingDrags() {
         guard dragMonitor == nil else { return }
         dragMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDragged) { [weak self] _ in
             MainActor.assumeIsolated { self?.mouseDragged() }
         }
         dragEndMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.isDragging = false
-                self?.touch()
-            }
+            MainActor.assumeIsolated { self?.mouseUp() }
         }
     }
 
@@ -135,16 +156,79 @@ final class TrayController {
         if let dragEndMonitor { NSEvent.removeMonitor(dragEndMonitor) }
         dragMonitor = nil
         dragEndMonitor = nil
+        if isDragging { mouseUp() }
     }
 
     private func mouseDragged() {
         let pasteboard = NSPasteboard(name: .drag)
-        guard pasteboard.changeCount != dragChangeCount else { return }
-        dragChangeCount = pasteboard.changeCount
-        guard pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) else { return }
-        isDragging = true
+        if pasteboard.changeCount != dragChangeCount {
+            dragChangeCount = pasteboard.changeCount
+            // A new drag. Only files count; text or a window being moved never shows the Tray.
+            guard pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) else { return }
+            isDragging = true
+            touch()
+            if !isShown { showHint(true) }
+        }
+        guard isDragging, !isShown, approachZone().contains(NSEvent.mouseLocation) else { return }
+        showHint(false)
+        show(fromDrag: true)
+    }
+
+    private func mouseUp() {
+        let ended = isDragging
+        isDragging = false
         touch()
-        if !isShown { show(fromDrag: true) }
+        guard ended else { return }
+        showHint(false)
+        // Let go over the Tray: people brought the files to it, and a drop of promised files can
+        // take a while to arrive. It stays like any Tray.
+        if isShown, contentFrameShown().contains(NSEvent.mouseLocation) { revealedByDrag = false }
+        guard revealedByDrag else { return }
+        // A drop lands on mouse-up too: give it a moment to arrive before deciding nothing came.
+        tuckTask?.cancel()
+        tuckTask = Task { [weak self] in
+            try? await Task.sleep(for: TrayRules.unusedDragGrace)
+            guard let self, !Task.isCancelled, self.isShown else { return }
+            if TrayRules.shouldTuckAfterDrag(revealedByDrag: self.revealedByDrag, isDragging: self.isDragging,
+                                             pinned: self.isPinned, isHovered: self.isHovered) {
+                self.hide()
+            }
+        }
+    }
+
+    /// The menu-bar icon shows the tray taking something in; without one, a small hint comes out
+    /// where the Tray will.
+    private func showHint(_ visible: Bool) {
+        let home = home
+        if let button = statusItem?.button {
+            button.image = Self.statusImage(receiving: visible && home == .menuBar)
+        }
+        guard visible, home != .menuBar else {
+            hint?.dismiss()
+            return
+        }
+        let hint = hint ?? TrayHint()
+        self.hint = hint
+        hint.present(at: TrayRules.hintCenter(home: home, tray: contentFrameShown(), hintSize: TrayHint.size),
+                     border: SettingsKeys.trayBorder())
+    }
+
+    /// Where the Tray lives right now.
+    private var home: TrayHome {
+        if let placedFrame, Self.onScreen(placedFrame) != nil { return .placed }
+        return statusItem?.button?.window?.screen == nil ? .screenEdge : .menuBar
+    }
+
+    /// The Tray's frame as it comes out, without the margin its shadow is drawn in.
+    private func contentFrameShown() -> CGRect {
+        frame().insetBy(dx: TrayView.shadowMargin, dy: TrayView.shadowMargin)
+    }
+
+    private func approachZone() -> CGRect {
+        let tray = contentFrameShown()
+        let screen = NSScreen.screens.first { $0.frame.intersects(tray) } ?? NSScreen.main
+        guard let screen else { return tray }
+        return TrayRules.approachZone(home: home, tray: tray, screen: screen.frame, visible: screen.visibleFrame)
     }
 
     // MARK: - Showing
@@ -167,7 +251,14 @@ final class TrayController {
         panel.setFrame(frame(), display: false)
         isPlacing = false
         // Moved by hand, it grows from its own middle; otherwise from the menu bar or screen edge.
-        edge = placedFrame != nil ? .center : statusItem?.button?.window == nil ? .trailing : .top
+        let home = home
+        edge = switch home {
+        case .placed: .center
+        case .menuBar: .top
+        case .screenEdge: .trailing
+        }
+        revealedByDrag = fromDrag
+        tuckTask?.cancel()
         isShown = true
         touch()
         startIdleTimer()
@@ -188,6 +279,8 @@ final class TrayController {
     func hide() {
         guard let panel else { return }
         isShown = false
+        revealedByDrag = false
+        tuckTask?.cancel()
         idleTimer?.invalidate()
         idleTimer = nil
         collectingName = nil
@@ -267,6 +360,8 @@ final class TrayController {
     var folderTitle: String? { path.last?.name }
 
     func add(_ urls: [URL]) {
+        // Something was dropped on it (or added by hand): it stays out like any Tray.
+        revealedByDrag = false
         let fresh = TrayRules.newURLs(urls, existing: items.compactMap(\.url))
         items += fresh.map(TrayItem.init(url:))
         if !path.isEmpty { path = [] }

@@ -63,8 +63,8 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
   still need macOS visual checks in both themes and under Reduce Transparency.
 
 ### G. Tray in the menu bar (ArcZip "File Box")
-- Menu-bar icon; Tray appears while something is dragged and hides after a configurable idle time;
-  pin open.
+- Menu-bar icon; Tray appears when dragged files reach it (#180) and hides after a configurable idle
+  time; pin open.
 - Folder browsing, previews, multi-select, drag out.
 - Actions: Pack, Extract, Collect into a Folder (then rename), Share, Reveal, Send to the main window.
 - Border-colour setting.

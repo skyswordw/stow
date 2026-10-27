@@ -36,7 +36,12 @@ struct GeneralSettingsView: View {
             }
             Section("Tray") {
                 Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
-                Toggle("Show Tray while dragging files", isOn: $trayWhileDragging)
+                // Dragging files anywhere else leaves the Tray alone (#180); say where to take them.
+                Toggle(isOn: $trayWhileDragging) {
+                    Text("Show Tray when files are dragged to it")
+                    Text(trayIcon ? String(localized: "Drag files up to the Tray icon in the menu bar.")
+                                  : String(localized: "Drag files to the right edge of the screen."))
+                }
                 Picker("Hide Tray when idle", selection: $trayIdle) {
                     ForEach(TrayRules.idleChoices, id: \.self) { seconds in
                         Text(Self.idleTitle(seconds)).tag(seconds)
