@@ -70,7 +70,7 @@ struct InstallEngineTests {
         #expect(TemporaryFolder.contents(of: applications).filter { !$0.contains("/") } == ["Tool.app"])
 
         // Declining the signature warning installs nothing.
-        await #expect(throws: EngineError(.cancelled)) {
+        await expectEngineFailure(.cancelled) {
             _ = try await Installer.installApp(try #require(archive1.entry(at: "Tool.app")), from: archive1,
                                                into: applications, removeQuarantine: false,
                                                ask: questions.answer(.cancel), onProgress: { _ in })
