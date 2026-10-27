@@ -146,8 +146,9 @@ other manual checks remain below. Harbor sample files and Try the Sample wiring 
 
 Automated tests cover the engine, packing, extraction, editing, placement/conflicts, signatures,
 hand-off tokens, associations logic, browsing, streaming listings, search, encodings, passwords,
-recents and settings. CI requires at least 509 reported tests. The following checks remain before
-a 1.0 (including automated coverage whose manual or longer-running counterpart is still open):
+recents and settings. CI requires at least 509 reported tests. The following tracks remaining
+verification toward 1.0 (including automated coverage whose manual or longer-running counterpart
+is still open). Explicitly deferred work is not a merge or release blocker for the current milestone:
 
 | # | What | Why it hasn't been done / how to run it |
 | --- | --- | --- |
@@ -165,7 +166,7 @@ a 1.0 (including automated coverage whose manual or longer-running counterpart i
 | 12 | Archives of several GB, low disk space, and the engine's temporary copy while packing | packing needs space for the input plus the archive |
 | 13 | SMB/NAS and iCloud Drive locations (open, extract, pack, rename) | not tested |
 | 14 | Real-world corpus: multi-part RAR5, self-extracting EXE, ZIPs from Windows/Linux tools, legacy encodings beyond the fixtures | fixtures are synthetic |
-| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | automated parts covered (#29); the manual VoiceOver/keyboard/display-settings checklist is on #38 |
+| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | automated parts covered (#29); dedicated VoiceOver acceptance and the AX-only #93 investigation are deferred at low priority, not current merge/release blockers (user decision, 2026-10-26). Basic keyboard/focus and display-setting behavior remain in scope; ordinary-use crashes retain their stability priority. Checklist: #38 |
 | 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | the universal Release build is checked in CI (#33) and the test suite passed as x86_64 under Rosetta, but the x86_64 7zz dies with "Illegal instruction" under Rosetta; nothing has run on real Intel hardware or on macOS 26.0 |
 | 17 | Signed/notarized build behaviour (Gatekeeper on extracted apps, extensions, App Group hand-off on a clean Mac) | notarized DMG published; clean-Mac Gatekeeper + live Finder hand-off still to run by hand (#38) |
 | 18 | Fuzzing malformed archives | automated (#37): a deterministic set on every CI run, a longer weekly run (`fuzz.yml`). Still open: a sustained multi-hour run with no findings, and coverage-guided fuzzing of Stow's own parsers (AppleDouble, tar headers) |

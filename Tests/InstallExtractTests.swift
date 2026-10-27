@@ -86,7 +86,7 @@ struct PlacementTests {
         defer { scene.folder.cleanUp() }
         let before = TemporaryFolder.contents(of: scene.out)
         var asked = 0
-        await #expect(throws: EngineError(.cancelled)) {
+        await expectEngineFailure(.cancelled) {
             _ = try await scene.place { conflict throws(EngineError) in
                 asked += 1
                 if conflict.canMerge { return .merge }
@@ -138,7 +138,7 @@ struct PlacementTests {
         #expect(questions == 1)
 
         let stopping = ConflictPolicy(Preferences.defaults) { _ in nil }
-        await #expect(throws: EngineError(.cancelled)) { try await stopping.resolve(file) }
+        await expectEngineFailure(.cancelled) { try await stopping.resolve(file) }
     }
 }
 

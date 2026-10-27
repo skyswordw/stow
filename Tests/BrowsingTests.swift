@@ -310,7 +310,7 @@ struct NestedTests {
         }
         #expect(value == "opened" && password == "right")
         #expect(asked.map(\.1) == [false, true])
-        await #expect(throws: EngineError(.passwordRequired)) {
+        await expectEngineFailure(.passwordRequired) {
             _ = try await PasswordHook.none.retrying("x.7z") { _ -> Int in throw EngineError(.passwordRequired) }
         }
     }

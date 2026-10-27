@@ -32,6 +32,23 @@ against **ArcZip** while retaining Stow's own vocabulary and design language.
 
 This division does not add a user approval gate to already authorized work.
 
+## Accessibility priority for the current milestone
+
+- Full VoiceOver support, dedicated screen-reader refinement, and native VoiceOver acceptance
+  testing are deferred while the core product is being completed. Missing VoiceOver validation
+  alone is not a merge or release blocker for the current milestone.
+- Preserve existing accessibility semantics, meaningful control names, basic keyboard access,
+  focus behavior, and support for system display/motion preferences. Make low-cost improvements
+  alongside functional work; do not require a separate VoiceOver campaign for every PR.
+- Record known AX/VoiceOver limitations in the relevant issue. Keep #93 open as a low-priority,
+  deferred investigation; do not claim it is fixed without evidence. Crashes reproduced during
+  ordinary mouse or keyboard use remain stability defects and are prioritized by their impact.
+- Computer Use may use AX for functional testing. Report AX-tree inspection/activation separately
+  from actual VoiceOver testing. Assess an AX failure that blocks automation on its testing impact;
+  it does not automatically make complete VoiceOver support a product acceptance requirement.
+- This confirmed priority supersedes VoiceOver acceptance gates in older briefs and PR checklists.
+  Ownership above remains unchanged.
+
 ## Design handoffs and review
 
 - Separate confirmed user decisions, observed reference behavior, functional requirements and

@@ -235,11 +235,11 @@ struct EditingTests {
         let archive = try await fixture(format, in: folder.url, password: "secret")
         let item = try staged(folder.url, path: "new", text: "encrypted addition")
         let original = try hash(archive)
-        await #expect(throws: EngineError(.wrongPassword)) {
+        await expectEngineFailure(.wrongPassword) {
             try await ArchiveSaver.save(archive: archive, operations: [.add(destinationFolder: "", items: ["new"])], items: [item], password: "wrong")
         }
         #expect(try hash(archive) == original)
-        await #expect(throws: EngineError(.passwordRequired)) {
+        await expectEngineFailure(.passwordRequired) {
             try await ArchiveSaver.save(archive: archive, operations: [.delete(paths: ["a"])], items: [])
         }
         #expect(try hash(archive) == original)
@@ -247,7 +247,7 @@ struct EditingTests {
         #expect(result.entries.first { $0.path == "new" }?.isEncrypted == true)
         let sevenZip = try #require(SevenZip.bundled())
         if format == .sevenZip {
-            await #expect(throws: EngineError(.passwordRequired)) { try await sevenZip.list(archive) }
+            await expectEngineFailure(.passwordRequired) { try await sevenZip.list(archive) }
         }
         let extracted = folder.url.appending(path: "extracted")
         try FileManager.default.createDirectory(at: extracted, withIntermediateDirectories: true)
@@ -315,7 +315,7 @@ struct EditingTests {
         try handle.write(contentsOf: Data("external modification".utf8))
         try handle.close()
         let changed = try hash(archive)
-        await #expect(throws: EngineError(.changedOnDisk)) {
+        await expectEngineFailure(.changedOnDisk) {
             try await ArchiveSaver.save(archive: archive, operations: [.delete(paths: ["a"])], items: [], identity: identity)
         }
         #expect(try hash(archive) == changed)

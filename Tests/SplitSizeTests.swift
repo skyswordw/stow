@@ -38,6 +38,47 @@ struct SplitSizeTests {
         #expect(SplitSize.parseCustom(" 2 ", unit: .gigabyte)?.rawValue == 2_000_000_000)
     }
 
+    @Test func parseCustomReadsTheLocalesDecimalComma() {
+        let german = Locale(identifier: "de_DE")
+        let french = Locale(identifier: "fr_FR")
+        #expect(SplitSize.parseCustom("1,5", unit: .gigabyte, locale: german)?.rawValue == 1_500_000_000)
+        #expect(SplitSize.parseCustom("1,5", unit: .megabyte, locale: french)?.rawValue == 1_500_000)
+        // The written-back form ("1.5") still reads the same everywhere.
+        #expect(SplitSize.parseCustom("1.5", unit: .gigabyte, locale: german)?.rawValue == 1_500_000_000)
+    }
+
+    @Test func parseCustomDoesntGuessAtGroupingCommas() {
+        let english = Locale(identifier: "en_US")
+        #expect(SplitSize.readCustom("1,000", unit: .megabyte, locale: english) == .notANumber)
+        #expect(SplitSize.readCustom("1,5", unit: .megabyte, locale: english) == .notANumber)
+        #expect(SplitSize.readCustom("1,5", unit: .megabyte, locale: Locale(identifier: "zh_CN")) == .notANumber)
+        #expect(SplitSize.readCustom("1,000,5", unit: .megabyte, locale: Locale(identifier: "de_DE")) == .notANumber)
+    }
+
+    @Test(arguments: ["en_US", "zh_CN", "ja_JP", "de_DE"])
+    func parseCustomFoldsFullWidthDigits(locale: String) {
+        let locale = Locale(identifier: locale)
+        #expect(SplitSize.parseCustom("２５０", unit: .megabyte, locale: locale)?.rawValue == 250_000_000)
+        #expect(SplitSize.parseCustom("１．５", unit: .gigabyte, locale: locale)?.rawValue == 1_500_000_000)
+        #expect(SplitSize.parseCustom("　２　", unit: .gigabyte, locale: locale)?.rawValue == 2_000_000_000)
+    }
+
+    @Test func readCustomTellsNotANumberFromOutOfRange() {
+        let english = Locale(identifier: "en_US")
+        #expect(SplitSize.readCustom("", unit: .megabyte, locale: english) == .empty)
+        #expect(SplitSize.readCustom("  ", unit: .megabyte, locale: english) == .empty)
+        for text in ["abc", "1e3", "0x10", "-5", "+5", "inf", "nan", ".", "1.2.3", "1 000"] {
+            #expect(SplitSize.readCustom(text, unit: .megabyte, locale: english) == .notANumber, "\(text)")
+        }
+        #expect(SplitSize.readCustom("0", unit: .megabyte, locale: english) == .outOfRange)
+        #expect(SplitSize.readCustom("0.0005", unit: .megabyte, locale: english) == .outOfRange)
+        #expect(SplitSize.readCustom("200000", unit: .gigabyte, locale: english) == .outOfRange)
+        #expect(SplitSize.readCustom("1e30", unit: .gigabyte, locale: english) == .notANumber)
+        #expect(SplitSize.readCustom("99999999999999999999", unit: .gigabyte, locale: english) == .outOfRange)
+        #expect(SplitSize.readCustom("250", unit: .megabyte, locale: english) == .size(SplitSize(rawValue: 250_000_000)))
+        #expect(SplitSize.readCustom(".5", unit: .gigabyte, locale: english) == .size(SplitSize(rawValue: 500_000_000)))
+    }
+
     @Test func reportPartsUseCustomVolumeSize() {
         let files = [PackFile(path: "big.bin", size: 900_000_000)]
         var options = PackOptions()

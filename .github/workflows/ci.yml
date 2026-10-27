@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 515 after BatchStack failure-row AX leaf (#93) and the Pack part-size editor, checkbox and metadata-note tests (#153).
+          # 519 after locale-aware custom part sizes (#194) and the Pack part-size editor, checkbox and metadata-note tests (#153).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "515"
+          MIN_TESTS: "519"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
