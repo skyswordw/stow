@@ -6,6 +6,7 @@ struct GeneralSettingsView: View {
     @AppStorage("PackCPUCores") private var cores = 0
     @AppStorage(SettingsKeys.openInGlance) private var openInGlance = false
     @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulGlanceControls = false
+    @AppStorage(SettingsKeys.glanceMaterial) private var glanceMaterial = SettingsKeys.GlanceMaterialPreference.liquidGlass.rawValue
     @AppStorage(SettingsKeys.trayMenuBarIcon) private var trayIcon = true
     @AppStorage(SettingsKeys.trayShowWhileDragging) private var trayWhileDragging = true
     @AppStorage(SettingsKeys.trayIdleSeconds) private var trayIdle = 30
@@ -25,6 +26,10 @@ struct GeneralSettingsView: View {
             Toggle("Open archives from Finder and Quick Look in Glance", isOn: $openInGlance)
             Toggle("Colourful Glance window controls", isOn: $colourfulGlanceControls)
                 .help("Use red for Close, yellow for Pin on Top, and green for Open in Full Window")
+            Picker("Glance material", selection: $glanceMaterial) {
+                ForEach(SettingsKeys.GlanceMaterialPreference.allCases) { Text($0.title).tag($0.rawValue) }
+            }
+            .help("Liquid Glass is the default. Classic frosted uses a traditional material. Reduce Transparency always uses a solid window.")
             Picker("CPU cores for packing", selection: $cores) {
                 Text("All").tag(0)
                 ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
