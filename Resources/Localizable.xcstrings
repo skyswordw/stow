@@ -10745,16 +10745,6 @@
         }
       }
     },
-    "1 item": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 个项目"
-          }
-        }
-      }
-    },
     "Collected for packing": {
       "comment": "Tray note after Collect into a temporary group (#179).",
       "localizations": {

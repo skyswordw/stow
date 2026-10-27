@@ -98,23 +98,26 @@ struct GlanceTests {
         #expect(!browser.canGoUp)
     }
 
-    @Test func glanceSubtitleKeepsArchiveAndScopedCount() throws {
+    /// Glance's title bar names the archive and what it is, wherever you are inside it (#159); the
+    /// path over the files says where that is, from the archive down (#157).
+    @Test func glanceKeepsArchiveIdentityApartFromThePath() throws {
         let harness = Harness()
         let app = harness.app
         app.openArchive(named: SampleArchive.make().name)
         let browser = try #require(app.browser)
+        let subtitle = browser.subtitle
         #expect(browser.title == browser.archive.name)
-        #expect(browser.glanceContextSubtitle.contains("archive"))
-        #expect(browser.glanceContextSubtitle.contains(browser.archive.name))
-        let rootCount = browser.visibleEntries.count
-        #expect(browser.glanceContextSubtitle.contains("\(rootCount) item"))
+        #expect(subtitle.contains("archive"))
+        #expect(subtitle.contains("\(browser.archive.files.count) files"))
+        #expect(browser.pathSegments.map(\.title) == [browser.archive.name])
 
         browser.navigate(to: "Photos")
-        let folderCount = browser.visibleEntries.count
-        #expect(browser.glanceContextSubtitle.contains("Photos"))
-        #expect(browser.glanceContextSubtitle.contains("\(folderCount) item"))
-        // Scoped folder count, not the whole-archive "N files" subtitle.
-        #expect(!browser.glanceContextSubtitle.contains("\(browser.archive.files.count) files"))
+        // The archive's identity doesn't turn into the folder's.
+        #expect(browser.title == browser.archive.name)
+        #expect(browser.subtitle == subtitle)
+        #expect(browser.pathSegments.map(\.title) == [browser.archive.name, "Photos"])
+        #expect(browser.pathSegments.first?.isArchive == true)
+        #expect(browser.pathSegments.last?.isArchive == false)
     }
 
     @Test func noArchiveNoGlance() {

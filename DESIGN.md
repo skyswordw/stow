@@ -101,6 +101,26 @@ selected, the Checkup button and the title menu. Everything floating shares one 
 capsules, buttons concentric inside them (button radius + inset = capsule radius), 36–38 pt tall.
 Details is a solid reading surface with the same light rim, brighter along its top edge.
 
+## Glance layout (#159)
+
+Glance is the Browser made small: the same archive, folder, selection and history, the same
+floating family, and no Details or Search. ArcZip's Mini keeps the archive in its header and the
+folder in a bar under it; Glance does the same with Stow's own pieces.
+
+| Region | Holds |
+| --- | --- |
+| Title bar | The archive's name with “ZIP archive · 17 files” under it, as in the full window, wherever you are inside it; the password lock when encrypted and **Pin on Top** at the trailing edge |
+| Card | The files, name and size, on a solid card inside the window's material (Liquid Glass or classic frosted from Settings › General; solid under Reduce Transparency). Its corners are concentric with the window's (16 pt less the 8 pt inset) and it has Details' light rim |
+| Navigation, floating over the card's top | The Browser's capsule: Back · Forward · Up │ the path from the archive down. With no Search beside it, it can take the card's width; a deep path fades at its start and keeps where you are in view |
+| Archive controls, floating bottom leading | **Open in Full Window** · **Extract All**: the full window's Glance · Extract All turned round, so switching is in the same place in both windows |
+| Actions, floating bottom trailing | The full window's stack and rules: one prominent action at a time, Install App alone for an archive that's one app |
+| Under the card | The full window's unsaved-changes and changed-on-disk bars |
+
+**Colourful window controls** (Settings › General) take the traffic lights' place: red Close,
+yellow Pin on Top and green Open in Full Window, three separate circles with their symbols always
+showing, dark as the traffic lights' are. Open in Full Window is then among them, so the capsule at
+the bottom holds Extract All alone; nothing shows twice.
+
 ## Color
 
 - **Accent — Amber** `#D97B2B` (light) / `#F0954A` (dark). Warm, like kraft paper and parcel tape;
@@ -138,7 +158,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 
 | Moment | Motion | Value |
 | --- | --- | --- |
-| Actions region appears | Spring, from bottom, scale 0.96 → 1 + opacity | `response 0.32, damping 1.0` |
+| Actions region appears (full window and Glance) | Spring, from bottom, scale 0.96 → 1 + opacity | `response 0.32, damping 1.0` |
 | Actions content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
 | Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |

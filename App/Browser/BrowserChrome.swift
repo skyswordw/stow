@@ -18,26 +18,8 @@ struct BrowserNavigation: View {
 
     var body: some View {
         HStack(spacing: Space.s) {
-            HStack(spacing: 0) {
-                navigationButton(String(localized: "Back"), "chevron.left", help: String(localized: "See the previous place"),
-                                 enabled: model.canGoBack) { model.goBack() }
-                navigationButton(String(localized: "Forward"), "chevron.right", help: String(localized: "See the next place"),
-                                 enabled: model.canGoForward) { model.goForward() }
-                navigationButton(String(localized: "Enclosing Folder"), "arrow.up", help: String(localized: "See the folder this one is in"),
-                                 enabled: model.canGoUp) { model.goUp() }
-                Rectangle()
-                    .fill(.separator)
-                    .frame(width: 1, height: 16)
-                    .padding(.horizontal, Space.xs)
-                    .accessibilityHidden(true)
-                Breadcrumbs(model: model)
-                    .padding(.trailing, Space.xs)
-            }
-            .padding(FloatingGlass.barInset)
-            .frame(height: FloatingGlass.barHeight)
-            .accessibleGlass(in: .capsule)
-            .accessibilityElement(children: .contain)
-            .layoutPriority(1)
+            NavigationCapsule(model: model)
+                .layoutPriority(1)
 
             Spacer(minLength: 0)
 
@@ -47,6 +29,34 @@ struct BrowserNavigation: View {
         .padding(.horizontal, Space.m)
         .padding(.top, Space.xs)
         .padding(.bottom, Space.s)
+    }
+}
+
+/// Back, Forward and Up beside where you are, in one glass capsule: the Browser's and Glance's
+/// way around an archive. A short path takes only its width; a deep one scrolls and fades at its start.
+struct NavigationCapsule: View {
+    let model: BrowserModel
+
+    var body: some View {
+        HStack(spacing: 0) {
+            navigationButton(String(localized: "Back"), "chevron.left", help: String(localized: "See the previous place"),
+                             enabled: model.canGoBack) { model.goBack() }
+            navigationButton(String(localized: "Forward"), "chevron.right", help: String(localized: "See the next place"),
+                             enabled: model.canGoForward) { model.goForward() }
+            navigationButton(String(localized: "Enclosing Folder"), "arrow.up", help: String(localized: "See the folder this one is in"),
+                             enabled: model.canGoUp) { model.goUp() }
+            Rectangle()
+                .fill(.separator)
+                .frame(width: 1, height: 16)
+                .padding(.horizontal, Space.xs)
+                .accessibilityHidden(true)
+            Breadcrumbs(model: model)
+                .padding(.trailing, Space.xs)
+        }
+        .padding(FloatingGlass.barInset)
+        .frame(height: FloatingGlass.barHeight)
+        .accessibleGlass(in: .capsule)
+        .accessibilityElement(children: .contain)
     }
 
     private func navigationButton(_ title: String, _ symbol: String, help: String, enabled: Bool,
@@ -147,23 +157,35 @@ struct ArchiveTitleMenu<Items: View>: View {
     }
 }
 
-/// The whole archive's controls, floating at the bottom's leading edge: Glance, then Extract All,
-/// in one glass capsule. Extract All is the window's primary action until Actions shows, whose
-/// front button then carries the accent; it keeps its place and words either way. Glance itself
-/// shows Extract All alone this way beside Actions, with no `glance` button.
+/// The whole archive's controls, floating at the bottom's leading edge: the way to the archive's
+/// other window, then Extract All, in one glass capsule. The full window offers Glance there and
+/// Glance offers the full window, so switching is in the same place in both. Extract All is the
+/// window's primary action until Actions shows, whose front button then carries the accent; it
+/// keeps its place and words either way.
 struct ArchiveActions: View {
     let model: BrowserModel
     let prominent: Bool
-    var glance: (() -> Void)?
+    var switchTo: WindowSwitch?
+
+    /// Where the leading button takes the archive.
+    enum WindowSwitch {
+        case glance(() -> Void)
+        case fullWindow(() -> Void)
+    }
 
     var body: some View {
         HStack(spacing: 2) {
-            if let glance {
-                Button(String(localized: "Glance"), systemImage: "arrow.down.right.and.arrow.up.left", action: glance)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(ActionButtonStyle(iconOnly: true))
-                    .accessibilityLabel(String(localized: "Glance"))
-                    .help("Switch to Glance, a small window — same folder, selection and history")
+            switch switchTo {
+            case .glance(let action):
+                switchButton(String(localized: "Glance"), "arrow.down.right.and.arrow.up.left",
+                             help: String(localized: "Switch to Glance, a small window — same folder, selection and history"),
+                             action: action)
+            case .fullWindow(let action):
+                switchButton(String(localized: "Open in Full Window"), "arrow.up.left.and.arrow.down.right",
+                             help: String(localized: "Show this archive in the full window — same folder, selection and history"),
+                             action: action)
+            case nil:
+                EmptyView()
             }
 
             Button {
@@ -179,5 +201,13 @@ struct ArchiveActions: View {
         .accessibleGlass(in: .capsule)
         .fixedSize()
         .accessibilityElement(children: .contain)
+    }
+
+    private func switchButton(_ title: String, _ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(title, systemImage: symbol, action: action)
+            .labelStyle(.iconOnly)
+            .buttonStyle(ActionButtonStyle(iconOnly: true))
+            .accessibilityLabel(title)
+            .help(help)
     }
 }

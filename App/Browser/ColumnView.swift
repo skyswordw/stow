@@ -214,6 +214,8 @@ struct Breadcrumbs: View {
             .scrollIndicators(.never)
             .defaultScrollAnchor(.leading, for: .alignment)
             .defaultScrollAnchor(.trailing, for: .initialOffset)
+            // Where you are stays in view when the window narrows or you go deeper.
+            .defaultScrollAnchor(.trailing, for: .sizeChanges)
             .onScrollGeometryChange(for: Bool.self) { $0.contentSize.width > $0.containerSize.width + 1 } action: { overflows = $1 }
             .mask {
                 if overflows {

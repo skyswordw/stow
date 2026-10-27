@@ -179,7 +179,7 @@ struct BrowserView: View {
             .archiveLayout(installable: model.archiveTarget).front != nil
         let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
         HStack(alignment: .bottom, spacing: Space.s) {
-            ArchiveActions(model: model, prominent: !showsActions) { app.glance.collapse() }
+            ArchiveActions(model: model, prominent: !showsActions, switchTo: .glance { app.glance.collapse() })
                 .accessibilitySortPriority(0.5)
             Spacer(minLength: 0)
             ZStack {

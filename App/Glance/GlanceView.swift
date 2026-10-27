@@ -79,29 +79,29 @@ struct GlanceRoot: View {
     @ToolbarContentBuilder
     private var windowControls: some ToolbarContent {
         if colourfulControls {
+            // In the traffic lights' place and their colours, each its own circle with its symbol
+            // always showing, so they read as this window's controls rather than one tinted capsule.
             ToolbarItem(placement: .navigation) {
-                HStack(spacing: Space.xs) {
+                HStack(spacing: Space.s) {
                     Button("Close", systemImage: "xmark") { glance.close() }
-                        .tint(.red)
+                        .buttonStyle(ColourfulWindowControl(colour: .red))
                         .accessibilityLabel(String(localized: "Close"))
                         .help("Close")
                     Button(glance.isPinned ? String(localized: "Unpin") : String(localized: "Pin on Top"),
                            systemImage: glance.isPinned ? "pin.fill" : "pin") { glance.isPinned.toggle() }
-                        .tint(.yellow)
+                        .buttonStyle(ColourfulWindowControl(colour: .yellow))
                         .accessibilityAddTraits(glance.isPinned ? .isSelected : [])
                         .help(pinHelp)
                     Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
-                        .tint(.green)
+                        .buttonStyle(ColourfulWindowControl(colour: .green))
                         .accessibilityLabel(String(localized: "Open in Full Window"))
                         .help("Show this archive in the full window — same folder, selection and history")
                 }
-                .labelStyle(.iconOnly)
-                // System buttons also respect Reduce Transparency.
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.circle)
-                .controlSize(.small)
+                .padding(.leading, Space.xs)
             }
+            .sharedBackgroundVisibility(.hidden)
         } else {
+            // Open in Full Window is with Extract All, where the full window has Glance.
             ToolbarItem {
                 Toggle(isOn: Binding(get: { glance.isPinned }, set: { glance.isPinned = $0 })) {
                     Label(glance.isPinned ? String(localized: "Unpin") : String(localized: "Pin on Top"),
@@ -109,12 +109,6 @@ struct GlanceRoot: View {
                 }
                 .toggleStyle(.button)
                 .help(pinHelp)
-            }
-
-            ToolbarItem {
-                Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
-                    .accessibilityLabel(String(localized: "Open in Full Window"))
-                    .help("Show this archive in the full window — same folder, selection and history")
             }
         }
     }
@@ -125,29 +119,70 @@ struct GlanceRoot: View {
     }
 }
 
-/// The compact browser: a two-column list on a solid card, Next Steps floating over it, and the
-/// controls in the window's toolbar on the glass.
+/// One of the colourful window controls (Settings › General): a filled circle the size of the
+/// toolbar's buttons, in a traffic light's colour, with its symbol dark on it as theirs are.
+private struct ColourfulWindowControl: ButtonStyle {
+    let colour: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        Control(configuration: configuration, colour: colour)
+    }
+
+    private struct Control: View {
+        let configuration: ButtonStyleConfiguration
+        let colour: Color
+        @Environment(\.colorSchemeContrast) private var contrast
+
+        var body: some View {
+            configuration.label
+                .labelStyle(.iconOnly)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.black.opacity(0.62))
+                .frame(width: 24, height: 24)
+                .background(colour, in: .circle)
+                .overlay {
+                    Circle().fill(.black.opacity(configuration.isPressed ? 0.18 : 0))
+                    // Increase Contrast outlines each one, so it reads by shape as well as colour.
+                    if ContrastStyle.resolve(contrast).increased {
+                        Circle().strokeBorder(.black.opacity(0.5))
+                    }
+                }
+                .contentShape(.circle)
+        }
+    }
+}
+
+/// The compact browser (#159): the Browser's files on a solid card inside the window's glass, with
+/// the Browser's floating glass over them — getting around above, and below the archive's controls
+/// (Open in Full Window, Extract All) on the leading side and Actions on the trailing side. The title
+/// bar says which archive this is, as the full window's does; where you are inside it is the path.
 struct GlanceView: View {
     @Bindable var model: BrowserModel
     @Environment(AppState.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var editingDelegate = EditingWindowDelegate()
     let glance: GlanceController
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
     @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
+    @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulControls = false
 
     var body: some View {
         content
-            .clipShape(.rect(cornerRadius: Radius.card))
-            // Keeps the solid card apart from the glass when both are dark.
-            .overlay { RoundedRectangle(cornerRadius: Radius.card).strokeBorder(.separator.opacity(0.6)) }
-            .overlay(alignment: .bottom) { nextSteps }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                // Glance has no Search, so the path has the card's width.
+                NavigationCapsule(model: model)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding([.horizontal, .top], GlanceCard.inset)
+            }
+            .overlay(alignment: .bottom) { floatingControls }
+            .glanceCard()
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
                 else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
             }
-            .padding([.horizontal, .bottom], Space.s)
+            .padding([.horizontal, .bottom], GlanceCard.inset)
             .navigationTitle(model.title)
-            .navigationSubtitle(model.glanceContextSubtitle)
+            .navigationSubtitle(model.subtitle)
             .toolbar { toolbar }
             .onKeyPress(.escape) {
                 if model.renamingPath != nil {
@@ -181,69 +216,91 @@ struct GlanceView: View {
 
     @ViewBuilder
     private var content: some View {
+        // The card is their background.
         if model.isSearching, model.visibleEntries.isEmpty {
             NoSearchResultsView(model: model)
-                .background(.background)
         } else if model.visibleEntries.isEmpty {
             // The full window's words; there's no Open panel here, so an empty archive offers nothing.
             EmptyContentView(model: model)
-                .background(.background)
         } else {
             GlanceList(model: model)
         }
     }
 
-    /// Actions for a selection; otherwise Extract All, in the same place. With nothing selected,
-    /// an archive that's one app offers installing it beside Extract All, which gives up the
-    /// accent, as in the full window. Selecting is a 100-times-a-day action, so the swap doesn't
-    /// animate (DESIGN.md › Motion).
+    /// The full window's bottom row, smaller: the archive's controls on the leading side, Actions
+    /// on the trailing side, and one prominent action at a time. Extract All carries the accent
+    /// until Actions shows, for a selection or to install an archive that's one app.
     @ViewBuilder
-    private var nextSteps: some View {
-        let installsArchive = showsNextSteps && model.activity == nil && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
+    private var floatingControls: some View {
+        let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
             .archiveLayout(installable: model.archiveTarget).front != nil
-        // One Actions view in every state, so Install morphs into its progress like a selection's.
+        let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
         HStack(alignment: .bottom, spacing: Space.s) {
-            if installsArchive {
-                ArchiveActions(model: model, prominent: false)
-            }
-            if (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive {
-                NextStepsBar(model: model)
-            } else {
-                Button {
-                    model.extractAll()
-                } label: {
-                    Label("Extract All", systemImage: "arrow.down.to.line")
-                        .padding(.horizontal, Space.xs)
+            // The colourful window controls already have a green Open in Full Window; it shows once.
+            ArchiveActions(model: model, prominent: !showsActions,
+                           switchTo: colourfulControls ? nil : .fullWindow { glance.expand() })
+                .accessibilitySortPriority(0.5)
+            Spacer(minLength: 0)
+            ZStack {
+                if showsActions {
+                    // One Actions view in every state, so Install morphs into its progress like a selection's.
+                    NextStepsBar(model: model)
+                        .accessibilityElement(children: .contain)
+                        .accessibilitySortPriority(0)
+                        .transition(.rise(reduceMotion: reduceMotion))
                 }
-                .buttonStyle(.glassProminent)
-                .controlSize(.large)
-                .help("Extract everything to a folder you choose")
             }
+            // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
+            .animation(Motion.presence(showsActions, reduceMotion: reduceMotion), value: showsActions)
         }
-        .padding(.horizontal, Space.m)
-        .padding(.bottom, Space.m)
+        .padding(GlanceCard.inset)
     }
 
+    /// The title bar is the archive's: its name and what it is (`navigationTitle`), and its
+    /// password at the trailing edge, as in the full window. Getting around is over the files.
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigation) { ArchiveUnlockControl(model: model) }
-        ToolbarItem(placement: .navigation) {
-            ControlGroup {
-                Button("Back", systemImage: "chevron.left") { model.goBack() }
-                    .accessibilityLabel(String(localized: "Back"))
-                    .disabled(!model.canGoBack)
-                    .help("See the previous place")
-                Button("Forward", systemImage: "chevron.right") { model.goForward() }
-                    .accessibilityLabel(String(localized: "Forward"))
-                    .disabled(!model.canGoForward)
-                    .help("See the next place")
-                Button("Enclosing Folder", systemImage: "arrow.up") { model.goUp() }
-                    .accessibilityLabel(String(localized: "Enclosing Folder"))
-                    .disabled(!model.canGoUp)
-                    .help("See the folder this one is in")
-            }
-            .controlGroupStyle(.navigation)
+        if model.archive.isEncrypted {
+            ToolbarItem(placement: .primaryAction) { ArchiveUnlockControl(model: model) }
         }
+    }
+}
+
+/// Glance's files: a solid surface for reading inside the window's glass, its corners concentric
+/// with the window's, and the light rim Details and the floating glass have.
+enum GlanceCard {
+    /// The glass around the card, and the floating glass's inset inside it.
+    static let inset = Space.s
+    /// The window's own corner radius (macOS 26: 16 pt) less the inset, so the card's corners and
+    /// the window's run parallel.
+    static let cornerRadius: CGFloat = 16 - inset
+}
+
+private extension View {
+    func glanceCard() -> some View { modifier(GlanceCardSurface()) }
+}
+
+private struct GlanceCardSurface: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: GlanceCard.cornerRadius, style: .continuous)
+        let dark = colorScheme == .dark
+        content
+            .background(Color(nsColor: .controlBackgroundColor))
+            .clipShape(shape)
+            .overlay {
+                // Brighter along the top, as if lit from above; it keeps the card apart from the glass
+                // when both are dark.
+                shape.strokeBorder(ContrastStyle.resolve(contrast).increased ? AnyShapeStyle(Color.primary.opacity(0.45))
+                                   : AnyShapeStyle(LinearGradient(colors: [.white.opacity(dark ? 0.16 : 0.9), .primary.opacity(dark ? 0.08 : 0.1)],
+                                                                  startPoint: .top, endPoint: .bottom)),
+                                   lineWidth: 1)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            .shadow(color: .black.opacity(dark ? 0.3 : 0.07), radius: dark ? 10 : 8, y: 2)
     }
 }
 

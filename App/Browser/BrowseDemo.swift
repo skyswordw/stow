@@ -96,6 +96,11 @@ enum BrowseDemo {
             if let query = defaults.string(forKey: "StowQuery") { model.query = query }
             if defaults.bool(forKey: "StowFind") { model.focusSearch() }
             try? await Task.sleep(for: .milliseconds(400))
+            // `-StowGlance YES`: the same archive, place and selection in Glance, mid-screen.
+            if defaults.bool(forKey: "StowGlance") {
+                let visible = (NSScreen.main ?? NSScreen.screens[0]).visibleFrame
+                app.glance.collapse(near: CGPoint(x: visible.midX, y: visible.midY), animated: false)
+            }
             if let move = defaults.string(forKey: "StowMove") {
                 let direction: BrowserModel.Direction = switch move {
                 case "up": .up
