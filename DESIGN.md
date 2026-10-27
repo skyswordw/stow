@@ -153,6 +153,8 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text (the chevron stays put) | 180 ms |
 | Pack password check rows (re-enter, mismatch) appear or go | Ease-out fade, never a spring; **none** when typed | 200 ms |
+| Pack part-size editor (Custom…) | The system popover, out of the control that was clicked: the sentence's last words, the Split archives menu, Settings › Packing. Nothing changes until Use | system |
+| More Options opened on a short screen | Once the section has opened, the middle scrolls its heading to the top so the opened rows are in view; **none** (a jump) when a key opened it or under Reduce Motion | `response 0.32, damping 1.0` |
 | Welcome and Browser windows replace each other (an archive opens or closes) | The system's own window opening and closing; **none** when a key press switched them | — |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
@@ -170,9 +172,16 @@ Reduced Transparency: glass falls back to solid window background (the system do
   kept inside", "1 app inside is not signed".
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
   Windows, Mac-only files left out, the estimated size. **More Options** is a full-strength heading
-  that lists its current settings while closed; inside, choices a format can't offer say why in
-  plain words instead of only in a tooltip. When the screen is short, only the middle of the sheet
-  scrolls (its cut-off edge fades) and the name, Cancel and Pack stay put.
+  that lists its current settings while closed (up to two lines; a choice changed from the purpose
+  is named, the usual ones go without saying). Inside, hairlines divide a few groups: what comes
+  out (compression, parts, verify), a disk image's layout, what the password covers, what a Mac
+  adds, CPU cores. A purpose's own defaults are checkboxes showing what will happen; one changed
+  from the purpose says so under it, and an amber **Reset** appears in the heading only while
+  something differs. Choices a format can't offer say why in plain words instead of only in a
+  tooltip; a choice that can't apply at all (Encrypt file names without a password) isn't shown.
+  **Custom…** opens one part-size editor in a popover from whatever was clicked, with the part
+  count for these items. When the screen is short, only the middle of the sheet scrolls (its
+  cut-off edge fades) and the name, Cancel and Pack stay put.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
   It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't
   be resized or zoomed. The drop zone sits on top, Recent below; with no history the drop zone is

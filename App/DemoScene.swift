@@ -10,7 +10,10 @@ import SwiftUI
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too; `-StowPackPassword YES` starts with “with a password”;
-/// `-StowPackPasswordReview mismatch|shown` fills in a sample password (`pack-password` shows the mismatch).
+/// `-StowPackPasswordReview mismatch|shown` fills in a sample password (`pack-password` shows the mismatch);
+/// `-StowPackFormat sevenZip` starts with that format, `-StowPackMore YES` opens More Options alone,
+/// `-StowPackChanged YES` changes two choices from the purpose, `-StowPackSplitEditor sentence|options`
+/// opens the part-size editor.
 /// quicklook (the Finder preview; `-StowPreview encrypted|slow`, or `-StowOpen <path>` for a real file),
 /// associations (Settings › File Types), integration (Settings › Integration; `-StowRepair YES`
 /// runs Repair for real).
@@ -153,7 +156,10 @@ enum DemoScene {
             if let path = defaults.string(forKey: "StowPack") {
                 app.pack([URL(filePath: path)])
             } else {
-                app.packRequest = PackRequest(files: SampleArchive.packCandidates)
+                // -StowPackFormat sevenZip|dmg|tarGz|… starts with that format (and its purpose).
+                var request = PackRequest(files: SampleArchive.packCandidates)
+                request.initialFormat = defaults.string(forKey: "StowPackFormat").flatMap(PackFormat.init(rawValue:))
+                app.packRequest = request
             }
         case "pack-zst":
             // TAR.ZST for Linux, both disclosures open (registered, so nothing is saved).
@@ -533,6 +539,7 @@ enum DemoScene {
     ///
     ///     -StowScene packrun -StowPack <folder> -StowPackTo <folder> -PackAudience mac
     ///         [-StowFormat zip|sevenZip|tar|tarGz|tarBz2|tarXz|tarZst] [-StowPassword pw] [-StowSplit bytes] [-PackVerify YES]
+    ///         [-StowPackIncludeHelpers YES|NO] [-StowPackMetadata YES|NO] [-StowPackEncryptNames NO] [-StowPackThreads n]
     ///
     /// Paths must be inside Stow's sandbox container.
     private static func runPack(_ defaults: UserDefaults) {
@@ -550,6 +557,18 @@ enum DemoScene {
             let password = defaults.string(forKey: "StowPassword")
             options.usesPassword = password != nil && options.format.supportsPassword
             options.level = PackPreferences.level(for: options.audience)
+            // More Options (#152, #153): -StowPackIncludeHelpers YES|NO and -StowPackMetadata YES|NO go
+            // through the same setters as the sheet's checkboxes; -StowPackEncryptNames NO, -StowPackThreads n.
+            if defaults.object(forKey: "StowPackIncludeHelpers") != nil {
+                options.setIncludesMacHelperFiles(defaults.bool(forKey: "StowPackIncludeHelpers"))
+            }
+            if defaults.object(forKey: "StowPackMetadata") != nil {
+                options.setKeepsMacMetadata(defaults.bool(forKey: "StowPackMetadata"))
+            }
+            if defaults.object(forKey: "StowPackEncryptNames") != nil {
+                options.encryptFilenames = defaults.bool(forKey: "StowPackEncryptNames")
+            }
+            if defaults.integer(forKey: "StowPackThreads") > 0 { options.threads = defaults.integer(forKey: "StowPackThreads") }
             let split = Int64(defaults.integer(forKey: "StowSplit"))
             let name = Compatibility.archiveName(request.suggestedName, for: options.audience)
             let keepsMetadata = options.effectiveKeepsMacMetadata
@@ -575,6 +594,8 @@ enum DemoScene {
                                                            in: URL(filePath: target)) { _ in }
                 result.placed.forEach { print($0.path) }
                 print("renamed \(report.renames.count), left out \(report.excluded.count + report.leftOutLinks.count), verified \(result.report.verified)")
+                print("threads \(create.threads.map(String.init) ?? "all"), metadata \(keepsMetadata), encrypt names \(create.encryptFilenames)")
+                report.notes.forEach { print("note: \($0.title) — \($0.detail)") }
                 fflush(stdout)
                 exit(0)
             } catch {

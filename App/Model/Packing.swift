@@ -223,6 +223,34 @@ nonisolated struct SplitSize: Hashable, Identifiable, Sendable {
         return amount
     }
 
+    /// What the custom-size editor starts from, in the unit it reads best in and exactly the same
+    /// bytes when parsed back: "1.5" GB, "250" MB, "0.5" MB. Nothing for one file.
+    var editableAmount: (text: String, unit: CustomUnit) {
+        guard rawValue > 0 else { return ("", .megabyte) }
+        let gb = CustomUnit.gigabyte.bytes, mb = CustomUnit.megabyte.bytes
+        if rawValue >= gb, rawValue % (gb / 100) == 0 {
+            return (Self.plainDecimal(rawValue, per: gb), .gigabyte)
+        }
+        // A megabyte is a million bytes, so six decimals say any size exactly ("1.234567").
+        return (Self.plainDecimal(rawValue, per: mb, digits: 6), .megabyte)
+    }
+
+    /// "1.5", not "1.50" or "1,5": what `parseCustom` reads back in every language.
+    private static func plainDecimal(_ bytes: Int64, per unit: Int64, digits: Int = 3) -> String {
+        let whole = bytes / unit
+        var scale: Int64 = 1
+        for _ in 0..<digits { scale *= 10 }
+        var fraction = String(format: "%0\(digits)lld", (bytes % unit) * scale / unit)
+        while fraction.hasSuffix("0") { fraction.removeLast() }
+        return fraction.isEmpty ? String(whole) : "\(whole).\(fraction)"
+    }
+
+    /// Parts these bytes need at this size: the estimate the sheet, its report and the editor share.
+    func parts(for bytes: Int64) -> Int {
+        guard rawValue > 0 else { return 1 }
+        return max(1, Int((bytes + rawValue - 1) / rawValue))
+    }
+
     enum CustomUnit: String, CaseIterable, Identifiable, Sendable {
         case megabyte, gigabyte
         var id: Self { self }
@@ -350,6 +378,18 @@ nonisolated struct PackOptions: Equatable, Sendable {
     var effectiveKeepsMacMetadata: Bool {
         let wants = keepsMacMetadata ?? audience.keepsMacMetadata
         return wants && format == .zip
+    }
+
+    /// The Mac support files checkbox (#153). Choosing what the purpose does anyway follows the
+    /// purpose again (`nil`), so a later change of purpose brings its own default; only a choice
+    /// that differs from the purpose is kept as an override.
+    mutating func setIncludesMacHelperFiles(_ include: Bool) {
+        includeMacHelperFiles = include == !audience.dropsMacHelperFiles ? nil : include
+    }
+
+    /// The Mac metadata checkbox (#153), stored the same way as `setIncludesMacHelperFiles`.
+    mutating func setKeepsMacMetadata(_ keeps: Bool) {
+        keepsMacMetadata = keeps == audience.keepsMacMetadata ? nil : keeps
     }
 
     /// Effective thread count for CreateRequest (`nil` = all cores / engine default).
@@ -565,7 +605,7 @@ nonisolated enum Compatibility {
         default: 1.0
         }
         let estimated = Int64(Double(raw) * (options.level == .store ? 1 : factor))
-        let parts = options.split == .none ? 1 : max(1, Int((estimated + options.split.rawValue - 1) / options.split.rawValue))
+        let parts = options.split.parts(for: estimated)
 
         return PackReport(
             included: included,
@@ -635,11 +675,18 @@ nonisolated enum Compatibility {
                     detail: String(localized: "People can drag apps onto it in Finder. Stow hides the shortcut when browsing and offers install into /Applications.")
                 ))
             }
-        case (.mac, .zip):
+        case (.mac, .zip) where options.effectiveKeepsMacMetadata:
             notes.append(.init(
                 tone: .fine,
                 title: String(localized: "Keeps everything a Mac cares about"),
                 detail: String(localized: "Finder tags, extended attributes, permissions and links stay intact.")
+            ))
+        case (.mac, .zip):
+            // More Options turned Mac metadata off for this archive (#152).
+            notes.append(.init(
+                tone: .info,
+                title: String(localized: "Keeps permissions and links"),
+                detail: String(localized: "Finder tags and other extended attributes are left out of this archive.")
             ))
         case (.mac, _):
             notes.append(.init(
@@ -655,6 +702,14 @@ nonisolated enum Compatibility {
             ))
         default:
             break
+        }
+        if options.audience != .mac, options.effectiveKeepsMacMetadata {
+            // More Options turned Mac metadata on for another system's ZIP (#152).
+            notes.append(.init(
+                tone: .info,
+                title: String(localized: "Includes Finder tags and extended attributes"),
+                detail: String(localized: "They travel in a “__MACOSX” folder, which other systems show as an extra folder.")
+            ))
         }
         if options.format == .tarZst {
             notes.append(.init(

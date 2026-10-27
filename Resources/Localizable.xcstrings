@@ -10525,6 +10525,16 @@
         }
       }
     },
+    "Enter a number, like 250 or 1.5.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入数字，例如 250 或 1.5。"
+          }
+        }
+      }
+    },
     "Enter a size between 1 KB and 100 TB.": {
       "localizations": {
         "zh-Hans": {
@@ -10585,16 +10595,6 @@
         }
       }
     },
-    "The list of files stays hidden until the password is entered.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入密码前，文件列表保持隐藏。"
-          }
-        }
-      }
-    },
     "File names stay visible; only the contents need the password.": {
       "localizations": {
         "zh-Hans": {
@@ -10611,56 +10611,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mac 辅助文件"
-          }
-        }
-      }
-    },
-    "Follow purpose default": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "跟随用途默认值"
-          }
-        }
-      }
-    },
-    "Include .DS_Store and __MACOSX": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "包含 .DS_Store 和 __MACOSX"
-          }
-        }
-      }
-    },
-    "Leave out Mac support files": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "排除 Mac 辅助文件"
-          }
-        }
-      }
-    },
-    "Leave out .DS_Store, __MACOSX and similar Mac support files.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "排除 .DS_Store、__MACOSX 等 Mac 辅助文件。"
-          }
-        }
-      }
-    },
-    "Keep Mac support files that are already in the selection. This does not store Finder tags by itself.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留所选内容中已有的 Mac 辅助文件。这本身不会保存 Finder 标签。"
           }
         }
       }
@@ -10685,42 +10635,12 @@
         }
       }
     },
-    "Don’t store extended attributes": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不保存扩展属性"
-          }
-        }
-      }
-    },
-    "AppleDouble sidecars inside ZIP. This is separate from including .DS_Store files.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在 ZIP 中写入 AppleDouble 附属文件。这与是否包含 .DS_Store 是分开的。"
-          }
-        }
-      }
-    },
     "CPU cores": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "CPU 核心"
-          }
-        }
-      }
-    },
-    "Use Settings default": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用设置中的默认值"
           }
         }
       }
@@ -10751,16 +10671,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "上限只是请求；某些格式仍可能使用更少核心。"
-          }
-        }
-      }
-    },
-    "Reset advanced options to purpose defaults": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "将高级选项重置为用途默认值"
           }
         }
       }
@@ -10815,16 +10725,6 @@
         }
       }
     },
-    "Custom CPU cores": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自定义 CPU 核心数"
-          }
-        }
-      }
-    },
     "Contents are encrypted; file names stay visible": {
       "localizations": {
         "zh-Hans": {
@@ -10841,16 +10741,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "任何人都能看到文件列表。打开“加密文件名”即可隐藏。"
-          }
-        }
-      }
-    },
-    "File names": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "文件名"
           }
         }
       }
@@ -10962,6 +10852,176 @@
           "stringUnit": {
             "state": "translated",
             "value": "默认使用液态玻璃。经典磨砂使用传统材质。降低透明度时始终使用不透明窗口。"
+          }
+        }
+      }
+    },
+    "Size of Each Part": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个分卷的大小"
+          }
+        }
+      }
+    },
+    "Each part is at most this size.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个分卷不超过此大小。"
+          }
+        }
+      }
+    },
+    "About %lld parts for these items.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些项目约需 %lld 个分卷。"
+          }
+        }
+      }
+    },
+    "These items probably fit in one part.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些项目大概只需一个分卷。"
+          }
+        }
+      }
+    },
+    "1 CPU core": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 个 CPU 核心"
+          }
+        }
+      }
+    },
+    "%lld CPU cores": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个 CPU 核心"
+          }
+        }
+      }
+    },
+    "Include .DS_Store and other Finder files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含 .DS_Store 等 Finder 文件"
+          }
+        }
+      }
+    },
+    "They travel in a “__MACOSX” folder that a Mac reads back when extracting.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它们保存在“__MACOSX”文件夹中，Mac 解压时会读回。"
+          }
+        }
+      }
+    },
+    "Changed from the usual choice for %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已改为不同于%@的常用选择。"
+          }
+        }
+      }
+    },
+    "As in Settings (all cores)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同设置（全部核心）"
+          }
+        }
+      }
+    },
+    "As in Settings (1 core)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同设置（1 个核心）"
+          }
+        }
+      }
+    },
+    "As in Settings (%lld cores)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同设置（%lld 个核心）"
+          }
+        }
+      }
+    },
+    "Go back to the usual choices for %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复为%@的常用选择"
+          }
+        }
+      }
+    },
+    "Reset More Options": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原更多选项"
+          }
+        }
+      }
+    },
+    "Finder tags and other extended attributes are left out of this archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此压缩包不含 Finder 标签和其他扩展属性。"
+          }
+        }
+      }
+    },
+    "Includes Finder tags and extended attributes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含 Finder 标签和扩展属性"
+          }
+        }
+      }
+    },
+    "They travel in a “__MACOSX” folder, which other systems show as an extra folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它们保存在“__MACOSX”文件夹中，其他系统会将其显示为一个额外的文件夹。"
           }
         }
       }
