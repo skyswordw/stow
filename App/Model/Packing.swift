@@ -231,16 +231,16 @@ nonisolated struct SplitSize: Hashable, Identifiable, Sendable {
         if rawValue >= gb, rawValue % (gb / 100) == 0 {
             return (Self.plainDecimal(rawValue, per: gb), .gigabyte)
         }
-        if rawValue % (mb / 1000) == 0 {
-            return (Self.plainDecimal(rawValue, per: mb), .megabyte)
-        }
-        return (String(format: "%g", Double(rawValue) / Double(mb)), .megabyte)
+        // A megabyte is a million bytes, so six decimals say any size exactly ("1.234567").
+        return (Self.plainDecimal(rawValue, per: mb, digits: 6), .megabyte)
     }
 
     /// "1.5", not "1.50" or "1,5": what `parseCustom` reads back in every language.
-    private static func plainDecimal(_ bytes: Int64, per unit: Int64) -> String {
+    private static func plainDecimal(_ bytes: Int64, per unit: Int64, digits: Int = 3) -> String {
         let whole = bytes / unit
-        var fraction = String(format: "%03lld", (bytes % unit) * 1000 / unit)
+        var scale: Int64 = 1
+        for _ in 0..<digits { scale *= 10 }
+        var fraction = String(format: "%0\(digits)lld", (bytes % unit) * scale / unit)
         while fraction.hasSuffix("0") { fraction.removeLast() }
         return fraction.isEmpty ? String(whole) : "\(whole).\(fraction)"
     }

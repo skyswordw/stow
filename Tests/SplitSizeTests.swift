@@ -99,6 +99,7 @@ struct SplitSizeTests {
         (500_000, "0.5", .megabyte),
         (1_234_000, "1.234", .megabyte),
         (1_024, "0.001024", .megabyte),
+        (1_234_567, "1.234567", .megabyte),
     ])
     func editableAmountRoundTrips(bytes: Int64, text: String, unit: SplitSize.CustomUnit) {
         let size = SplitSize(rawValue: bytes)

@@ -10525,6 +10525,16 @@
         }
       }
     },
+    "Enter a number, like 250 or 1.5.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入数字，例如 250 或 1.5。"
+          }
+        }
+      }
+    },
     "Enter a size between 1 KB and 100 TB.": {
       "localizations": {
         "zh-Hans": {

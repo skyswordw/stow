@@ -14,7 +14,11 @@ struct SplitSizeEditor: View {
     @State private var unit = SplitSize.CustomUnit.megabyte
     @FocusState private var isFocused: Bool
 
-    private var parsed: SplitSize? { SplitSize.parseCustom(text, unit: unit) }
+    private var input: SplitSize.CustomInput { SplitSize.readCustom(text, unit: unit) }
+    private var parsed: SplitSize? {
+        if case .size(let size) = input { return size }
+        return nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
@@ -68,12 +72,15 @@ struct SplitSizeEditor: View {
             Text(outcome?(parsed) ?? String(localized: "Each part is at most this size."))
                 .foregroundStyle(.secondary)
                 .liveNumber()
-        } else if text.trimmingCharacters(in: .whitespaces).isEmpty {
+        } else if input == .empty {
             Text("Each part is at most this size.")
                 .foregroundStyle(.secondary)
         } else {
+            // #194: "abc" or "1,000" isn't a size out of range; say what to type instead.
             Label {
-                Text("Enter a size between 1 KB and 100 TB.")
+                Text(input == .notANumber
+                     ? String(localized: "Enter a number, like 250 or 1.5.")
+                     : String(localized: "Enter a size between 1 KB and 100 TB."))
             } icon: {
                 Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
             }
