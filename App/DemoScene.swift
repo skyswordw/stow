@@ -65,8 +65,7 @@ enum DemoScene {
         case "onboarding":
             OnboardingRouter.shared.open()
         case "settings":
-            SettingsRouter.shared.pane = defaults.string(forKey: "StowSettingsPane").flatMap(SettingsPane.init(rawValue:)) ?? .general
-            SettingsRouter.shared.open()
+            SettingsRouter.shared.show(defaults.string(forKey: "StowSettingsPane").flatMap(SettingsPane.init(rawValue:)) ?? .general)
         case "editing", "editing-saving", "editing-refused":
             BrowseDemo.editing(in: app)
             if scene == "editing-saving" { app.browser?.editSession.showSavingForDemo(progress: 0.42) }
@@ -105,8 +104,7 @@ enum DemoScene {
                 }
             }
         case "next-steps-settings":
-            SettingsRouter.shared.pane = .nextSteps
-            SettingsRouter.shared.open()
+            SettingsRouter.shared.show(.nextSteps)
         case "grid":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Photos"
