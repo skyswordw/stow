@@ -10,10 +10,14 @@ extension ToolbarContent {
     /// every update.)
     @ToolbarContentBuilder
     func overflowPriority(keepsVisible: Bool) -> some ToolbarContent {
+#if compiler(>=6.3)
         if #available(macOS 26.1, *) {
             visibilityPriority(keepsVisible ? .high : .low)
         } else {
             self
         }
+#else
+        self
+#endif
     }
 }

@@ -144,14 +144,14 @@ nonisolated enum ArchivePreviewLoader {
             do { return .success(try await list(url)) } catch { return .failure(EngineError(error)) }
         }
         let result = await withCheckedContinuation { (continuation: CheckedContinuation<Result<ArchiveListing, EngineError>?, Never>) in
-            let once = Mutex<CheckedContinuation<Result<ArchiveListing, EngineError>?, Never>?>(continuation)
+            let once = ContinuationBox(continuation)
             Task {
                 let value = await listing.value
-                once.withLock { $0.take() }?.resume(returning: value)
+                once.resume(returning: value)
             }
             Task {
                 try? await Task.sleep(for: timeout)
-                once.withLock { $0.take() }?.resume(returning: nil)
+                once.resume(returning: nil)
             }
         }
         if result == nil { listing.cancel() }
@@ -164,6 +164,18 @@ nonisolated enum ArchivePreviewLoader {
             return fallback(.unreadable(error.message))
         case .success(let listing):
             return .listed(ArchivePreviewModel(archive: Archive(listing: listing, url: url)))
+        }
+    }
+
+    private nonisolated final class ContinuationBox: Sendable {
+        private let lock: Mutex<CheckedContinuation<Result<ArchiveListing, EngineError>?, Never>?>
+
+        init(_ continuation: CheckedContinuation<Result<ArchiveListing, EngineError>?, Never>) {
+            lock = Mutex(continuation)
+        }
+
+        func resume(returning result: Result<ArchiveListing, EngineError>?) {
+            lock.withLock { $0.take() }?.resume(returning: result)
         }
     }
 }

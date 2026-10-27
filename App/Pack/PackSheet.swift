@@ -240,7 +240,7 @@ struct PackSheet: View {
                 .transition(.opacity)
             }
             // The same option, in the same place, as the sheet that asks for a password to open one.
-            Toggle("Show password", isOn: Binding(get: { revealsPassword }, set: setRevealsPassword))
+            Toggle("Show password", isOn: Binding(get: { revealsPassword }, set: { setRevealsPassword($0) }))
                 .padding(.leading, 18 + Space.s)
         }
         .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: needsConfirmation)
