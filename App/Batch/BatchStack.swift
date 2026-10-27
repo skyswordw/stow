@@ -122,12 +122,49 @@ private struct BatchRow: View {
                 EmptyView()
             }
         }
-        .accessibilityElement(children: .contain)
+        // #93: same leaf pattern as ActivityLabel / TrayRow — nested name+detail Texts under
+        // contain re-enter AX label resolution on failure rows.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spokenLabel)
+        .accessibilityValue(progressValue)
+        .accessibilityActions {
+            switch job.phase {
+            case .waiting, .running:
+                Button("Stop") { queue.cancel(job.id) }
+            case .failed(let failure):
+                if let action = failure.action {
+                    Button(action.title) { queue.follow(action, for: job.id) }
+                }
+                Button("Copy Details") { ErrorReport.Copyable(failure).copy() }
+            case .done where !job.placed.isEmpty:
+                Button("Show in Finder") { queue.showInFinder(job.id) }
+            default:
+                EmptyView()
+            }
+        }
         .contextMenu {
             if case .failed(let failure) = job.phase {
                 Button("Copy Error Details (\(failure.code.description))") { ErrorReport.Copyable(failure).copy() }
             }
         }
+    }
+
+    private var spokenLabel: String {
+        switch job.phase {
+        case .failed(let failure):
+            return AccessibilityText.activity(title: job.name, note: AccessibilityText.failure(failure))
+        case .running:
+            return job.name
+        default:
+            return AccessibilityText.activity(title: job.name, note: detail)
+        }
+    }
+
+    private var progressValue: String {
+        if case .running(let progress) = job.phase {
+            return AccessibilityText.progress(progress)
+        }
+        return ""
     }
 
     private var glyph: ActivityGlyph.State {
