@@ -10815,6 +10815,16 @@
         }
       }
     },
+    "Only when the drag is near the menu-bar Tray icon or the screen’s right edge.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅当拖移靠近菜单栏 Tray 图标或屏幕右边缘时显示。"
+          }
+        }
+      }
+    },
     "Liquid Glass": {
       "localizations": {
         "zh-Hans": {
