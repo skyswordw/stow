@@ -10804,6 +10804,16 @@
           }
         }
       }
+    },
+    "1 item": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 个项目"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
