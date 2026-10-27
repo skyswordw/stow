@@ -235,18 +235,20 @@ final class PreviewService {
     nonisolated private static func audio(_ url: URL) async -> RichPreview {
         let asset = AVURLAsset(url: url)
         let metadata = (try? await asset.load(.commonMetadata)) ?? []
-        func string(_ key: AVMetadataKey) async -> String? {
-            guard let item = metadata.first(where: { $0.commonKey == key }) else { return nil }
-            return try? await item.load(.stringValue)
-        }
         var artwork: NSImage?
         if let item = metadata.first(where: { $0.commonKey == .commonKeyArtwork }),
            let data = try? await item.load(.dataValue) {
             artwork = NSImage(data: data)
         }
         let duration = try? await asset.load(.duration).seconds
-        return .audio(artwork: artwork, title: await string(.commonKeyTitle), artist: await string(.commonKeyArtist),
+        return .audio(artwork: artwork, title: await metadataString(.commonKeyTitle, in: metadata),
+                      artist: await metadataString(.commonKeyArtist, in: metadata),
                       duration: duration.flatMap { $0.isFinite ? $0 : nil })
+    }
+
+    nonisolated private static func metadataString(_ key: AVMetadataKey, in metadata: [AVMetadataItem]) async -> String? {
+        guard let item = metadata.first(where: { $0.commonKey == key }) else { return nil }
+        return try? await item.load(.stringValue)
     }
 
     nonisolated private static func video(_ url: URL) async -> RichPreview {
