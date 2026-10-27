@@ -10814,6 +10814,46 @@
           }
         }
       }
+    },
+    "Liquid Glass": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "液态玻璃"
+          }
+        }
+      }
+    },
+    "Classic frosted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "经典磨砂"
+          }
+        }
+      }
+    },
+    "Glance material": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glance 材质"
+          }
+        }
+      }
+    },
+    "Liquid Glass is the default. Classic frosted uses a traditional material. Reduce Transparency always uses a solid window.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认使用液态玻璃。经典磨砂使用传统材质。降低透明度时始终使用不透明窗口。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -226,4 +226,11 @@ struct GlanceTests {
         #expect(GlanceMaterial.resolve(reduceTransparency: true, override: false) == .solid)
         #expect(GlanceMaterial.resolve(reduceTransparency: false, override: true) == .solid)
     }
+
+    @Test func classicPreferenceUsesFrostedUnlessReduceTransparency() {
+        #expect(GlanceMaterial.resolve(reduceTransparency: false, preference: .classic, override: false) == .frosted)
+        #expect(GlanceMaterial.resolve(reduceTransparency: false, preference: .liquidGlass, override: false) == .glass)
+        #expect(GlanceMaterial.resolve(reduceTransparency: true, preference: .classic, override: false) == .solid)
+        #expect(GlanceMaterial.resolve(reduceTransparency: false, preference: .classic, override: true) == .solid)
+    }
 }
