@@ -4,7 +4,7 @@ Where Stow is, what's left to reach — and pass — ArcZip Pro's feature set, a
 tested yet. Feature-by-feature status lives in [PARITY.md](PARITY.md); the design rules every item
 must follow are in [DESIGN.md](DESIGN.md).
 
-*Last updated 2026-10-23, after streaming listings (#82), Open Recent verification (#83) and colourful Glance controls (#86).*
+*Last updated 2026-10-27, after Tray home-based activation (#189/#192), DMG Finder chrome (#85) and AX failure-leaf hardening (#190).*
 
 ---
 
@@ -146,7 +146,7 @@ other manual checks remain below. Harbor sample files and Try the Sample wiring 
 
 Automated tests cover the engine, packing, extraction, editing, placement/conflicts, signatures,
 hand-off tokens, associations logic, browsing, streaming listings, search, encodings, passwords,
-recents and settings. CI requires at least 385 reported tests. The following checks remain before
+recents and settings. CI requires at least 509 reported tests. The following checks remain before
 a 1.0 (including automated coverage whose manual or longer-running counterpart is still open):
 
 | # | What | Why it hasn't been done / how to run it |

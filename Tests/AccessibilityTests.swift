@@ -106,4 +106,11 @@ struct AccessibilityTests {
         #expect(AccessibilityText.activity(title: "Packing", note: "") == "Packing")
     }
 
+    @Test func batchFailureRowJoinsNameAndFailure() {
+        let failure = Failure(Installer.RunningApp(name: "Harbor"), .install, name: "Harbor")
+        let spoken = AccessibilityText.activity(title: "Harbor.zip", note: AccessibilityText.failure(failure))
+        #expect(spoken.hasPrefix("Harbor.zip, "))
+        #expect(spoken.contains(failure.title))
+    }
+
 }
