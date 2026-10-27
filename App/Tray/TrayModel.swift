@@ -101,7 +101,11 @@ nonisolated struct TrayItem: Identifiable, Hashable, Sendable {
         self.isTemporaryGroup = isTemporaryGroup
     }
 
-    init(url: URL, isTemporaryGroup: Bool = false) {
+    init(url: URL) {
+        self.init(url: url, isTemporaryGroup: false)
+    }
+
+    init(url: URL, isTemporaryGroup: Bool) {
         let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey, .fileSizeKey])
         let folder = values?.isDirectory == true && values?.isPackage != true
         self.init(name: url.lastPathComponent, size: Int64(values?.fileSize ?? 0), url: url, isFolder: folder,

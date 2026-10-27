@@ -205,7 +205,7 @@ final class AppState {
             var request = await PackRequest.gather(urls)
             guard !request.files.isEmpty else { return }
             // Ownership is explicit: only attach directories that are known temporary groups.
-            let owned = cleanupTemporaryGroups.filter(TrayTemporaryGroups.isOwned)
+            let owned = cleanupTemporaryGroups.filter { TrayTemporaryGroups.isOwned($0) }
             if owned.count == 1, let folder = owned.first,
                urls.map({ $0.resolvingSymlinksInPath().standardizedFileURL }) == [folder.resolvingSymlinksInPath().standardizedFileURL] {
                 request.cleanupDirectory = folder

@@ -472,7 +472,7 @@ final class TrayController {
         } else {
             // Only top-level owned temporary groups: packing their children must not delete the parent.
             let cleanup = path.isEmpty
-                ? targets.filter(\.isTemporaryGroup).compactMap(\.url).filter(TrayTemporaryGroups.isOwned)
+                ? targets.filter(\.isTemporaryGroup).compactMap(\.url).filter { TrayTemporaryGroups.isOwned($0) }
                 : []
             app?.pack(urls, cleanupTemporaryGroups: cleanup)
         }
