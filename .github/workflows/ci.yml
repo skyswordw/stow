@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 472 after List drag-out selection, List keyboard focus, and cancelled-promise Quit regressions.
+          # 510 after BatchStack failure-row AX leaf (#93 follow-up).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "509"
+          MIN_TESTS: "510"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
