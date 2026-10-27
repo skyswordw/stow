@@ -608,8 +608,13 @@ final class TrayController {
             GatherDestination.remember(folder, for: urls)
         }
         let ids = Set(chosen.map(\.id))
+        let absorbedTemps = chosen.filter(\.isTemporaryGroup).compactMap(\.url)
         path = []
         items.removeAll { ids.contains($0.id) }
+        // Inputs that were themselves owned temps are disposable once copied into the new folder.
+        for url in absorbedTemps where TrayTemporaryGroups.isOwned(url) {
+            try? FileManager.default.removeItem(at: url)
+        }
         let made = TrayItem(url: destination, isTemporaryGroup: temporary)
         items.append(made)
         selection = []

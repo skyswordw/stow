@@ -214,8 +214,11 @@ struct TrayTests {
         #expect(TrayTemporaryGroups.isOwned(temporary))
         #expect(FileManager.default.fileExists(atPath: temporary.appending(path: "one.txt").path))
         #expect(FileManager.default.fileExists(atPath: a.path)) // copies: the originals stay
-        // Keep / save: a deliberate Where choice makes a persistent group.
+        // Keep / save: a deliberate Where choice makes a persistent group from the originals.
+        // Select only the new drops so Collect does not absorb the existing temporary group.
         tray.add([a, b])
+        let keepIDs = Set(tray.items.filter { $0.url == a || $0.url == b }.map(\.id))
+        tray.selection = keepIDs
         tray.beginCollecting(remembered: nil)
         tray.chooseCollectDestination(out)
         #expect(!tray.isCollectingTemporarily)
@@ -224,9 +227,11 @@ struct TrayTests {
         #expect(FileManager.default.fileExists(atPath: made.appending(path: "one.txt").path))
         #expect(tray.items.contains { $0.url?.standardizedFileURL == made.standardizedFileURL && !$0.isTemporaryGroup })
         #expect(GatherDestination.remembered()?.standardizedFileURL.path == out.standardizedFileURL.path)
+        #expect(FileManager.default.fileExists(atPath: temporary.path)) // still present until cleared
         tray.clear()
         #expect(tray.collected == nil)
         #expect(!FileManager.default.fileExists(atPath: temporary.path)) // owned temp removed with Clear
+        #expect(FileManager.default.fileExists(atPath: made.path)) // persistent Keep folder stays
     }
 
     @Test @MainActor func temporaryGroupCleansUpOnlyOnSuccessfulPackPolicy() throws {
@@ -240,7 +245,7 @@ struct TrayTests {
         request.cleanupOnlyOnSuccess = true
         #expect(request.cleanupOnlyOnSuccess)
         // Failure/cancel must not infer ownership from path alone without the flag.
-        var plain = PackRequest(files: [PackFile(path: "Other", size: 1, isFolder: true, source: group)])
+        let plain = PackRequest(files: [PackFile(path: "Other", size: 1, isFolder: true, source: group)])
         #expect(!plain.cleanupOnlyOnSuccess)
         #expect(plain.cleanupDirectory == nil)
     }
