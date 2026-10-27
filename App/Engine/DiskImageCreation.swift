@@ -77,6 +77,7 @@ enum DiskImageCreation {
         onProgress(0.02)
         try await stage(items, in: volume, applicationsLink: request.diskImageApplicationsLink)
         if Task.isCancelled { throw EngineError(.cancelled) }
+        if request.diskImageFinderChrome { try DiskImageChrome.apply(to: volume) }
         onProgress(0.3)
 
         // APFS → hdiutil create -srcfolder, with hybrid fallback.

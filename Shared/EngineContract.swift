@@ -218,6 +218,8 @@ nonisolated struct CreateRequest: Codable, Sendable {
     var diskImageFilesystem: DiskImageFilesystem = .hfsPlus
     /// DMG only (#77). Adds `Applications → /Applications` for drag-to-install.
     var diskImageApplicationsLink = false
+    /// DMG only (#85). Writes Finder layout into staging without mounting.
+    var diskImageFinderChrome = false
 }
 
 nonisolated struct CreateReport: Codable, Sendable {

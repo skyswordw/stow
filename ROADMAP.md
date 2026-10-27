@@ -99,7 +99,7 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 | ✅ Streaming listings beyond ~100k entries (#78) | First rows from streamed XPC chunks; final listing remains authoritative; cancellation stops 7zz. See StreamingListingBenchmark. |
 | Reading files dropped from other apps (e.g. WeChat) with permission guidance | built (#19), pending a real WeChat/Mail check: archives an app only promises during a drag are received first; a file macOS won't let Stow read gets plain words naming the app (`OPN-101`) and how to get a copy |
 | Error details with codes for bug reports | done (#14): every failure has a stable code (`EXT-120`, see [ERROR-CODES.md](ERROR-CODES.md)) and Copy Details |
-| Create disk images (DMG) | done (#23, #77): Pack › DMG for Macs; default HFS+ `makehybrid` then `convert` by level; optional APFS via `create -srcfolder` with HFS+ hybrid fallback; Applications → /Applications shortcut for drag-to-install. Deferred: AES password (#84; App Sandbox blocks MediaKit attach for `hdiutil`/`diskutil` encrypt on macOS 27), Finder window chrome (#85; `.DS_Store` / background art) |
+| Create disk images (DMG) | done (#23, #77): Pack › DMG for Macs; default HFS+ `makehybrid` then `convert` by level; optional APFS via `create -srcfolder` with HFS+ hybrid fallback; Applications → /Applications shortcut for drag-to-install. Optional Finder window chrome done (#85): `.DS_Store` icon positions, solid-color background, and best-effort app-derived volume icon, written before image creation without mounting. Picture backgrounds excluded: Carbon Alias requires the mounted volume. Deferred: AES password (#84; App Sandbox blocks MediaKit attach for `hdiutil`/`diskutil` encrypt on macOS 27) |
 | TAR.ZST creation | done: 7-Zip writes the TAR, Stow's linked zstd 1.5.7 compresses it (Linux audience, splits into volumes, verified by 7-Zip) |
 | Restore Mac metadata on Stow's own extraction | done (#17): Finder comments and tags come back from ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ/ZST, for Extract All, one file or one folder (`__MACOSX` and inline `._` companions). Not carried: disk images (7-Zip leaves out their attributes) and Linux `tar --xattrs` headers |
 
@@ -133,7 +133,7 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 Remaining feature and delivery gaps:
 
 - DMG AES password creation (#84), deferred because the sandbox blocks the MediaKit attach path.
-- DMG Finder window chrome (#85): `.DS_Store` layout and background art.
+- DMG Finder window chrome (#85) implemented with a solid-color background; macOS build/tests and Finder appearance validation remain to run (Linux implementation environment). Picture backgrounds remain excluded because they require mount + Carbon Alias, incompatible with this sandbox-safe staging path.
 - Automated Finder-menu repair: sandbox restrictions leave System Settings and relaunch guidance.
 - Homebrew tap publication.
 
