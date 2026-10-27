@@ -55,6 +55,7 @@ final class TrayController {
     @ObservationIgnored private var dragMonitor: Any?
     @ObservationIgnored private var dragEndMonitor: Any?
     @ObservationIgnored private var dragChangeCount = NSPasteboard(name: .drag).changeCount
+    @ObservationIgnored private var isFileDragSession = false
     @ObservationIgnored private var isDragging = false
     @ObservationIgnored private var idleTimer: Timer?
     @ObservationIgnored private var lastActivity = Date()
@@ -120,8 +121,10 @@ final class TrayController {
 
     var hasMenuBarIcon: Bool { statusItem != nil }
 
-    /// A drag of files anywhere on screen brings the Tray out. Mouse-drag monitors need no
-    /// Accessibility permission; the drag pasteboard's change count tells a new drag from an old one.
+    /// A file drag near the menu-bar icon or the screen's trailing edge brings the Tray out
+    /// (#180). Drags elsewhere stay quiet so ordinary rearranging is not interrupted. Mouse-drag
+    /// monitors need no Accessibility permission; the drag pasteboard's change count starts a
+    /// session, and later moves of the same drag re-check proximity.
     private func startWatchingDrags() {
         guard dragMonitor == nil else { return }
         dragMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDragged) { [weak self] _ in
@@ -130,6 +133,7 @@ final class TrayController {
         dragEndMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.isDragging = false
+                self?.isFileDragSession = false
                 self?.touch()
             }
         }
@@ -144,12 +148,29 @@ final class TrayController {
 
     private func mouseDragged() {
         let pasteboard = NSPasteboard(name: .drag)
-        guard pasteboard.changeCount != dragChangeCount else { return }
-        dragChangeCount = pasteboard.changeCount
-        guard pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) else { return }
+        if pasteboard.changeCount != dragChangeCount {
+            dragChangeCount = pasteboard.changeCount
+            isFileDragSession = pasteboard.canReadObject(forClasses: [NSURL.self],
+                                                         options: [.urlReadingFileURLsOnly: true])
+        }
+        guard isFileDragSession else { return }
         isDragging = true
         touch()
-        if !isShown { show(fromDrag: true) }
+        if !isShown, shouldRevealForCurrentDrag() { show(fromDrag: true) }
+    }
+
+    /// Cursor near the status item or the trailing edge where the panel appears without one.
+    private func shouldRevealForCurrentDrag() -> Bool {
+        let cursor = NSEvent.mouseLocation
+        let statusFrame: CGRect? = {
+            guard let button = statusItem?.button, let window = button.window else { return nil }
+            return window.convertToScreen(button.convert(button.bounds, to: nil))
+        }()
+        let screen = NSScreen.screens.first { NSMouseInRect(cursor, $0.frame, false) }?.visibleFrame
+            ?? NSScreen.main?.visibleFrame
+            ?? .zero
+        return TrayRules.shouldRevealForDrag(cursor: cursor, statusItemFrame: statusFrame,
+                                             screenVisible: screen)
     }
 
     // MARK: - Showing

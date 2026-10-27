@@ -149,6 +149,24 @@ nonisolated enum TrayRules {
     /// Idle times offered in Settings, in seconds; 0 means never hide by itself.
     static let idleChoices: [Int] = [0, 10, 30, 60, 300]
 
+    /// How near the cursor must be to the menu-bar icon or the screen's trailing edge before a
+    /// file drag reveals the Tray (#180). Ordinary drags elsewhere stay quiet.
+    static let dragRevealProximity: CGFloat = 72
+
+    /// Whether a file drag should raise the Tray: cursor near the status item (when present) or
+    /// the trailing edge where the panel docks without a menu-bar icon.
+    static func shouldRevealForDrag(cursor: CGPoint, statusItemFrame: CGRect?,
+                                    screenVisible: CGRect,
+                                    proximity: CGFloat = dragRevealProximity) -> Bool {
+        if let statusItemFrame {
+            let hit = statusItemFrame.insetBy(dx: -proximity, dy: -proximity)
+            if hit.contains(cursor) { return true }
+        }
+        let edge = CGRect(x: screenVisible.maxX - proximity, y: screenVisible.minY,
+                          width: proximity, height: screenVisible.height)
+        return edge.contains(cursor)
+    }
+
     /// Whether an unpinned Tray should tuck itself away now.
     static func shouldHide(lastActivity: Date, now: Date, idleSeconds: Int, pinned: Bool,
                            isDragging: Bool, isHovered: Bool) -> Bool {

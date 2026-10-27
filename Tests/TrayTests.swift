@@ -10,6 +10,28 @@ struct TrayTests {
         return url
     }
 
+    @Test func dragRevealNeedsProximityToIconOrTrailingEdge() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let icon = CGRect(x: 700, y: 870, width: 24, height: 24)
+        // Far from icon and trailing edge: stay quiet.
+        #expect(!TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 200, y: 400), statusItemFrame: icon,
+                                               screenVisible: screen))
+        // Near the menu-bar icon.
+        #expect(TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 710, y: 860), statusItemFrame: icon,
+                                              screenVisible: screen))
+        // Trailing edge even when an icon exists (panel can dock there too).
+        #expect(TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 1430, y: 450), statusItemFrame: icon,
+                                              screenVisible: screen))
+        // Without a menu-bar icon, only the trailing edge counts.
+        #expect(!TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 710, y: 860), statusItemFrame: nil,
+                                               screenVisible: screen))
+        #expect(TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 1400, y: 100), statusItemFrame: nil,
+                                              screenVisible: screen, proximity: 72))
+        // Just outside the default proximity band.
+        #expect(!TrayRules.shouldRevealForDrag(cursor: CGPoint(x: 1440 - 80, y: 450), statusItemFrame: nil,
+                                               screenVisible: screen, proximity: 72))
+    }
+
     @Test func idleHidesOnlyWhenNothingKeepsItOpen() {
         let start = Date(timeIntervalSinceReferenceDate: 0)
         let later = start.addingTimeInterval(31)

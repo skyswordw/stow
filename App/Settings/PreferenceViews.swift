@@ -42,6 +42,7 @@ struct GeneralSettingsView: View {
             Section("Tray") {
                 Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
                 Toggle("Show Tray while dragging files", isOn: $trayWhileDragging)
+                    .help("Only when the drag is near the menu-bar Tray icon or the screen’s right edge.")
                 Picker("Hide Tray when idle", selection: $trayIdle) {
                     ForEach(TrayRules.idleChoices, id: \.self) { seconds in
                         Text(Self.idleTitle(seconds)).tag(seconds)
