@@ -4,6 +4,12 @@ The user has explicitly assigned UI visual design and animation to **Claude Code
 Codex supplies interaction intent and functional constraints. The proposals below are
 starting points for Claude Code's judgment, not approved final visual designs.
 
+The [Tray cross-display verification](tray-cross-display-verification.md) records
+that #189 supersedes the cross-display finding from #187: activation now follows
+the Tray's actual home, and another display's edge does not open a remote panel.
+Codex verified the original native reproduction and the actual-home drop path;
+Claude Code retains visual and motion ownership.
+
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 

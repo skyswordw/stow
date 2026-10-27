@@ -60,6 +60,48 @@ struct TrayTests {
         #expect(TrayRules.approachZone(home: .placed, tray: tray, screen: screen, visible: visible) == tray)
     }
 
+    @Test(arguments: [TrayHome.menuBar, .screenEdge, .placed])
+    func draggingToAnotherDisplayDoesNotRevealATrayOnTheSourceDisplay(home: TrayHome) {
+        // Native #187 reproduction: Finder stays on the primary display while the cursor
+        // crosses into the right edge of a portrait display to its left.
+        let primary = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let primaryVisible = CGRect(x: 0, y: 0, width: 1920, height: 1050)
+        let otherDisplayEdge = CGPoint(x: -10, y: 580)
+        let tray: CGRect = switch home {
+        case .menuBar: CGRect(x: 1153, y: 602, width: 300, height: 440)
+        case .screenEdge: CGRect(x: 1604, y: 305, width: 300, height: 440)
+        case .placed: CGRect(x: 400, y: 300, width: 300, height: 440)
+        }
+        let zone = TrayRules.approachZone(home: home, tray: tray, screen: primary, visible: primaryVisible)
+        #expect(!zone.contains(otherDisplayEdge), "Crossing displays must not open a remote drop target.")
+        let homePoint: CGPoint = switch home {
+        case .menuBar: CGPoint(x: tray.midX, y: 1020)
+        case .screenEdge: CGPoint(x: 1910, y: tray.midY)
+        case .placed: CGPoint(x: tray.midX, y: tray.midY)
+        }
+        #expect(zone.contains(homePoint), "The actual Tray home must remain reachable.")
+    }
+
+    @Test(arguments: [TrayHome.menuBar, .screenEdge, .placed])
+    func dragApproachUsesTheSecondaryDisplaysCoordinates(home: TrayHome) {
+        let secondary = CGRect(x: -1080, y: -510, width: 1080, height: 1920)
+        let secondaryVisible = CGRect(x: -1080, y: -510, width: 1080, height: 1890)
+        let tray: CGRect = switch home {
+        case .menuBar: CGRect(x: -790, y: 932, width: 300, height: 440)
+        case .screenEdge: CGRect(x: -316, y: 215, width: 300, height: 440)
+        case .placed: CGRect(x: -900, y: -350, width: 300, height: 440)
+        }
+        let zone = TrayRules.approachZone(home: home, tray: tray, screen: secondary, visible: secondaryVisible)
+        #expect(secondary.contains(zone), "The approach zone must stay on the Tray's display.")
+        let homePoint: CGPoint = switch home {
+        case .menuBar: CGPoint(x: tray.midX, y: 1350)
+        case .screenEdge: CGPoint(x: -10, y: tray.midY)
+        case .placed: CGPoint(x: tray.midX, y: tray.midY)
+        }
+        #expect(zone.contains(homePoint))
+        #expect(!zone.contains(CGPoint(x: 1910, y: 525)), "The primary display's edge is unrelated.")
+    }
+
     @Test func reachingTheHintAlwaysBringsTheTrayOutOverIt() {
         let edgeTray = CGRect(x: 1124, y: 252, width: 300, height: 440)
         let placedTray = CGRect(x: 300, y: 200, width: 300, height: 440)
