@@ -104,11 +104,12 @@ struct PackingSettingsView: View {
     @AppStorage("PackAudience") private var audience = Audience.windows.rawValue
     @AppStorage("PackVerify") private var verify = false
     @AppStorage(SettingsKeys.volumeSize) private var volume = 0
-    @State private var showCustom = false
-    @State private var customText = ""
-    @State private var customUnit: SplitSize.CustomUnit = .megabyte
+    /// The Pack sheet's part-size editor, popping out of this menu (#153).
+    @State private var editingCustom = false
 
     private var current: SplitSize { SplitSize.stored(Int64(volume)) }
+    /// The Custom… item's tag: no real size is negative.
+    private static let customTag = -1
 
     var body: some View {
         Form {
@@ -123,73 +124,28 @@ struct PackingSettingsView: View {
                 if current.isCustom {
                     Text(current.phrase.sentenceCased).tag(Int(current.rawValue))
                 }
-                Text("Custom…").tag(-1)
+                Divider()
+                Text("Custom…").tag(Self.customTag)
             }
-            if showCustom || current.isCustom {
-                HStack {
-                    TextField("Size", text: $customText)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 88)
-                        .onSubmit(applyCustom)
-                    Picker("Unit", selection: $customUnit) {
-                        ForEach(SplitSize.CustomUnit.allCases) { Text($0.symbol).tag($0) }
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                    Button("Use") { applyCustom() }
-                        .disabled(SplitSize.parseCustom(customText, unit: customUnit) == nil)
-                }
+            .popover(isPresented: $editingCustom, arrowEdge: .trailing) {
+                SplitSizeEditor(initial: current) { volume = Int($0.rawValue) }
             }
             Toggle("Check archives after packing", isOn: $verify)
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
         .fixedSize(horizontal: false, vertical: true)
-        .onAppear {
-            if current.isCustom {
-                showCustom = true
-                seedCustom(from: current)
-            }
-        }
     }
 
+    /// Presets and the custom size in use pick themselves; Custom… opens the editor and leaves the
+    /// menu on what's in use until the editor's Use.
     private var volumeSelection: Binding<Int> {
         Binding(
-            get: { showCustom && !current.isCustom ? -1 : volume },
+            get: { volume },
             set: { chosen in
-                if chosen == -1 {
-                    showCustom = true
-                    seedCustom(from: current)
-                    return
-                }
-                showCustom = false
-                volume = chosen
+                if chosen == Self.customTag { editingCustom = true } else { volume = chosen }
             }
         )
-    }
-
-    private func seedCustom(from size: SplitSize) {
-        guard size.rawValue > 0 else {
-            customText = ""
-            customUnit = .megabyte
-            return
-        }
-        if size.rawValue >= 1_000_000_000, size.rawValue % 1_000_000_000 == 0 {
-            customText = String(size.rawValue / 1_000_000_000)
-            customUnit = .gigabyte
-        } else if size.rawValue % 1_000_000 == 0 {
-            customText = String(size.rawValue / 1_000_000)
-            customUnit = .megabyte
-        } else {
-            customText = String(format: "%g", Double(size.rawValue) / 1_000_000)
-            customUnit = .megabyte
-        }
-    }
-
-    private func applyCustom() {
-        guard let size = SplitSize.parseCustom(customText, unit: customUnit) else { return }
-        volume = Int(size.rawValue)
-        showCustom = true
     }
 }
 

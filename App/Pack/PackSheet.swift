@@ -23,12 +23,14 @@ struct PackSheet: View {
     @State private var showMore = false
     @State private var middleHeight: CGFloat?
     @State private var overflow = ScrollEdges()
+    /// Where the middle is scrolled to; opening More Options moves it.
+    @State private var scrollPosition = ScrollPosition()
     @State private var isChoosing = false
     @State private var handedOffCleanup = false
-    /// Custom split draft shown under More Options / when the sentence menu picks Custom…
-    @State private var showCustomSplit = false
-    @State private var customSplitText = ""
-    @State private var customSplitUnit: SplitSize.CustomUnit = .megabyte
+    /// Which Custom… opened the part-size editor; it pops out of that control.
+    @State private var editingSplit: SplitEditorAnchor?
+
+    private enum SplitEditorAnchor { case sentence, options }
 
     private var report: PackReport {
         Compatibility.report(for: request.files, options: options, password: password, overrides: overrides)
@@ -40,9 +42,14 @@ struct PackSheet: View {
     /// So the middle asks for all of itself, up to what fits on screen beside the sentence, name
     /// and buttons (about 380 pt); past that it scrolls.
     private var middleMinHeight: CGFloat {
+        // Design review: -StowPackWhole YES lifts the screen budget so a view-tree snapshot shows it all.
+        if UserDefaults.standard.bool(forKey: "StowPackWhole") { return middleHeight ?? 0 }
         let budget = (NSScreen.main?.visibleFrame.height ?? 800) - 380
         return min(middleHeight ?? 0, max(budget, 240))
     }
+
+    /// More Options' place in the scrolling middle.
+    private static let moreOptionsID = "moreOptions"
 
     private enum Field: Hashable { case password, confirmation }
 
@@ -59,6 +66,7 @@ struct PackSheet: View {
                     .padding(Space.xs) // room for focus rings inside the clip…
                     .onGeometryChange(for: CGFloat.self, of: \.size.height) { middleHeight = $0 }
             }
+            .scrollPosition($scrollPosition)
             .frame(minHeight: middleMinHeight, idealHeight: middleHeight)
             .scrollBounceBehavior(.basedOnSize)
             .onScrollGeometryChange(for: ScrollEdges.self, of: ScrollEdges.init) { _, edges in overflow = edges }
@@ -70,6 +78,21 @@ struct PackSheet: View {
                     Color.black
                     LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
                         .frame(height: overflow.below ? Space.xl : 0)
+                }
+            }
+            .onChange(of: showMore) { _, opened in
+                // Opening More Options at the foot of a short screen would grow it out of sight;
+                // bring its heading to the top instead. When everything fits there's nothing to
+                // scroll and this does nothing. It waits for the section to finish opening: until
+                // then the middle isn't tall enough to scroll, and an earlier scroll was measured
+                // to go nowhere. A move in space, so a spring; none when a key opened it or under
+                // Reduce Motion, where the middle just jumps (DESIGN.md › Motion).
+                guard opened else { return }
+                let animation = Motion.byKeyboard || reduceMotion ? nil : Motion.appear
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    guard showMore else { return }
+                    withAnimation(animation) { scrollPosition.scrollTo(id: Self.moreOptionsID, anchor: .top) }
                 }
             }
             .padding(-Space.xs) // …without moving the content off the sheet's grid
@@ -143,18 +166,29 @@ struct PackSheet: View {
             Token(title: options.split.phrase, suffix: suffix, isEnabled: options.format.supportsSplit,
                   disabledHelp: String(localized: "A \(options.format.displayName) is always one file")) {
                 ForEach(SplitSize.allCases) { split in
-                    Button(split.phrase.sentenceCased) {
-                        showCustomSplit = false
-                        options.split = split
-                    }
+                    Button(split.phrase.sentenceCased) { options.split = split }
                 }
                 Divider()
-                Button("Custom…") {
-                    showMore = true
-                    showCustomSplit = true
-                    seedCustomSplitFields(from: options.split)
-                }
+                Button("Custom…") { editingSplit = .sentence }
             }
+            // Out of the words that were clicked, not down in More Options where it may be scrolled away.
+            .popover(isPresented: isEditingSplit(from: .sentence), arrowEdge: .bottom) { splitEditor }
+        }
+    }
+
+    private func isEditingSplit(from anchor: SplitEditorAnchor) -> Binding<Bool> {
+        Binding(get: { editingSplit == anchor }, set: { if !$0, editingSplit == anchor { editingSplit = nil } })
+    }
+
+    private var splitEditor: some View {
+        let estimate = report.estimatedSize
+        // Starts from the size in use, so 700 MB can become 650 MB without retyping the unit.
+        return SplitSizeEditor(initial: options.split) { size in
+            let parts = size.parts(for: estimate)
+            return parts > 1 ? String(localized: "About \(parts) parts for these items.")
+                             : String(localized: "These items probably fit in one part.")
+        } apply: { size in
+            options.split = size
         }
     }
 
@@ -179,6 +213,7 @@ struct PackSheet: View {
             if options.usesPassword { passwordField }
             ReportView(report: report, audience: options.audience, overrides: $overrides, showDetails: $showDetails)
             moreOptions(report)
+                .id(Self.moreOptionsID)
         }
     }
 
@@ -279,17 +314,18 @@ struct PackSheet: View {
     }
 
     /// What More Options is set to, so a closed section still says what it holds. The sentence
-    /// already shows the password and parts, so they aren't repeated here.
+    /// already shows the password and parts, so they aren't repeated here; a purpose's usual
+    /// choices go without saying, and only the ones changed from it are named.
     private var optionsSummary: String {
         var parts = [compressionSummary]
         if options.verify { parts.append(String(localized: "Tested after packing")) }
         if options.format == .dmg { parts.append(options.diskImageFilesystem.title) }
-        if options.includeMacHelperFiles != nil {
+        if changesHelperFiles {
             parts.append(options.dropsMacHelperFiles
                 ? String(localized: "No Mac support files")
                 : String(localized: "Keeping Mac support files"))
         }
-        if options.keepsMacMetadata != nil, options.format == .zip {
+        if changesMacMetadata {
             parts.append(options.effectiveKeepsMacMetadata
                 ? String(localized: "Storing Mac metadata")
                 : String(localized: "No Mac metadata"))
@@ -297,10 +333,51 @@ struct PackSheet: View {
         if options.format == .sevenZip, options.usesPassword, !options.encryptFilenames {
             parts.append(String(localized: "File names visible"))
         }
-        if options.threads != nil {
-            parts.append(String(localized: "Custom CPU cores"))
+        if let threads = options.threads {
+            parts.append(threads == 1 ? String(localized: "1 CPU core") : String(localized: "\(threads) CPU cores"))
         }
-        return parts.joined(separator: " · ")
+        // Each item keeps its words together, so a second line never starts at "CPU cores".
+        return parts.map { $0.replacingOccurrences(of: " ", with: "\u{00A0}") }.joined(separator: " · ")
+    }
+
+    // MARK: Changed from the purpose
+
+    /// What Reset would bring back. Compression is remembered as it's chosen, so it's never
+    /// "changed"; parts, Verify and the DMG layout come from Settings and the last pack.
+    private var purposeDefaults: PackOptions {
+        var defaults = options
+        defaults.resetToPurposeDefaults()
+        return defaults
+    }
+
+    private var changesHelperFiles: Bool { options.dropsMacHelperFiles != options.audience.dropsMacHelperFiles }
+
+    private var changesMacMetadata: Bool {
+        options.format == .zip && options.effectiveKeepsMacMetadata != options.audience.keepsMacMetadata
+    }
+
+    /// Something in More Options does other than the usual for this purpose. Compared by what it
+    /// does, so a choice the current format ignores (file-name encryption for a ZIP) doesn't count.
+    private var isCustomized: Bool {
+        let defaults = purposeDefaults
+        return options.level != defaults.level
+            || options.verify != defaults.verify
+            || options.split != defaults.split
+            || changesHelperFiles
+            || changesMacMetadata
+            || (options.format == .sevenZip && options.usesPassword && !options.encryptFilenames)
+            || options.threads != nil
+            || options.diskImageFilesystem != defaults.diskImageFilesystem
+            || options.diskImageApplicationsLink != defaults.diskImageApplicationsLink
+    }
+
+    /// Checkboxes for a purpose's defaults show what will happen; `PackOptions` decides what to store.
+    private var includesHelperFiles: Binding<Bool> {
+        Binding(get: { !options.dropsMacHelperFiles }, set: { options.setIncludesMacHelperFiles($0) })
+    }
+
+    private var storesMacMetadata: Binding<Bool> {
+        Binding(get: { options.effectiveKeepsMacMetadata }, set: { options.setKeepsMacMetadata($0) })
     }
 
     private var compressionSummary: String {
@@ -337,6 +414,11 @@ struct PackSheet: View {
         return String(localized: "File names stay visible without the password.")
     }
 
+    /// Grouped by what each choice is about: what comes out (size, parts, checking), what a disk
+    /// image looks like, who can read the names, what a Mac adds, and how hard the Mac works.
+    /// Something people expect that a format can't do says why (a DMG is one file, a TAR has no
+    /// password); a choice that only exists with one format (DMG layout, ZIP metadata, 7Z name
+    /// encryption with a password) appears only with it.
     private func moreOptions(_ report: PackReport) -> some View {
         DisclosureGroup(isExpanded: $showMore) {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.m, verticalSpacing: Space.l) {
@@ -349,9 +431,6 @@ struct PackSheet: View {
                     .disabled(!options.format.isCompressed)
                     caption(levelCaption)
                 }
-                optionRow("Verify") {
-                    Toggle("Test every file once it’s packed", isOn: $options.verify)
-                }
                 // The same choices as the sentence's last words, bound to the same state.
                 optionRow("Split archives") {
                     if options.format.supportsSplit {
@@ -360,77 +439,23 @@ struct PackSheet: View {
                             if options.split.isCustom {
                                 Text(options.split.phrase.sentenceCased).tag(options.split)
                             }
-                            Text("Custom…").tag(SplitSize(rawValue: -1))
+                            Divider()
+                            Text("Custom…").tag(Self.customSplitTag)
                         }
                         .labelsHidden()
                         .fixedSize()
-                        if showCustomSplit || options.split.isCustom {
-                            customSplitEditor
-                        }
+                        .popover(isPresented: isEditingSplit(from: .options), arrowEdge: .trailing) { splitEditor }
                     } else {
                         Text(SplitSize.none.phrase.sentenceCased)
                     }
                     if let text = splitCaption(report) { caption(text) }
                 }
-                optionRow("Password") {
-                    if options.format.supportsPassword {
-                        Picker("Password", selection: $options.usesPassword) {
-                            Text("Without a password").tag(false)
-                            Text("With a password").tag(true)
-                        }
-                        .labelsHidden()
-                        .fixedSize()
-                    } else {
-                        Text("Without a password")
-                    }
-                    caption(passwordCaption)
+                optionRow("Verify") {
+                    Toggle("Test every file once it’s packed", isOn: $options.verify)
                 }
-                if options.format == .sevenZip, options.usesPassword {
-                    optionRow("File names") {
-                        Toggle("Encrypt file names", isOn: $options.encryptFilenames)
-                        caption(options.encryptFilenames
-                            ? String(localized: "The list of files stays hidden until the password is entered.")
-                            : String(localized: "File names stay visible; only the contents need the password."))
-                    }
-                }
-                optionRow("Mac support files") {
-                    Picker("Mac support files", selection: helperFilesSelection) {
-                        Text("Follow purpose default").tag(Optional<Bool>.none)
-                        Text("Include .DS_Store and __MACOSX").tag(Optional.some(true))
-                        Text("Leave out Mac support files").tag(Optional.some(false))
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                    caption(helperFilesCaption)
-                }
-                if options.format == .zip {
-                    optionRow("Mac metadata") {
-                        Picker("Mac metadata", selection: macMetadataSelection) {
-                            Text("Follow purpose default").tag(Optional<Bool>.none)
-                            Text("Store Finder tags and extended attributes").tag(Optional.some(true))
-                            Text("Don’t store extended attributes").tag(Optional.some(false))
-                        }
-                        .labelsHidden()
-                        .fixedSize()
-                        caption(String(localized: "AppleDouble sidecars inside ZIP. This is separate from including .DS_Store files."))
-                    }
-                }
-                optionRow("CPU cores") {
-                    Picker("CPU cores", selection: threadsSelection) {
-                        Text("Use Settings default").tag(Optional<Int>.none)
-                        ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { n in
-                            Text(n == 1 ? "1 core" : "\(n) cores").tag(Optional.some(n))
-                        }
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                    caption(String(localized: "A limit is a request; some formats may still use fewer cores."))
-                }
-                Button("Reset advanced options to purpose defaults") {
-                    options.resetToPurposeDefaults()
-                }
-                .buttonStyle(.link)
+
                 if options.format == .dmg {
+                    groupDivider
                     optionRow("Disk format") {
                         Picker("Disk format", selection: $options.diskImageFilesystem) {
                             ForEach(DiskImageFilesystem.allCases) { Text($0.title).tag($0) }
@@ -444,6 +469,42 @@ struct PackSheet: View {
                         caption(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
                     }
                 }
+
+                groupDivider
+                // Who can see what. The password itself is chosen in the sentence; this says what it covers.
+                optionRow("Password") {
+                    if options.format == .sevenZip, options.usesPassword {
+                        Toggle("Encrypt file names", isOn: $options.encryptFilenames)
+                    }
+                    caption(passwordCaption)
+                }
+
+                groupDivider
+                optionRow("Mac support files") {
+                    Toggle("Include .DS_Store and other Finder files", isOn: includesHelperFiles)
+                    if changesHelperFiles { changedCaption }
+                }
+                if options.format == .zip {
+                    optionRow("Mac metadata") {
+                        Toggle("Store Finder tags and extended attributes", isOn: storesMacMetadata)
+                        caption(String(localized: "They travel in a “__MACOSX” folder that a Mac reads back when extracting."))
+                        if changesMacMetadata { changedCaption }
+                    }
+                }
+
+                groupDivider
+                optionRow("CPU cores") {
+                    Picker("CPU cores", selection: $options.threads) {
+                        Text(settingsCores).tag(Int?.none)
+                        Divider()
+                        ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { n in
+                            Text(n == 1 ? String(localized: "1 core") : String(localized: "\(n) cores")).tag(Int?.some(n))
+                        }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    caption(String(localized: "A limit is a request; some formats may still use fewer cores."))
+                }
             }
             .padding(.top, Space.m)
             .padding(.leading, Space.xs)
@@ -454,11 +515,31 @@ struct PackSheet: View {
                 Text("More Options")
                     .fontWeight(.medium)
                 if !showMore {
+                    // Two lines at most: a changed choice is what's worth reading, and it comes last.
                     Text(optionsSummary)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .truncationMode(.tail)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityLabel(String(localized: "Set to \(optionsSummary)"))
+                }
+                Spacer(minLength: Space.m)
+                // Only while something differs: a Reset that's always there says nothing. Short and
+                // in the sentence's amber, like the other words here that change things; the summary
+                // beside it keeps the room.
+                if isCustomized {
+                    Button {
+                        options.resetToPurposeDefaults()
+                    } label: {
+                        Label("Reset", systemImage: "arrow.uturn.backward")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.tint)
+                    .fixedSize()
+                    .help(String(localized: "Go back to the usual choices for \(options.audience.phrase)"))
+                    .accessibilityLabel(String(localized: "Reset More Options"))
+                    .accessibilityHint(String(localized: "Go back to the usual choices for \(options.audience.phrase)"))
+                    .transition(.opacity)
                 }
             }
             .contentShape(.rect)
@@ -467,6 +548,32 @@ struct PackSheet: View {
             }
         }
         .font(.callout)
+    }
+
+    /// Between groups: a hairline across both columns, inside the grid's own spacing.
+    private var groupDivider: some View {
+        Divider().gridCellUnsizedAxes(.horizontal)
+    }
+
+    /// Under a purpose choice someone changed: what Reset would undo.
+    private var changedCaption: some View {
+        Label {
+            Text("Changed from the usual choice for \(options.audience.phrase).")
+                .foregroundStyle(.secondary)
+        } icon: {
+            Image(systemName: "pencil.circle.fill").foregroundStyle(.tint).accessibilityHidden(true)
+        }
+        .font(.caption)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// The first CPU choice says what Settings › General is set to, not just that it exists.
+    private var settingsCores: String {
+        switch PackPreferences.threads {
+        case nil: String(localized: "As in Settings (all cores)")
+        case 1: String(localized: "As in Settings (1 core)")
+        case let threads?: String(localized: "As in Settings (\(threads) cores)")
+        }
     }
 
     private func optionRow(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
@@ -553,10 +660,6 @@ struct PackSheet: View {
         options.level = PackPreferences.level(for: options.audience)
         options.verify = PackPreferences.verify
         options.split = options.format.supportsSplit ? SettingsKeys.splitSize() : .none
-        if options.split.isCustom {
-            showCustomSplit = true
-            seedCustomSplitFields(from: options.split)
-        }
         // Settings › Passwords: visible by default also lets Chinese and Japanese input methods work.
         revealsPassword = SettingsKeys.flag(SettingsKeys.showPassword)
         // Design review: -StowPackDetails YES opens both disclosures.
@@ -569,6 +672,21 @@ struct PackSheet: View {
         case "shown": password = "harbor-sample"; setRevealsPassword(true)
         default: break
         }
+        // Design review: -StowPackMore YES opens More Options alone; -StowPackChanged YES changes two
+        // choices from the purpose (support files, CPU cores); -StowPackSplitEditor sentence|options
+        // opens the part-size editor from that control once the sheet is up.
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: "StowPackMore") { showMore = true }
+        if defaults.bool(forKey: "StowPackChanged") {
+            options.includeMacHelperFiles = options.audience.dropsMacHelperFiles
+            options.threads = min(2, ProcessInfo.processInfo.activeProcessorCount)
+        }
+        if let anchor = defaults.string(forKey: "StowPackSplitEditor") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                editingSplit = anchor == "options" ? .options : .sentence
+            }
+        }
     }
 
     private func setAudience(_ audience: Audience) {
@@ -576,85 +694,18 @@ struct PackSheet: View {
         options.level = PackPreferences.level(for: audience)
     }
 
-    private var helperFilesSelection: Binding<Bool?> {
-        Binding(get: { options.includeMacHelperFiles }, set: { options.includeMacHelperFiles = $0 })
-    }
+    /// The Custom… item's tag: no real size is negative.
+    private static let customSplitTag = SplitSize(rawValue: -1)
 
-    private var macMetadataSelection: Binding<Bool?> {
-        Binding(get: { options.keepsMacMetadata }, set: { options.keepsMacMetadata = $0 })
-    }
-
-    private var threadsSelection: Binding<Int?> {
-        Binding(get: { options.threads }, set: { options.threads = $0 })
-    }
-
-    private var helperFilesCaption: String {
-        if options.dropsMacHelperFiles {
-            return String(localized: "Leave out .DS_Store, __MACOSX and similar Mac support files.")
-        }
-        return String(localized: "Keep Mac support files that are already in the selection. This does not store Finder tags by itself.")
-    }
-
-    /// Picker tags presets, the live custom size, and a −1 sentinel for “Custom…”.
+    /// Presets and the custom size in use pick themselves; Custom… opens the editor beside the
+    /// menu and leaves the menu showing what's in use until the editor's Use.
     private var splitPickerSelection: Binding<SplitSize> {
         Binding(
-            get: { showCustomSplit && !options.split.isCustom ? SplitSize(rawValue: -1) : options.split },
+            get: { options.split },
             set: { chosen in
-                if chosen.rawValue == -1 {
-                    showCustomSplit = true
-                    seedCustomSplitFields(from: options.split)
-                    return
-                }
-                showCustomSplit = chosen.isCustom
-                options.split = chosen
+                if chosen == Self.customSplitTag { editingSplit = .options } else { options.split = chosen }
             }
         )
-    }
-
-    @ViewBuilder
-    private var customSplitEditor: some View {
-        HStack(spacing: Space.s) {
-            TextField("Size", text: $customSplitText)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 88)
-                .onSubmit(applyCustomSplit)
-            Picker("Unit", selection: $customSplitUnit) {
-                ForEach(SplitSize.CustomUnit.allCases) { Text($0.symbol).tag($0) }
-            }
-            .labelsHidden()
-            .fixedSize()
-            .onChange(of: customSplitUnit) { _, _ in applyCustomSplit() }
-            Button("Use") { applyCustomSplit() }
-                .disabled(SplitSize.parseCustom(customSplitText, unit: customSplitUnit) == nil)
-        }
-        if SplitSize.parseCustom(customSplitText, unit: customSplitUnit) == nil, !customSplitText.isEmpty {
-            caption(String(localized: "Enter a size between 1 KB and 100 TB."))
-        }
-    }
-
-    private func seedCustomSplitFields(from size: SplitSize) {
-        guard size.rawValue > 0 else {
-            customSplitText = ""
-            customSplitUnit = .megabyte
-            return
-        }
-        if size.rawValue >= 1_000_000_000, size.rawValue % 1_000_000_000 == 0 {
-            customSplitText = String(size.rawValue / 1_000_000_000)
-            customSplitUnit = .gigabyte
-        } else if size.rawValue % 1_000_000 == 0 {
-            customSplitText = String(size.rawValue / 1_000_000)
-            customSplitUnit = .megabyte
-        } else {
-            let mb = Double(size.rawValue) / 1_000_000
-            customSplitText = String(format: "%g", mb)
-            customSplitUnit = .megabyte
-        }
-    }
-
-    private func applyCustomSplit() {
-        guard let size = SplitSize.parseCustom(customSplitText, unit: customSplitUnit) else { return }
-        options.split = size
-        showCustomSplit = true
     }
 
     private func pack(_ report: PackReport) {
