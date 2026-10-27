@@ -59,10 +59,20 @@ nonisolated enum GlancePlacement {
 
 /// Glass, or a solid window background when Reduce Transparency is on.
 nonisolated enum GlanceMaterial: Equatable, Sendable {
-    case glass, solid
+    /// System Liquid Glass (`glassEffect`).
+    case glass
+    /// Classic frosted material (`.regularMaterial`) when Liquid Glass is turned off (#158).
+    case frosted
+    /// Opaque window background; always used under Reduce Transparency.
+    case solid
 
-    static func resolve(reduceTransparency: Bool, override: Bool = UserDefaults.standard.bool(forKey: "StowReduceTransparency")) -> Self {
-        reduceTransparency || override ? .solid : .glass
+    static func resolve(
+        reduceTransparency: Bool,
+        preference: SettingsKeys.GlanceMaterialPreference = .liquidGlass,
+        override: Bool = UserDefaults.standard.bool(forKey: "StowReduceTransparency")
+    ) -> Self {
+        if reduceTransparency || override { return .solid }
+        return preference == .classic ? .frosted : .glass
     }
 }
 
