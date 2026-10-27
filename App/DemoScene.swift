@@ -65,7 +65,7 @@ enum DemoScene {
         case "onboarding":
             OnboardingRouter.shared.open()
         case "settings":
-            SettingsRouter.shared.show(defaults.string(forKey: "StowSettingsPane").flatMap(SettingsPane.init(rawValue:)) ?? .general)
+            SettingsRouter.shared.show(rawValue: defaults.string(forKey: "StowSettingsPane"))
         case "editing", "editing-saving", "editing-refused":
             BrowseDemo.editing(in: app)
             if scene == "editing-saving" { app.browser?.editSession.showSavingForDemo(progress: 0.42) }

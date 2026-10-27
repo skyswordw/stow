@@ -78,6 +78,7 @@ struct SettingsTests {
         #expect(panes.allSatisfy { !$0.title.isEmpty && !$0.systemImage.isEmpty })
         #expect(Set(panes.map(\.title)).count == 11)
         #expect(Set(panes.map(\.systemImage)).count == 11)
+        #expect(SettingsPane.nextSteps.title == String(localized: "Actions"))
     }
 
     @Test func invalidNewValuesFallBack() throws {
@@ -188,22 +189,140 @@ struct SettingsTests {
         }
     }
 
+    @Test func packingResetRestoresDefaultsWithoutResettingGeneral() throws {
+        try withStore { store in
+            let entries = SettingsKeys.resettableEntries(for: .packing)
+            #expect(Set(entries.map(\.key)) == Set([
+                "PackAudience", "PackVerify", "PackCPUCores", SettingsKeys.volumeSize,
+                "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
+            ]))
+            store.set("mac", forKey: "PackAudience")
+            store.set(true, forKey: "PackVerify")
+            store.set(2, forKey: "PackCPUCores")
+            store.set(123456, forKey: SettingsKeys.volumeSize)
+            for audience in Audience.allCases {
+                store.set(-1, forKey: "PackLevel.\(audience.rawValue)")
+            }
+            SettingsKeys.reset(.pane(.general), in: store)
+            for entry in entries {
+                #expect(entry.read(in: store) != entry.defaultValue)
+            }
+            store.set("dark", forKey: SettingsKeys.appearance)
+            store.set(false, forKey: SettingsKeys.nextStepsShown)
+
+            SettingsKeys.reset(.pane(.packing), in: store)
+
+            for entry in entries {
+                #expect(store.object(forKey: entry.key) == nil)
+                #expect(entry.read(in: store) == SettingsKeys.defaultValue(for: entry.key))
+            }
+            #expect(SettingsKeys.splitSize(in: store) == .none)
+            #expect(!SettingsKeys.flag("PackVerify", in: store))
+            #expect(SettingsKeys.appearance(in: store) == .dark)
+            #expect(store.object(forKey: SettingsKeys.nextStepsShown) as? Bool == false)
+        }
+    }
+
+    @Test func actionsPageResetRestoresSuggestionVisibility() throws {
+        try withStore { store in
+            let customized = NextStepsSettings(isShown: false, hidden: Set(NextStep.Kind.allCases))
+            customized.save(to: store)
+            store.set(true, forKey: "PackVerify")
+            #expect(NextStepsSettings.load(from: store) == customized)
+
+            SettingsKeys.reset(.pane(.nextSteps), in: store)
+
+            for entry in SettingsKeys.resettableEntries(for: .nextSteps) {
+                #expect(store.object(forKey: entry.key) == nil)
+                #expect(entry.read(in: store) == entry.defaultValue)
+            }
+            let restored = NextStepsSettings.load(from: store)
+            #expect(restored == .defaults)
+            #expect(restored.isShown)
+            for kind in NextStep.Kind.allCases {
+                #expect(restored.shows(kind) == (kind != .pack))
+            }
+            #expect(store.bool(forKey: "PackVerify"))
+            customized.save(to: store)
+            NextStepsSettings.restoreDefaults(in: store)
+            #expect(NextStepsSettings.load(from: store) == restored)
+            #expect(store.bool(forKey: "PackVerify"))
+        }
+    }
+
+    @Test func allResetScopesPreserveRestorationAndFolderState() throws {
+        try withStore { store in
+            let preserved: [String: Any] = [
+                "PreviousDefaultApps": ["public.zip-archive": "previous.app"],
+                "onboarding.completed": true,
+                "Unrelated": "keep",
+                "FolderGrants": [Data([1, 2, 3])],
+                "install.folderBookmarks": ["/Applications": Data([4, 5, 6])],
+                GatherDestination.key: "/tmp/Keep",
+                "recent.archives": Data([7, 8, 9])
+            ]
+            for (key, value) in preserved { store.set(value, forKey: key) }
+            let scopes: [SettingsKeys.ResetScope] = [.all] + SettingsPane.allCases.map { .pane($0) }
+            for scope in scopes {
+                SettingsKeys.reset(scope, in: store)
+                for (key, value) in preserved {
+                    #expect(!SettingsKeys.resettable.contains { $0.key == key })
+                    #expect((store.object(forKey: key) as? NSObject)?.isEqual(value) == true)
+                }
+            }
+        }
+    }
+
+    @MainActor @Test func demoPaneRawValuesRouteAndFallBackToGeneral() throws {
+        try withStore { store in
+            let router = SettingsRouter()
+            var opened = 0
+            router.open = { opened += 1 }
+            for pane in SettingsPane.allCases {
+                store.set(pane.rawValue, forKey: "StowSettingsPane")
+                router.show(rawValue: store.string(forKey: "StowSettingsPane"))
+                #expect(router.pane == pane)
+                #expect(router.category == pane.category)
+            }
+            for invalid in ["", "Actions", "Next Steps", "unknown"] {
+                router.show(.packing)
+                router.show(rawValue: invalid)
+                #expect(router.pane == .general)
+                #expect(router.category == .general)
+            }
+            router.show(.nextSteps)
+            store.removeObject(forKey: "StowSettingsPane")
+            router.show(rawValue: store.string(forKey: "StowSettingsPane"))
+            #expect(router.pane == .general)
+            #expect(router.category == .general)
+            #expect(opened == SettingsPane.allCases.count + 10)
+        }
+    }
+
     @MainActor @Test func routerShowUpdatesPaneWithoutLosingOpenHook() {
-        let router = SettingsRouter.shared
-        let previous = router.pane
+        let router = SettingsRouter()
         var opened = 0
-        let previousOpen = router.open
-        router.open = { opened += 1 }
-        router.show(.nextSteps)
-        #expect(router.pane == .nextSteps)
-        #expect(router.category == .interaction)
-        #expect(opened == 1)
-        router.show(.integration)
-        #expect(router.pane == .integration)
-        #expect(router.category == .systemIntegration)
-        #expect(opened == 2)
-        router.pane = previous
-        router.open = previousOpen
+        var openedPane: SettingsPane?
+        var openedCategory: SettingsCategory?
+        router.open = {
+            opened += 1
+            openedPane = router.pane
+            openedCategory = router.category
+        }
+        let routes: [(SettingsPane, SettingsCategory)] = [
+            (.nextSteps, .interaction), (.fileTypes, .systemIntegration),
+            (.integration, .systemIntegration), (.packing, .archiveWork), (.general, .general)
+        ]
+        for (pane, category) in routes {
+            router.show(pane)
+            #expect(router.pane == pane)
+            #expect(router.category == category)
+            #expect(openedPane == pane)
+            #expect(openedCategory == category)
+        }
+        router.show(.general)
+        #expect(opened == routes.count + 1)
+        router.open = {}
     }
 
 }
