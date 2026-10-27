@@ -35,22 +35,29 @@ private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, pa
                   diskImageFilesystem: DiskImageFilesystem = .hfsPlus,
                   diskImageApplicationsLink: Bool = false,
                   diskImageFinderChrome: Bool = false,
+                  configure: (inout PackOptions) -> Void = { _ in },
                   into destination: URL) async throws -> (ArchiveCreation.Result, PackReport) {
     let request = PackRequest.collect([tree.project])
     var options = PackOptions()
     options.setAudience(audience)
     options.setFormat(format)
     options.usesPassword = password != nil
+    options.split = volumeSize.map { SplitSize(rawValue: $0) } ?? .none
+    options.verify = verify
     options.diskImageFilesystem = diskImageFilesystem
     options.diskImageApplicationsLink = diskImageApplicationsLink
     options.diskImageFinderChrome = diskImageFinderChrome
+    configure(&options)
     let report = Compatibility.report(for: request.files, options: options, password: password ?? "", overrides: overrides)
     let metadata = options.effectiveKeepsMacMetadata
-    var create = CreateRequest(operationID: UUID().uuidString, archiveName: "Project", format: format,
-                               password: password, volumeSize: volumeSize, keepsMacMetadata: metadata, verify: verify,
-                               diskImageFilesystem: format == .dmg ? diskImageFilesystem : .hfsPlus,
-                               diskImageApplicationsLink: format == .dmg && diskImageApplicationsLink,
-                               diskImageFinderChrome: format == .dmg && diskImageFinderChrome)
+    var create = CreateRequest(operationID: UUID().uuidString, archiveName: "Project", format: options.format,
+                               level: options.level, password: options.usesPassword ? password : nil,
+                               volumeSize: options.split.isNone ? nil : options.split.rawValue,
+                               keepsMacMetadata: metadata, verify: options.verify,
+                               threads: options.effectiveThreads(global: nil),
+                               diskImageFilesystem: options.format == .dmg ? options.diskImageFilesystem : .hfsPlus,
+                               diskImageApplicationsLink: options.format == .dmg && options.diskImageApplicationsLink,
+                               diskImageFinderChrome: options.format == .dmg && options.diskImageFinderChrome)
     create.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
     let result = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes, attributes: metadata,
                                                request: create, named: "Project", in: destination,
@@ -281,6 +288,130 @@ struct PackingTests {
         #expect(double.range(of: Data("_kMDItemUserTags".utf8)) != nil)
         #expect(double.range(of: Data("com.apple.provenance".utf8)) == nil)
         #expect(FileManager.default.fileExists(atPath: back.appending(path: "Project/.DS_Store").path))
+    }
+
+    @Test func windowsCanIncludeMacHelperFiles() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, report) = try await pack(tree, audience: .windows, format: .zip,
+                                              configure: { $0.setIncludesMacHelperFiles(true) }, into: out)
+
+        #expect(!report.excluded.contains { $0.path == "Project/.DS_Store" })
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        #expect(listing.entries.contains { $0.path == "Project/.DS_Store" })
+        #expect(!listing.entries.contains { $0.path.hasPrefix("__MACOSX/") })
+    }
+
+    @Test func windowsCanKeepTagsAsAppleDouble() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, report) = try await pack(tree, audience: .windows, format: .zip,
+                                              configure: { $0.setKeepsMacMetadata(true) }, into: out)
+
+        #expect(report.excluded.map(\.path) == ["Project/.DS_Store"])
+        let sevenZip = try #require(SevenZip.bundled())
+        let listing = try await sevenZip.list(result.placed[0])
+        #expect(listing.entries.contains { $0.path == "__MACOSX/Project/._README.md" })
+        let back = out.appending(path: "back", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: back, withIntermediateDirectories: false)
+        _ = try await sevenZip.extract(result.placed[0], into: back) { _ in }
+        let double = try Data(contentsOf: back.appending(path: "__MACOSX/Project/._README.md"))
+        #expect(double.prefix(4) == Data([0x00, 0x05, 0x16, 0x07]))
+        #expect(double.range(of: Data("_kMDItemUserTags".utf8)) != nil)
+        #expect(double.range(of: Data("bplist00-tag".utf8)) != nil)
+        #expect(double.range(of: Data("com.apple.provenance".utf8)) == nil)
+    }
+
+    @Test func macCanOmitAppleDoubleMetadata() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, _) = try await pack(tree, audience: .mac, format: .zip,
+                                         configure: { $0.setKeepsMacMetadata(false) }, into: out)
+
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        #expect(!listing.entries.contains { $0.path == "__MACOSX" || $0.path.hasPrefix("__MACOSX/") })
+        #expect(listing.entries.contains { $0.path == "Project/README.md" })
+        #expect(listing.entries.contains { $0.path == "Project/.DS_Store" })
+    }
+
+    @Test func macCanOmitMacHelperFiles() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, report) = try await pack(tree, audience: .mac, format: .zip,
+                                              configure: { $0.setIncludesMacHelperFiles(false) }, into: out)
+
+        #expect(report.excluded.map(\.path) == ["Project/.DS_Store"])
+        let listing = try await ArchiveEngine.shared.list(result.placed[0])
+        #expect(!listing.entries.contains { $0.path.hasSuffix(".DS_Store") })
+        #expect(listing.entries.contains { $0.path == "__MACOSX/Project/._README.md" })
+    }
+
+    @Test func sevenZipCanExposeNamesWhileEncryptingContents() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+
+        let (result, _) = try await pack(tree, audience: .windows, format: .sevenZip, password: "correct horse",
+                                         configure: { $0.encryptFilenames = false }, into: out)
+
+        let archive = result.placed[0]
+        let sevenZip = try #require(SevenZip.bundled())
+        let listing = try await sevenZip.list(archive)
+        let readme = try #require(listing.entries.first { $0.path == "Project/README.md" })
+        #expect(readme.isEncrypted)
+        let locked = out.appending(path: "locked", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: locked, withIntermediateDirectories: false)
+        await expectEngineFailure(.passwordRequired) {
+            _ = try await sevenZip.extract(archive, into: locked) { _ in }
+        }
+        let back = out.appending(path: "back", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: back, withIntermediateDirectories: false)
+        _ = try await sevenZip.extract(archive, into: back, password: "correct horse") { _ in }
+        #expect(try Data(contentsOf: back.appending(path: "Project/README.md"))
+            == Data(contentsOf: tree.project.appending(path: "README.md")))
+    }
+
+    @Test func zipUsesCustomSplitSize() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        let payload = Data(repeating: 0x5a, count: 3_100_000)
+        try payload.write(to: tree.project.appending(path: "payload.bin"))
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+        let split = try #require(SplitSize.custom(1_500_000))
+
+        let (result, _) = try await pack(tree, audience: .windows, format: .zip, verify: true,
+                                         configure: {
+                                             $0.split = split
+                                             $0.level = .store
+                                         }, into: out)
+
+        #expect(result.placed.map(\.lastPathComponent) == ["Project.zip.001", "Project.zip.002", "Project.zip.003"])
+        #expect(result.report.verified)
+        for volume in result.placed.dropLast() {
+            #expect(try volume.resourceValues(forKeys: [.fileSizeKey]).fileSize == Int(split.rawValue))
+        }
+        let last = try #require(result.placed.last)
+        let lastSize = try #require(last.resourceValues(forKeys: [.fileSizeKey]).fileSize)
+        #expect(lastSize > 0 && lastSize <= Int(split.rawValue))
+        let sevenZip = try #require(SevenZip.bundled())
+        let back = out.appending(path: "back", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: back, withIntermediateDirectories: false)
+        _ = try await sevenZip.extract(result.placed[0], into: back) { _ in }
+        #expect(try Data(contentsOf: back.appending(path: "Project/payload.bin")) == payload)
     }
 
     @Test(.timeLimit(.minutes(1)))

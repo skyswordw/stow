@@ -173,8 +173,7 @@ nonisolated struct NextStepsSettings: Equatable, Sendable {
 
     /// Restore Defaults: Next Steps shows again with its usual suggestions.
     static func restoreDefaults(in store: UserDefaults = .standard) {
-        store.removeObject(forKey: SettingsKeys.nextStepsShown)
-        store.removeObject(forKey: SettingsKeys.nextStepsHidden)
+        SettingsKeys.reset(.pane(.nextSteps), in: store)
     }
 
     /// Comma-separated kinds, in Settings order. Unknown names (from a newer Stow) are ignored.

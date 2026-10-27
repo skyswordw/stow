@@ -144,16 +144,12 @@ Relevant files: `App/Settings/PreferenceViews.swift`, `SettingsPane.swift`,
 
 ## 3. Distinguish a sample from real archive operations
 
-[Issue #91](https://github.com/skyswordw/stow/issues/91) remains open. The PDFs are now real,
-but the sample's listing and actions still use in-memory demonstration behavior. Do not
-present simulated extraction, installation, or edits as verified archive functionality.
-
-**Codex proposal for consideration:** use a genuine example ZIP if a sample ships in the
-regular release, so the normal browse/preview/extract flow teaches the real product. An
-alternative is to remove the regular-release entry and keep clearly marked design-review
-scenes. Claude Code should propose the entry point, labelling, and empty-state treatment;
-the product choice remains tracked in #91. Real screenshot/video assets are tracked in
-[#69](https://github.com/skyswordw/stow/issues/69).
+[Issue #91](https://github.com/skyswordw/stow/issues/91): the product choice is a genuine ZIP.
+Try the Sample opens `Resources/Sample/Harbor Rebrand Handoff.zip` through the normal engine
+(`AppState.openSample()`). Do not present `DemoScene` / `SampleArchive.make()` simulated
+extraction or installs as verified release behaviour — those remain design-review only.
+Screenshot/video asset retakes stay on [#69](https://github.com/skyswordw/stow/issues/69).
+See `Handoff/91-real-sample-zip.md`.
 
 ## Motion intent
 

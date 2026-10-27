@@ -51,13 +51,20 @@ above:
 - `Screens/*.png` and `Screens/Dark/*.png`: mock iOS screens. Their icons are SF Symbols, used as
   Apple allows in mock-ups of apps for its platforms.
 - `Specs/Brand Guidelines.pdf`
-- `Video/Logo Reveal.jpg`: the poster frame for `Video/Logo Reveal.mov`, which has no file of its own.
+- `Video/Logo Reveal.jpg`: a still from the logo reveal.
 - `Earlier Rounds/Old Explorations/Round 1/Wordmark Ideas.pdf`, `Round 2/Wordmark Draft.svg`,
   `Round 2/Mark Sketches.png`
 
-The sample's other entries have no files here. `Prototype/Harbor Prototype.app` shows the lighthouse
-icon from the app's asset catalog (`Design/DemoAppIcon.svg`). The installer, the audio and the inner
-7Z archive show their system icons, as real ones would.
+## Try the Sample ZIP
+
+`Harbor Rebrand Handoff.zip` (same folder) packs these real files for release. Rebuild with
+`zsh scripts/make-sample-zip.sh` after changing the folder. Try the Sample opens that ZIP through
+the normal browse/preview/extract engine (#91); sizes come from the files themselves.
+
+Design-review scenes may still show an in-memory listing with fictional entries
+(`Prototype/Harbor Prototype.app`, installer, audio, nested `.7z`) that are not in the ZIP. Those
+entries are for screenshots and demos only — they are not release functionality.
+
 
 ## Website hover-demo thumbnails
 

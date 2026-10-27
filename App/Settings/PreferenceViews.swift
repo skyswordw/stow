@@ -3,7 +3,6 @@ import SwiftUI
 struct GeneralSettingsView: View {
     @AppStorage(SettingsKeys.appearance) private var appearance = SettingsKeys.Appearance.system.rawValue
     @AppStorage(SettingsKeys.defaultView) private var viewMode = "grid"
-    @AppStorage("PackCPUCores") private var cores = 0
     @AppStorage(SettingsKeys.openInGlance) private var openInGlance = false
     @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulGlanceControls = false
     @AppStorage(SettingsKeys.glanceMaterial) private var glanceMaterial = SettingsKeys.GlanceMaterialPreference.liquidGlass.rawValue
@@ -30,10 +29,6 @@ struct GeneralSettingsView: View {
                 ForEach(SettingsKeys.GlanceMaterialPreference.allCases) { Text($0.title).tag($0.rawValue) }
             }
             .help("Liquid Glass is the default. Classic frosted uses a traditional material. Reduce Transparency always uses a solid window.")
-            Picker("CPU cores for packing", selection: $cores) {
-                Text("All").tag(0)
-                ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
-            }
             Section("App Language") {
                 Text("To use English or Simplified Chinese just for Stow, open System Settings → General → Language & Region → Applications. Add Stow and choose its language. Quit and reopen Stow after your current tasks and unsaved changes are finished.")
                     .font(.callout)
@@ -101,6 +96,7 @@ private struct UpdateSettingsSection: View {
 }
 
 struct PackingSettingsView: View {
+    @AppStorage("PackCPUCores") private var cores = 0
     @AppStorage("PackAudience") private var audience = Audience.windows.rawValue
     @AppStorage("PackVerify") private var verify = false
     @AppStorage(SettingsKeys.volumeSize) private var volume = 0
@@ -131,6 +127,10 @@ struct PackingSettingsView: View {
                 SplitSizeEditor(initial: current) { volume = Int($0.rawValue) }
             }
             Toggle("Check archives after packing", isOn: $verify)
+            Picker("CPU cores for packing", selection: $cores) {
+                Text("All").tag(0)
+                ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
+            }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
