@@ -283,26 +283,73 @@ nonisolated struct PackOptions: Equatable, Sendable {
     /// DMG only (#77). Adds an Applications → /Applications shortcut.
     var diskImageApplicationsLink = false
 
+    /// Per-job Mac helper-file policy (#152). `nil` follows the audience default.
+    var includeMacHelperFiles: Bool? = nil
+    /// Per-job AppleDouble metadata for ZIP (#152). `nil` follows the audience default.
+    var keepsMacMetadata: Bool? = nil
+    /// 7Z + password: encrypt the file list (`-mhe`). Default on; ignored for other formats.
+    var encryptFilenames = true
+    /// Per-job compression thread cap (#152). `nil` uses Settings › PackCPUCores.
+    var threads: Int? = nil
+
+    /// Effective helper-drop policy for this job.
+    var dropsMacHelperFiles: Bool {
+        if let includeMacHelperFiles { return !includeMacHelperFiles }
+        return audience.dropsMacHelperFiles
+    }
+
+    /// Effective ZIP AppleDouble policy for this job (only meaningful for ZIP).
+    var effectiveKeepsMacMetadata: Bool {
+        let wants = keepsMacMetadata ?? audience.keepsMacMetadata
+        return wants && format == .zip
+    }
+
+    /// Effective thread count for CreateRequest (`nil` = all cores / engine default).
+    /// Pass `PackPreferences.threads` (or a test double) as `global` — that preference is MainActor-isolated.
+    func effectiveThreads(global: Int?) -> Int? {
+        guard let threads else { return global }
+        let cap = max(1, ProcessInfo.processInfo.activeProcessorCount)
+        return min(max(1, threads), cap)
+    }
+
+    /// Restores purpose-driven defaults for the current audience/format without clearing format itself.
+    /// Reads remembered Pack/Settings defaults on the main actor.
+    @MainActor
+    mutating func resetToPurposeDefaults() {
+        includeMacHelperFiles = nil
+        keepsMacMetadata = nil
+        encryptFilenames = true
+        threads = nil
+        level = PackPreferences.level(for: audience)
+        verify = PackPreferences.verify
+        split = format.supportsSplit ? SettingsKeys.splitSize() : .none
+        diskImageFilesystem = .hfsPlus
+        diskImageApplicationsLink = false
+    }
+
     /// Keeps format and password consistent when the audience changes.
     mutating func setAudience(_ newValue: Audience) {
         audience = newValue
         if !newValue.formats.contains(format) { format = newValue.formats[0] }
+        reconcileCapabilities()
+    }
+
+    mutating func setFormat(_ newValue: PackFormat) {
+        format = newValue
+        reconcileCapabilities()
+    }
+
+    /// Clears options the current format cannot honour, without silently turning encryption off.
+    mutating func reconcileCapabilities() {
         if !format.supportsPassword { usesPassword = false }
         if !format.supportsSplit { split = .none }
         if format != .dmg {
             diskImageFilesystem = .hfsPlus
             diskImageApplicationsLink = false
         }
-    }
-
-    mutating func setFormat(_ newValue: PackFormat) {
-        format = newValue
-        if !newValue.supportsPassword { usesPassword = false }
-        if !newValue.supportsSplit { split = .none }
-        if newValue != .dmg {
-            diskImageFilesystem = .hfsPlus
-            diskImageApplicationsLink = false
-        }
+        if format != .zip { keepsMacMetadata = nil }
+        // encryptFilenames is only applied for password-protected 7Z; keep the preference for when
+        // people switch back so we never silently downgrade encryption.
     }
 }
 
@@ -411,7 +458,7 @@ nonisolated enum Compatibility {
         var kept: [PackFile] = []
 
         for file in files {
-            if audience.dropsMacHelperFiles, isUnderHelperFile(file.path) {
+            if options.dropsMacHelperFiles, isUnderHelperFile(file.path) {
                 if !file.isFolder { excluded.append(file) }
             } else if file.isLink, !audience.keepsLinks {
                 leftOutLinks.append(file)
@@ -568,11 +615,19 @@ nonisolated enum Compatibility {
                 ))
             }
             if options.format == .sevenZip {
-                notes.append(.init(
-                    tone: .fine,
-                    title: String(localized: "Contents and file names are encrypted"),
-                    detail: String(localized: "Without the password, nobody can see what’s inside.")
-                ))
+                if options.encryptFilenames {
+                    notes.append(.init(
+                        tone: .fine,
+                        title: String(localized: "Contents and file names are encrypted"),
+                        detail: String(localized: "Without the password, nobody can see what’s inside.")
+                    ))
+                } else {
+                    notes.append(.init(
+                        tone: .info,
+                        title: String(localized: "Contents are encrypted; file names stay visible"),
+                        detail: String(localized: "Anyone can see the list of files. Turn on Encrypt File Names to hide them.")
+                    ))
+                }
             } else {
                 notes.append(.init(
                     tone: .fine,

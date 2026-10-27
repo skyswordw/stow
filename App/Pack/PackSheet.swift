@@ -282,6 +282,22 @@ struct PackSheet: View {
         var parts = [compressionSummary]
         if options.verify { parts.append(String(localized: "Tested after packing")) }
         if options.format == .dmg { parts.append(options.diskImageFilesystem.title) }
+        if options.includeMacHelperFiles != nil {
+            parts.append(options.dropsMacHelperFiles
+                ? String(localized: "No Mac support files")
+                : String(localized: "Keeping Mac support files"))
+        }
+        if options.keepsMacMetadata != nil, options.format == .zip {
+            parts.append(options.effectiveKeepsMacMetadata
+                ? String(localized: "Storing Mac metadata")
+                : String(localized: "No Mac metadata"))
+        }
+        if options.format == .sevenZip, options.usesPassword, !options.encryptFilenames {
+            parts.append(String(localized: "File names visible"))
+        }
+        if options.threads != nil {
+            parts.append(String(localized: "Custom CPU cores"))
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -311,9 +327,12 @@ struct PackSheet: View {
             return String(localized: "\(options.format.displayName) can’t be password-protected. Choose ZIP or 7Z to add one.")
         }
         guard options.usesPassword else { return String(localized: "Anyone with the file can open it and see the names inside.") }
-        return options.format == .sevenZip
-            ? String(localized: "File names are hidden until the password is entered.")
-            : String(localized: "File names stay visible without the password.")
+        if options.format == .sevenZip {
+            return options.encryptFilenames
+                ? String(localized: "File names are hidden until the password is entered.")
+                : String(localized: "File names stay visible; only the contents need the password.")
+        }
+        return String(localized: "File names stay visible without the password.")
     }
 
     private func moreOptions(_ report: PackReport) -> some View {
@@ -364,6 +383,51 @@ struct PackSheet: View {
                     }
                     caption(passwordCaption)
                 }
+                if options.format == .sevenZip, options.usesPassword {
+                    optionRow("File names") {
+                        Toggle("Encrypt file names", isOn: $options.encryptFilenames)
+                        caption(options.encryptFilenames
+                            ? String(localized: "The list of files stays hidden until the password is entered.")
+                            : String(localized: "File names stay visible; only the contents need the password."))
+                    }
+                }
+                optionRow("Mac support files") {
+                    Picker("Mac support files", selection: helperFilesSelection) {
+                        Text("Follow purpose default").tag(Optional<Bool>.none)
+                        Text("Include .DS_Store and __MACOSX").tag(Optional.some(true))
+                        Text("Leave out Mac support files").tag(Optional.some(false))
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    caption(helperFilesCaption)
+                }
+                if options.format == .zip {
+                    optionRow("Mac metadata") {
+                        Picker("Mac metadata", selection: macMetadataSelection) {
+                            Text("Follow purpose default").tag(Optional<Bool>.none)
+                            Text("Store Finder tags and extended attributes").tag(Optional.some(true))
+                            Text("Don’t store extended attributes").tag(Optional.some(false))
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                        caption(String(localized: "AppleDouble sidecars inside ZIP. This is separate from including .DS_Store files."))
+                    }
+                }
+                optionRow("CPU cores") {
+                    Picker("CPU cores", selection: threadsSelection) {
+                        Text("Use Settings default").tag(Optional<Int>.none)
+                        ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { n in
+                            Text(n == 1 ? "1 core" : "\(n) cores").tag(Optional.some(n))
+                        }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                    caption(String(localized: "A limit is a request; some formats may still use fewer cores."))
+                }
+                Button("Reset advanced options to purpose defaults") {
+                    options.resetToPurposeDefaults()
+                }
+                .buttonStyle(.link)
                 if options.format == .dmg {
                     optionRow("Disk format") {
                         Picker("Disk format", selection: $options.diskImageFilesystem) {
@@ -510,6 +574,25 @@ struct PackSheet: View {
         options.level = PackPreferences.level(for: audience)
     }
 
+    private var helperFilesSelection: Binding<Bool?> {
+        Binding(get: { options.includeMacHelperFiles }, set: { options.includeMacHelperFiles = $0 })
+    }
+
+    private var macMetadataSelection: Binding<Bool?> {
+        Binding(get: { options.keepsMacMetadata }, set: { options.keepsMacMetadata = $0 })
+    }
+
+    private var threadsSelection: Binding<Int?> {
+        Binding(get: { options.threads }, set: { options.threads = $0 })
+    }
+
+    private var helperFilesCaption: String {
+        if options.dropsMacHelperFiles {
+            return String(localized: "Leave out .DS_Store, __MACOSX and similar Mac support files.")
+        }
+        return String(localized: "Keep Mac support files that are already in the selection. This does not store Finder tags by itself.")
+    }
+
     /// Picker tags presets, the live custom size, and a −1 sentinel for “Custom…”.
     private var splitPickerSelection: Binding<SplitSize> {
         Binding(
@@ -598,9 +681,9 @@ struct PackSheet: View {
                 ) else { return }
                 conflict = choice
             }
-            let keepsMetadata = options.audience.keepsMacMetadata && format == .zip
+            let keepsMetadata = options.effectiveKeepsMacMetadata
             let cleanupDirectory = self.request.cleanupDirectory
-            let request = CreateRequest(
+            var request = CreateRequest(
                 operationID: UUID().uuidString,
                 archiveName: archiveName,
                 format: format,
@@ -609,10 +692,11 @@ struct PackSheet: View {
                 volumeSize: options.split.isNone ? nil : options.split.rawValue,
                 keepsMacMetadata: keepsMetadata,
                 verify: options.verify,
-                threads: PackPreferences.threads,
+                threads: options.effectiveThreads(global: PackPreferences.threads),
                 diskImageFilesystem: format == .dmg ? options.diskImageFilesystem : .hfsPlus,
                 diskImageApplicationsLink: format == .dmg && options.diskImageApplicationsLink
             )
+            request.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
             handedOffCleanup = true
             app.packing.start(.init(items: report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,
                                     request: request, name: archiveName, destination: destination, conflict: conflict, cleanupDirectory: cleanupDirectory))

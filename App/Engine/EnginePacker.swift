@@ -12,11 +12,12 @@ struct EnginePacker: ArchivePacking {
         options.level = PackPreferences.level(for: options.audience)
         let report = Compatibility.report(for: request.files, options: options, password: "")
         let name = archive.deletingPathExtension().lastPathComponent
-        let keepsMetadata = options.audience.keepsMacMetadata && options.format == .zip
-        let create = CreateRequest(operationID: UUID().uuidString, archiveName: name, format: options.format,
+        let keepsMetadata = options.effectiveKeepsMacMetadata
+        var create = CreateRequest(operationID: UUID().uuidString, archiveName: name, format: options.format,
                                    level: options.level, password: nil, volumeSize: nil,
                                    keepsMacMetadata: keepsMetadata, verify: PackPreferences.verify,
-                                   threads: PackPreferences.threads)
+                                   threads: options.effectiveThreads(global: PackPreferences.threads))
+        create.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
         _ = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,
                                           request: create, named: name, in: archive.deletingLastPathComponent(),
                                           onProgress: onProgress)
