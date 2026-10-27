@@ -466,10 +466,18 @@ struct PackSheet: View {
                         caption(options.diskImageFilesystem.detail)
                     }
                     optionRow("Layout") {
-                        Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
-                        caption(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
-                        Toggle("Finder window layout", isOn: $options.diskImageFinderChrome)
-                        caption(String(localized: "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting."))
+                        // Each caption stays with its own checkbox; the pairs sit further apart than
+                        // a checkbox and its caption, closer than two rows.
+                        VStack(alignment: .leading, spacing: Space.m) {
+                            VStack(alignment: .leading, spacing: Space.xs) {
+                                Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
+                                caption(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
+                            }
+                            VStack(alignment: .leading, spacing: Space.xs) {
+                                Toggle("Finder window layout", isOn: $options.diskImageFinderChrome)
+                                caption(String(localized: "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting."))
+                            }
+                        }
                     }
                 }
 
