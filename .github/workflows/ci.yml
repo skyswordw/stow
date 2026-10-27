@@ -118,7 +118,7 @@ jobs:
           ALLOWED_SKIPS: "0"
           # 524 after Settings category map, page-scoped reset and router helpers (#162).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "524"
+          MIN_TESTS: "527"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

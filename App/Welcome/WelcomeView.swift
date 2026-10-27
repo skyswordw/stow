@@ -143,7 +143,7 @@ struct WelcomeView: View {
 
             HStack(spacing: Space.s) {
                 Button("Open Archive…") { app.isChoosingArchive = true }
-                Button("Try the Sample") { app.openArchive(named: SampleArchive.make().name) }
+                Button("Try the Sample") { app.openSample() }
                     .buttonStyle(.glassProminent)
             }
             .controlSize(.large)

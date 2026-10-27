@@ -10,8 +10,7 @@ Questions go to #harbor-brand. Mira answers type and colour, Tomas answers motio
 - **Screens** — final comps for Home, Checkout, Onboarding and Settings, light and dark.
 - **Photos** — the five approved photos. Keep the crops from page 6 of the guidelines.
 - **Fonts** — Atkinson Hyperlegible for the interface, Instrument Serif Italic for headlines. Both use the SIL Open Font License, so they can ship inside the app.
-- **Prototype** — a clickable build of the new onboarding. It isn't notarized yet, so macOS asks before opening it.
-- **Audio** and **Video** — the two-note sting and the logo reveal for the launch spot.
+- **Video** — a still from the logo reveal for the launch spot.
 - **Earlier Rounds** — old explorations, for reference only. Don't use anything from there.
 
 ## Rules of thumb

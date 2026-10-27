@@ -277,7 +277,19 @@ final class AppState {
         open(url)
     }
 
-    /// Sample data for design review and the "Try the Sample" button.
+    /// Opens the bundled Harbor sample ZIP through the normal browse/preview/extract engine (#91).
+    /// Extract and Install write real files; they are not `simulate()` timers.
+    func openSample() {
+        showMainWindow()
+        guard let url = SampleArchive.bundledURL else {
+            // Bundle missing the ZIP (incomplete checkout): fall back to the in-memory design listing.
+            openArchive(named: SampleArchive.make().name)
+            return
+        }
+        open(url)
+    }
+
+    /// In-memory sample for design-review scenes (`DemoScene`, nested-search demos). Prefer `openSample()` for Try the Sample.
     func openArchive(named name: String) {
         cancelOpening()
         releaseScope()
@@ -549,7 +561,7 @@ struct StowCommands: Commands {
             OpenRecentMenu(entries: app.recents.visible, open: { app.openRecent($0) }, clear: { app.recents.clear() })
             Button("Extract Archives…") { app.isChoosingBatch = true }
                 .keyboardShortcut("e", modifiers: [.command, .option])
-            Button("Open Sample Archive") { app.openArchive(named: SampleArchive.make().name) }
+            Button("Open Sample Archive") { app.openSample() }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
             Divider()
             Button("Close Archive") { app.closeArchive() }
