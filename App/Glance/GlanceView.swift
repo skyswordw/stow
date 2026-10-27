@@ -147,6 +147,7 @@ struct GlanceView: View {
             }
             .padding([.horizontal, .bottom], Space.s)
             .navigationTitle(model.title)
+            .navigationSubtitle(model.glanceContextSubtitle)
             .toolbar { toolbar }
             .onKeyPress(.escape) {
                 if model.renamingPath != nil {
@@ -236,6 +237,10 @@ struct GlanceView: View {
                     .accessibilityLabel(String(localized: "Forward"))
                     .disabled(!model.canGoForward)
                     .help("See the next place")
+                Button("Enclosing Folder", systemImage: "arrow.up") { model.goUp() }
+                    .accessibilityLabel(String(localized: "Enclosing Folder"))
+                    .disabled(!model.canGoUp)
+                    .help("See the folder this one is in")
             }
             .controlGroupStyle(.navigation)
         }

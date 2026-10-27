@@ -506,6 +506,16 @@ final class BrowserModel {
          String(localized: "\(archive.files.count) files")].joined(separator: " · ")
     }
 
+    /// Compact Glance context (#157): format, items in the current folder, and the path back to the archive.
+    /// Uses the visible folder count (not the whole-archive total) so nested browsing stays truthful.
+    var glanceContextSubtitle: String {
+        let count = visibleEntries.count
+        let items = count == 1 ? String(localized: "1 item") : String(localized: "\(count) items")
+        return [String(localized: "\(archive.format.displayName) archive"),
+                items,
+                location(ofFolder: folder)].joined(separator: " · ")
+    }
+
     /// Where something in this archive sits, archive by archive and folder by folder, the way the
     /// breadcrumbs go: "Showcase.zip › Showcase › Docs", or "Outer.zip › Packages › Inner.zip"
     /// inside a nested archive. `folder` is a folder of the innermost archive ("" for its top level).
@@ -690,9 +700,21 @@ final class BrowserModel {
     }
 
     /// Up One Level: the enclosing folder, or out of a nested archive to where it sits.
+    /// When the parent is already behind us in history, move the index there so Forward
+    /// can restore the deeper folder (unlike a fresh navigate, which would truncate).
     func goUp() {
         if !folder.isEmpty {
-            navigate(to: (folder as NSString).deletingLastPathComponent, selecting: [folder])
+            let parent = (folder as NSString).deletingLastPathComponent
+            let levelIDs = levels.map(\.id)
+            if let idx = history[..<historyIndex].lastIndex(where: {
+                $0.folder == parent && $0.levels.map(\.id) == levelIDs
+            }) {
+                let from = location
+                historyIndex = idx
+                apply(history[historyIndex], selecting: cameFrom(from, to: history[historyIndex]))
+                return
+            }
+            navigate(to: parent, selecting: [folder])
         } else if levels.count > 1, let entryPath = level.entryPath {
             navigate(to: (entryPath as NSString).deletingLastPathComponent, levels: Array(levels.dropLast()),
                      selecting: [entryPath])

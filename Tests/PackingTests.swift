@@ -43,11 +43,12 @@ private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, pa
     options.diskImageFilesystem = diskImageFilesystem
     options.diskImageApplicationsLink = diskImageApplicationsLink
     let report = Compatibility.report(for: request.files, options: options, password: password ?? "", overrides: overrides)
-    let metadata = audience.keepsMacMetadata && format == .zip
-    let create = CreateRequest(operationID: UUID().uuidString, archiveName: "Project", format: format,
+    let metadata = options.effectiveKeepsMacMetadata
+    var create = CreateRequest(operationID: UUID().uuidString, archiveName: "Project", format: format,
                                password: password, volumeSize: volumeSize, keepsMacMetadata: metadata, verify: verify,
                                diskImageFilesystem: format == .dmg ? diskImageFilesystem : .hfsPlus,
                                diskImageApplicationsLink: format == .dmg && diskImageApplicationsLink)
+    create.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
     let result = try await ArchiveCreation.run(report.items, totalBytes: report.totalBytes, attributes: metadata,
                                                request: create, named: "Project", in: destination,
                                                conflict: conflict) { _ in }
@@ -332,6 +333,15 @@ struct PackPlanTests {
         request.password = "pw"
         let arguments = SevenZip.createSteps(for: request, archive: URL(filePath: "/out/P.7z"), input: input, work: work)[0].arguments
         #expect(arguments.contains("-mhe=on") && arguments.contains("-t7z") && !arguments.contains("-mem=AES256"))
+    }
+
+    @Test func sevenZipCanLeaveNamesVisible() {
+        var request = request
+        request.format = .sevenZip
+        request.password = "pw"
+        request.encryptFilenames = false
+        let arguments = SevenZip.createSteps(for: request, archive: URL(filePath: "/out/P.7z"), input: input, work: work)[0].arguments
+        #expect(arguments.contains("-mhe=off") && arguments.contains("-p") && !arguments.contains("-mhe=on"))
     }
 
     @Test func compressedTarIsTwoSteps() {

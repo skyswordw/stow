@@ -202,12 +202,14 @@ nonisolated struct CreateRequest: Codable, Sendable {
     var archiveName: String
     var format: PackFormat
     var level: CompressionLevel = .balanced
-    /// ZIP: AES-256. 7Z: AES-256 with file names encrypted too. DMG ignores this (password packing deferred).
+    /// ZIP: AES-256. 7Z: AES-256 (file-list encryption controlled by `encryptFilenames`). DMG ignores this.
     var password: String?
     /// Bytes per volume; nil for one file.
     var volumeSize: Int64?
     /// Adds `__MACOSX/…/._name` AppleDouble files carrying extended attributes (ZIP only).
     var keepsMacMetadata = false
+    /// 7Z + password: encrypt the header/file list (`-mhe=on`). Ignored for ZIP/TAR/DMG. Default on (#152).
+    var encryptFilenames = true
     /// Tests the finished archive before replying.
     var verify = false
     /// Compression threads; nil lets 7-Zip use every core.
