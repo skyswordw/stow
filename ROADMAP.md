@@ -133,7 +133,6 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 Remaining feature and delivery gaps:
 
 - DMG AES password creation (#84), deferred because the sandbox blocks the MediaKit attach path.
-- DMG Finder window chrome (#85) implemented with a solid-color background; macOS build/tests and Finder appearance validation remain to run (Linux implementation environment). Picture backgrounds remain excluded because they require mount + Carbon Alias, incompatible with this sandbox-safe staging path.
 - Automated Finder-menu repair: sandbox restrictions leave System Settings and relaunch guidance.
 - Homebrew tap publication.
 
