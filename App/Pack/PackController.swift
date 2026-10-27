@@ -53,13 +53,6 @@ final class PackController {
         let fileName = job.name + "." + job.request.format.fileExtension
         activity = Activity(name: fileName, phase: .running(0))
         task = Task { [weak self] in
-            var directoryToClean: URL?
-            defer {
-                if let directory = directoryToClean {
-                    try? FileManager.default.removeItem(at: directory)
-                    Task { @MainActor in self?.onDirectoryCleaned?(directory) }
-                }
-            }
             do {
                 let result = try await ArchiveCreation.run(
                     job.items, totalBytes: job.totalBytes, attributes: job.attributes, request: job.request,
@@ -67,18 +60,22 @@ final class PackController {
                 ) { fraction in
                     Task { @MainActor in self?.advance(to: fraction) }
                 }
+                // Successful publication: always eligible for cleanup when a directory was attached.
+                let cleaned = job.cleanupDirectory
+                if let directory = cleaned {
+                    try? FileManager.default.removeItem(at: directory)
+                }
                 guard let self else { return }
                 activity?.placed = result.placed
                 activity?.verified = result.report.verified
                 withAnimation(Motion.current(Motion.status)) { activity?.phase = .done }
-                // Successful publication: always eligible for cleanup when a directory was attached.
-                directoryToClean = job.cleanupDirectory
+                if let cleaned { onDirectoryCleaned?(cleaned) }
             } catch {
                 let failure = Failure(error, .pack, name: fileName, destination: job.destination, needs: job.totalBytes)
                 let cancelled = EngineError(error).failure == .cancelled
                 // Tray temporary groups keep material on cancel/failure (#179); extract-and-repack still cleans.
-                if !job.cleanupOnlyOnSuccess {
-                    directoryToClean = job.cleanupDirectory
+                if !job.cleanupOnlyOnSuccess, let directory = job.cleanupDirectory {
+                    try? FileManager.default.removeItem(at: directory)
                 }
                 withAnimation(Motion.current(cancelled ? Motion.exit : Motion.status)) {
                     if cancelled {
