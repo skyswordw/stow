@@ -32,6 +32,17 @@ struct LocalizationTests {
         }
     }
 
+
+    @Test func everySettingsCategoryHasTranslation() throws {
+        let bundle = try chineseBundle()
+        for category in SettingsCategory.allCases {
+            let english = category.title
+            let translated = bundle.localizedString(forKey: english, value: nil, table: nil)
+            #expect(!translated.isEmpty)
+            #expect(translated != english)
+        }
+    }
+
     /// Apps are named as people know them in Chinese (DESIGN: plain words), not by their English names.
     @Test func appNamesUseTheirChineseNames() throws {
         let bundle = try chineseBundle()

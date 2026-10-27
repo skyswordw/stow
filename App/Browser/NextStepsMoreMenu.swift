@@ -48,8 +48,7 @@ struct NextStepsMoreItems: View {
         if !alternatives.isEmpty { Divider() }
         // The same symbol as Settings › Actions, so the menu item and the pane read as one feature.
         Button("Customize Actions…", systemImage: SettingsPane.nextSteps.systemImage) {
-            SettingsRouter.shared.pane = .nextSteps
-            SettingsRouter.shared.open()
+            SettingsRouter.shared.show(.nextSteps)
         }
         .labelStyle(.titleAndIcon)
     }
