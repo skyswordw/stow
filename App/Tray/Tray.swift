@@ -1362,11 +1362,11 @@ private struct TrayRow: View {
             isHovering = hovering
             if hovering { tray.hoveredRow = item.id } else if tray.hoveredRow == item.id { tray.hoveredRow = nil }
         }
-        .accessibilityElement(children: .contain)
+        // Leaf label + traits/actions; contain+label recursed on archive rows (#93 class of bug).
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel([item.name, item.isFolder ? String(localized: "Folder") : item.size.bytes].joined(separator: ", "))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .accessibilityAction { tray.open(item) }
-        // The hover-only Remove button is invisible to VoiceOver until hovered; offer it as an action.
+        .accessibilityAction { Task { @MainActor in tray.open(item) } }
         .accessibilityActions {
             if canRemove { Button("Remove") { tray.remove(item) } }
         }
