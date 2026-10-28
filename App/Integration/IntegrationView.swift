@@ -74,7 +74,7 @@ struct IntegrationView: View {
 
             Section {
                 if folders.grants.isEmpty {
-                    Text("None yet. The first time you extract or compress somewhere new from Finder, Stow asks once for that folder.")
+                    Text("None yet. When opening, extracting or compressing needs folder access, Stow asks you to choose a folder.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
@@ -89,9 +89,9 @@ struct IntegrationView: View {
                     }
                 }
             } header: {
-                Text("Folders Stow may write in").accessibilityAddTraits(.isHeader)
+                Text("Folders Stow may access").accessibilityAddTraits(.isHeader)
             } footer: {
-                Text("Stow is sandboxed: it only reads and writes where you allow it. No Full Disk Access needed.")
+                Text("Folder access includes files and subfolders. Remove forgets Stow’s saved authorization; macOS may keep access until Stow quits. Some protected locations may still be unavailable.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

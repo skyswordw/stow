@@ -52,13 +52,13 @@ struct OtherAppFilesTests {
         let wechat = URL(filePath: "/Users/me/Library/Containers/com.tencent.xinWeChat/Data/File/Harbor Handoff.zip")
         let failure = OtherAppFiles.unreadable(wechat)
         #expect(failure.title == "Stow isn’t allowed to read “Harbor Handoff.zip”")
-        #expect(failure.advice.contains("WeChat’s own storage") && failure.advice.contains("In WeChat, save it to Downloads"))
+        #expect(failure.advice.contains("WeChat’s storage") && failure.advice.contains("In WeChat, save a copy to Downloads"))
         #expect(failure.code.description == "OPN-101")
         #expect(failure.action == .showInFinder)
         #expect(failure.diagnostic.contains("Harbor Handoff.zip"))
 
         let elsewhere = OtherAppFiles.unreadable(URL(filePath: "/Volumes/Share/a.zip"))
-        #expect(elsewhere.advice.contains("from Finder") && !elsewhere.advice.contains("storage"))
+        #expect(elsewhere.advice.contains("permissions in Finder") && !elsewhere.advice.contains("storage"))
     }
 
     @Test func receivedFilesKeepTheirNames() throws {
