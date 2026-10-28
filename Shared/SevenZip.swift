@@ -60,8 +60,8 @@ nonisolated struct SevenZip: Sendable {
         let result: RunResult
         do {
             result = try await withTaskCancellationHandler {
-                try await run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor,
-                              password: password, onOutput: onOutput)
+                try await read(["l", "-slt", "-sccUTF-8", input.path], input: input,
+                               password: password, onRetry: { stream.reset() }, onOutput: onOutput)
             } onCancel: {
                 cancelled.withLock { $0 = true }
             }
@@ -94,8 +94,8 @@ nonisolated struct SevenZip: Sendable {
             // rejects those names, so extraction keeps the UTF-8 locale and Stow renames afterwards.
             var latin1 = self
             latin1.locale = "en_US.ISO8859-1"
-            let raw = try await latin1.run(["l", "-slt", "-sccUTF-8", input.path], input: input.descriptor,
-                                           password: password)
+            let raw = try await latin1.read(["l", "-slt", "-sccUTF-8", input.path], input: input,
+                                            password: password)
             if raw.status == 0, let rawListing = Self.parseListing(raw.output),
                rawListing.entries.count == listing.entries.count {
                 for index in legacy {
@@ -143,9 +143,9 @@ nonisolated struct SevenZip: Sendable {
         defer { if let listFile { try? FileManager.default.removeItem(at: listFile) } }
 
         let parser = ProgressParser()
-        let result = try await run(arguments, input: input.descriptor, password: password) { chunk in
+        let result = try await read(arguments, input: input, password: password, onOutput: { chunk in
             if let fraction = parser.consume(chunk) { progress(fraction) }
-        }
+        })
         let refused = Self.refusedLinks(in: result.errors)
         for link in refused {
             let placeholder = directory.appending(path: link.path)
@@ -171,10 +171,10 @@ nonisolated struct SevenZip: Sendable {
         defer { input.cleanUp() }
         let parser = ProgressParser()
         let typeSwitch = type.map { ["-t" + $0] } ?? []
-        let result = try await run(["t", "-bso0", "-bsp1", "-sccUTF-8"] + typeSwitch + [input.path], input: input.descriptor,
-                                   password: password) { chunk in
+        let result = try await read(["t", "-bso0", "-bsp1", "-sccUTF-8"] + typeSwitch + [input.path], input: input,
+                                   password: password, onOutput: { chunk in
             if let fraction = parser.consume(chunk) { progress(fraction) }
-        }
+        })
         try Self.check(result)
     }
 
@@ -332,6 +332,37 @@ nonisolated struct SevenZip: Sendable {
     }
 
     // MARK: - Process
+
+    /// Some ZIPs retain ZIP-relative offsets after a media prefix is prepended (#207).
+    /// Normal autodetection refuses them under an archive extension. Only after an open failure,
+    /// ask the ZIP handler to search the prepared file; it still validates the archive itself.
+    /// Keep this in the sandboxed read path, never in archive creation or mutation.
+    private func read(_ arguments: [String], input: Prepared, password: String?,
+                      onRetry: (@Sendable () -> Void)? = nil,
+                      onOutput: (@Sendable (Data) -> Void)? = nil) async throws(EngineError) -> RunResult {
+        if Task.isCancelled { throw EngineError(.cancelled) }
+        let result = try await run(arguments, input: input.descriptor, password: password, onOutput: onOutput)
+        guard Self.shouldScanForZIP(result),
+              arguments.filter({ $0.hasPrefix("-t") }).allSatisfy({ $0 == "-tzip" }),
+              let size = try? URL(filePath: input.path).resourceValues(forKeys: [.fileSizeKey]).fileSize,
+              size > 0 else { return result }
+        if Task.isCancelled { throw EngineError(.cancelled) }
+        onRetry?()
+        return try await run(arguments.filter { $0 != "-tzip" } + ["-tzip:s\(size)b"],
+                             input: input.descriptor, password: password, onOutput: onOutput)
+    }
+
+    static func shouldScanForZIP(_ result: RunResult) -> Bool {
+        // A recognized archive (including a damaged one) must not be replaced by another archive
+        // found in its payload. In particular, do not merge failed listing chunks into a retry.
+        guard !result.output.contains("\nType = "), !result.output.contains("\n----------") else { return false }
+        do {
+            try check(result)
+            return false
+        } catch {
+            return error.failure == .notAnArchive
+        }
+    }
 
     struct RunResult: Sendable {
         var status: Int32

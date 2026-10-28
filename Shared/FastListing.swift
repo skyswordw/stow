@@ -39,6 +39,7 @@ nonisolated extension SevenZip {
         private let parser = Mutex(ListingParser())
 
         func consume(_ chunk: Data) { parser.withLock { $0.consume(chunk) } }
+        func reset() { parser.withLock { $0 = ListingParser() } }
         func finish() -> (listing: ArchiveListing, legacy: [Int])? { parser.withLock { $0.finish() } }
         func takeEntries(minimum: Int = 1) -> [ListedEntry] { parser.withLock { $0.takeEntries(minimum: minimum) } }
     }

@@ -42,7 +42,7 @@ final class EditSession {
         self.url = url
         let resolvedName = name ?? url?.lastPathComponent ?? "Archive"
         self.name = resolvedName
-        format = nested ? nil : EditableFormat(listingType: base.type, fileName: resolvedName)
+        format = nested ? nil : EditableFormat(listing: base, fileName: resolvedName)
         identity = url.flatMap { try? FileIdentity(of: $0) }
         if let url { startWatching(url) }
     }

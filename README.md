@@ -63,6 +63,10 @@ All archive parsing happens in `StowEngine.xpc`, a sandboxed XPC service that ru
   fd 3), so the engine needs no access to people's files at all.
 - **Listing:** `7zz l -slt`, parsed into `ArchiveListing`, mapped into `Archive` with names shown
   where they would actually be written, plus listing-time Checkup findings.
+- **Embedded ZIP compatibility:** after an unrecognized-input failure, listing, extraction and
+  verification retry with explicit ZIP scanning bounded by the prepared file size (`-tzip:s<size>b`).
+  Recognized damaged archives and password errors are not retried. Checkup retains prefix/tail
+  warnings; ZIPs with surrounding data are read-only so Save cannot discard unrelated bytes (#207).
 - **Extraction:** the engine extracts into its *own* container (the only place it can write) with
   `-bsp1` progress, removes links that point outside and device files, then streams the folder to
   Stow over a pipe as an Apple Archive. Stow unpacks it into `.itemReplacementDirectory` staging on
