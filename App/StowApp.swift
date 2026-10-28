@@ -17,6 +17,8 @@ final class AppState {
     /// Demo scenes keep their own list so screenshots never show (or change) real history.
     let recents = RecentArchives(defaults: UserDefaults.standard.string(forKey: "StowScene") == nil ? .standard : nil)
     var browser: BrowserModel?
+    /// A native window close leaves Stow running without presenting a replacement window.
+    private(set) var mainWindowDismissed = false
     var packRequest: PackRequest?
     var isChoosingArchive = false
     var isChoosingBatch = false
@@ -65,6 +67,7 @@ final class AppState {
 
     /// Lists a real archive through the engine and shows it in the browser.
     func open(_ url: URL) {
+        mainWindowDismissed = false
         cancelOpening()
         openFailure = nil
         let id = UUID()
@@ -308,6 +311,7 @@ final class AppState {
 
     /// In-memory sample for design-review scenes (`DemoScene`, nested-search demos). Prefer `openSample()` for Try the Sample.
     func openArchive(named name: String) {
+        mainWindowDismissed = false
         cancelOpening()
         releaseScope()
         browser = makeBrowser(SampleArchive.make(named: name))
@@ -344,10 +348,32 @@ final class AppState {
     func closeArchive() {
         Task {
             guard await browser?.confirmDiscardingEdits() ?? true else { return }
-            cancelOpening()
-            releaseScope()
-            browser = nil
+            mainWindowDismissed = false
+            clearArchive()
         }
+    }
+
+    /// Called only after AppKit has accepted the close (including the unsaved-edits decision).
+    /// Automatic Welcome/Browser handovers and transfers to Glance do not end the session.
+    func mainWindowDidClose(_ host: AppRoot.Host) {
+        guard WindowSwitch.ownsOpening(host, hasArchive: browser != nil,
+                                       glanceIsShown: glance.isShown) else { return }
+        mainWindowDismissed = true
+        clearArchive()
+    }
+
+    func prepareToShowMainWindow() {
+        mainWindowDismissed = false
+    }
+
+    private func clearArchive() {
+        browser?.quickLook.close()
+        browser?.cancelUnlocking()
+        cancelCloudDownload()
+        cancelOpening()
+        releaseScope()
+        browser = nil
+        openFailure = nil
     }
 
     private func releaseScope() {
@@ -438,10 +464,8 @@ struct RootView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
-            guard let window = notification.object as? NSWindow, window === rootWindow,
-                  WindowSwitch.ownsOpening(.browser, hasArchive: app.browser != nil,
-                                           glanceIsShown: app.glance.isShown) else { return }
-            app.cancelOpening()
+            guard let window = notification.object as? NSWindow, window === rootWindow else { return }
+            app.mainWindowDidClose(.browser)
         }
         .modifier(AppRoot(host: .browser))
     }
@@ -509,13 +533,18 @@ struct AppRoot: ViewModifier {
 
     private func routeShowMainWindow() {
         let open = openWindow
-        app.showMainWindow = { [weak app] in open(id: app?.browser == nil ? "welcome" : "main") }
+        app.showMainWindow = { [weak app] in
+            guard let app else { return }
+            app.prepareToShowMainWindow()
+            open(id: app.browser == nil ? "welcome" : "main")
+        }
     }
 
     /// An archive opened in the welcome, or the Browser's archive closed: the other window takes
     /// over. Glance showing the archive keeps the Browser away. A key press switches them without
     /// window animation (DESIGN.md › Motion).
     private func handOver(noArchive: Bool) {
+        guard !app.mainWindowDismissed else { return }
         let leaving: String, arriving: String?
         switch host {
         case .welcome where !noArchive: (leaving, arriving) = ("welcome", app.glance.isShown ? nil : "main")

@@ -147,6 +147,8 @@ final class GlanceController: NSObject, NSWindowDelegate {
     /// Full window → Glance, near the pointer. Clicking animates; the keyboard shortcut doesn't.
     func collapse(near pointer: CGPoint = NSEvent.mouseLocation, animated: Bool = !GlanceController.isKeyboardEvent) {
         guard model != nil else { return }
+        // Transfer ownership before the full window emits willCloseNotification.
+        isShown = true
         closeMainWindow()
         show(near: pointer, animated: animated)
     }
@@ -176,6 +178,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
     func open(_ url: URL) {
         guard let app else { return }
         pendingName = url.lastPathComponent
+        isShown = true
         closeMainWindow()
         show(near: NSEvent.mouseLocation, animated: true)
         app.open(url)
@@ -223,7 +226,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
         }
     }
 
-    /// Closes Glance; the archive stays open, like closing the full window.
+    /// Hides Glance without ending the archive session, including a transfer back to Browser.
     func close() {
         guard isShown else { return }
         isShown = false
