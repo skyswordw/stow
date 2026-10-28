@@ -232,7 +232,11 @@ of a saved replacement. Failed saves keep the original and pending edits; Save r
 retry control. Cancellation does not show a save-error prompt.
 
 Input-open permission errors must explain that Stow could not read the archive (OPN-101),
-without offering Choose Another Folder. Save errors use the existing Failure prompt with
+without offering the destination action Choose Another Folder. The
+[source-access recovery plan](source-file-access-plan.md) adds a native picker for the original
+source file or its containing folder, followed by automatic retry; this is source authorization,
+not a change of extraction destination. Claude Code reviews its wording and transitions in #213.
+Save errors use the existing Failure prompt with
 Copy Details, rather than an internal temporary pathname as the heading. Claude Code owns
 visual and motion review under #104; this functional change does not imply design approval.
 Compare these recovery interactions with ArcZip while retaining Stow vocabulary. Native

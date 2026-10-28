@@ -215,8 +215,4 @@ struct QuickCompressTests {
         #expect(url.path == "/u/Archive 3.zip")
     }
 
-    @Test func nestedGrantsCollapse() {
-        let folders = ["/Users/a", "/Users/a/Downloads", "/Users/ab", "/Volumes/X/y"].map { URL(filePath: $0) }
-        #expect(FolderAccess.minimal(folders).map(\.path) == ["/Users/a", "/Users/ab", "/Volumes/X/y"])
-    }
 }

@@ -20,7 +20,7 @@ final class SystemActions {
         do {
             let request = try Handoff().receive(url)
             Self.log.info("Hand-off: \(request.action.rawValue, privacy: .public), \(request.paths.count) items")
-            perform(request.action, on: request.urls, fromFinder: true)
+            perform(request.action, on: request.urls)
         } catch {
             // Unknown, used or stale tokens are dropped without a word: they're replays, or pages
             // poking at the URL scheme. Nothing behind them was ever trusted.
@@ -28,13 +28,13 @@ final class SystemActions {
         }
     }
 
-    /// `fromFinder`: the paths came through the hand-off, so Stow may not be able to read them
-    /// yet (Services and opened documents arrive with access already granted).
-    func perform(_ action: HandoffAction, on urls: [URL], fromFinder: Bool = false) {
+    /// Opening uses AppState's source recovery; extraction and packing check their own scopes.
+    func perform(_ action: HandoffAction, on urls: [URL]) {
         guard !urls.isEmpty else { return }
         switch action {
         case .open:
-            Task { await open(urls[0], fromFinder: fromFinder) }
+            app?.showMainWindow()
+            app?.open(urls[0])
         case .extractHere:
             Task { await extract(urls, to: nil) }
         case .extractTo:
@@ -61,12 +61,6 @@ final class SystemActions {
     }
 
     // MARK: - Actions
-
-    private func open(_ url: URL, fromFinder: Bool) async {
-        if fromFinder, !(await FolderAccess.shared.readable(url, for: .open(url.lastPathComponent))) { return }
-        app?.showMainWindow()
-        app?.open(url)
-    }
 
     /// `destination` nil: next to each archive.
     private func extract(_ archives: [URL], to destination: URL?) async {

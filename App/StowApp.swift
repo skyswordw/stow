@@ -29,6 +29,8 @@ final class AppState {
 
     /// The open archive's security scope (Open panel URLs need it claimed; dropped URLs don't).
     private var scopedURL: URL?
+    private var sourceGrant: SourceReadAccess.Grant?
+    var sourceReadAccess = SourceReadAccess()
 
     /// Brings back the main window (it may have been closed while Stow kept running).
     var showMainWindow: () -> Void = {}
@@ -64,25 +66,30 @@ final class AppState {
     /// Lists a real archive through the engine and shows it in the browser.
     func open(_ url: URL) {
         cancelOpening()
+        openFailure = nil
         let id = UUID()
         openingID = id
         isOpening = true
         let scoped = url.startAccessingSecurityScopedResource()
         openingTask = Task {
-            defer { if openingID == id { isOpening = false; openingTask = nil } }
+            var recovered: SourceReadAccess.Grant?
+            var transferred = false
+            defer {
+                if !transferred {
+                    if scoped { url.stopAccessingSecurityScopedResource() }
+                    recovered?.release()
+                }
+                if openingID == id { isOpening = false; openingTask = nil }
+            }
             do {
                 if let browser, !(await browser.confirmDiscardingEdits()) {
-                    if scoped { url.stopAccessingSecurityScopedResource() }
                     return
                 }
+                try Task.checkCancellation()
                 try await waitForCloudDownload(url)
-                // Files in another app's private storage (WeChat, Mail…) that macOS won't let Stow
-                // read get plain words and a way to a readable copy, not "permission denied".
-                guard OtherAppFiles.canRead(url) else {
-                    if scoped { url.stopAccessingSecurityScopedResource() }
-                    openFailure = OpenFailure(failure: OtherAppFiles.unreadable(url), url: url)
-                    return
-                }
+                recovered = try await sourceReadAccess.acquire(url)
+                try Task.checkCancellation()
+                guard openingID == id else { throw CancellationError() }
                 try await DownloadCheck.waitUntilComplete(url)
                 let listing: ArchiveListing
                 let password: String?
@@ -95,10 +102,12 @@ final class AppState {
                     throw DiskImageCheck.explain(EngineError(error), for: url)
                 }
                 var archive = await Self.makeArchive(listing, url: url)
-                if Task.isCancelled { throw EngineError(.cancelled) }
+                if Task.isCancelled || openingID != id { throw EngineError(.cancelled) }
                 archive.source?.password = password
                 releaseScope()
                 scopedURL = scoped ? url : nil
+                sourceGrant = recovered
+                transferred = true
                 // Files received from a drag (Mail, chat apps) live in a folder Stow empties at launch.
                 if !OtherAppFiles.isReceived(url) { recents.add(url) }
                 if browser?.isListing == true { browser?.applyListing(archive, complete: true) }
@@ -107,12 +116,20 @@ final class AppState {
                     browser = makeBrowser(archive)
                 }
                 browser?.verifyDiskImage()
+                if let error = recovered?.persistenceError {
+                    var notice = Failure(String(localized: "Folder access wasn’t saved"),
+                                         advice: String(localized: "The archive is open, but Stow couldn’t remember this folder. You may need to allow access again next time."))
+                    notice.diagnostic = String(describing: error)
+                    openFailure = OpenFailure(failure: notice)
+                }
             } catch {
+                let denied = error as? SourceReadAccess.Denied
+                let underlying = error
                 let error = error is CancellationError ? EngineError(.cancelled) : EngineError(error)
                 if openingID == id, browser?.isListing == true { browser = nil }
-                if scoped { url.stopAccessingSecurityScopedResource() }
                 if openingID == id, error.failure != .cancelled {
-                    var failure = Failure(error, .open, name: url.lastPathComponent)
+                    var failure = denied.map { OtherAppFiles.unreadable(url, code: $0.code) }
+                        ?? Failure(underlying, .open, name: url.lastPathComponent)
                     // Disk images Stow can't read (encrypted, unusual formats) can still be opened by macOS.
                     if DiskImageCheck.isDiskImage(url), failure.kind == .notAnArchive || failure.kind == .other {
                         let original = failure
@@ -334,6 +351,8 @@ final class AppState {
     }
 
     private func releaseScope() {
+        sourceGrant?.release()
+        sourceGrant = nil
         scopedURL?.stopAccessingSecurityScopedResource()
         scopedURL = nil
     }
