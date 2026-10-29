@@ -13,6 +13,16 @@ Claude Code retains visual and motion ownership.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Browser toolbar follow-up — #215, #216 (2026-10-27)
+
+The [native toolbar comparison](browser-toolbar-search-editing.md) records the user's request
+to move Search above the path and improve Delete/Save discoverability. It supersedes earlier
+instructions requiring Search beside the breadcrumbs. Search moves into the upper toolbar;
+a stable Delete/Save entry is the recommended editing direction. The exact composition and
+pending-changes-bar treatment remain Claude Code's responsibility. Preserve fixed Details,
+floating Actions, staged edits, source preservation, save/conflict recovery and keyboard routing.
+These are open implementation tasks, not shipped controls or final visual approval.
+
 ## Browser window close and Dock reopen — 2026-10-28
 
 Codex owns this lifecycle correction; Claude Code retains visual and motion ownership.
