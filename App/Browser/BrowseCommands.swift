@@ -77,8 +77,8 @@ struct BrowseCommands: Commands {
                 .disabled(browser?.selection.count != 1 || browser?.selectedEntries.first?.isFolder != false || browser?.editSession.isSaving == true)
         }
         CommandGroup(after: .textEditing) {
-            // The Browser's search lives in the toolbar, where a narrow window folds it into a
-            // button; ⌘F reaches it either way. Glance has no search of its own.
+            // Search currently sits in BrowserNavigation chrome beside the breadcrumbs (#215
+            // may move it into the window toolbar). ⌘F focuses it either way. Glance has none.
             Button("Find…") { browser?.focusSearch() }
                 .keyboardShortcut("f")
                 .disabled(browser == nil || app.glance.isShown)
