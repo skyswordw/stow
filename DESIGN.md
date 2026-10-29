@@ -214,7 +214,9 @@ Reduced Transparency: glass falls back to solid window background (the system do
   It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't
   be resized or zoomed. The drop zone sits on top, Recent below; with no history the drop zone is
   the whole window. Opening an archive brings up the Browser window at its last size and place and
-  closes the welcome; closing the archive brings the welcome back. Only one of them is open at a time.
+  closes the welcome; the Close Archive command brings the welcome back. Closing the Browser window
+  with the traffic light or ⌘W ends that archive session and leaves Stow running without a window;
+  reopening Stow from the Dock shows Welcome. Only one of them is open at a time.
 
 ## Not doing (on purpose)
 

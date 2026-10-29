@@ -52,8 +52,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Clicking Stow in Finder, Launchpad or the Dock with no window open brings the window back.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        if !hasVisibleWindows { app?.showMainWindow() }
-        return true
+        guard !hasVisibleWindows, let app else { return true }
+        app.showMainWindow()
+        // We routed the reopen ourselves. Default handling can also present another scene,
+        // briefly showing both Welcome and Browser.
+        return false
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
