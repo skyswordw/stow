@@ -118,7 +118,7 @@ jobs:
           ALLOWED_SKIPS: "0"
           # 539 after #203 (+2), #204 (+4), pack override readbacks (+6).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "539"
+          MIN_TESTS: "568"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
