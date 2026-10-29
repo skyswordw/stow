@@ -53,6 +53,16 @@ final class EditSession {
     }
 
     var isEdited: Bool { !operations.isEmpty }
+    /// Shared command enablement for menus and toolbar controls.
+    var canSave: Bool { isEdited && !isSaving && !changedOnDisk }
+    var canSaveCopy: Bool { isEdited && !isSaving }
+    var canRevert: Bool { isEdited && !isSaving }
+
+    /// Shared Delete command enablement; invocation still explains read-only or path refusals.
+    func canDelete(selectionIsEmpty: Bool, archiveOwnsFocus: Bool) -> Bool {
+        archiveOwnsFocus && !selectionIsEmpty && !isSaving
+    }
+
     var changeCount: Int { operations.count }
     var summary: String { String(localized: "\(changeCount) unsaved changes") }
     /// Banner: edits pending and the file on disk no longer matches what Stow opened.
