@@ -20,6 +20,95 @@ struct EditSessionTests {
         return url
     }
 
+    @Test func cleanSessionDisablesSaveCommands() {
+        let session = makeSession()
+        #expect(session.format != nil)
+        #expect(!session.canSave)
+        #expect(!session.canSaveCopy)
+        #expect(!session.canRevert)
+    }
+
+    @Test func stagedDeleteEnablesSaveCommands() {
+        let session = makeSession()
+        session.delete(["a.txt"])
+        #expect(session.isEdited)
+        #expect(session.canSave)
+        #expect(session.canSaveCopy)
+        #expect(session.canRevert)
+        session.revert()
+        #expect(!session.canSave)
+        #expect(!session.canSaveCopy)
+        #expect(!session.canRevert)
+    }
+
+    @Test func stagedAddEnablesSaveCommands() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appending(path: "new.txt")
+        try Data("new".utf8).write(to: source)
+        let session = makeSession()
+        session.add([source], into: "")
+        #expect(session.isEdited)
+        #expect(session.canSave)
+        #expect(session.canSaveCopy)
+        #expect(session.canRevert)
+    }
+
+    @Test func savingDisablesSaveCommands() {
+        let session = makeSession()
+        session.delete(["a.txt"])
+        session.showSavingForDemo(progress: 0.5)
+        #expect(session.isEdited)
+        #expect(session.isSaving)
+        #expect(!session.canSave)
+        #expect(!session.canSaveCopy)
+        #expect(!session.canRevert)
+    }
+
+    @Test func externalChangeDisablesOnlySave() {
+        let session = makeSession()
+        session.delete(["a.txt"])
+        session.revealExternalChangeForDemo()
+        #expect(session.changedOnDisk)
+        #expect(!session.canSave)
+        #expect(session.canSaveCopy)
+        #expect(session.canRevert)
+        session.showSavingForDemo(progress: 0.5)
+        #expect(!session.canSave)
+        #expect(!session.canSaveCopy)
+        #expect(!session.canRevert)
+    }
+
+    @Test func deleteEnablementRequiresSelectionFocusAndIdleSession() {
+        for isSaving in [false, true] {
+            let session = makeSession()
+            if isSaving { session.showSavingForDemo(progress: 0.5) }
+            for selectionIsEmpty in [false, true] {
+                for archiveOwnsFocus in [false, true] {
+                    #expect(session.canDelete(selectionIsEmpty: selectionIsEmpty, archiveOwnsFocus: archiveOwnsFocus)
+                            == (archiveOwnsFocus && !selectionIsEmpty && !isSaving))
+                }
+            }
+        }
+    }
+
+    @Test func deleteEnablementPreservesRefusalInvocations() {
+        let readOnly = EditSession(base: ArchiveListing(type: "Rar5", entries: base.entries), url: nil, name: "Test.rar")
+        #expect(readOnly.canDelete(selectionIsEmpty: false, archiveOwnsFocus: true))
+        readOnly.delete(["a.txt"])
+        #expect(readOnly.showsReadOnly)
+        #expect(!readOnly.isEdited)
+
+        var listing = base
+        listing.entries[0].rawPath = Data([0xff])
+        let session = EditSession(base: listing, url: nil, name: "Test.zip")
+        #expect(session.canDelete(selectionIsEmpty: false, archiveOwnsFocus: true))
+        #expect(session.refusal(for: ["a.txt"]) == EditSession.rawPathReason)
+        session.delete(["a.txt"])
+        #expect(session.message == EditSession.rawPathReason)
+        #expect(!session.isEdited)
+    }
+
     @Test func mutationsAndExactUndoRedo() throws {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

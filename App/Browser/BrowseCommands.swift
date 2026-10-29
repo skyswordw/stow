@@ -14,12 +14,12 @@ struct BrowseCommands: Commands {
         CommandGroup(replacing: .saveItem) {
             Button("Save") { if let browser { Task { await browser.saveEdits() } } }
                 .keyboardShortcut("s")
-                .disabled(browser?.editSession.isEdited != true || browser?.editSession.isSaving == true || browser?.editSession.changedOnDisk == true)
+                .disabled(browser?.editSession.canSave != true)
             Button("Save a Copy…") { if let browser { Task { await browser.saveCopyOfArchive() } } }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
-                .disabled(browser?.editSession.isEdited != true || browser?.editSession.isSaving == true)
+                .disabled(browser?.editSession.canSaveCopy != true)
             Button("Revert to Saved") { browser?.revertEdits() }
-                .disabled(browser?.editSession.isEdited != true || browser?.editSession.isSaving == true)
+                .disabled(browser?.editSession.canRevert != true)
             Button("Reload") { if let browser { Task { await browser.reloadArchive() } } }
                 .disabled(browser?.archive.source == nil || browser?.editSession.isSaving == true)
             Button("Rename Archive…") { if let browser { Task { await browser.renameArchive() } } }
@@ -67,7 +67,8 @@ struct BrowseCommands: Commands {
                 }
             }
                 .keyboardShortcut(archiveOwnsFocus ? KeyboardShortcut(.delete, modifiers: .command) : nil)
-                .disabled(!archiveOwnsFocus || browser?.selection.isEmpty != false || browser?.editSession.isSaving == true)
+                .disabled(browser?.editSession.canDelete(selectionIsEmpty: browser?.selection.isEmpty ?? true,
+                                                         archiveOwnsFocus: archiveOwnsFocus) != true)
                 .help(browser?.editSession.refusal(for: Array(browser?.selection ?? [])) ?? (browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Delete")))
             // Return already opens the selected item in all three browser modes.
             Button("Rename") { if let browser, let entry = browser.selectedEntries.first { browser.beginRename(entry) } }
