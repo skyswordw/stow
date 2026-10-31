@@ -155,7 +155,8 @@ struct ArchiveActions: View {
             }
             .buttonStyle(ActionButtonStyle(prominent: prominent, iconOnly: compact))
             .accessibilityLabel(String(localized: "Extract All"))
-            .help("Extract everything to a folder you choose")
+            .help(model.extractAllUnavailableReason ?? String(localized: "Extract everything to a folder you choose"))
+            .disabled(model.extractAllUnavailableReason != nil)
         }
         .padding(ActionButtonStyle.inset)
         .accessibleGlass(in: .capsule)

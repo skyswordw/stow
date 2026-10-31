@@ -11455,6 +11455,36 @@
           }
         }
       }
+    },
+    "Available once the whole archive is listed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "列出整个压缩包后即可使用"
+          }
+        }
+      }
+    },
+    "Available when the current step finishes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前操作完成后即可使用"
+          }
+        }
+      }
+    },
+    "Select one result to show it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择一个结果以显示其位置"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
