@@ -73,14 +73,14 @@ struct IntegrationView: View {
             }
 
             Section {
-                if folders.grants.isEmpty {
+                if folders.displayedGrants.isEmpty {
                     Text("None yet. When opening, extracting or compressing needs folder access, Stow asks you to choose a folder.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(folders.grants, id: \.self) { folder in
+                    ForEach(folders.displayedGrants, id: \.self) { folder in
                         LabeledContent {
-                            Button("Remove") { folders.revoke(folder) }
+                            Button("Remove") { folders.removeDisplayedGrant(folder) }
                         } label: {
                             Label(folder.path(percentEncoded: false), systemImage: "folder")
                                 .lineLimit(1)

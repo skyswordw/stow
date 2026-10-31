@@ -202,6 +202,37 @@ struct SourceReadAccessTests {
 @Suite("Source folder bookmark persistence")
 @MainActor
 struct SourceFolderBookmarkTests {
+    @Test func removingDemoGrantsPreservesRealAuthorization() throws {
+        let name = "Stow.DemoGrants.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        var starts = 0, stops = 0, writes = 0
+        let operations = FolderAccess.Bookmarks(resolve: { data in
+            (URL(filePath: String(decoding: data, as: UTF8.self)), false)
+        }, create: { url in writes += 1; return Data(url.path.utf8) },
+        start: { _ in starts += 1; return true }, stop: { _ in stops += 1 })
+        let real = URL(filePath: "/Users/example/Attachments")
+        let demo = URL(filePath: "/Volumes/Projects/Harbor")
+        let store = FolderAccess(defaults: defaults, bookmarks: operations)
+        try store.rememberSourceFolder(real)
+        let saved = defaults.array(forKey: "FolderGrants") as? [Data]
+
+        store.showGrantsForDemo([demo])
+        #expect(store.displayedGrants == [demo])
+        #expect(!store.covers(demo))
+        store.removeDisplayedGrant(demo)
+        #expect(store.displayedGrants.isEmpty)
+        #expect(store.grants == [real] && store.covers(real))
+        #expect(defaults.array(forKey: "FolderGrants") as? [Data] == saved)
+        #expect(starts == 1 && stops == 0 && writes == 1)
+
+        let restored = FolderAccess(defaults: defaults, bookmarks: operations)
+        #expect(restored.displayedGrants == [real])
+        restored.removeDisplayedGrant(real)
+        #expect(restored.grants.isEmpty && stops == 1)
+        store.revoke(real)
+    }
+
     @Test func protectedDescendantSurvivesRestoreAndIndependentRemoval() throws {
         let name = "Stow.SourceGrants.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
