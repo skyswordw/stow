@@ -5,12 +5,16 @@ import SwiftUI
 /// can host it; also the `associations` demo scene.
 struct AssociationsView: View {
     @State var model: Associations
+    /// The Settings window names the page in its title bar already.
+    var showsTitle = true
 
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: Space.xs) {
-                Text("File Types")
-                    .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                if showsTitle {
+                    Text("File Types")
+                        .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                }
                 Text("Choose which files open in Stow when you double-click them. Stow remembers the app each type used before, so you can always switch back.")
                     .font(.callout)
                     .foregroundStyle(.secondary)

@@ -19,7 +19,9 @@ import SwiftUI
 /// runs Repair for real).
 /// `-StowScene associations -StowAssociationsCheck <UTI>` makes Stow the real default for one
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
-/// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
+/// settings (`-StowSettingsPane packing` selects a pane in the real Settings window; any `SettingsPane`
+/// raw value: general, extraction, installing, packing, nextSteps, glance, previews, passwords, fileTypes,
+/// integration, advanced, licenses),
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
 /// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
 /// install-running (an app part-way into Applications), install-app-open (refused: the installed copy is open, INS-181),
@@ -739,7 +741,9 @@ enum DemoScene {
 
     /// Option views get a plain window until the Settings window exists.
     private static func showOptions(_ view: some View, title: String) {
-        let window = NSWindow(contentViewController: NSHostingController(rootView: view.frame(width: 520)))
+        // Settings pages scroll in the Settings window; on their own they show at full height.
+        let fitted = view.scrollDisabled(true).fixedSize(horizontal: false, vertical: true).frame(width: 520)
+        let window = NSWindow(contentViewController: NSHostingController(rootView: fitted))
         window.title = title
         window.styleMask = [.titled, .closable]
         window.setContentSize(window.contentView?.fittingSize ?? CGSize(width: 520, height: 420))

@@ -73,11 +73,11 @@ struct SettingsTests {
 
     @Test func panesHaveDesignOrderAndUniqueLabels() {
         let panes = SettingsPane.allCases
-        #expect(panes.map(\.rawValue) == ["general", "extraction", "installing", "packing", "nextSteps", "previews",
-                                          "passwords", "fileTypes", "integration", "advanced", "licenses"])
+        #expect(panes.map(\.rawValue) == ["general", "extraction", "installing", "packing", "nextSteps", "glance",
+                                          "previews", "passwords", "fileTypes", "integration", "advanced", "licenses"])
         #expect(panes.allSatisfy { !$0.title.isEmpty && !$0.systemImage.isEmpty })
-        #expect(Set(panes.map(\.title)).count == 11)
-        #expect(Set(panes.map(\.systemImage)).count == 11)
+        #expect(Set(panes.map(\.title)).count == 12)
+        #expect(Set(panes.map(\.systemImage)).count == 12)
         #expect(SettingsPane.nextSteps.title == String(localized: "Actions"))
     }
 
@@ -130,7 +130,7 @@ struct SettingsTests {
             "general", "archiveWork", "interaction", "security", "systemIntegration", "advanced"
         ])
         #expect(SettingsCategory.archiveWork.panes == [.extraction, .installing, .packing])
-        #expect(SettingsCategory.interaction.panes == [.nextSteps, .previews])
+        #expect(SettingsCategory.interaction.panes == [.nextSteps, .glance, .previews])
         #expect(SettingsCategory.systemIntegration.panes == [.fileTypes, .integration])
         #expect(SettingsCategory.advanced.panes == [.advanced, .licenses])
         #expect(SettingsCategory.allCases.allSatisfy { !$0.title.isEmpty && !$0.systemImage.isEmpty })
@@ -146,6 +146,33 @@ struct SettingsTests {
         #expect(SettingsKeys.resettableEntries(for: .licenses).isEmpty)
         #expect(SettingsKeys.resettableEntries(for: .nextSteps).map(\.key)
                 == [SettingsKeys.nextStepsShown, SettingsKeys.nextStepsHidden])
+    }
+
+    /// Glance's choices moved from General to their own page (#162): each reset follows its controls.
+    @Test func glancePageResetLeavesGeneral() throws {
+        let glanceKeys: Set<String> = [SettingsKeys.openInGlance, SettingsKeys.glancePinned,
+                                       SettingsKeys.glanceColourfulControls, SettingsKeys.glanceMaterial]
+        #expect(Set(SettingsKeys.resettableEntries(for: .glance).map(\.key)) == glanceKeys)
+        #expect(glanceKeys.isDisjoint(with: SettingsKeys.resettableEntries(for: .general).map(\.key)))
+        try withStore { store in
+            store.set(true, forKey: SettingsKeys.openInGlance)
+            store.set(true, forKey: SettingsKeys.glanceColourfulControls)
+            store.set(SettingsKeys.GlanceMaterialPreference.classic.rawValue, forKey: SettingsKeys.glanceMaterial)
+            store.set("dark", forKey: SettingsKeys.appearance)
+
+            SettingsKeys.reset(.pane(.general), in: store)
+            #expect(SettingsKeys.flag(SettingsKeys.openInGlance, in: store))
+            #expect(SettingsKeys.glanceMaterialPreference(in: store) == .classic)
+            #expect(SettingsKeys.appearance(in: store) == .system)
+
+            store.set("dark", forKey: SettingsKeys.appearance)
+            SettingsKeys.reset(.pane(.glance), in: store)
+            for key in glanceKeys { #expect(store.object(forKey: key) == nil) }
+            #expect(!SettingsKeys.flag(SettingsKeys.openInGlance, in: store))
+            #expect(!SettingsKeys.flag(SettingsKeys.glanceColourfulControls, in: store))
+            #expect(SettingsKeys.glanceMaterialPreference(in: store) == .liquidGlass)
+            #expect(SettingsKeys.appearance(in: store) == .dark)
+        }
     }
 
     @Test func pageResetLeavesOtherPagesAndNonPreferences() throws {
@@ -310,7 +337,7 @@ struct SettingsTests {
             openedCategory = router.category
         }
         let routes: [(SettingsPane, SettingsCategory)] = [
-            (.nextSteps, .interaction), (.fileTypes, .systemIntegration),
+            (.nextSteps, .interaction), (.glance, .interaction), (.fileTypes, .systemIntegration),
             (.integration, .systemIntegration), (.packing, .archiveWork), (.general, .general)
         ]
         for (pane, category) in routes {

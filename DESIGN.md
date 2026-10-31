@@ -118,16 +118,46 @@ folder in a bar under it; Glance does the same with Stow's own pieces.
 | Region | Holds |
 | --- | --- |
 | Title bar | The archive's name with “ZIP archive · 17 files” under it, as in the full window, wherever you are inside it; the password lock when encrypted and **Pin on Top** at the trailing edge |
-| Card | The files, name and size, on a solid card inside the window's material (Liquid Glass or classic frosted from Settings › General; solid under Reduce Transparency). Its corners are concentric with the window's (16 pt less the 8 pt inset) and it has Details' light rim |
+| Card | The files, name and size, on a solid card inside the window's material (Liquid Glass or classic frosted from Settings › Glance; solid under Reduce Transparency). Its corners are concentric with the window's (16 pt less the 8 pt inset) and it has Details' light rim |
 | Navigation, floating over the card's top | The Browser's capsule: Back · Forward · Up │ the path from the archive down. With no Search beside it, it can take the card's width; a deep path fades at its start and keeps where you are in view |
 | Archive controls, floating bottom leading | **Open in Full Window** · **Extract All**: the full window's Glance · Extract All turned round, so switching is in the same place in both windows |
 | Actions, floating bottom trailing | The full window's stack and rules: one prominent action at a time, Install App alone for an archive that's one app |
 | Under the card | The full window's unsaved-changes and changed-on-disk bars |
 
-**Colourful window controls** (Settings › General) take the traffic lights' place: red Close,
+**Colourful window controls** (Settings › Glance) take the traffic lights' place: red Close,
 yellow Pin on Top and green Open in Full Window, three separate circles with their symbols always
 showing, dark as the traffic lights' are. Open in Full Window is then among them, so the capsule at
 the bottom holds Extract All alone; nothing shows twice.
+
+## Settings layout (#162)
+
+Twelve pages are too many for toolbar tabs, so Settings is System Settings' shape: a fixed sidebar
+beside one page. The window is 756 pt wide (a 196-pt sidebar, a 560-pt page) and keeps its size
+when the page changes; a long page scrolls, and the window can be made taller (its width is fixed).
+Switching pages doesn't animate.
+
+| Sidebar group (`SettingsCategory`) | Pages |
+| --- | --- |
+| General | General: appearance, the Browser's first view, app language, Tray, updates |
+| Archive work | Extraction · Installing · Packing |
+| Interaction | Actions · **Glance** · Previews |
+| Security | Passwords |
+| System integration | File Types · Integration |
+| Advanced | Advanced (cache, reset) · Licenses |
+
+The groups are separated by space, not headings, so no heading repeats the name of the only page
+under it. Every page is a grouped form: one choice per row, its explanation in the section's
+footer right under it, no boxes of our own. Plain sidebar symbols, no coloured tiles.
+
+- **Actions** keeps the master switch first, then a **Preview**: pick a sample selection (two
+  photos, an app, fonts…) and it says in words what's in front, what's behind it and what waits
+  only in More, recomputed from the toggles below. Words, not buttons, so nothing looks runnable.
+- **Glance** holds what General used to: opening from Finder in Glance (off: the full Browser is
+  the default), the window material and colourful controls. While Reduce Transparency is on, the
+  footer says Glance is solid whatever is chosen; the choice itself is kept.
+- **General** shows the language in use and folds the macOS how-to into a disclosure.
+- File Types drops its own heading in Settings (the title bar names the page); its standalone
+  scene keeps it.
 
 ## Color
 
