@@ -4,6 +4,7 @@ import SwiftUI
 struct BrowseCommands: Commands {
     let app: AppState
     private let routing = EditingUndoCommandsModel.shared
+    private let closing = WindowCloseCommand.shared
 
     var body: some Commands {
         let browser = app.browser
@@ -12,6 +13,11 @@ struct BrowseCommands: Commands {
             routing.archiveManager(in: NSApp.keyWindow) === $0.editingUndoManager
         } ?? false
         CommandGroup(replacing: .saveItem) {
+            // Replacing this group also removes macOS's Close command (#225).
+            Button("Close") { closing.perform(in: NSApp.keyWindow, app: app) }
+                .keyboardShortcut("w")
+                .disabled(!closing.isEnabled)
+            Divider()
             Button("Save") { if let browser { Task { await browser.saveEdits() } } }
                 .keyboardShortcut("s")
                 .disabled(browser?.editSession.canSave != true)

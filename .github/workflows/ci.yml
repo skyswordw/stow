@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # 568 after #218, plus 7 shared editing enablement tests for #216.
+          # Includes Settings/demo-grant regressions and the File Close command suite (#225).
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "575"
+          MIN_TESTS: "585"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation
