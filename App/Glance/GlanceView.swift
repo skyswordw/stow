@@ -12,7 +12,7 @@ struct GlanceRoot: View {
     var body: some View {
         Group {
             if let name = glance.pendingName, app.isOpening {
-                OpeningView(name: name)
+                OpeningView(name: name, glance: glance)
             } else if let model = app.browser {
                 GlanceView(model: model, glance: glance)
             } else {
@@ -255,8 +255,12 @@ private struct GlanceHeader: View {
 /// bar, in one glass capsule of icon buttons like the navigation capsule's. Colourful controls
 /// (Settings › General) fill the same three buttons in the traffic lights' colours; nothing moves
 /// or changes size. Pinned: the pin fills and a ring goes round its button.
+///
+/// While the archive is still opening the same capsule is already in place: Close stops the
+/// opening (Escape too), and Open in Full Window waits, dimmed, for something to show.
 private struct GlanceWindowControls: View {
     let glance: GlanceController
+    var isOpening = false
     @AppStorage(SettingsKeys.glanceColourfulControls) private var colourful = false
 
     var body: some View {
@@ -278,10 +282,19 @@ private struct GlanceWindowControls: View {
         .accessibilityElement(children: .contain)
     }
 
+    @ViewBuilder
     private var close: some View {
-        Button("Close", systemImage: "xmark") { glance.close() }
-            .accessibilityLabel(String(localized: "Close"))
-            .help("Close")
+        if isOpening {
+            Button("Close", systemImage: "xmark") { glance.stopOpening() }
+                .accessibilityLabel(String(localized: "Close"))
+                .help("Stop opening and close")
+                // The loaded Glance handles Escape itself; until then, Escape is this button.
+                .keyboardShortcut(.cancelAction)
+        } else {
+            Button("Close", systemImage: "xmark") { glance.close() }
+                .accessibilityLabel(String(localized: "Close"))
+                .help("Close")
+        }
     }
 
     private var pin: some View {
@@ -296,6 +309,7 @@ private struct GlanceWindowControls: View {
         Button("Open in Full Window", systemImage: "arrow.up.left.and.arrow.down.right") { glance.expand() }
             .accessibilityLabel(String(localized: "Open in Full Window"))
             .help("Show this archive in the full window — same folder, selection and history")
+            .disabled(isOpening)
     }
 }
 
@@ -309,6 +323,7 @@ private extension Color {
 /// One of the colourful window controls: the capsule's button filled in a traffic light's colour,
 /// its symbol always showing and dark on it as theirs are, so it stays legible on yellow. On
 /// (pinned), a darker ring runs round its edge, inside the capsule like the plain button's.
+/// Unavailable (Open in Full Window while opening), it goes grey as a dimmed traffic light does.
 private struct ColourfulWindowControl: ButtonStyle {
     let colour: Color
     var isOn = false
@@ -325,15 +340,16 @@ private struct ColourfulWindowControl: ButtonStyle {
         let isOn: Bool
         @State private var isHovering = false
         @Environment(\.colorSchemeContrast) private var contrast
+        @Environment(\.isEnabled) private var isEnabled
 
         var body: some View {
             configuration.label
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.black.opacity(0.62))
+                .foregroundStyle(isEnabled ? AnyShapeStyle(.black.opacity(0.62)) : AnyShapeStyle(.tertiary))
                 .frame(width: ColourfulWindowControl.diameter, height: ColourfulWindowControl.diameter)
-                .background(colour, in: .circle)
+                .background(isEnabled ? AnyShapeStyle(colour) : AnyShapeStyle(.quaternary), in: .circle)
                 .overlay {
-                    Circle().fill(configuration.isPressed ? Color.black.opacity(0.16) : Color.white.opacity(isHovering ? 0.14 : 0))
+                    Circle().fill(configuration.isPressed ? Color.black.opacity(0.16) : Color.white.opacity(isHovering && isEnabled ? 0.14 : 0))
                     // Increase Contrast outlines each one, so it reads by shape as well as colour.
                     if ContrastStyle.resolve(contrast).increased {
                         Circle().strokeBorder(.black.opacity(0.5))
@@ -418,9 +434,11 @@ private struct GlanceList: View {
     }
 }
 
-/// From Finder: Glance is up at once and says what it's reading.
+/// From Finder: Glance is up at once and says what it's reading. With no title bar, the window's
+/// controls are already where they'll stay, and the whole surface moves the window.
 private struct OpeningView: View {
     let name: String
+    let glance: GlanceController
 
     var body: some View {
         VStack(spacing: Space.m) {
@@ -433,6 +451,14 @@ private struct OpeningView: View {
         }
         .padding(Space.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(.rect)
+        .gesture(WindowDragGesture())
+        .allowsWindowActivationEvents(true)
+        .overlay(alignment: .bottomLeading) {
+            GlanceWindowControls(glance: glance, isOpening: true)
+                .padding([.horizontal, .bottom], GlanceLayout.inset)
+        }
+        .ignoresSafeArea(.container, edges: .top)
     }
 }
 

@@ -43,6 +43,7 @@ import SwiftUI
 /// `-StowReduceTransparency YES` shows the solid fallback). With -StowSnapshot it also writes
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
 /// glance-editing and glance-editing-saving: the editing scene's changes in Glance, nothing selected.
+/// glance-opening: Glance from Finder while the archive is still opening (Close stops it).
 /// Next Steps: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
 /// archive-app and glance-app: an archive that's one app with nothing selected, where Actions offers
@@ -374,6 +375,13 @@ enum DemoScene {
             if let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
                 app.glance.show(near: pointer, size: CGSize(width: size[0], height: size[1]), animated: false)
             }
+        case "glance-opening":
+            // Held in its opening state: nothing is being read, so it never finishes.
+            app.showOpeningForDemo()
+            app.glance.pendingName = "Harbor Rebrand Handoff.zip"
+            // Shown first, so closing the welcome window doesn't count as cancelling the opening.
+            app.glance.show(near: glanceEdge(defaults).pointer(in: (NSScreen.main ?? NSScreen.screens[0]).visibleFrame), animated: false)
+            app.glance.closeMainWindow()
         case "recents":
             // The welcome window with history; the files don't exist and nothing is saved.
             let home = FolderAccess.home.path

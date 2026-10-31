@@ -240,6 +240,17 @@ final class GlanceController: NSObject, NSWindowDelegate {
         window?.orderOut(nil)
     }
 
+    /// Close while the archive is still opening: the opening stops too, so it doesn't finish in a
+    /// window nobody can see. A cloud download waits on its own cancel, so that stops as well.
+    func stopOpening() {
+        guard isShown else { return }
+        if pendingName != nil, let app, app.isOpening {
+            app.cancelCloudDownload()
+            app.cancelOpening()
+        }
+        close()
+    }
+
     func windowWillClose(_ notification: Notification) {
         // The close button or ⌘W.
         isShown = false
