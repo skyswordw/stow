@@ -26,7 +26,9 @@ import SwiftUI
 /// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop),
 /// tray-collect (Collect into a Folder, items from one folder), tray-collect-mixed (from three: people choose where),
 /// tray-collect-taken (a name that's taken), tray-collected (after a real collect: where it went).
-/// Empty and error states: open-failed, open-damaged, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
+/// Source access (#213): source-access (the recovery picker, folder mode), source-access-file ("Allow only this
+/// archive" checked; `-StowSourcePath <file>` or `-StowSourceName <name>` for either), source-access-unsaved (the grant couldn't be saved).
+/// Empty and error states: open-failed, open-damaged, open-unreadable, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
 /// pack-failed, pack-failed-dmg, empty-archive, empty-folder, search-empty, tray-empty.
 /// Editing states: editing, editing-saving (Save part-way), editing-refused (an edit Stow can't make), external, readonly,
 /// rename-archive (File › Rename Archive…), save-changes (closing with unsaved edits).
@@ -37,6 +39,7 @@ import SwiftUI
 /// puts the pointer on that edge of the screen first, `-glance.pinned '<true/>'` pins it,
 /// `-StowReduceTransparency YES` shows the solid fallback). With -StowSnapshot it also writes
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
+/// glance-editing and glance-editing-saving: the editing scene's changes in Glance, nothing selected.
 /// Next Steps: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
 /// archive-app and glance-app: an archive that's one app with nothing selected, where Actions offers
@@ -255,6 +258,35 @@ enum DemoScene {
             // A file in WeChat's private storage that macOS won't let Stow read.
             let url = URL(filePath: "/Users/Shared/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat/2.0b4.0.9/Message/File/Harbor Handoff.zip")
             app.openFailure = AppState.OpenFailure(failure: OtherAppFiles.unreadable(url), url: url)
+        case "source-access", "source-access-file":
+            // The recovery picker after macOS denied a read, over the welcome window. Nothing is read
+            // or granted. `-StowSourcePath <file>` points it at a real folder (the picker can't browse
+            // the sandbox's own temporary folder, so the default fixture there only shows the copy);
+            // `-StowSourceName <name>` renames the default fixture to try a long name.
+            let file: URL
+            if let path = defaults.string(forKey: "StowSourcePath") {
+                file = URL(filePath: path)
+            } else {
+                let folder = FileManager.default.temporaryDirectory.appending(path: "Demo Source", directoryHint: .isDirectory)
+                try? FileManager.default.removeItem(at: folder)
+                try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                file = folder.appending(path: defaults.string(forKey: "StowSourceName") ?? "Harbor Handoff.zip")
+                FileManager.default.createFile(atPath: file.path, contents: Data())
+            }
+            // `-StowSourceOverBrowser YES`: opening another archive from the Browser instead of the welcome.
+            if defaults.bool(forKey: "StowSourceOverBrowser") { app.openArchive(named: SampleArchive.make().name) }
+            Task {
+                try? await Task.sleep(for: .milliseconds(800))
+                // As after a real open: Stow in front, its window key, so the picker comes down as a sheet.
+                NSApp.activate()
+                NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }?.makeKeyAndOrderFront(nil)
+                try? await Task.sleep(for: .milliseconds(200))
+                await SourceReadAccess.showPanelForDemo(file, fileOnly: scene == "source-access-file")
+            }
+        case "source-access-unsaved":
+            // Opened after the picker, but the folder's grant couldn't be saved.
+            app.openArchive(named: SampleArchive.make().name)
+            app.openFailure = AppState.OpenFailure(failure: AppState.unsavedSourceAccess(CocoaError(.fileWriteUnknown)))
         case "finder-failed":
             // Extract Here from Finder that failed: the same sheet, on whatever window Stow has.
             Task {
@@ -309,8 +341,13 @@ enum DemoScene {
         case "integration":
             showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
-        case "glance", "glance-empty", "glance-search-empty", "glance-app":
-            if scene == "glance-app" {
+        case "glance", "glance-empty", "glance-search-empty", "glance-app", "glance-editing", "glance-editing-saving":
+            if scene.hasPrefix("glance-editing") {
+                // Nothing selected, so Extract All would otherwise be the window's primary action.
+                BrowseDemo.editing(in: app)
+                app.browser?.select([])
+                if scene == "glance-editing-saving" { app.browser?.editSession.showSavingForDemo(progress: 0.42) }
+            } else if scene == "glance-app" {
                 app.browser = oneAppArchive()
             } else if scene == "glance-search-empty" {
                 // The same search as the full window's "search-empty" scene.

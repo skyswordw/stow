@@ -337,10 +337,27 @@ struct RowIcon: View {
         let archive = model.archive
         if archive.source == nil {
             EntryThumbnail(entry: entry, style: .row)
-        } else if let image = model.previews.cachedThumbnail(for: entry, in: archive, side: 96) {
-            Image(nsImage: image).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
+        } else if Self.showsThumbnail(entry), let image = model.previews.cachedThumbnail(for: entry, in: archive, side: 96) {
+            // A page is white on the white list; the shadow follows its edge (or a picture's
+            // outline) so it never fades into the row.
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .clipShape(.rect(cornerRadius: 2))
+                .shadow(color: .black.opacity(0.3), radius: 0.5, y: 0.25)
+                .padding(1)
         } else {
             NativeIcon(type: entry.contentType)
+        }
+    }
+
+    /// As the sample's rows: text, data and fonts keep their type's icon, since a page of text
+    /// 18 pt tall reads as a blank page. A tile has the room for theirs.
+    static func showsThumbnail(_ entry: ArchiveEntry) -> Bool {
+        switch entry.kind {
+        case .text, .data, .font: false
+        default: true
         }
     }
 }

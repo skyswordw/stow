@@ -29,6 +29,8 @@ struct BrowserNavigation: View {
 /// way around an archive. A short path takes only its width; a deep one scrolls and fades at its start.
 struct NavigationCapsule: View {
     let model: BrowserModel
+    /// Glance has no Search beside it, so its capsule runs the window's width.
+    var fillsWidth = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -45,6 +47,7 @@ struct NavigationCapsule: View {
                 .accessibilityHidden(true)
             Breadcrumbs(model: model)
                 .padding(.trailing, Space.xs)
+            if fillsWidth { Spacer(minLength: 0) }
         }
         .padding(FloatingGlass.barInset)
         .frame(height: FloatingGlass.barHeight)
@@ -110,14 +113,18 @@ struct ArchiveTitleMenu<Items: View>: View {
 }
 
 /// The whole archive's controls, floating at the bottom's leading edge: the way to the archive's
-/// other window, then Extract All, in one glass capsule. The full window offers Glance there and
-/// Glance offers the full window, so switching is in the same place in both. Extract All is the
+/// other window, then Extract All, in one glass capsule. The full window offers Glance there;
+/// Glance has Open in Full Window among its own window controls just before it, so switching is
+/// still bottom left in both. Extract All is the
 /// window's primary action until Actions shows, whose front button then carries the accent; it
 /// keeps its place and words either way.
 struct ArchiveActions: View {
     let model: BrowserModel
     let prominent: Bool
     var switchTo: WindowSwitch?
+    /// Extract All as its icon alone, for a row without room for its words (Glance at its smallest
+    /// with Actions showing). Its name stays its accessibility label and help.
+    var compact = false
 
     /// Where the leading button takes the archive.
     enum WindowSwitch {
@@ -144,9 +151,10 @@ struct ArchiveActions: View {
                 model.extractAll()
             } label: {
                 Label("Extract All", systemImage: "arrow.down.to.line")
-                    .labelStyle(.titleAndIcon)
+                    .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
             }
-            .buttonStyle(ActionButtonStyle(prominent: prominent))
+            .buttonStyle(ActionButtonStyle(prominent: prominent, iconOnly: compact))
+            .accessibilityLabel(String(localized: "Extract All"))
             .help("Extract everything to a folder you choose")
         }
         .padding(ActionButtonStyle.inset)
