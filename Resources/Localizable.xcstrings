@@ -11235,6 +11235,36 @@
           }
         }
       }
+    },
+    "Delete the selection from the archive. Nothing changes on disk until you save.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从压缩包中删除所选项目。存储之前，磁盘上的文件不会改变。"
+          }
+        }
+      }
+    },
+    "No changes to save": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有要存储的更改"
+          }
+        }
+      }
+    },
+    "Select files to delete them from the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择文件即可将其从压缩包中删除"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
