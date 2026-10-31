@@ -30,6 +30,12 @@ open build/Build/Products/Debug/Stow.app
 
 Tests (Swift Testing): `xcodebuild -project Stow.xcodeproj -scheme Stow -derivedDataPath build test`
 
+Encrypted/split/verified packing stress (#38): after the setup above, run
+`scripts/stress-encrypted-split.sh [rounds]` (default 20, maximum 100). Each round creates through
+the sandboxed engine, verifies, reopens and extracts the numbered 7Z parts, checks wrong-password
+refusal and payload/source integrity, and rejects failed, skipped or missing tests. Logs and
+result bundles are retained in the printed `build/packing-stress.*` directory.
+
 After each build, `scripts/register-extensions.sh` registers that build's Quick Look and Finder
 extensions (ad-hoc signatures change every build, and several worktrees may hold a Stow.app).
 

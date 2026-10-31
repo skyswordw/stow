@@ -94,6 +94,26 @@ extension SourceReadAccess {
     }
 }
 
+/// Source recovery belongs to an archive window, even if Settings became key while the source
+/// was being checked. An occupied or hidden host must not strand the picker behind another sheet.
+@MainActor
+enum SourceAccessPresentation {
+    static func parent(keyWindow: NSWindow?, windows: [NSWindow]) -> NSWindow? {
+        func priority(_ window: NSWindow) -> Int? {
+            guard window.isVisible, window.attachedSheet == nil, window.sheetParent == nil,
+                  !(window is NSPanel) else { return nil }
+            let id = window.identifier?.rawValue ?? ""
+            if id == GlanceController.windowIdentifier { return 0 }
+            if id == "main" || id.hasPrefix("main-") { return 1 }
+            if id == "welcome" || id.hasPrefix("welcome-") { return 2 }
+            return nil
+        }
+        if let keyWindow, priority(keyWindow) != nil { return keyWindow }
+        return windows.compactMap { window in priority(window).map { (window, $0) } }
+            .min { $0.1 < $1.1 }?.0
+    }
+}
+
 /// Native picker, including its own validation before macOS issues a user-selection grant.
 @MainActor
 fileprivate final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
@@ -169,7 +189,8 @@ fileprivate final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
         return try await withTaskCancellationHandler {
             let response = await withCheckedContinuation { continuation in
                 // Always use asynchronous presentation so cancellation can dismiss the picker.
-                if let parent = NSApp.keyWindow, parent.attachedSheet == nil, !(parent is NSPanel) {
+                if let parent = SourceAccessPresentation.parent(keyWindow: NSApp.keyWindow,
+                                                               windows: NSApp.windows) {
                     panel.beginSheetModal(for: parent) { continuation.resume(returning: $0) }
                 } else {
                     panel.begin { continuation.resume(returning: $0) }

@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Testing
 @testable import Stow
 
@@ -196,6 +196,53 @@ struct SourceReadAccessTests {
         let deadline = ContinuousClock.now + .seconds(20)
         while !condition(), ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
         try #require(condition(), "Timed out waiting for source recovery")
+    }
+}
+
+@Suite("Source authorization window ownership")
+@MainActor
+struct SourceAccessPresentationTests {
+    private func window(_ id: String, visible: Bool = true) -> NSWindow {
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.identifier = NSUserInterfaceItemIdentifier(id)
+        window.isReleasedWhenClosed = false
+        if visible { window.orderFront(nil) }
+        return window
+    }
+
+    @Test(arguments: ["main", "main-1", "welcome", "welcome-1", "glance"])
+    func archiveWindowOwnsItsPicker(_ identifier: String) {
+        let host = window(identifier), settings = window("settings")
+        defer { host.orderOut(nil); settings.orderOut(nil) }
+        #expect(SourceAccessPresentation.parent(keyWindow: settings, windows: [settings, host]) === host)
+        #expect(SourceAccessPresentation.parent(keyWindow: host, windows: [settings, host]) === host)
+    }
+
+    @Test func unrelatedAndHiddenWindowsUseStandalonePresentation() {
+        let settings = window("settings"), onboarding = window("onboarding")
+        let hidden = window("main", visible: false)
+        defer { settings.orderOut(nil); onboarding.orderOut(nil) }
+        #expect(SourceAccessPresentation.parent(keyWindow: settings,
+                                                windows: [settings, onboarding, hidden]) == nil)
+        #expect(SourceAccessPresentation.parent(keyWindow: nil, windows: []) == nil)
+    }
+
+    @Test func occupiedHostAndItsSheetCannotOwnAnotherPicker() {
+        let host = window("main"), sheet = window("welcome", visible: false)
+        host.beginSheet(sheet)
+        defer { host.endSheet(sheet); sheet.orderOut(nil); host.orderOut(nil) }
+        #expect(SourceAccessPresentation.parent(keyWindow: sheet, windows: [host, sheet]) == nil)
+    }
+
+    @Test func activeArchiveWinsOverWelcomeWhenSettingsHasFocus() {
+        let welcome = window("welcome"), browser = window("main"), glance = window("glance")
+        defer { welcome.orderOut(nil); browser.orderOut(nil); glance.orderOut(nil) }
+        #expect(SourceAccessPresentation.parent(keyWindow: nil, windows: [welcome, browser, glance]) === glance)
+        glance.orderOut(nil)
+        #expect(SourceAccessPresentation.parent(keyWindow: nil, windows: [welcome, browser, glance]) === browser)
+        // Explicitly focused archive windows still take precedence during a presentation transition.
+        #expect(SourceAccessPresentation.parent(keyWindow: welcome, windows: [welcome, browser]) === welcome)
     }
 }
 
