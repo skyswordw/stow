@@ -99,8 +99,13 @@ private final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
     func panel(_ sender: Any, validate url: URL) throws {
         let expected = fileOnly ? file : file.deletingLastPathComponent()
         guard url.standardizedFileURL.path == expected.standardizedFileURL.path else {
+            // Name what the current mode can select: folders only, or this one file.
+            let name = file.lastPathComponent
+            let reason = fileOnly
+                ? String(localized: "Select “\(name)” to allow only this archive.")
+                : String(localized: "Choose the folder that contains “\(name)”.")
             throw NSError(domain: "app.stow.source-access.selection", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: String(localized: "Select the original archive or the folder containing it.")])
+                          userInfo: [NSLocalizedDescriptionKey: reason])
         }
     }
 
@@ -113,9 +118,12 @@ private final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
         panel?.canChooseFiles = fileOnly
         panel?.canChooseDirectories = !fileOnly
         panel?.directoryURL = file.deletingLastPathComponent()
+        // A sheet has no title bar, so the message carries the archive's name. First line: what to
+        // do; second: what the grant covers. Opening a source, not choosing where to extract.
+        let name = file.lastPathComponent
         panel?.message = fileOnly
-            ? String(localized: "Allow read/write access to this archive only.\nOther files in this folder are not included.")
-            : String(localized: "Allow read/write access to this folder and all its contents.\nStow will remember this folder for future opens.")
+            ? String(localized: "Select “\(name)”, then choose Allow to open it.\nStow can read and write this archive only — not other files in this folder.")
+            : String(localized: "Choose Allow to let Stow open “\(name)”.\nStow can then read and write everything in this folder, including subfolders, and remembers it for next time.")
     }
 
     static func choose(_ file: URL) async throws -> URL? {

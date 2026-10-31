@@ -121,7 +121,7 @@ final class AppState {
                 browser?.verifyDiskImage()
                 if let error = recovered?.persistenceError {
                     var notice = Failure(String(localized: "Folder access wasn’t saved"),
-                                         advice: String(localized: "The archive is open, but Stow couldn’t remember this folder. You may need to allow access again next time."))
+                                         advice: String(localized: "The archive is open for now, but Stow couldn’t save access to this folder, so it may ask again next time."))
                     notice.diagnostic = String(describing: error)
                     openFailure = OpenFailure(failure: notice)
                 }

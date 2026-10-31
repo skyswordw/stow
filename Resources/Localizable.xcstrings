@@ -1,22 +1,22 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Allow read/write access to this archive only.\nOther files in this folder are not included.": {
+    "Select “%@”, then choose Allow to open it.\nStow can read and write this archive only — not other files in this folder.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "允许读写这个压缩包。\n不包含同一文件夹中的其他文件。"
+            "value": "选中“%@”，然后选择“允许”来打开它。\nStow 只能读写这个压缩包，不包括此文件夹中的其他文件。"
           }
         }
       }
     },
-    "Allow read/write access to this folder and all its contents.\nStow will remember this folder for future opens.": {
+    "Choose Allow to let Stow open “%@”.\nStow can then read and write everything in this folder, including subfolders, and remembers it for next time.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "允许读写此文件夹及其中的所有文件和子文件夹。\nStow 会记住授权，以便下次打开。"
+            "value": "选择“允许”，让 Stow 打开“%@”。\nStow 将可以读写此文件夹中的所有文件和子文件夹，并记住授权，下次无需再问。"
           }
         }
       }
@@ -51,12 +51,12 @@
         }
       }
     },
-    "Select the original archive or the folder containing it.": {
+    "Choose the folder that contains “%@”.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请选择原压缩包或它所在的文件夹。"
+            "value": "请选择“%@”所在的文件夹。"
           }
         }
       }
@@ -71,12 +71,12 @@
         }
       }
     },
-    "The archive is open, but Stow couldn’t remember this folder. You may need to allow access again next time.": {
+    "The archive is open for now, but Stow couldn’t save access to this folder, so it may ask again next time.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "压缩包已打开，但 Stow 未能记住这个文件夹的授权。下次可能需要重新授权。"
+            "value": "压缩包这次已经打开，但 Stow 未能保存这个文件夹的授权，下次可能会再次询问。"
           }
         }
       }
@@ -11222,6 +11222,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "将此页面恢复为默认设置。其他页面、压缩包、文件夹授权和已记住的以前的默认 app 会保留。"
+          }
+        }
+      }
+    },
+    "Select “%@” to allow only this archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要仅允许这个压缩包，请选中“%@”。"
           }
         }
       }
