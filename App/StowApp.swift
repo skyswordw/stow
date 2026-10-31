@@ -151,6 +151,12 @@ final class AppState {
         return notice
     }
 
+    /// Design-review scenes: the opening state with nothing being read.
+    func showOpeningForDemo() {
+        cancelOpening()
+        isOpening = true
+    }
+
     func cancelOpening() {
         openingTask?.cancel()
         openingTask = nil

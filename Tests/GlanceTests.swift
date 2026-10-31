@@ -144,6 +144,39 @@ struct GlanceTests {
         #expect(harness.app.browser === browser)
     }
 
+    /// The opening screen's Close (and Escape) stops the opening, so the archive doesn't finish
+    /// opening into a hidden Glance with no way back to it.
+    @Test func closingWhileOpeningStopsTheOpening() async throws {
+        let harness = Harness()
+        let app = harness.app
+        let zip = FileManager.default.temporaryDirectory.appending(path: "Glance \(UUID().uuidString).zip")
+        try ZipFixture(entries: [.file("a.txt", "a")]).write(to: zip)
+        defer { try? FileManager.default.removeItem(at: zip) }
+
+        app.glance.open(zip)
+        #expect(app.isOpening)
+        #expect(app.glance.pendingName == zip.lastPathComponent)
+        app.glance.stopOpening()
+        #expect(!app.glance.isShown)
+        #expect(!app.isOpening)
+        #expect(app.glance.pendingName == nil)
+
+        // Long enough for the listing to have landed had it carried on.
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(app.browser == nil)
+        #expect(app.openFailure == nil)
+    }
+
+    @Test func stopOpeningOnAnOpenArchiveIsAPlainClose() throws {
+        let harness = Harness()
+        harness.app.openArchive(named: SampleArchive.make().name)
+        let browser = try #require(harness.app.browser)
+        harness.app.glance.collapse(near: .zero, animated: false)
+        harness.app.glance.stopOpening()
+        #expect(!harness.app.glance.isShown)
+        #expect(harness.app.browser === browser)
+    }
+
     @Test(arguments: [false, true])
     func finderOpensInGlanceWhenAskedTo(_ glanceSetting: Bool) async throws {
         let harness = Harness()

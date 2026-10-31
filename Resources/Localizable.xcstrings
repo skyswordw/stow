@@ -5906,6 +5906,16 @@
         }
       }
     },
+    "Stop opening and close": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止打开并关闭"
+          }
+        }
+      }
+    },
     "Keep Glance on Top": {
       "localizations": {
         "zh-Hans": {
