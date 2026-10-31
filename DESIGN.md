@@ -125,13 +125,13 @@ the window and the folder in a bar under it, with Stow's own pieces.
 | --- | --- |
 | Header (no title bar) | The archive's format badge (32 pt), its name semibold with “ZIP archive · 17 files” under it, wherever you are inside it; when encrypted, a 20 pt lock badge right after the name: accent-filled while locked, a spinner while a password is checked, a quiet open lock once one has worked. Dragging the header moves the window; the window keeps its title for the Window menu |
 | Navigation, floating under the header | The Browser's capsule: Back · Forward · Up │ the path from the archive down, running the window's width (no Search beside it); a deep path fades at its start and keeps where you are in view |
-| Files | Name and size, straight on the window's one surface: Liquid Glass with a wash of the window colour for legibility, or classic frosted (Settings › General); solid under Reduce Transparency. No card, no frame. The badge and the rows' icons share the 16 pt margin |
+| Files | Name and size, straight on the window's one surface: Liquid Glass with a wash of the window colour for legibility, or classic frosted (Settings › Glance); solid under Reduce Transparency. No card, no frame. The badge and the rows' icons share the 16 pt margin |
 | Window controls, floating bottom leading | **Close** · **Pin on Top** · **Open in Full Window** in one glass capsule of icon buttons, like the navigation capsule's. Pinned: the pin fills in the accent with a ring round it |
 | Archive controls, floating after them | **Extract All**. When the row has no room for its words (400 pt with Actions showing), it keeps its icon alone. While changes are pending or saving it drops the accent, so the bar's Save, right under it, is the one prominent action |
 | Actions, floating bottom trailing | The full window's stack and rules: one prominent action at a time, Install App alone for an archive that's one app |
 | Under the files | The full window's unsaved-changes and changed-on-disk bars |
 
-**Colourful window controls** (Settings › General) fill the same three buttons, in the same
+**Colourful window controls** (Settings › Glance) fill the same three buttons, in the same
 capsule, with the traffic lights' colours: red Close, yellow Pin on Top and green Open in Full
 Window, their symbols always showing, dark as the traffic lights' are (white wouldn't read on
 yellow). Nothing moves or changes size when the setting changes. Pinned adds a darker ring round
@@ -141,6 +141,36 @@ window control.
 
 The password is still asked for in the system sheet the full window uses; an in-window card like
 ArcZip's is a possible follow-up only if every password behaviour stays the same.
+
+## Settings layout (#162)
+
+Twelve pages are too many for toolbar tabs, so Settings is System Settings' shape: a fixed sidebar
+beside one page. The window is 756 pt wide (a 196-pt sidebar, a 560-pt page) and keeps its size
+when the page changes; a long page scrolls, and the window can be made taller (its width is fixed).
+Switching pages doesn't animate.
+
+| Sidebar group (`SettingsCategory`) | Pages |
+| --- | --- |
+| General | General: appearance, the Browser's first view, app language, Tray, updates |
+| Archive work | Extraction · Installing · Packing |
+| Interaction | Actions · **Glance** · Previews |
+| Security | Passwords |
+| System integration | File Types · Integration |
+| Advanced | Advanced (cache, reset) · Licenses |
+
+The groups are separated by space, not headings, so no heading repeats the name of the only page
+under it. Every page is a grouped form: one choice per row, its explanation in the section's
+footer right under it, no boxes of our own. Plain sidebar symbols, no coloured tiles.
+
+- **Actions** keeps the master switch first, then a **Preview**: pick a sample selection (two
+  photos, an app, fonts…) and it says in words what's in front, what's behind it and what waits
+  only in More, recomputed from the toggles below. Words, not buttons, so nothing looks runnable.
+- **Glance** holds what General used to: opening from Finder in Glance (off: the full Browser is
+  the default), the window material and colourful controls. While Reduce Transparency is on, the
+  footer says Glance is solid whatever is chosen; the choice itself is kept.
+- **General** shows the language in use and folds the macOS how-to into a disclosure.
+- File Types drops its own heading in Settings (the title bar names the page); its standalone
+  scene keeps it.
 
 ## Color
 

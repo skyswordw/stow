@@ -140,8 +140,8 @@ Progress and result appear in an Actions-style capsule (Stop, Show in Finder).
 | Opens near the pointer, compact browse/extract | ✅ | clamped to the visible screen; name + size list, Actions, Extract All |
 | Pin on top | ✅ | remembered |
 | Switch Glance ↔ full window keeping location, selection, history | ✅ | one shared browser; ⌥⌘G |
-| Default to Glance when opening from Finder/Quick Look | ✅ | Settings › General |
-| Liquid Glass / classic material; colourful window controls option | ✅ | Glass, solid under Reduce Transparency; optional red Close / yellow Pin / green Open in Full Window controls (#86), off by default in Settings › General. Replaces the traffic lights and plain pin/expand controls while on |
+| Default to Glance when opening from Finder/Quick Look | ✅ | Settings › Glance |
+| Liquid Glass / classic material; colourful window controls option | ✅ | Glass, solid under Reduce Transparency; optional red Close / yellow Pin / green Open in Full Window controls (#86), off by default in Settings › Glance. Replaces the traffic lights and plain pin/expand controls while on |
 
 ## 8. Collecting files (ArcZip “File Box / Shelf”) → **Tray**
 

@@ -3,36 +3,34 @@ import SwiftUI
 struct GeneralSettingsView: View {
     @AppStorage(SettingsKeys.appearance) private var appearance = SettingsKeys.Appearance.system.rawValue
     @AppStorage(SettingsKeys.defaultView) private var viewMode = "grid"
-    @AppStorage(SettingsKeys.openInGlance) private var openInGlance = false
-    @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulGlanceControls = false
-    @AppStorage(SettingsKeys.glanceMaterial) private var glanceMaterial = SettingsKeys.GlanceMaterialPreference.liquidGlass.rawValue
     @AppStorage(SettingsKeys.trayMenuBarIcon) private var trayIcon = true
     @AppStorage(SettingsKeys.trayShowWhileDragging) private var trayWhileDragging = true
     @AppStorage(SettingsKeys.trayIdleSeconds) private var trayIdle = 30
     @AppStorage(SettingsKeys.trayBorder) private var trayBorder = TrayBorder.accent.rawValue
     var body: some View {
         Form {
-            Picker("Appearance", selection: $appearance) {
-                Text("System").tag("system")
-                Text("Light").tag("light")
-                Text("Dark").tag("dark")
+            Section {
+                Picker("Appearance", selection: $appearance) {
+                    Text("System").tag("system")
+                    Text("Light").tag("light")
+                    Text("Dark").tag("dark")
+                }
+                Picker("Open Browser in", selection: $viewMode) {
+                    Text("Grid").tag("grid")
+                    Text("List").tag("list")
+                    Text("Columns").tag("columns")
+                }
             }
-            Picker("Open Browser in", selection: $viewMode) {
-                Text("Grid").tag("grid")
-                Text("List").tag("list")
-                Text("Columns").tag("columns")
-            }
-            Toggle("Open archives from Finder and Quick Look in Glance", isOn: $openInGlance)
-            Toggle("Colourful Glance window controls", isOn: $colourfulGlanceControls)
-                .help("Use red for Close, yellow for Pin on Top, and green for Open in Full Window")
-            Picker("Glance material", selection: $glanceMaterial) {
-                ForEach(SettingsKeys.GlanceMaterialPreference.allCases) { Text($0.title).tag($0.rawValue) }
-            }
-            .help("Liquid Glass is the default. Classic frosted uses a traditional material. Reduce Transparency always uses a solid window.")
-            Section("App Language") {
-                Text("To use English or Simplified Chinese just for Stow, open System Settings → General → Language & Region → Applications. Add Stow and choose its language. Quit and reopen Stow after your current tasks and unsaved changes are finished.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+            // macOS chooses an app's language: say which one is in use and keep the how-to folded
+            // away until someone wants it (#162). No in-app picker, since Stow can't switch itself.
+            Section {
+                LabeledContent("App Language", value: Self.languageName)
+                DisclosureGroup("How to change the language") {
+                    Text("To use English or Simplified Chinese just for Stow, open System Settings → General → Language & Region → Applications. Add Stow and choose its language. Quit and reopen Stow after your current tasks and unsaved changes are finished.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Section("Tray") {
                 Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
@@ -59,6 +57,12 @@ struct GeneralSettingsView: View {
             UpdateSettingsSection(updater: AppUpdater.shared)
         }
         .formStyle(.grouped)
+    }
+
+    /// The language Stow is showing, named the way macOS lists it in the current language.
+    private static var languageName: String {
+        let code = Bundle.main.preferredLocalizations.first ?? "en"
+        return Locale.current.localizedString(forIdentifier: code) ?? code
     }
 
     private static func idleTitle(_ seconds: Int) -> String {
@@ -109,32 +113,35 @@ struct PackingSettingsView: View {
 
     var body: some View {
         Form {
-            Picker("Pack for", selection: $audience) {
-                ForEach(Audience.allCases) { item in Text(item.phrase.sentenceCased).tag(item.rawValue) }
+            Section {
+                Picker("Pack for", selection: $audience) {
+                    ForEach(Audience.allCases) { item in Text(item.phrase.sentenceCased).tag(item.rawValue) }
+                }
             }
             Section("Compression level for each destination") {
                 ForEach(Audience.allCases) { item in LevelSetting(audience: item) }
             }
-            Picker("Split archives", selection: volumeSelection) {
-                ForEach(SplitSize.allCases) { item in Text(item.phrase.sentenceCased).tag(Int(item.rawValue)) }
-                if current.isCustom {
-                    Text(current.phrase.sentenceCased).tag(Int(current.rawValue))
+            // What comes out, then how hard the Mac works on it: the order of the Pack sheet's More Options.
+            Section {
+                Picker("Split archives", selection: volumeSelection) {
+                    ForEach(SplitSize.allCases) { item in Text(item.phrase.sentenceCased).tag(Int(item.rawValue)) }
+                    if current.isCustom {
+                        Text(current.phrase.sentenceCased).tag(Int(current.rawValue))
+                    }
+                    Divider()
+                    Text("Custom…").tag(Self.customTag)
                 }
-                Divider()
-                Text("Custom…").tag(Self.customTag)
-            }
-            .popover(isPresented: $editingCustom, arrowEdge: .trailing) {
-                SplitSizeEditor(initial: current) { volume = Int($0.rawValue) }
-            }
-            Toggle("Check archives after packing", isOn: $verify)
-            Picker("CPU cores for packing", selection: $cores) {
-                Text("All").tag(0)
-                ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
+                .popover(isPresented: $editingCustom, arrowEdge: .trailing) {
+                    SplitSizeEditor(initial: current) { volume = Int($0.rawValue) }
+                }
+                Toggle("Check archives after packing", isOn: $verify)
+                Picker("CPU cores for packing", selection: $cores) {
+                    Text("All").tag(0)
+                    ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
+                }
             }
         }
         .formStyle(.grouped)
-        .scrollDisabled(true)
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Presets and the custom size in use pick themselves; Custom… opens the editor and leaves the
@@ -166,10 +173,52 @@ private struct LevelSetting: View {
 struct PreviewSettingsView: View {
     @AppStorage(SettingsKeys.hoverPreviews) private var hover = true
     var body: some View {
-        Form { Toggle("Show previews when hovering over files", isOn: $hover) }
-            .formStyle(.grouped)
-            .scrollDisabled(true)
-            .fixedSize(horizontal: false, vertical: true)
+        Form {
+            Section {
+                Toggle("Show previews when hovering over files", isOn: $hover)
+            } footer: {
+                Text("Rest the pointer on a file in the Browser to see a larger preview beside it. Space opens Quick Look either way.")
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// Settings › Glance (#162): whether Finder opens archives in Glance, and how its window looks.
+/// The keys and their defaults are the ones General held before.
+struct GlanceSettingsView: View {
+    @AppStorage(SettingsKeys.openInGlance) private var openInGlance = false
+    @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulControls = false
+    @AppStorage(SettingsKeys.glanceMaterial) private var material = SettingsKeys.GlanceMaterialPreference.liquidGlass.rawValue
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Open archives from Finder and Quick Look in Glance", isOn: $openInGlance)
+            } footer: {
+                Text("When this is off, they open in the full Browser window. Glance is the Browser made small, for a quick look or Extract All. Window › Switch to Glance (⌥⌘G) moves an open archive between the two.")
+            }
+            Section {
+                Picker("Window material", selection: $material) {
+                    ForEach(SettingsKeys.GlanceMaterialPreference.allCases) { Text($0.title).tag($0.rawValue) }
+                }
+                Toggle(isOn: $colourfulControls) {
+                    Text("Colourful window controls")
+                    Text("Use red for Close, yellow for Pin on Top, and green for Open in Full Window")
+                }
+            } header: {
+                Text("Appearance")
+            } footer: {
+                // The choice is kept either way; the system setting only wins while it's on.
+                if reduceTransparency {
+                    Text("Reduce Transparency is on, so Glance uses a solid window whichever material you choose.")
+                } else {
+                    Text("Liquid Glass is the default. Classic frosted uses a traditional material. Reduce Transparency always uses a solid window.")
+                }
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 
@@ -256,25 +305,38 @@ struct AdvancedSettingsView: View {
     }
     var body: some View {
         Form {
+            // Each action sits on the row it acts on, beside what it acts on (#162).
             Section("Temporary files") {
-                LabeledContent("Preview cache", value: usedBytes.bytes)
-                    .monospacedDigit()
-                Button("Clean Up") {
-                    guard !busy else { return }
-                    PreviewCache.cleanUp()
-                    usedBytes = PreviewCache.directoryBytes
-                }
-                .disabled(busy)
-            }
-            Section {
-                Picker("Page", selection: $pageToReset) {
-                    ForEach(resettablePages) { pane in
-                        Text(pane.title).tag(pane)
+                LabeledContent("Preview cache") {
+                    HStack(spacing: Space.m) {
+                        Text(usedBytes.bytes)
+                            .monospacedDigit()
+                        Button("Clean Up") {
+                            guard !busy else { return }
+                            PreviewCache.cleanUp()
+                            usedBytes = PreviewCache.directoryBytes
+                        }
+                        .disabled(busy)
                     }
                 }
-                Button("Reset This Page…", role: .destructive) { confirmsResetPage = true }
-                    .disabled(SettingsKeys.resettableEntries(for: pageToReset).isEmpty)
-                Button("Reset All Preferences…", role: .destructive) { confirmsResetAll = true }
+            }
+            Section {
+                LabeledContent("Page") {
+                    HStack(spacing: Space.m) {
+                        Picker("Page", selection: $pageToReset) {
+                            ForEach(resettablePages) { pane in
+                                Text(pane.title).tag(pane)
+                            }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                        Button("Reset This Page…", role: .destructive) { confirmsResetPage = true }
+                            .disabled(SettingsKeys.resettableEntries(for: pageToReset).isEmpty)
+                    }
+                }
+                LabeledContent("Every page") {
+                    Button("Reset All Preferences…", role: .destructive) { confirmsResetAll = true }
+                }
             } header: {
                 Text("Reset")
             } footer: {
@@ -282,8 +344,6 @@ struct AdvancedSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .scrollDisabled(true)
-        .fixedSize(horizontal: false, vertical: true)
         .onAppear { usedBytes = PreviewCache.directoryBytes }
         .alert("Reset this page’s preferences?", isPresented: $confirmsResetPage) {
             Button("Cancel", role: .cancel) {}

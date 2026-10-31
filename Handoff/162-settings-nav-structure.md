@@ -107,3 +107,16 @@ Call sites: Customize Actions, Welcome, demo scenes. Prefer `show` for new deep 
 - Local verification (2026-10-27): `xcodegen generate` and the full `xcodebuild test` passed;
   the CI result checker confirmed 531 passed, zero failed/skipped. Simplified Chinese
   localization check passed (0 missing of 1,057). No extension registration was performed.
+
+## Claude Code layout (branch `design/162-settings`)
+
+Settings is now a fixed category sidebar beside one scrolling page; see DESIGN.md › Settings
+layout. Functional changes for Codex / Grok Bot review:
+
+- A new `glance` pane (Interaction, between Actions and Previews) hosts the Glance controls
+  that were on General. Its page reset owns `glance.openFromFinder`, `glance.pinned`,
+  `glance.colourfulControls` and `glance.material`; General's page reset no longer clears them.
+  Keys, defaults and Reset All are unchanged; tests updated accordingly.
+- Pages no longer size the window. `scrollDisabled` / `fixedSize` moved from the shared forms
+  (Extraction, Installing, Integration, Actions…) to the standalone `extract-options` /
+  `install-options` demo windows, so long folder-grant lists scroll inside Settings.

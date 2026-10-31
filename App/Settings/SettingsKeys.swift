@@ -109,10 +109,13 @@ nonisolated enum SettingsKeys {
         case .general:
             keys = [
                 appearance, defaultView,
-                openInGlance, glancePinned, glanceColourfulControls, glanceMaterial,
                 trayMenuBarIcon, trayShowWhileDragging, trayIdleSeconds, trayBorder, trayPinned,
                 updatesAutomaticallyCheck, updatesAutomaticallyDownload
             ]
+        case .glance:
+            // Pin on Top is set from Glance itself (and Window › Keep Glance on Top), not shown here,
+            // but it is Glance's preference, so it resets with this page.
+            keys = [openInGlance, glancePinned, glanceColourfulControls, glanceMaterial]
         case .extraction:
             keys = [
                 Preferences.Key.extractAllFolder, Preferences.Key.afterExtractAll,

@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// Task-oriented Settings groups for #162. Claude Code may restyle navigation around this map;
-/// `SettingsPane` raw values and deep links stay stable.
+/// Task-oriented Settings groups for #162: the sidebar shows each category's panes as one group,
+/// separated by space rather than headings. `SettingsPane` raw values and deep links stay stable.
 nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable {
     case general, archiveWork, interaction, security, systemIntegration, advanced
 
     var id: Self { self }
 
-    /// Proposal titles for a sidebar; Claude may revise wording. Keep English source keys stable once shipped.
+    /// Names for the groups (accessibility, tests, future use); the sidebar itself separates them by space.
     var title: String {
         switch self {
         case .general: String(localized: "General")
@@ -35,7 +35,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
         switch self {
         case .general: [.general]
         case .archiveWork: [.extraction, .installing, .packing]
-        case .interaction: [.nextSteps, .previews]
+        case .interaction: [.nextSteps, .glance, .previews]
         case .security: [.passwords]
         case .systemIntegration: [.fileTypes, .integration]
         case .advanced: [.advanced, .licenses]
@@ -44,7 +44,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 }
 
 nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, extraction, installing, packing, nextSteps, previews, passwords, fileTypes, integration, advanced, licenses
+    case general, extraction, installing, packing, nextSteps, glance, previews, passwords, fileTypes, integration, advanced, licenses
     var id: Self { self }
 
     /// Category that hosts this pane in the #162 information map.
@@ -52,7 +52,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         switch self {
         case .general: .general
         case .extraction, .installing, .packing: .archiveWork
-        case .nextSteps, .previews: .interaction
+        case .nextSteps, .glance, .previews: .interaction
         case .passwords: .security
         case .fileTypes, .integration: .systemIntegration
         case .advanced, .licenses: .advanced
@@ -66,6 +66,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .installing: String(localized: "Installing")
         case .packing: String(localized: "Packing")
         case .nextSteps: String(localized: "Actions")
+        case .glance: String(localized: "Glance")
         case .previews: String(localized: "Previews")
         case .passwords: String(localized: "Passwords")
         case .fileTypes: String(localized: "File Types")
@@ -81,22 +82,13 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .installing: "square.and.arrow.down"
         case .packing: "shippingbox"
         case .nextSteps: "capsule.on.rectangle"
+        case .glance: "macwindow"
         case .previews: "eye"
         case .passwords: "lock"
         case .fileTypes: "doc.on.doc"
         case .integration: "puzzlepiece.extension"
         case .advanced: "slider.horizontal.3"
         case .licenses: "doc.text"
-        }
-    }
-    /// `nil` lets short panes size the window to their content.
-    var fixedHeight: CGFloat? {
-        switch self {
-        case .general: 700
-        case .passwords: 560
-        case .fileTypes: 620
-        case .licenses: 560
-        default: nil
         }
     }
     @MainActor @ViewBuilder var content: some View {
@@ -106,9 +98,10 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .installing: InstallOptionsView()
         case .packing: PackingSettingsView()
         case .nextSteps: NextStepsSettingsView()
+        case .glance: GlanceSettingsView()
         case .previews: PreviewSettingsView()
         case .passwords: PasswordSettingsView()
-        case .fileTypes: AssociationsView(model: Associations())
+        case .fileTypes: AssociationsView(model: Associations(), showsTitle: false)
         case .integration: IntegrationView()
         case .advanced: AdvancedSettingsView()
         case .licenses: LicensesView()

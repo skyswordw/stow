@@ -11265,6 +11265,186 @@
           }
         }
       }
+    },
+    "An app": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个 App"
+          }
+        }
+      }
+    },
+    "An archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个压缩包"
+          }
+        }
+      }
+    },
+    "An installer package": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个安装器包"
+          }
+        }
+      }
+    },
+    "Behind it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其后"
+          }
+        }
+      }
+    },
+    "Colourful window controls": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "彩色窗口控制按钮"
+          }
+        }
+      }
+    },
+    "Every page": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有页面"
+          }
+        }
+      }
+    },
+    "How to change the language": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如何更改语言"
+          }
+        }
+      }
+    },
+    "In front": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最前"
+          }
+        }
+      }
+    },
+    "Nothing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无"
+          }
+        }
+      }
+    },
+    "Only in More (⋯)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在“更多”（⋯）中"
+          }
+        }
+      }
+    },
+    "Reduce Transparency is on, so Glance uses a solid window whichever material you choose.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“降低透明度”已开启，因此无论选择哪种材质，速览都使用不透明窗口。"
+          }
+        }
+      }
+    },
+    "Rest the pointer on a file in the Browser to see a larger preview beside it. Space opens Quick Look either way.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在浏览器中把指针停在文件上，旁边会显示较大的预览。无论是否开启，按空格键都会打开快速查看。"
+          }
+        }
+      }
+    },
+    "Resting the pointer on the stack fans out the actions behind the front one. More (⋯) and File › Actions list every action.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把指针停在操作堆上，排在最前的操作后面的其他操作会展开。“更多”（⋯）和“文件 › 快捷操作”列出所有操作。"
+          }
+        }
+      }
+    },
+    "Two fonts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两个字体"
+          }
+        }
+      }
+    },
+    "Two photos": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两张照片"
+          }
+        }
+      }
+    },
+    "When this is off, they open in the full Browser window. Glance is the Browser made small, for a quick look or Extract All. Window › Switch to Glance (⌥⌘G) moves an open archive between the two.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭时，它们会在完整的浏览器窗口中打开。速览是缩小版的浏览器，适合快速查看或全部解压缩。“窗口 › 切换到速览”（⌥⌘G）可让已打开的压缩包在两者之间切换。"
+          }
+        }
+      }
+    },
+    "When you select": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择以下项目时"
+          }
+        }
+      }
+    },
+    "Window material": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口材质"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

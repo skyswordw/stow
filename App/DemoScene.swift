@@ -19,7 +19,10 @@ import SwiftUI
 /// runs Repair for real).
 /// `-StowScene associations -StowAssociationsCheck <UTI>` makes Stow the real default for one
 /// type, switches it back, prints both reports and quits — a live check of Launch Services.
-/// settings (`-StowSettingsPane packing` selects a pane in the real Settings window),
+/// settings (`-StowSettingsPane packing` selects a pane in the real Settings window; any `SettingsPane`
+/// raw value: general, extraction, installing, packing, nextSteps, glance, previews, passwords, fileTypes,
+/// integration, advanced, licenses; `-StowLongLists YES` fills Passwords and Integration with made-up
+/// entries, in memory only),
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
 /// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
 /// install-running (an app part-way into Applications), install-app-open (refused: the installed copy is open, INS-181),
@@ -68,6 +71,7 @@ enum DemoScene {
         case "onboarding":
             OnboardingRouter.shared.open()
         case "settings":
+            if defaults.bool(forKey: "StowLongLists") { seedLongSettingsLists() }
             SettingsRouter.shared.show(rawValue: defaults.string(forKey: "StowSettingsPane"))
         case "editing", "editing-saving", "editing-refused":
             BrowseDemo.editing(in: app)
@@ -776,7 +780,9 @@ enum DemoScene {
 
     /// Option views get a plain window until the Settings window exists.
     private static func showOptions(_ view: some View, title: String) {
-        let window = NSWindow(contentViewController: NSHostingController(rootView: view.frame(width: 520)))
+        // Settings pages scroll in the Settings window; on their own they show at full height.
+        let fitted = view.scrollDisabled(true).fixedSize(horizontal: false, vertical: true).frame(width: 520)
+        let window = NSWindow(contentViewController: NSHostingController(rootView: fitted))
         window.title = title
         window.styleMask = [.titled, .closable]
         window.setContentSize(window.contentView?.fittingSize ?? CGSize(width: 520, height: 420))
@@ -786,6 +792,33 @@ enum DemoScene {
     }
 
     private static var retained: NSWindow?
+
+    /// `-StowLongLists YES` on the `settings` scene: a long saved-password list (with
+    /// `-password.rememberInKeychain '<true/>'`) and a long folder-grant list, made up and kept in
+    /// memory only. The Keychain and the stored grants are never read or written.
+    private static func seedLongSettingsLists() {
+        let names = ["Harbor Rebrand Handoff.zip", "Field Recordings.7z", "Brand Kit 2026.zip", "Old Backup.rar",
+                     "Client Contracts.zip", "Lighthouse Photos.7z", "Prototype Builds.zip", "Fonts 2026.zip",
+                     "Quarterly Reports.rar", "Pier at Dawn RAW.7z", "Website Assets.zip", "Interview Audio.7z"]
+        ArchivePasswordVault.store = DemoPasswordStore(saved: names.enumerated().map { index, name in
+            let identity = ArchivePasswordIdentity(account: "demo-\(index)", path: "/Volumes/Projects/Harbor/Archives/\(name)",
+                                                   size: 1, modified: 0)
+            return ArchivePasswordEntry(identity: identity, displayName: name)
+        })
+        let folders = ["Projects/Harbor", "Projects/Harbor/Deliveries", "Projects/Lighthouse", "Shared/Brand Kit",
+                       "Shared/Fonts", "Clients/Northwind/Handoff", "Clients/Contoso/Archive", "Exports/Web",
+                       "Exports/Print", "Backups/2025", "Backups/2026"]
+        FolderAccess.shared.showGrantsForDemo(folders.map { URL(filePath: "/Volumes/\($0)", directoryHint: .isDirectory) })
+    }
+
+    private struct DemoPasswordStore: ArchivePasswordStoring {
+        let saved: [ArchivePasswordEntry]
+        func password(for identity: ArchivePasswordIdentity) -> String? { nil }
+        func save(_ password: String, for identity: ArchivePasswordIdentity, displayName: String) throws {}
+        func forget(_ identity: ArchivePasswordIdentity) throws {}
+        func wipe() throws {}
+        func entries() -> [ArchivePasswordEntry] { saved }
+    }
 
     /// Captures the window as the window server composited it — glass, shadows and all.
     /// `CGWindowListCreateImage` is hidden from the SDK but still exported; an app may

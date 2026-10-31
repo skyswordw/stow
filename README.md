@@ -156,9 +156,9 @@ Stow stays sandboxed (user-selected files only) and asks for the narrowest acces
 extension and Tray (⌥⌘T). Skip or Get Started finishes it; Help › Welcome to Stow reopens it.
 Resetting preferences keeps first-run completion remembered.
 
-Stow has a Settings window (⌘,) with General, Extraction, Installing, Packing, Actions, Previews,
-Passwords, File Types, Integration, Advanced and Licenses panes. Glance and Tray controls live
-in General. The host lives in `App/Settings` and reuses the extraction and
+Stow has a Settings window (⌘,): a sidebar of General, Extraction, Installing, Packing, Actions,
+Glance, Previews, Passwords, File Types, Integration, Advanced and Licenses pages, beside one
+scrolling page. Tray controls live in General. The host lives in `App/Settings` and reuses the extraction and
 installing forms in `App/Options`. Advanced can clean preview caches and reset preferences.
 
 Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKeys`):
