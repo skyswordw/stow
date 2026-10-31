@@ -65,18 +65,23 @@ evidence; its optional-pane composition and mockups are superseded.
 
 ## Browser layout (#160, #161)
 
-**Requested next iteration, 2026-10-27:** move Search to the upper toolbar so it no longer
-competes with the path, and make archive editing discoverable before the first edit. A stable
-Delete/Save toolbar entry is the recommended direction. Implementation is tracked in #215/#216;
-the installed app still has Search beside navigation and Save only after edits. This supersedes
-the earlier requirement to keep Search in the navigation row. Claude Code owns the responsive
-composition and the relationship with the pending-changes bar. See the
-[native comparison and functional brief](Handoff/browser-toolbar-search-editing.md).
+**Toolbar Search and editing (#215/#216, 2026-10-30).** Search is the system toolbar search
+field, trailing in the title bar: a field while the window has room, a magnifying-glass button
+when it doesn't, expanded by a click or ⌘F. The navigation row keeps its whole width for the path.
+Delete and Save sit in their own capsule between the view modes and Checkup from the moment an
+archive opens, disabled when there's nothing to delete or save, so editing is found before the
+first edit. Save is the one Save in the full window: with changes pending it becomes a prominent
+**Save** pill (accent, with its name); the bottom bar keeps the change count, "Nothing changes on
+disk until you save." and Revert, and shows saving progress. Glance has no title bar, so its bar
+keeps its own Save. Delete stays quiet: it only stages a change. Add Files, Rename and Replace
+stay in the Edit menu and the item's context menu. The
+[native comparison and functional brief](Handoff/browser-toolbar-search-editing.md) records the
+ArcZip observations behind this.
 
 | Region | Holds |
 | --- | --- |
-| Title bar | Archive name/menu and subtitle, view modes, **Checkup** and encrypted-archive controls. Next iteration (#215/#216): Search and discoverable editing controls, with intentional responsive priorities |
-| Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width and a deep path remains navigable. Next iteration (#215): remove Search's permanent width allocation from this row |
+| Title bar | Archive name/menu and subtitle, view modes, **Delete · Save**, **Checkup** and encrypted-archive controls, then **Search**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and Checkup stay |
+| Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width and a deep path can use the whole row |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
 | Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
 | Archive controls, floating bottom leading | One glass capsule: **Glance** · **Extract All** |

@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// The Browser (#160): the archive's files and, beside them, Details, which is always there. The
-/// title bar says which archive this is and how Checkup went. Floating glass controls sit over the
-/// files: getting around and Search above them, and below them the whole archive's controls
+/// title bar says which archive this is, holds its editing (Delete, Save) and Search, and how
+/// Checkup went. Floating glass controls sit over the files: getting around above them, and below
+/// them the whole archive's controls
 /// (Glance, Extract All) on the leading side and Actions on the trailing side: the selection's, or
 /// with nothing selected, installing an archive that's one app.
 /// There is no folder pane: the files, the path, Back, Forward, Up and Search get you everywhere.
@@ -21,7 +22,7 @@ struct BrowserView: View {
     @State private var floatingHeight: CGFloat = 62
 
     var body: some View {
-        // Keep the navigation/search inset attached to one stable container as the file view changes.
+        // Keep the navigation inset attached to one stable container as the file view changes.
         ZStack { content }
             .accessibilityElement(children: .contain)
             .accessibilitySortPriority(2)
@@ -29,7 +30,7 @@ struct BrowserView: View {
             .frame(minWidth: Self.minFilesWidth)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
-                    BrowserNavigation(model: model, isSearchFocused: $isSearchFocused)
+                    BrowserNavigation(model: model)
                     banners
                 }
             }
@@ -54,7 +55,8 @@ struct BrowserView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
                     if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
-                    else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
+                    // Save is in the title bar; the bar says what's pending and offers Revert.
+                    else if model.editSession.isEdited { UnsavedChangesBar(model: model, showsSave: false) }
                 }
             }
             // Details is part of the window, not an option: no toggle, no close button.
@@ -70,6 +72,10 @@ struct BrowserView: View {
             .navigationSubtitle(model.subtitle)
             .toolbar(removing: .title)
             .toolbar { toolbar }
+            // Search, in the title bar (#215): the system's toolbar field, a field while there's room
+            // and a button when there isn't. Same query and results as before.
+            .searchable(text: $model.query, placement: .toolbar, prompt: Text(searchPrompt))
+            .searchFocused($isSearchFocused)
             // ⌘F (Edit › Find…) puts the keyboard in the search field.
             .onChange(of: model.searchFocusRequest) { isSearchFocused = true }
             .onKeyPress(.escape) {
@@ -102,6 +108,10 @@ struct BrowserView: View {
                 }
                 .id(ObjectIdentifier(model))
             }
+    }
+
+    private var searchPrompt: String {
+        model.indexingProgress ?? String(localized: "Search \(model.archive.files.count) files")
     }
 
     /// Room for the files, their columns and the floating controls before Details gives way.
@@ -220,6 +230,19 @@ struct BrowserView: View {
             .pickerStyle(.segmented)
         }
         .overflowPriority(keepsVisible: false)
+
+        // Editing gets its own capsule, apart from the view modes and Checkup, so the first edit
+        // changes only that capsule.
+        ToolbarSpacer(.fixed)
+
+        // Editing, there before the first edit (#216): Delete for the selection, Save for the
+        // archive. Both are always shown; they say when there's nothing to do by being disabled.
+        ToolbarItemGroup {
+            ArchiveEditingControls(model: model)
+        }
+        .overflowPriority(keepsVisible: true)
+
+        ToolbarSpacer(.fixed)
 
         // The archive's own state — safe or not, locked or not — always in reach.
         ToolbarItemGroup(placement: .primaryAction) {
