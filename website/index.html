@@ -251,7 +251,7 @@ section { padding: clamp(80px, 12vw, 148px) 0; }
 .seg .thumb { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px;
   background: var(--surface); box-shadow: var(--shadow-1), 0 0 0 1px var(--line); transition: transform 300ms var(--ease-out); }
 .seg[data-at="1"] .thumb { transform: translateX(100%); }
-.tour-stage { position: relative; aspect-ratio: 1600 / 1164; margin: 24px -3% 0; }
+.tour-stage { position: relative; aspect-ratio: 1824 / 1370; margin: 24px -3% 0; }
 .tour-frame { position: absolute; inset: 0; margin: 0; opacity: 0; transition: opacity 500ms var(--ease-in-out); }
 .tour-frame[data-on] { opacity: 1; }
 .tour-frame img { width: 100%; height: 100%; object-fit: contain; }
@@ -548,7 +548,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   <div class="hero-shot">
     <picture>
       <source srcset="assets/grid-dark.webp" media="(prefers-color-scheme: dark)">
-      <img src="assets/grid-light.webp" width="2000" height="1214" fetchpriority="high" alt="Stow showing the Photos folder of an archive: a sidebar with the archive card and Checkup status, image thumbnails, two selected photos, and a floating capsule offering Quick Look and Extract.">
+      <img src="assets/grid-light.webp" width="2224" height="1438" fetchpriority="high" alt="Stow showing the Photos folder of Harbor Rebrand Handoff.zip: five photo thumbnails, two of them selected, a details panel with the selection, and Extract at the bottom.">
     </picture>
   </div>
 </section>
@@ -608,11 +608,11 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       </div>
     <div class="tour-panel" role="tabpanel" id="tour-checkup" aria-labelledby="tab-checkup">
       <div class="tour-stage">
-        <figure class="tour-frame" data-on><picture><source srcset="assets/tour/checkup-1-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tour/checkup-1-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The archive just opened at its Prototype folder, nothing selected: Harbor Prototype.app and Install Helper.pkg, with the inspector listing the Checkup, starting with “Harbor Prototype.app isn’t notarized”."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-2-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The Prototype folder with Harbor Prototype.app selected. The inspector offers Install App, and the archive card says “Checkup: 1 thing to know”."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-3-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="A sheet: “Harbor Prototype” isn’t notarized by Apple, with Install Anyway and Cancel."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-4-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="A sheet asking to replace the installed Harbor Prototype version 1.2 with version 1.3 from the archive, with Cancel, Keep Both and Replace."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-5-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The Prototype folder with Harbor Prototype.app selected and a status capsule saying “Installed in Applications”."></picture></figure>
+        <figure class="tour-frame" data-on><picture><source srcset="assets/tour/checkup-1-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tour/checkup-1-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="Harbor Prototype 1.3.zip just opened, nothing selected: Harbor Prototype.app and Install Helper.pkg, with the inspector listing the Checkup, starting with “Harbor Prototype.app isn’t notarized”."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-2-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="Harbor Prototype.app selected. The inspector shows the app, and the main button reads Install App."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-3-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="A sheet: “Harbor Prototype” isn’t notarized by Apple, with Install Anyway and Cancel."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-4-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="A sheet asking to replace the installed Harbor Prototype version 1.2 with version 1.3 from the archive, with Cancel, Keep Both and Replace."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-5-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="Harbor Prototype.app selected and a status capsule saying it was installed in Applications."></picture></figure>
       </div>
       <div class="tour-foot">
         <ol class="tour-steps" aria-label="Checkup steps">
@@ -627,17 +627,17 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     </div>
     <div class="tour-panel" role="tabpanel" id="tour-pack" aria-labelledby="tab-pack" hidden>
       <div class="tour-stage">
-        <figure class="tour-frame" data-on><picture><source data-srcset="assets/tour/pack-1-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-1-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The pack sheet: “Pack “Harbor Handoff” as a ZIP for Windows PCs, without a password, as one file”, reporting 3 names adjusted and 3 Mac-only files left out."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-2-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The same pack sentence, now for Macs, with its report."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-3-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The pack sheet for Linux and servers, with More Options open: Balanced compression, and Verify ticked to test every file once it’s packed."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-4-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="A capsule at the bottom of the window showing Harbor Handoff.zip being packed."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-5-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The capsule saying Harbor Handoff.zip was packed and tested."></picture></figure>
+        <figure class="tour-frame" data-on><picture><source data-srcset="assets/tour/pack-1-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-1-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The pack sheet: “Pack “Harbor Handoff” as a ZIP for Windows PCs, without a password, as one file”, reporting 3 names adjusted and 3 Mac-only files left out."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-2-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The same pack sentence, now for Macs, with its report."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-3-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The pack sheet for Linux and servers: Mac-only files left out, and permissions and symlinks kept."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-4-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="A capsule at the bottom of the window showing Harbor Handoff.zip being packed."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-5-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The capsule saying Harbor Handoff.zip was packed and tested."></picture></figure>
       </div>
       <div class="tour-foot">
         <ol class="tour-steps" aria-label="Pack steps">
           <li><button type="button"><span class="bar"><i></i></span><b>Say who it’s for</b><span>Pack “Harbor Handoff” as a ZIP for Windows PCs. Names Windows rejects get fixed; Mac-only files stay out.</span></button></li>
           <li><button type="button"><span class="bar"><i></i></span><b>Change a word</b><span>Pick Macs instead, and the report below follows.</span></button></li>
-          <li><button type="button"><span class="bar"><i></i></span><b>Linux &amp; servers</b><span>Permissions and symlinks stay. Under More Options, Verify is on.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Linux &amp; servers</b><span>Permissions and symlinks stay, and Mac-only files stay out.</span></button></li>
           <li><button type="button"><span class="bar"><i></i></span><b>Pack</b><span>Progress stays in a small capsule, out of the way.</span></button></li>
           <li><button type="button"><span class="bar"><i></i></span><b>Tested</b><span>Packed, and every file tested before you send it.</span></button></li>
         </ol>
@@ -699,7 +699,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     <div class="shot steps-shot reveal">
       <picture>
         <source srcset="assets/steps-dark.webp" media="(prefers-color-scheme: dark)">
-        <img src="assets/steps-light.webp" width="1800" height="1093" loading="lazy" decoding="async" alt="Three font files selected in Stow, each shown as a type specimen. The floating capsule offers Install 3 Fonts, Quick Look and Extract.">
+        <img src="assets/steps-light.webp" width="2024" height="1318" loading="lazy" decoding="async" alt="Three font files selected in Stow, each shown as a type specimen, with Install 3 Fonts as the main button.">
       </picture>
     </div>
   </div>
@@ -721,7 +721,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       </ul>
     </div>
     <div class="shot steps-shot reveal">
-      <picture><source srcset="assets/editing-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/editing-light.webp" width="1800" height="1093" loading="lazy" decoding="async" alt="Stow editing the Photos folder of an archive: Contact Sheet.pdf and Field Notes.txt marked New, Harbor Lighthouse.jpg marked Renamed, and a bar at the bottom reading “3 unsaved changes” with Revert and Save."></picture>
+      <picture><source srcset="assets/editing-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/editing-light.webp" width="2024" height="1318" loading="lazy" decoding="async" alt="Stow editing the Photos folder of an archive: Contact Sheet.pdf and Field Notes.txt marked New, Harbor Lighthouse.jpg marked Renamed, Save in the title bar, and a bar at the bottom reading “3 unsaved changes” with Revert."></picture>
     </div>
   </div>
 </section>
@@ -754,19 +754,19 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     <div class="gallery">
       <article class="card reveal" style="--i:0">
         <div class="copy"><h3>Glance</h3><p>A small window that opens right by the pointer. See what’s inside, extract, and get back to work.</p></div>
-        <div class="pic pic-glance"><picture><source srcset="assets/glance-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/glance-light.webp" width="900" height="1008" loading="lazy" decoding="async" alt="Glance: a compact window listing the Photos folder, two photos selected, with Quick Look and Extract."></picture></div>
+        <div class="pic pic-glance"><picture><source srcset="assets/glance-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/glance-light.webp" width="1104" height="1224" loading="lazy" decoding="async" alt="Glance: a compact window listing the Photos folder, two photos selected, with Quick Look and Extract."></picture></div>
       </article>
       <article class="card reveal" style="--i:1">
         <div class="copy"><h3>The Tray</h3><p>A shelf for files from anywhere, one click away in the menu bar. Gather them, then pack them or drag them out together.</p></div>
-        <div class="pic pic-tray"><picture><source srcset="assets/tray-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tray-light.webp" width="692" height="985" loading="lazy" decoding="async" alt="The Tray panel holding six items, two selected, with a Pack button."></picture></div>
+        <div class="pic pic-tray"><picture><source srcset="assets/tray-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tray-light.webp" width="696" height="976" loading="lazy" decoding="async" alt="The Tray panel holding six items, two selected, with a Pack button."></picture></div>
       </article>
       <article class="card reveal" style="--i:0">
         <div class="copy"><h3>Open Recent</h3><p>The welcome window keeps your recent archives, with where they are and when you last opened them.</p></div>
-        <div class="pic pic-recents"><picture><source srcset="assets/recents-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/recents-light.webp" width="1200" height="873" loading="lazy" decoding="async" alt="The welcome window: a drop area above a list of recent archives, each with its folder and when it was opened."></picture></div>
+        <div class="pic pic-recents"><picture><source srcset="assets/recents-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/recents-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The welcome window: a drop area above a list of recent archives, each with its folder and when it was opened."></picture></div>
       </article>
       <article class="card reveal" style="--i:1">
         <div class="copy"><h3>Quick Look</h3><p>Press Space on an archive in Finder to see its contents and its Checkup, without opening Stow.</p></div>
-        <div class="pic pic-quicklook"><picture><source srcset="assets/quicklook-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/quicklook-light.webp" width="1100" height="903" loading="lazy" decoding="async" alt="A Quick Look preview of a ZIP: its size, a Checkup line saying an app isn’t notarized, and the folder tree with file sizes."></picture></div>
+        <div class="pic pic-quicklook"><picture><source srcset="assets/quicklook-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/quicklook-light.webp" width="1504" height="1248" loading="lazy" decoding="async" alt="A Quick Look preview of a ZIP: its size, a Checkup line saying names and sizes look normal, and the folder tree with file sizes."></picture></div>
       </article>
     </div>
   </div>

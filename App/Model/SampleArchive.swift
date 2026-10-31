@@ -89,6 +89,38 @@ enum SampleArchive {
         )
     }
 
+    /// A beta build handed to testers: the app the Checkup walkthrough installs. Try the Sample's ZIP
+    /// holds no app (#91), so the walkthrough shows this archive under its own name instead of
+    /// pretending the sample has a Prototype folder.
+    static func prototypeBuild() -> Archive {
+        let modified = Date(timeIntervalSince1970: 1_791_000_000)
+        return Archive(
+            name: "Harbor Prototype 1.3.zip",
+            format: .zip,
+            files: [
+                ArchiveEntry(path: "Harbor Prototype.app", isFolder: false, size: 48_600_000, packedSize: 21_400_000, modified: modified),
+                ArchiveEntry(path: "Install Helper.pkg", isFolder: false, size: 3_400_000, packedSize: 3_150_000, modified: modified),
+            ],
+            checkup: [
+                CheckupFinding(
+                    severity: .caution,
+                    title: String(localized: "Harbor Prototype.app isn’t notarized"),
+                    detail: String(localized: "macOS will ask before opening it. Only run it if you trust whoever sent this.")
+                ),
+                CheckupFinding(
+                    severity: .handled,
+                    title: String(localized: "1 path tried to leave the folder"),
+                    detail: String(localized: "“../../.zshrc” will be kept inside the destination folder instead.")
+                ),
+                CheckupFinding(
+                    severity: .fine,
+                    title: String(localized: "Names and sizes look normal"),
+                    detail: String(localized: "Nothing expands unusually and no names collide.")
+                ),
+            ]
+        )
+    }
+
     /// What's inside "Earlier Rounds/Old Explorations.7z", for the demo that searches into it.
     static let oldExplorations: [ArchiveEntry] = ([
         ("Round 1/Wordmark Ideas.pdf", 2_400_000), ("Round 2/Wordmark Draft.svg", 31_000),

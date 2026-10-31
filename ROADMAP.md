@@ -113,7 +113,7 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 | Consistency | One progress capsule style for packing, extracting, installing and batch; one prompt style for conflicts, signatures and passwords. |
 | Accessibility | done (#29): composed VoiceOver labels (grid, list, columns, Glance, Tray, nested search results, Next Steps summary), headers for the rotor, reading order content → Details → archive controls → Actions, keyboard paths (Tray rows, onboarding, Quick Look); no animation for keyboard actions, solid surfaces under Reduce Transparency, stronger outlines and metadata under Increase Contrast. Manual VoiceOver checklist in #66 / #38 |
 | Empty and error states | Every failure says what happened and what to do, in plain words, with one action. |
-| Website | Every screenshot shows the real Harbor sample, rendered locally with `scripts/snapshot.sh` as full windows with transparent shadows, in light and dark. A real product video of Pack and Checkup remains open (#31). |
+| Website | `scripts/website-shots.sh` retakes every screenshot and walkthrough frame in light and dark. Browsing shots open Try the Sample's own ZIP through the engine; the Checkup walkthrough shows a separate app build ("Harbor Prototype 1.3.zip") because the sample holds no app. A real product video of Pack and Checkup remains open (#31). |
 
 ## Release engineering
 
@@ -140,7 +140,7 @@ Editing, Glance (including colourful controls), Tray, Settings, onboarding, Simp
 Next Steps customisation, iCloud download handling, Open Recent, nested search, promised-file drops,
 DMG creation and the app icon are implemented. Items marked 🧪 in [PARITY.md](PARITY.md) still need
 verification; they are not unimplemented features. Clean-Mac Gatekeeper, live Sparkle updates and
-other manual checks remain below. Harbor sample files and Try the Sample wiring are on main (#70). Website shots and hover-demo thumbs use those assets. The hero, Next Steps, editing, Glance, Tray and Quick Look shots were re-rendered locally after the CI-based refresh cropped windows, lost transparency and duplicated the hero; the walkthrough frames are full-window renders, with the first re-rendered for the new helper-files Checkup copy. Handing the sample to the #31 video remains open on #69.
+other manual checks remain below. Harbor sample files and Try the Sample wiring are on main (#70). Website shots and hover-demo thumbs use those assets. All website shots and walkthrough frames were retaken with `scripts/website-shots.sh` on the current UI (#69); the browsing shots come from the bundled sample ZIP, so they match Try the Sample. Handing the sample to the #31 video remains open on #69 (it needs the signed build, #32).
 
 ## Tests not yet conducted
 
