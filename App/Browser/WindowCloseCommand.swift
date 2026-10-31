@@ -40,7 +40,10 @@ final class WindowCloseCommand {
         if window === app.glance.window {
             // Hidden traffic lights can make performClose beep. Match Glance's Close button,
             // retaining the archive session, and stop an opening that no longer has a window.
-            if app.glance.pendingName != nil { app.cancelOpening() }
+            if app.glance.pendingName != nil {
+                app.cancelCloudDownload()
+                app.cancelOpening()
+            }
             app.glance.close()
         } else if window is TrayPanel {
             app.tray.hide()

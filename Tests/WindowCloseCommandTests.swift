@@ -95,9 +95,12 @@ struct WindowCloseCommandTests {
         app.glance.open(URL(filePath: "/tmp/Absent-Close-\(UUID().uuidString).zip"))
         defer { app.glance.close(); app.cancelOpening() }
         let window = try #require(app.glance.window)
+        let download = CloudDownload(name: "Pending.zip", isICloud: true)
+        app.cloudDownload = download
         #expect(app.isOpening && app.glance.pendingName != nil)
         command.perform(in: window, app: app)
         #expect(!app.isOpening && !app.glance.isShown)
+        #expect(download.isCancelled && app.cloudDownload == nil)
         try await Task.sleep(for: .milliseconds(100))
         #expect(app.browser == nil && app.openFailure == nil)
     }
