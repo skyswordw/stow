@@ -241,8 +241,12 @@ Reduced Transparency: glass falls back to solid window background (the system do
   optional compact experience. The exact home of Archive Info remains Claude Code's decision.
 - **Checkup** lists findings in plain words: "2 files would extract outside the folder — they'll be
   kept inside", "1 app inside is not signed".
-- **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
-  Windows, Mac-only files left out, the estimated size. **More Options** is a full-strength heading
+- **Pack sentence** shows a live report underneath of what it will do. When the archive is split it
+  leads with what comes out: about how many parts, their numbered names ("Harbor.zip.001 – .003"),
+  each part's limit, and that opening it needs every part and an app that joins them. Then what
+  changes on the way: names adjusted for Windows, Mac-only files left out (or kept, when More Options
+  kept them). The footer says the size as an estimate in words ("About 27.3 MB in 3 parts"), beside
+  Cancel and Pack, where it stays in view however far the middle scrolls. **More Options** is a full-strength heading
   that lists its current settings while closed (up to two lines; a choice changed from the purpose
   is named, the usual ones go without saying). Inside, hairlines divide a few groups: what comes
   out (compression, parts, verify), a disk image's layout, what the password covers, what a Mac
@@ -251,7 +255,7 @@ Reduced Transparency: glass falls back to solid window background (the system do
   something differs. Choices a format can't offer say why in plain words instead of only in a
   tooltip; a choice that can't apply at all (Encrypt file names without a password) isn't shown.
   **Custom…** opens one part-size editor in a popover from whatever was clicked, with the part
-  count for these items. When the screen is short, only the middle of the sheet scrolls (its
+  count and part names for these items as people type. When the screen is short, only the middle of the sheet scrolls (its
   cut-off edge fades) and the name, Cancel and Pack stay put.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
   It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't

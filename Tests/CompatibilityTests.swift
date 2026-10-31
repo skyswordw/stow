@@ -218,3 +218,50 @@ struct NextStepTests {
         #expect(NextStep.suggestions(for: []).isEmpty)
     }
 }
+
+/// What the report says comes out (#153): the numbered parts and the Mac files More Options kept.
+@Suite("Pack outcome")
+struct PackOutcomeTests {
+    @Test func oneFileHasNoPartsNote() {
+        #expect(Compatibility.partsNote(for: PackOptions(), parts: 1, archiveName: "Harbor") == nil)
+    }
+
+    @Test func diskImageHasNoPartsNote() {
+        var options = PackOptions()
+        options.setAudience(.mac)
+        options.split = .mb100
+        options.setFormat(.dmg)
+        #expect(Compatibility.partsNote(for: options, parts: 3, archiveName: "Harbor") == nil)
+    }
+
+    @Test func severalPartsNameTheRangeAndTheSize() throws {
+        var options = PackOptions()
+        options.split = SplitSize(rawValue: 10_000_000)
+        let note = try #require(Compatibility.partsNote(for: options, parts: 3, archiveName: "Harbor"))
+        #expect(note.title.contains("3"))
+        #expect(note.detail.hasPrefix("Harbor.zip.001 – .003"))
+        #expect(note.detail.contains("10 MB"))
+    }
+
+    @Test func onePartNamesTheFirstPart() throws {
+        var options = PackOptions()
+        options.split = .mb100
+        let note = try #require(Compatibility.partsNote(for: options, parts: 1, archiveName: "Harbor"))
+        #expect(note.detail.contains("Harbor.zip.001"))
+        #expect(!note.detail.contains(" – "))
+    }
+
+    @Test func partNamesFollowTheFormat() {
+        #expect(Compatibility.partNames(archiveName: "Harbor", format: .sevenZip, parts: 12) == "Harbor.7z.001 – .012")
+        #expect(Compatibility.partNames(archiveName: "Harbor", format: .tarGz, parts: 1) == "Harbor.tar.gz.001")
+    }
+
+    @Test func keptMacHelperFilesAreCounted() {
+        var options = PackOptions()
+        #expect(Compatibility.report(for: SampleArchive.packCandidates, options: options).includedMacHelperFiles == 0)
+        options.setIncludesMacHelperFiles(true)
+        let report = Compatibility.report(for: SampleArchive.packCandidates, options: options)
+        #expect(report.excluded.isEmpty)
+        #expect(report.includedMacHelperFiles == 4)
+    }
+}
