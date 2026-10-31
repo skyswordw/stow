@@ -57,6 +57,20 @@ source integrity and cancellation behavior are unchanged. #212 and the broader #
 The optional nonmodal persistence-warning proposal from #223 still belongs to a separate design
 and functional decision.
 
+## Settings native follow-up — #162
+
+The branch build opened Settings directly on Actions through `-StowSettingsPane nextSteps`.
+Clicking the sidebar and pressing Down selected Glance and displayed its controls. The
+Integration fixture showed all 11 fictional folder grants; scrolling reached the bottom.
+Command-W followed by Command-comma reopened the same Integration page and retained its scroll
+position. No preference switch, folder grant or password was changed.
+
+These checks add evidence to #224's existing design captures and the automated reset/routing
+tests. Tab did not expose a focused detail control in the current system keyboard-navigation
+configuration, so a full keyboard traversal is not claimed. The real Customize Actions/Welcome
+deep-link click-through and display-preference matrix also remain unverified in this pass;
+#162 remains open with this narrower acceptance status.
+
 ## Encrypted split packing — #38 item 10
 
 The new regression combines password-protected 7Z creation, encrypted filenames, 100,000-byte
@@ -79,12 +93,12 @@ Intel hardware remain separate #38 coverage. All inputs and destinations were ta
 
 | Issue | Disposition after this scan |
 | --- | --- |
-| #215, #216 | Delivered by #222 and independently verified above; ready to close |
+| #215, #216 | Delivered by #222, independently verified above, and closed during this scan |
 | #213 | Picker-host functional fix in this change; remaining native/design follow-ups stay explicit |
 | #212 | Requires real WeChat input and the intended signed build; synthetic permission failure is insufficient |
 | #210 | Keep parent open for #212 and remaining recovery acceptance |
 | #153 | Advanced Pack UI shipped in #195; native archive readback added in #205. Remaining manual UI/CJK coverage is not claimed here |
-| #162 | Sidebar, Glance page and Actions preview shipped in #224; remaining native routing/long-list acceptance is not claimed here |
+| #162 | Sidebar, Glance page and Actions preview shipped in #224; native navigation, long-grant scrolling and reopen passed above; remaining acceptance stays explicit |
 | #160, #161, #104 | Remaining visual/motion review belongs to Claude Code; no new design work or approval claimed |
 | #144 | Low-priority direct x86_64 runtime investigation and physical Intel validation remain open |
 | #93 | Dedicated AX/VoiceOver investigation remains explicitly deferred; not closed by these checks |
@@ -103,5 +117,5 @@ was published. No user data, associations, real folder grants or saved credentia
   `scripts/ci-assert-tests.sh`. CI's minimum count is updated to 592.
 - Simplified Chinese: **0 missing of 1,090 strings**.
 - `xcodegen generate` left committed plists unchanged; `git diff --check` passed.
-- The repeated packing run retained 20 successful xcresult bundles. Its result does not depend
-  on the cosmetic progress counter or the broader full-suite result.
+- The repeated packing run retained 20 successful xcresult bundles, each checked for one
+  executed test and zero failures/skips.
