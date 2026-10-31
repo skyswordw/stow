@@ -37,6 +37,7 @@ import SwiftUI
 /// puts the pointer on that edge of the screen first, `-glance.pinned '<true/>'` pins it,
 /// `-StowReduceTransparency YES` shows the solid fallback). With -StowSnapshot it also writes
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
+/// glance-editing and glance-editing-saving: the editing scene's changes in Glance, nothing selected.
 /// Next Steps: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
 /// archive-app and glance-app: an archive that's one app with nothing selected, where Actions offers
@@ -309,8 +310,13 @@ enum DemoScene {
         case "integration":
             showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
-        case "glance", "glance-empty", "glance-search-empty", "glance-app":
-            if scene == "glance-app" {
+        case "glance", "glance-empty", "glance-search-empty", "glance-app", "glance-editing", "glance-editing-saving":
+            if scene.hasPrefix("glance-editing") {
+                // Nothing selected, so Extract All would otherwise be the window's primary action.
+                BrowseDemo.editing(in: app)
+                app.browser?.select([])
+                if scene == "glance-editing-saving" { app.browser?.editSession.showSavingForDemo(progress: 0.42) }
+            } else if scene == "glance-app" {
                 app.browser = oneAppArchive()
             } else if scene == "glance-search-empty" {
                 // The same search as the full window's "search-empty" scene.

@@ -122,7 +122,7 @@ the window and the folder in a bar under it, with Stow's own pieces.
 | Navigation, floating under the header | The Browser's capsule: Back · Forward · Up │ the path from the archive down, running the window's width (no Search beside it); a deep path fades at its start and keeps where you are in view |
 | Files | Name and size, straight on the window's one surface: Liquid Glass with a wash of the window colour for legibility, or classic frosted (Settings › General); solid under Reduce Transparency. No card, no frame. The badge and the rows' icons share the 16 pt margin |
 | Window controls, floating bottom leading | **Close** · **Pin on Top** · **Open in Full Window** in one glass capsule of icon buttons, like the navigation capsule's. Pinned: the pin fills in the accent with a ring round it |
-| Archive controls, floating after them | **Extract All**. When the row has no room for its words (400 pt with Actions showing), it keeps its icon alone |
+| Archive controls, floating after them | **Extract All**. When the row has no room for its words (400 pt with Actions showing), it keeps its icon alone. While changes are pending or saving it drops the accent, so the bar's Save, right under it, is the one prominent action |
 | Actions, floating bottom trailing | The full window's stack and rules: one prominent action at a time, Install App alone for an archive that's one app |
 | Under the files | The full window's unsaved-changes and changed-on-disk bars |
 
