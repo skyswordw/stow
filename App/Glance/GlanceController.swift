@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Where Glance opens: centred on the pointer with the pointer in its toolbar, so it seems to grow
+/// Where Glance opens: centred on the pointer with the pointer in its header, so it seems to grow
 /// out of what was clicked — then pulled back inside the screen's visible area (menu bar and Dock
 /// excluded) so no edge or corner is ever off screen.
 nonisolated enum GlancePlacement {
@@ -9,7 +9,7 @@ nonisolated enum GlancePlacement {
     static let minimumSize = CGSize(width: 400, height: 320)
     /// Kept clear between Glance and the edge of the visible area.
     static let margin: CGFloat = 8
-    /// How far above the pointer the window's top edge sits: the pointer lands in the toolbar.
+    /// How far above the pointer the window's top edge sits: the pointer lands in the header.
     static let pointerInset: CGFloat = 24
 
     /// The window frame in screen coordinates (AppKit: origin bottom-left, y up).
@@ -214,15 +214,20 @@ final class GlanceController: NSObject, NSWindowDelegate {
             NSApp.activate()
             window.makeKeyAndOrderFront(nil)
         }
-        // Apply after SwiftUI has installed the toolbar, including when the window is recreated.
+        // Each time it shows, so they stay hidden whatever the window went through since.
         updateWindowControls()
     }
 
-    /// The coloured toolbar replaces the traffic lights; switching off restores the usual chrome.
+    /// Glance is borderless (#159): its own Close, Pin on Top and Open in Full Window are along the
+    /// bottom, so the traffic lights never show. The window stays titled for ⌘W, ⌘M, resizing,
+    /// its shadow and corners, and its title in the Window menu.
     func updateWindowControls() {
-        let colourful = SettingsKeys.flag(SettingsKeys.glanceColourfulControls)
+        if let window { updateWindowControls(of: window) }
+    }
+
+    private func updateWindowControls(of window: NSWindow) {
         for button: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
-            window?.standardWindowButton(button)?.isHidden = colourful
+            window.standardWindowButton(button)?.isHidden = true
         }
     }
 
@@ -247,8 +252,9 @@ final class GlanceController: NSObject, NSWindowDelegate {
                                   backing: .buffered, defer: true)
         window.identifier = NSUserInterfaceItemIdentifier(Self.windowIdentifier)
         window.isReleasedWhenClosed = false
+        // No title bar to see: the header inside the window names the archive and moves it.
         window.titlebarAppearsTransparent = true
-        window.toolbarStyle = .unifiedCompact
+        window.titleVisibility = .hidden
         window.isOpaque = false
         window.backgroundColor = .clear
         window.contentMinSize = GlancePlacement.minimumSize
@@ -259,11 +265,12 @@ final class GlanceController: NSObject, NSWindowDelegate {
         window.animationBehavior = .none
         window.delegate = self
         let host = NSHostingController(rootView: GlanceRoot(glance: self).environment(app ?? AppState()))
-        // SwiftUI's toolbar and title become the window's own.
-        host.sceneBridgingOptions = [.toolbars, .title]
+        // SwiftUI's title becomes the window's own (Window menu, Mission Control); there's no toolbar.
+        host.sceneBridgingOptions = [.title]
         host.sizingOptions = []
         window.contentViewController = host
         window.setContentSize(GlancePlacement.defaultSize)
+        updateWindowControls(of: window)
         return window
     }
 

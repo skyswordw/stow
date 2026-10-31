@@ -383,9 +383,11 @@ struct ActionButtonStyle: ButtonStyle {
     var prominent = false
     var iconOnly = false
     var height: CGFloat = Self.height
+    /// A switch that's on (Glance's Pin on Top): the symbol in the accent with a ring round it.
+    var isOn = false
 
     func makeBody(configuration: Configuration) -> some View {
-        ActionButtonBody(configuration: configuration, prominent: prominent, iconOnly: iconOnly, height: height)
+        ActionButtonBody(configuration: configuration, prominent: prominent, iconOnly: iconOnly, height: height, isOn: isOn)
     }
 }
 
@@ -394,6 +396,7 @@ private struct ActionButtonBody: View {
     let prominent: Bool
     let iconOnly: Bool
     let height: CGFloat
+    let isOn: Bool
     @State private var isHovering = false
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.colorSchemeContrast) private var contrast
@@ -401,7 +404,7 @@ private struct ActionButtonBody: View {
     var body: some View {
         configuration.label
             .font(.body.weight(prominent ? .semibold : .regular))
-            .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            .foregroundStyle(prominent ? AnyShapeStyle(.white) : isOn ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
             .padding(.horizontal, iconOnly ? 0 : Space.m)
             .frame(minWidth: height, minHeight: height)
             .background { background }
@@ -409,6 +412,9 @@ private struct ActionButtonBody: View {
                 // Increase Contrast outlines the primary, so it reads by shape as well as by colour.
                 if prominent, ContrastStyle.resolve(contrast).increased {
                     Capsule().strokeBorder(.primary.opacity(0.45))
+                }
+                if isOn {
+                    Capsule().strokeBorder(.tint, lineWidth: 1.5)
                 }
             }
             .contentShape(.capsule)
