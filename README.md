@@ -63,6 +63,10 @@ All archive parsing happens in `StowEngine.xpc`, a sandboxed XPC service that ru
   fd 3), so the engine needs no access to people's files at all.
 - **Listing:** `7zz l -slt`, parsed into `ArchiveListing`, mapped into `Archive` with names shown
   where they would actually be written, plus listing-time Checkup findings.
+- **Embedded ZIP compatibility:** after an unrecognized-input failure, listing, extraction and
+  verification retry with explicit ZIP scanning bounded by the prepared file size (`-tzip:s<size>b`).
+  Recognized damaged archives and password errors are not retried. Checkup retains prefix/tail
+  warnings; ZIPs with surrounding data are read-only so Save cannot discard unrelated bytes (#207).
 - **Extraction:** the engine extracts into its *own* container (the only place it can write) with
   `-bsp1` progress, removes links that point outside and device files, then streams the folder to
   Stow over a pipe as an Apple Archive. Stow unpacks it into `.itemReplacementDirectory` staging on
@@ -103,7 +107,8 @@ default. Options considered:
 
 | Approach | Verdict |
 | --- | --- |
-| Full Disk Access / no sandbox (what ArcZip does) | Rejected: far broader than any action needs |
+| Full Disk Access as a default prerequisite | Rejected: broader privacy access than archive actions need; it does not remove sandbox restrictions |
+| Remove the main app sandbox | Not chosen: retain scoped access and the separate sandboxed engine |
 | Access granted through the extension | Not available: the Finder Sync extension is sandboxed too and receives paths, not file access it could hand on |
 | Temporary-exception entitlements for home or `/` | Rejected: the same as no sandbox for people's files |
 | **One-time folder grant** | **Chosen** |
@@ -113,8 +118,13 @@ pointing at that folder and says why ("Choose Allow to let Stow extract … here
 anything in this folder"). Allow grants that folder and everything inside, kept as a
 security-scoped bookmark; picking a different folder uses it once and remembers nothing.
 Settings › Integration lists every grant with Remove. Services and opened documents already
-give Stow read access to the files themselves; the grant is only ever about writing next to them
-(and reading files handed over by the Finder extension).
+normally give Stow read access to the files themselves. When an archive open is denied (including
+files passed from another app), Stow offers the system picker at its source folder. Select that
+folder to remember access, or select only the original archive. Folder access includes read/write
+access to files and subfolders; Stow verifies the archive is readable before saving the grant and
+continuing the open. If access is still denied, it explains how to open an exported copy.
+Remove forgets the saved folder bookmark; existing file grants or macOS permissions may remain.
+See the [source-access plan](Handoff/source-file-access-plan.md) and its separate native acceptance.
 
 ## Installing from a sandbox
 

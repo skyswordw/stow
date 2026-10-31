@@ -17,6 +17,8 @@ final class AppState {
     /// Demo scenes keep their own list so screenshots never show (or change) real history.
     let recents = RecentArchives(defaults: UserDefaults.standard.string(forKey: "StowScene") == nil ? .standard : nil)
     var browser: BrowserModel?
+    /// A native window close leaves Stow running without presenting a replacement window.
+    private(set) var mainWindowDismissed = false
     var packRequest: PackRequest?
     var isChoosingArchive = false
     var isChoosingBatch = false
@@ -29,6 +31,8 @@ final class AppState {
 
     /// The open archive's security scope (Open panel URLs need it claimed; dropped URLs don't).
     private var scopedURL: URL?
+    private var sourceGrant: SourceReadAccess.Grant?
+    var sourceReadAccess = SourceReadAccess()
 
     /// Brings back the main window (it may have been closed while Stow kept running).
     var showMainWindow: () -> Void = {}
@@ -63,26 +67,32 @@ final class AppState {
 
     /// Lists a real archive through the engine and shows it in the browser.
     func open(_ url: URL) {
+        mainWindowDismissed = false
         cancelOpening()
+        openFailure = nil
         let id = UUID()
         openingID = id
         isOpening = true
         let scoped = url.startAccessingSecurityScopedResource()
         openingTask = Task {
-            defer { if openingID == id { isOpening = false; openingTask = nil } }
+            var recovered: SourceReadAccess.Grant?
+            var transferred = false
+            defer {
+                if !transferred {
+                    if scoped { url.stopAccessingSecurityScopedResource() }
+                    recovered?.release()
+                }
+                if openingID == id { isOpening = false; openingTask = nil }
+            }
             do {
                 if let browser, !(await browser.confirmDiscardingEdits()) {
-                    if scoped { url.stopAccessingSecurityScopedResource() }
                     return
                 }
+                try Task.checkCancellation()
                 try await waitForCloudDownload(url)
-                // Files in another app's private storage (WeChat, Mail…) that macOS won't let Stow
-                // read get plain words and a way to a readable copy, not "permission denied".
-                guard OtherAppFiles.canRead(url) else {
-                    if scoped { url.stopAccessingSecurityScopedResource() }
-                    openFailure = OpenFailure(failure: OtherAppFiles.unreadable(url), url: url)
-                    return
-                }
+                recovered = try await sourceReadAccess.acquire(url)
+                try Task.checkCancellation()
+                guard openingID == id else { throw CancellationError() }
                 try await DownloadCheck.waitUntilComplete(url)
                 let listing: ArchiveListing
                 let password: String?
@@ -95,10 +105,12 @@ final class AppState {
                     throw DiskImageCheck.explain(EngineError(error), for: url)
                 }
                 var archive = await Self.makeArchive(listing, url: url)
-                if Task.isCancelled { throw EngineError(.cancelled) }
+                if Task.isCancelled || openingID != id { throw EngineError(.cancelled) }
                 archive.source?.password = password
                 releaseScope()
                 scopedURL = scoped ? url : nil
+                sourceGrant = recovered
+                transferred = true
                 // Files received from a drag (Mail, chat apps) live in a folder Stow empties at launch.
                 if !OtherAppFiles.isReceived(url) { recents.add(url) }
                 if browser?.isListing == true { browser?.applyListing(archive, complete: true) }
@@ -107,12 +119,20 @@ final class AppState {
                     browser = makeBrowser(archive)
                 }
                 browser?.verifyDiskImage()
+                if let error = recovered?.persistenceError {
+                    var notice = Failure(String(localized: "Folder access wasn’t saved"),
+                                         advice: String(localized: "The archive is open, but Stow couldn’t remember this folder. You may need to allow access again next time."))
+                    notice.diagnostic = String(describing: error)
+                    openFailure = OpenFailure(failure: notice)
+                }
             } catch {
+                let denied = error as? SourceReadAccess.Denied
+                let underlying = error
                 let error = error is CancellationError ? EngineError(.cancelled) : EngineError(error)
                 if openingID == id, browser?.isListing == true { browser = nil }
-                if scoped { url.stopAccessingSecurityScopedResource() }
                 if openingID == id, error.failure != .cancelled {
-                    var failure = Failure(error, .open, name: url.lastPathComponent)
+                    var failure = denied.map { OtherAppFiles.unreadable(url, code: $0.code) }
+                        ?? Failure(underlying, .open, name: url.lastPathComponent)
                     // Disk images Stow can't read (encrypted, unusual formats) can still be opened by macOS.
                     if DiskImageCheck.isDiskImage(url), failure.kind == .notAnArchive || failure.kind == .other {
                         let original = failure
@@ -291,6 +311,7 @@ final class AppState {
 
     /// In-memory sample for design-review scenes (`DemoScene`, nested-search demos). Prefer `openSample()` for Try the Sample.
     func openArchive(named name: String) {
+        mainWindowDismissed = false
         cancelOpening()
         releaseScope()
         browser = makeBrowser(SampleArchive.make(named: name))
@@ -327,13 +348,37 @@ final class AppState {
     func closeArchive() {
         Task {
             guard await browser?.confirmDiscardingEdits() ?? true else { return }
-            cancelOpening()
-            releaseScope()
-            browser = nil
+            mainWindowDismissed = false
+            clearArchive()
         }
     }
 
+    /// Called only after AppKit has accepted the close (including the unsaved-edits decision).
+    /// Automatic Welcome/Browser handovers and transfers to Glance do not end the session.
+    func mainWindowDidClose(_ host: AppRoot.Host) {
+        guard WindowSwitch.ownsOpening(host, hasArchive: browser != nil,
+                                       glanceIsShown: glance.isShown) else { return }
+        mainWindowDismissed = true
+        clearArchive()
+    }
+
+    func prepareToShowMainWindow() {
+        mainWindowDismissed = false
+    }
+
+    private func clearArchive() {
+        browser?.quickLook.close()
+        browser?.cancelUnlocking()
+        cancelCloudDownload()
+        cancelOpening()
+        releaseScope()
+        browser = nil
+        openFailure = nil
+    }
+
     private func releaseScope() {
+        sourceGrant?.release()
+        sourceGrant = nil
         scopedURL?.stopAccessingSecurityScopedResource()
         scopedURL = nil
     }
@@ -419,10 +464,8 @@ struct RootView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
-            guard let window = notification.object as? NSWindow, window === rootWindow,
-                  WindowSwitch.ownsOpening(.browser, hasArchive: app.browser != nil,
-                                           glanceIsShown: app.glance.isShown) else { return }
-            app.cancelOpening()
+            guard let window = notification.object as? NSWindow, window === rootWindow else { return }
+            app.mainWindowDidClose(.browser)
         }
         .modifier(AppRoot(host: .browser))
     }
@@ -490,13 +533,18 @@ struct AppRoot: ViewModifier {
 
     private func routeShowMainWindow() {
         let open = openWindow
-        app.showMainWindow = { [weak app] in open(id: app?.browser == nil ? "welcome" : "main") }
+        app.showMainWindow = { [weak app] in
+            guard let app else { return }
+            app.prepareToShowMainWindow()
+            open(id: app.browser == nil ? "welcome" : "main")
+        }
     }
 
     /// An archive opened in the welcome, or the Browser's archive closed: the other window takes
     /// over. Glance showing the archive keeps the Browser away. A key press switches them without
     /// window animation (DESIGN.md › Motion).
     private func handOver(noArchive: Bool) {
+        guard !app.mainWindowDismissed else { return }
         let leaving: String, arriving: String?
         switch host {
         case .welcome where !noArchive: (leaving, arriving) = ("welcome", app.glance.isShown ? nil : "main")

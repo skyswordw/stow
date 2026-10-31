@@ -3,6 +3,13 @@ import Foundation
 nonisolated enum EditableFormat: String, Codable, CaseIterable, Sendable {
     case zip, sevenZip, tar
 
+    init?(listing: ArchiveListing, fileName: String) {
+        // Updating an embedded ZIP may discard or rewrite unrelated surrounding bytes.
+        guard listing.type.lowercased() != "zip" ||
+                ((listing.startOffset ?? 0) == 0 && (listing.tailSize ?? 0) == 0) else { return nil }
+        self.init(listingType: listing.type, fileName: fileName)
+    }
+
     init?(listingType: String, fileName: String) {
         let name = fileName.lowercased()
         guard !name.contains(".tar."), name.range(of: #"\.(\d{3,}|z\d+|r\d+)$|(^|\.)part\d+\.|\.(tgz|tbz2?|txz|gz|bz2|xz|lz|lzma|zst)$"#,

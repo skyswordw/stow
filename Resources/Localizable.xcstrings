@@ -1,6 +1,116 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Allow read/write access to this archive only.\nOther files in this folder are not included.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许读写这个压缩包。\n不包含同一文件夹中的其他文件。"
+          }
+        }
+      }
+    },
+    "Allow read/write access to this folder and all its contents.\nStow will remember this folder for future opens.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许读写此文件夹及其中的所有文件和子文件夹。\nStow 会记住授权，以便下次打开。"
+          }
+        }
+      }
+    },
+    "Allow only this archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅允许这个压缩包"
+          }
+        }
+      }
+    },
+    "Stow still can’t read this file in %@’s storage. In %@, save a copy to Downloads, then open that copy in Stow.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 仍无法读取%@存储中的这个文件。请在%@中将副本存到“下载”，然后用 Stow 打开副本。"
+          }
+        }
+      }
+    },
+    "Stow still can’t read this file. Check its permissions in Finder, or save a copy to Downloads and open that copy.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 仍无法读取这个文件。请在访达中检查文件权限，或将副本存到“下载”后再打开。"
+          }
+        }
+      }
+    },
+    "Select the original archive or the folder containing it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择原压缩包或它所在的文件夹。"
+          }
+        }
+      }
+    },
+    "Folder access wasn’t saved": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能保存文件夹授权"
+          }
+        }
+      }
+    },
+    "The archive is open, but Stow couldn’t remember this folder. You may need to allow access again next time.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包已打开，但 Stow 未能记住这个文件夹的授权。下次可能需要重新授权。"
+          }
+        }
+      }
+    },
+    "None yet. When opening, extracting or compressing needs folder access, Stow asks you to choose a folder.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未授权文件夹。打开、解压或压缩需要访问文件夹时，Stow 会请你选择文件夹。"
+          }
+        }
+      }
+    },
+    "Folders Stow may access": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 可访问的文件夹"
+          }
+        }
+      }
+    },
+    "Folder access includes files and subfolders. Remove forgets Stow’s saved authorization; macOS may keep access until Stow quits. Some protected locations may still be unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹授权包含其中的文件和子文件夹。移除会删除 Stow 保存的授权；macOS 可能在 Stow 退出前仍保留访问权限。部分受保护的位置仍可能无法访问。"
+          }
+        }
+      }
+    },
     "Finder window layout": {
       "localizations": {
         "zh-Hans": {

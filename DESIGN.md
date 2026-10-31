@@ -65,10 +65,18 @@ evidence; its optional-pane composition and mockups are superseded.
 
 ## Browser layout (#160, #161)
 
+**Requested next iteration, 2026-10-27:** move Search to the upper toolbar so it no longer
+competes with the path, and make archive editing discoverable before the first edit. A stable
+Delete/Save toolbar entry is the recommended direction. Implementation is tracked in #215/#216;
+the installed app still has Search beside navigation and Save only after edits. This supersedes
+the earlier requirement to keep Search in the navigation row. Claude Code owns the responsive
+composition and the relationship with the pending-changes bar. See the
+[native comparison and functional brief](Handoff/browser-toolbar-search-editing.md).
+
 | Region | Holds |
 | --- | --- |
-| Title bar | The archive's name with a ⌄ menu (Archive Info, Show in Finder, Rename, Close), “ZIP archive · 17 files” under it; view mode; **Checkup** shield (and the password lock when encrypted) at the trailing edge |
-| Navigation, floating over the files | One glass capsule: Back · Forward · Up │ the path (a short path takes only its width; a deep one scrolls and fades at its start). **Search** in its own glass capsule on the trailing side |
+| Title bar | Archive name/menu and subtitle, view modes, **Checkup** and encrypted-archive controls. Next iteration (#215/#216): Search and discoverable editing controls, with intentional responsive priorities |
+| Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width and a deep path remains navigable. Next iteration (#215): remove Search's permanent width allocation from this row |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
 | Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
 | Archive controls, floating bottom leading | One glass capsule: **Glance** · **Extract All** |
@@ -214,7 +222,9 @@ Reduced Transparency: glass falls back to solid window background (the system do
   It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't
   be resized or zoomed. The drop zone sits on top, Recent below; with no history the drop zone is
   the whole window. Opening an archive brings up the Browser window at its last size and place and
-  closes the welcome; closing the archive brings the welcome back. Only one of them is open at a time.
+  closes the welcome; the Close Archive command brings the welcome back. Closing the Browser window
+  with the traffic light or ⌘W ends that archive session and leaves Stow running without a window;
+  reopening Stow from the Dock shows Welcome. Only one of them is open at a time.
 
 ## Not doing (on purpose)
 

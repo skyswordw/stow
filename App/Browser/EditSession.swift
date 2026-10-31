@@ -42,7 +42,7 @@ final class EditSession {
         self.url = url
         let resolvedName = name ?? url?.lastPathComponent ?? "Archive"
         self.name = resolvedName
-        format = nested ? nil : EditableFormat(listingType: base.type, fileName: resolvedName)
+        format = nested ? nil : EditableFormat(listing: base, fileName: resolvedName)
         identity = url.flatMap { try? FileIdentity(of: $0) }
         if let url { startWatching(url) }
     }
@@ -53,6 +53,16 @@ final class EditSession {
     }
 
     var isEdited: Bool { !operations.isEmpty }
+    /// Shared command enablement for menus and toolbar controls.
+    var canSave: Bool { isEdited && !isSaving && !changedOnDisk }
+    var canSaveCopy: Bool { isEdited && !isSaving }
+    var canRevert: Bool { isEdited && !isSaving }
+
+    /// Shared Delete command enablement; invocation still explains read-only or path refusals.
+    func canDelete(selectionIsEmpty: Bool, archiveOwnsFocus: Bool) -> Bool {
+        archiveOwnsFocus && !selectionIsEmpty && !isSaving
+    }
+
     var changeCount: Int { operations.count }
     var summary: String { String(localized: "\(changeCount) unsaved changes") }
     /// Banner: edits pending and the file on disk no longer matches what Stow opened.

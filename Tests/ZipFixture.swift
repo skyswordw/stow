@@ -33,6 +33,8 @@ struct ZipFixture {
     var prefix = Data()
     /// Bytes after the archive that aren't part of it.
     var suffix = Data()
+    /// Raw concatenation leaves offsets relative to the ZIP rather than the surrounding file.
+    var adjustOffsetsForPrefix = true
 
     func write(to url: URL) throws {
         var body = Data()
@@ -41,7 +43,7 @@ struct ZipFixture {
             let name = entry.rawName ?? Data(entry.name.utf8)
             let flags: UInt16 = entry.rawName == nil ? 0x0800 : 0
             let crc = Self.crc32(entry.data)
-            let offset = UInt32(prefix.count + body.count)
+            let offset = UInt32((adjustOffsetsForPrefix ? prefix.count : 0) + body.count)
             // DOS time 12:00, date 2026-10-20.
             let time: UInt16 = 12 << 11
             let date: UInt16 = UInt16((2026 - 1980) << 9 | 10 << 5 | 20)
@@ -68,7 +70,8 @@ struct ZipFixture {
         end.append(le: UInt32(0x0605_4b50))
         end.append(le: UInt16(0)); end.append(le: UInt16(0))
         end.append(le: UInt16(entries.count)); end.append(le: UInt16(entries.count))
-        end.append(le: UInt32(directory.count)); end.append(le: UInt32(prefix.count + body.count))
+        end.append(le: UInt32(directory.count))
+        end.append(le: UInt32((adjustOffsetsForPrefix ? prefix.count : 0) + body.count))
         end.append(le: UInt16(0))
         try (prefix + body + directory + end + suffix).write(to: url)
     }

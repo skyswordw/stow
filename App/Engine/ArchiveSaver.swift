@@ -80,7 +80,7 @@ enum ArchiveSaver {
         let manager = FileManager.default
         let engine = ArchiveEngine.shared
         let listing = try await engine.list(url, password: password)
-        guard let format = EditableFormat(listingType: listing.type, fileName: url.lastPathComponent) else {
+        guard let format = EditableFormat(listing: listing, fileName: url.lastPathComponent) else {
             throw EngineError(.failed, String(localized: "This archive format cannot be edited."))
         }
         let sources = items.compactMap { item -> ListedEntry? in

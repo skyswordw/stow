@@ -13,6 +13,47 @@ Claude Code retains visual and motion ownership.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Browser toolbar follow-up — #215, #216 (2026-10-27)
+
+The [native toolbar comparison](browser-toolbar-search-editing.md) records the user's request
+to move Search above the path and improve Delete/Save discoverability. It supersedes earlier
+instructions requiring Search beside the breadcrumbs. Search moves into the upper toolbar;
+a stable Delete/Save entry is the recommended editing direction. The exact composition and
+pending-changes-bar treatment remain Claude Code's responsibility. Preserve fixed Details,
+floating Actions, staged edits, source preservation, save/conflict recovery and keyboard routing.
+These are open implementation tasks, not shipped controls or final visual approval.
+
+## Browser window close and Dock reopen — 2026-10-28
+
+Codex owns this lifecycle correction; Claude Code retains visual and motion ownership.
+No animation timing or material changes, or Claude Code review, are claimed.
+
+The installed Stow 0.1.2 (516) retained its BrowserModel after the Browser window closed.
+Reactivation consequently restored the old archive. The user's captured frame additionally
+shows Welcome briefly behind Browser. The reopen delegate both explicitly presented a window
+and returned permission for AppKit's default reopen handling, leaving two presentation paths.
+
+Closing Browser with its close button or Command-W now clears the archive after the existing
+unsaved-edits gate accepts the close, cancels pending opening/unlocking, and releases the archive's
+security scope. It does not automatically present Welcome while the app stays in the background.
+The next reopen explicitly presents Welcome and suppresses AppKit's additional default handling.
+Close Archive remains an explicit return to Welcome. Browser-to-Glance transfers must establish
+Glance ownership before closing Browser, preserving the same model and editing history.
+
+Native comparison: ArcZip 1.1.5 returns to its welcome state after closing an opened ZIP and
+reactivating. Final validation uses main `9b9202a` plus this change, including the current Browser
+and Glance UI and scoped source-authorization recovery. Native close-button/reactivation checks
+show only Welcome; repeated opens and Browser/Glance round trips preserve the expected state.
+The earlier native unsaved-rename check confirmed Cancel retains edits and Don't Save closes the
+archive; the temporary rename was not saved. These are AX-assisted checks, not VoiceOver testing.
+
+Validation: 568 tests passed with no failures or skips; all 1067 user-facing strings have Simplified
+Chinese translations. The first incremental test host stalled during dynamic-library loading;
+a clean build in a separate derived-data directory completed the full suite successfully.
+Recordings remain local investigation artifacts; some desktop footage was occluded by other apps,
+so it is not exhaustive frame-by-frame motion approval. The installed application and registered
+Finder/Quick Look extensions were not replaced.
+
 ## Pack › DMG Finder layout — #85
 
 Confirmed scope: optional Finder window layout, default off, next to the Applications shortcut.
@@ -232,7 +273,11 @@ of a saved replacement. Failed saves keep the original and pending edits; Save r
 retry control. Cancellation does not show a save-error prompt.
 
 Input-open permission errors must explain that Stow could not read the archive (OPN-101),
-without offering Choose Another Folder. Save errors use the existing Failure prompt with
+without offering the destination action Choose Another Folder. The
+[source-access recovery plan](source-file-access-plan.md) adds a native picker for the original
+source file or its containing folder, followed by automatic retry; this is source authorization,
+not a change of extraction destination. Claude Code reviews its wording and transitions in #213.
+Save errors use the existing Failure prompt with
 Copy Details, rather than an internal temporary pathname as the heading. Claude Code owns
 visual and motion review under #104; this functional change does not imply design approval.
 Compare these recovery interactions with ArcZip while retaining Stow vocabulary. Native

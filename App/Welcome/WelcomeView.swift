@@ -22,10 +22,8 @@ struct WelcomeWindow: View {
             // does. The hand-over only closes it once the archive is in, and an archive opening into
             // Glance isn't this window's to cancel.
             .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
-                guard let closing = notification.object as? NSWindow, closing === window,
-                      WindowSwitch.ownsOpening(.welcome, hasArchive: app.browser != nil,
-                                               glanceIsShown: app.glance.isShown) else { return }
-                app.cancelOpening()
+                guard let closing = notification.object as? NSWindow, closing === window else { return }
+                app.mainWindowDidClose(.welcome)
             }
             .modifier(AppRoot(host: .welcome))
     }

@@ -202,7 +202,7 @@ final class EngineService: NSObject, EngineXPCProtocol, Sendable {
                         encryptedHeaders = true
                         listing = try await sevenZip.list(work, password: request.password)
                     }
-                    guard EditableFormat(listingType: listing.type, fileName: name) == request.format else {
+                    guard EditableFormat(listing: listing, fileName: name) == request.format else {
                         throw EngineError(.failed, String(localized: "This archive format cannot be edited."))
                     }
                     if listing.entries.contains(where: \.isEncrypted), request.password == nil {

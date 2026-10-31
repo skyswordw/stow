@@ -65,23 +65,29 @@ enum OtherAppFiles {
 
     /// Whether Stow may read the file's contents right now (folders count as readable).
     static func canRead(_ url: URL) -> Bool {
+        guard let code = readError(url) else { return true }
+        return code != EACCES && code != EPERM
+    }
+
+    /// Preserve the actual error; neither a container path nor EPERM identifies the denying policy.
+    static func readError(_ url: URL) -> Int32? {
         let descriptor = Darwin.open(url.path, O_RDONLY | O_NONBLOCK)
-        guard descriptor >= 0 else { return errno != EACCES && errno != EPERM }
+        guard descriptor >= 0 else { return errno }
         close(descriptor)
-        return true
+        return nil
     }
 
     /// The failure for a file macOS won't let Stow read, with the way to a copy it can read.
-    static func unreadable(_ url: URL, owner: Owner? = nil) -> Failure {
+    static func unreadable(_ url: URL, owner: Owner? = nil, code: Int32 = EACCES) -> Failure {
         let name = url.lastPathComponent
         let advice = if let owner = owner ?? self.owner(of: url) {
-            String(localized: "It’s kept in \(owner.name)’s own storage, which macOS keeps private. In \(owner.name), save it to Downloads or drag it to the desktop, then open that copy in Stow.")
+            String(localized: "Stow still can’t read this file in \(owner.name)’s storage. In \(owner.name), save a copy to Downloads, then open that copy in Stow.")
         } else {
-            String(localized: "macOS didn’t give Stow access to it. Drag it onto Stow from Finder, or choose it with File › Open Archive…, and macOS lets Stow read it.")
+            String(localized: "Stow still can’t read this file. Check its permissions in Finder, or save a copy to Downloads and open that copy.")
         }
-        var failure = Failure(kind: .other, title: String(localized: "Stow isn’t allowed to read “\(name)”"),
+        var failure = Failure(kind: .noReadAccess, title: String(localized: "Stow isn’t allowed to read “\(name)”"),
                               advice: advice, action: .showInFinder, code: ErrorCode(.open, .noReadAccess))
-        failure.diagnostic = "\(url.path) [\(NSPOSIXErrorDomain) \(EACCES)]"
+        failure.diagnostic = "\(url.path) [\(NSPOSIXErrorDomain) \(code)]"
         return failure
     }
 

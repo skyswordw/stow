@@ -13,6 +13,22 @@ import AppKit
 final class FolderAccess {
     static let shared = FolderAccess()
 
+    /// Injectable OS boundary for bookmark persistence and balanced scope-lifetime tests.
+    struct Bookmarks {
+        var resolve: @MainActor (Data) throws -> (url: URL, stale: Bool)
+        var create: @MainActor (URL) throws -> Data
+        var start: @MainActor (URL) -> Bool
+        var stop: @MainActor (URL) -> Void
+
+        static let live = Bookmarks(resolve: { data in
+            var stale = false
+            let url = try URL(resolvingBookmarkData: data, options: [.withSecurityScope, .withoutUI],
+                              bookmarkDataIsStale: &stale)
+            return (url, stale)
+        }, create: { try $0.bookmarkData(options: .withSecurityScope) },
+        start: { $0.startAccessingSecurityScopedResource() }, stop: { $0.stopAccessingSecurityScopedResource() })
+    }
+
     enum Purpose {
         case extract(String)
         case compress
@@ -33,29 +49,28 @@ final class FolderAccess {
     /// Granted folders whose scope is active (they stay active while Stow runs).
     private(set) var grants: [URL] = []
     private let defaults: UserDefaults
+    private let bookmarks: Bookmarks
     private static let key = "FolderGrants"
     /// Where the install flow kept its grants before there was one list.
     private static let legacyInstallKey = "install.folderBookmarks"
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, bookmarks: Bookmarks = .live) {
         self.defaults = defaults
+        self.bookmarks = bookmarks
         var stored = defaults.array(forKey: Self.key) as? [Data] ?? []
         let legacy = (defaults.dictionary(forKey: Self.legacyInstallKey) as? [String: Data]).map { Array($0.values) } ?? []
         stored += legacy
         var dropped = !legacy.isEmpty
         for data in stored {
-            var isStale = false
-            guard let url = try? URL(resolvingBookmarkData: data, options: [.withSecurityScope, .withoutUI],
-                                     bookmarkDataIsStale: &isStale),
-                  !grants.contains(url), url.startAccessingSecurityScopedResource() else {
+            guard let resolved = try? bookmarks.resolve(data),
+                  !grants.contains(resolved.url), bookmarks.start(resolved.url) else {
                 dropped = true
                 continue
             }
-            if isStale { dropped = true }
-            grants.append(url)
+            if resolved.stale { dropped = true }
+            grants.append(resolved.url)
         }
         if dropped {
-            grants = Self.minimal(grants)
             save()
             defaults.removeObject(forKey: Self.legacyInstallKey)
         }
@@ -95,9 +110,24 @@ final class FolderAccess {
     func revoke(_ folder: URL) {
         let path = folder.standardizedFileURL.path
         guard let index = grants.firstIndex(where: { $0.standardizedFileURL.path == path }) else { return }
-        grants[index].stopAccessingSecurityScopedResource()
+        bookmarks.stop(grants[index])
         grants.remove(at: index)
         save()
+    }
+
+    /// Called only after source read-back succeeds. Build bookmarks before changing active grants,
+    /// so a serialization failure leaves existing access intact and can be reported to the user.
+    func rememberSourceFolder(_ folder: URL) throws {
+        // An ancestor's sandbox grant does not supersede a protected descendant's explicit grant.
+        // Replace only the same path, using the fresh picker URL when reauthorizing stale access.
+        let retained = grants.filter { $0.standardizedFileURL.path != folder.standardizedFileURL.path } + [folder]
+        let data = try retained.map(bookmarks.create)
+        guard bookmarks.start(folder) else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        for old in grants where old.standardizedFileURL.path == folder.standardizedFileURL.path { bookmarks.stop(old) }
+        grants = retained
+        defaults.set(data, forKey: Self.key)
     }
 
     private func ask(for folder: URL, purpose: Purpose) async -> URL? {
@@ -125,25 +155,14 @@ final class FolderAccess {
     }
 
     private func remember(_ folder: URL) {
-        guard !grants.contains(folder), folder.startAccessingSecurityScopedResource() else { return }
+        guard !grants.contains(folder), bookmarks.start(folder) else { return }
         grants.append(folder)
-        // A grant inside another is redundant.
-        grants = Self.minimal(grants)
         save()
     }
 
     private func save() {
-        let data = grants.compactMap { try? $0.bookmarkData(options: .withSecurityScope) }
+        let data = grants.compactMap { try? bookmarks.create($0) }
         defaults.set(data, forKey: Self.key)
-    }
-
-    /// Drops folders already covered by another grant.
-    static func minimal(_ folders: [URL]) -> [URL] {
-        folders.filter { folder in
-            !folders.contains { other in
-                other != folder && PathContainment.isInside(folder.path, root: other.path)
-            }
-        }
     }
 
     /// The sandbox's answer, not the file system's permission bits: try it.
