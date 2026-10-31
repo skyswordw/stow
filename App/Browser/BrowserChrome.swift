@@ -163,3 +163,35 @@ struct ArchiveActions: View {
             .help(help)
     }
 }
+
+/// The files hold the keyboard unless Search does (#215). Two moments need help with the toolbar
+/// search field: when it lets go (Esc, or a click away), and when the window first becomes key,
+/// where AppKit makes the field the first responder without telling SwiftUI's focus state.
+private struct FilesTakeKeyboard: ViewModifier {
+    var isFocused: FocusState<Bool>.Binding
+    var isSearchFocused: FocusState<Bool>.Binding
+    @State private var window: NSWindow?
+    @State private var tookInitialFocus = false
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: isSearchFocused.wrappedValue) { _, searching in
+                if !searching { isFocused.wrappedValue = true }
+            }
+            .background { WindowReader { window = $0 } }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { note in
+                guard !tookInitialFocus, let window, note.object as? NSWindow === window else { return }
+                tookInitialFocus = true
+                guard !isSearchFocused.wrappedValue else { return }
+                // Re-assert: SwiftUI may already think the files have it.
+                isFocused.wrappedValue = false
+                DispatchQueue.main.async { isFocused.wrappedValue = true }
+            }
+    }
+}
+
+extension View {
+    func filesTakeKeyboard(_ isFocused: FocusState<Bool>.Binding, isSearchFocused: FocusState<Bool>.Binding) -> some View {
+        modifier(FilesTakeKeyboard(isFocused: isFocused, isSearchFocused: isSearchFocused))
+    }
+}

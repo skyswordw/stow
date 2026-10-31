@@ -86,6 +86,9 @@ struct ContentGrid: View {
         .focusEffectDisabled()
         .focused($isFocused)
         .onAppear { if !isSearchFocused.wrappedValue { isFocused = true } }
+        // Search hands the keyboard back to the files when it lets go (Esc, or a click away),
+        // and when the window first opens, so arrow keys work straight away.
+        .filesTakeKeyboard($isFocused, isSearchFocused: isSearchFocused)
         .browserKeys(model)
         .onChange(of: model.demoHover, initial: true) { if let id = model.demoHover { hover.present(id) } }
     }
@@ -334,6 +337,9 @@ struct ContentList: View {
             .alternatingRowBackgrounds(.disabled)
             .focused($isFocused)
             .onAppear { if !isSearchFocused.wrappedValue { isFocused = true } }
+            // Search hands the keyboard back to the files when it lets go (Esc, or a click away),
+            // and when the window first opens, so arrow keys work straight away.
+            .filesTakeKeyboard($isFocused, isSearchFocused: isSearchFocused)
             .collapsesSelectionOnClick(model) {
                 isSearchFocused.wrappedValue = false
                 isFocused = true
