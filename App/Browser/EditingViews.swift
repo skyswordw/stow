@@ -96,9 +96,12 @@ enum EditingBar {
 }
 
 /// "3 unsaved changes" with Revert and Save, the one prominent button. While saving, the bar
-/// shows the shared activity label instead, and nothing else can be pressed.
+/// shows the shared activity label instead, and nothing else can be pressed. The full window keeps
+/// Save in its title bar (`ArchiveEditingControls`), so its bar leaves Save out: one Save, where
+/// it was before anything changed. Glance has no title bar and keeps it here.
 struct UnsavedChangesBar: View {
     let model: BrowserModel
+    var showsSave = true
 
     var body: some View {
         let edits = model.editSession
@@ -133,9 +136,11 @@ struct UnsavedChangesBar: View {
                 Group {
                     Button("Revert") { model.revertEdits() }
                         .help("Drop every unsaved change")
-                    Button("Save") { Task { await model.saveEdits() } }
-                        .buttonStyle(.borderedProminent)
-                        .help("Write the changes into “\(edits.name)”")
+                    if showsSave {
+                        Button("Save") { Task { await model.saveEdits() } }
+                            .buttonStyle(.borderedProminent)
+                            .help("Write the changes into “\(edits.name)”")
+                    }
                 }
                 .fixedSize()
             }
@@ -153,6 +158,67 @@ struct UnsavedChangesBar: View {
         Image(systemName: "pencil.circle.fill")
             .foregroundStyle(.secondary)
             .accessibilityHidden(true)
+    }
+}
+
+/// The title bar's editing (#216): Delete for the selection, Save for the archive, there from the
+/// start so editing is found before the first edit rather than after. Nothing to do reads as
+/// disabled, never as missing. Save takes the accent and its name while there's something to
+/// save, like the bar's Save did; Delete stays quiet, since it only stages a change. Read-only archives keep
+/// Delete pressable so it can say why (as Edit › Delete does), with Extract and Repack.
+struct ArchiveEditingControls: View {
+    let model: BrowserModel
+
+    var body: some View {
+        let edits = model.editSession
+        let selection = Array(model.selection)
+        Button {
+            edits.delete(selection)
+        } label: {
+            Label("Delete", systemImage: "trash")
+        }
+        .disabled(!edits.canDelete(selectionIsEmpty: selection.isEmpty, archiveOwnsFocus: true))
+        .help(deleteHelp(selection))
+        .accessibilityLabel(String(localized: "Delete"))
+
+        Group {
+            if edits.canSave {
+                // Says its name while there's something to save: an icon alone in a filled
+                // circle reads as a pressed button, especially in a window that isn't active.
+                saveButton
+                    .labelStyle(.titleAndIcon)
+                    .buttonStyle(.borderedProminent)
+            } else {
+                saveButton.disabled(true)
+            }
+        }
+        .help(saveHelp)
+        .accessibilityLabel(String(localized: "Save"))
+    }
+
+    private var saveButton: some View {
+        Button {
+            Task { await model.saveEdits() }
+        } label: {
+            Label("Save", systemImage: "square.and.arrow.down")
+        }
+    }
+
+    private func deleteHelp(_ selection: [String]) -> String {
+        let edits = model.editSession
+        if edits.format == nil { return edits.readOnlyReason }
+        if let refusal = edits.refusal(for: selection) { return refusal }
+        if selection.isEmpty { return String(localized: "Select files to delete them from the archive") }
+        return String(localized: "Delete the selection from the archive. Nothing changes on disk until you save.")
+    }
+
+    private var saveHelp: String {
+        let edits = model.editSession
+        if edits.format == nil { return edits.readOnlyReason }
+        if edits.isSaving { return String(localized: "Saving…") }
+        if edits.showsExternalChange { return String(localized: "Save a copy to keep your changes.") }
+        if edits.canSave { return String(localized: "Write the changes into “\(edits.name)”") }
+        return String(localized: "No changes to save")
     }
 }
 

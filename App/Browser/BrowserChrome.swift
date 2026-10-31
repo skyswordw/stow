@@ -1,30 +1,23 @@
 import SwiftUI
 
-/// Sizes shared by the Browser's floating glass, so the navigation capsule, Search, the archive's
+/// Sizes shared by the Browser's floating glass, so the navigation capsule, the archive's
 /// controls and Actions read as one family: the same capsule, the same inset, buttons concentric
 /// inside it (button radius + inset = capsule radius).
 enum FloatingGlass {
-    /// The navigation capsule and Search.
+    /// The navigation capsule.
     static let barHeight: CGFloat = 36
     static let barInset: CGFloat = 3
 }
 
 /// The row over the top of the files (#160): Back, Forward and Up beside where you are, in one
-/// glass capsule, and Search on the trailing side. Everything for getting around, beside the files
-/// it works on.
+/// glass capsule. Search lives in the title bar (#215), so a deep path has the whole row.
 struct BrowserNavigation: View {
     @Bindable var model: BrowserModel
-    var isSearchFocused: FocusState<Bool>.Binding
 
     var body: some View {
         HStack(spacing: Space.s) {
             NavigationCapsule(model: model)
-                .layoutPriority(1)
-
             Spacer(minLength: 0)
-
-            ArchiveSearchField(model: model, isFocused: isSearchFocused)
-                .frame(minWidth: 150, idealWidth: 220, maxWidth: 240)
         }
         .padding(.horizontal, Space.m)
         .padding(.top, Space.xs)
@@ -67,47 +60,6 @@ struct NavigationCapsule: View {
             .accessibilityLabel(title)
             .help(help)
             .disabled(!enabled)
-    }
-}
-
-/// Search, beside the files it searches. Esc clears it, then hands the keyboard back.
-struct ArchiveSearchField: View {
-    @Bindable var model: BrowserModel
-    var isFocused: FocusState<Bool>.Binding
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            TextField(prompt, text: $model.query, prompt: Text(prompt))
-                .textFieldStyle(.plain)
-                .focused(isFocused)
-                .accessibilityLabel(String(localized: "Search"))
-                .onKeyPress(.escape) {
-                    if model.query.isEmpty { isFocused.wrappedValue = false } else { model.query = "" }
-                    return .handled
-                }
-            if !model.query.isEmpty {
-                Button(String(localized: "Clear Search"), systemImage: "xmark.circle.fill") { model.query = "" }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel(String(localized: "Clear Search"))
-                    .help(String(localized: "Clear Search"))
-            }
-        }
-        .padding(.horizontal, Space.m)
-        .frame(height: FloatingGlass.barHeight)
-        .accessibleGlass(in: .capsule)
-        .overlay {
-            Capsule().strokeBorder(Color.accentColor.opacity(isFocused.wrappedValue ? 0.6 : 0), lineWidth: 1.5)
-                .allowsHitTesting(false)
-        }
-    }
-
-    private var prompt: String {
-        model.indexingProgress ?? String(localized: "Search \(model.archive.files.count) files")
     }
 }
 
