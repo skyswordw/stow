@@ -120,10 +120,7 @@ final class AppState {
                 }
                 browser?.verifyDiskImage()
                 if let error = recovered?.persistenceError {
-                    var notice = Failure(String(localized: "Folder access wasn’t saved"),
-                                         advice: String(localized: "The archive is open for now, but Stow couldn’t save access to this folder, so it may ask again next time."))
-                    notice.diagnostic = String(describing: error)
-                    openFailure = OpenFailure(failure: notice)
+                    openFailure = OpenFailure(failure: Self.unsavedSourceAccess(error))
                 }
             } catch {
                 let denied = error as? SourceReadAccess.Denied
@@ -144,6 +141,14 @@ final class AppState {
                 }
             }
         }
+    }
+
+    /// The archive opened, but its folder's grant couldn't be saved for next time.
+    static func unsavedSourceAccess(_ error: Error) -> Failure {
+        var notice = Failure(String(localized: "Folder access wasn’t saved"),
+                             advice: String(localized: "The archive is open for now, but Stow couldn’t save access to this folder, so it may ask again next time."))
+        notice.diagnostic = String(describing: error)
+        return notice
     }
 
     func cancelOpening() {

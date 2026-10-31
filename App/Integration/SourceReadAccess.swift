@@ -87,20 +87,36 @@ final class SourceReadAccess {
     }
 }
 
+extension SourceReadAccess {
+    /// Design review only (DemoScene): shows the recovery picker for `file` and discards the answer.
+    static func showPanelForDemo(_ file: URL, fileOnly: Bool) async {
+        _ = try? await SourceAccessPanel.choose(file, fileOnly: fileOnly)
+    }
+}
+
 /// Native picker, including its own validation before macOS issues a user-selection grant.
 @MainActor
-private final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
+fileprivate final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
     let file: URL
     weak var panel: NSOpenPanel?
     private var fileOnly = false
 
     init(file: URL) { self.file = file }
 
+    /// The panel widens to fit its message rather than wrapping it, so a long name is shortened in
+    /// the middle, keeping its start and its date/extension end. The list below shows it in full.
+    static func displayName(_ file: URL, limit: Int = 48) -> String {
+        let name = file.lastPathComponent
+        guard name.count > limit else { return name }
+        let tail = 16
+        return String(name.prefix(limit - tail - 1)) + "…" + String(name.suffix(tail))
+    }
+
     func panel(_ sender: Any, validate url: URL) throws {
         let expected = fileOnly ? file : file.deletingLastPathComponent()
         guard url.standardizedFileURL.path == expected.standardizedFileURL.path else {
             // Name what the current mode can select: folders only, or this one file.
-            let name = file.lastPathComponent
+            let name = Self.displayName(file)
             let reason = fileOnly
                 ? String(localized: "Select “\(name)” to allow only this archive.")
                 : String(localized: "Choose the folder that contains “\(name)”.")
@@ -120,26 +136,34 @@ private final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
         panel?.directoryURL = file.deletingLastPathComponent()
         // A sheet has no title bar, so the message carries the archive's name. First line: what to
         // do; second: what the grant covers. Opening a source, not choosing where to extract.
-        let name = file.lastPathComponent
+        let name = Self.displayName(file)
         panel?.message = fileOnly
             ? String(localized: "Select “\(name)”, then choose Allow to open it.\nStow can read and write this archive only — not other files in this folder.")
             : String(localized: "Choose Allow to let Stow open “\(name)”.\nStow can then read and write everything in this folder, including subfolders, and remembers it for next time.")
     }
 
     static func choose(_ file: URL) async throws -> URL? {
+        try await choose(file, fileOnly: false)
+    }
+
+    /// `fileOnly` starts with "Allow only this archive" checked; only design-review scenes pass true.
+    static func choose(_ file: URL, fileOnly: Bool) async throws -> URL? {
         try Task.checkCancellation()
         let delegate = SourceAccessPanel(file: file)
         let panel = NSOpenPanel()
         panel.delegate = delegate
         delegate.panel = panel
+        delegate.fileOnly = fileOnly
         delegate.configureScope()
         panel.canCreateDirectories = false
         panel.allowsMultipleSelection = false
         panel.directoryURL = file.deletingLastPathComponent()
         panel.prompt = String(localized: "Allow")
         panel.title = String(localized: "Allow Access to “\(file.lastPathComponent)”")
-        panel.accessoryView = NSButton(checkboxWithTitle: String(localized: "Allow only this archive"),
-                                       target: delegate, action: #selector(changeScope(_:)))
+        let scope = NSButton(checkboxWithTitle: String(localized: "Allow only this archive"),
+                             target: delegate, action: #selector(changeScope(_:)))
+        scope.state = fileOnly ? .on : .off
+        panel.accessoryView = scope
         panel.isAccessoryViewDisclosed = true
         NSApp.activate()
         return try await withTaskCancellationHandler {
