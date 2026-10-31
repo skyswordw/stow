@@ -39,7 +39,14 @@ And when packing: **"Will it work on their computer?"**
 | Drop shelf | **Tray** | Floating panel that collects files from anywhere |
 | Purpose presets | **"For…" destinations** | Windows PCs · Macs · Linux & servers · Web upload |
 | Compression dialog | **Pack sentence** | Sentence-builder with tappable tokens |
-| Safety report | **Checkup** | Shield button in the title bar; findings in Archive Info |
+| Archive findings | **Archive Info** | Background checks remain; relevant notices appear with the files, ordinary findings are disclosed in archive information. Checkup remains an internal name. |
+
+**Clarity update, confirmed 2026-10-31 (#229/#230):** remove the permanent Checkup button
+and prominent normal-status report. Keep archive checks and concrete notices, without implying
+malware scanning or general safety. Archive Info remains reachable from the title menu during
+selection; Details labels its archive/file/folder/selection scope. This supersedes the historical
+always-visible shield guidance. See the [functional implementation handoff](Handoff/clarity-functional-implementation.md).
+The central Search/trailing-controls proposal remains a separate visual task in #231.
 
 **Current direction after the user's PR #177 review, 2026-10-24:** the full Browser remains
 the default; Glance is optional. The full Browser has a file workspace and **fixed, visible
@@ -68,7 +75,7 @@ evidence; its optional-pane composition and mockups are superseded.
 **Toolbar Search and editing (#215/#216, 2026-10-30).** Search is the system toolbar search
 field, trailing in the title bar: a field while the window has room, a magnifying-glass button
 when it doesn't, expanded by a click or ⌘F. The navigation row keeps its whole width for the path.
-Delete and Save sit in their own capsule between the view modes and Checkup from the moment an
+Delete and Save sit in their own capsule after the view modes from the moment an
 archive opens, disabled when there's nothing to delete or save, so editing is found before the
 first edit. Save is the one Save in the full window: with changes pending it becomes a prominent
 **Save** pill (accent, with its name); the bottom bar keeps the change count, "Nothing changes on
@@ -80,7 +87,7 @@ ArcZip observations behind this.
 
 | Region | Holds |
 | --- | --- |
-| Title bar | Archive name/menu and subtitle, view modes, **Delete · Save**, **Checkup** and encrypted-archive controls, then **Search**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and Checkup stay |
+| Title bar | Archive name/menu and subtitle, view modes, **Delete · Save**, encrypted-archive controls, then **Search**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and password access stay |
 | Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width and a deep path can use the whole row |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
 | Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
@@ -110,7 +117,7 @@ then Install App.
 One prominent action at a time: Extract All carries the accent while Actions is down; once
 Actions is up, for a selection or an archive's app, the stack's front does and Extract All stays
 put, unaccented. Archive facts live in one place, Archive Info, reached from Details with nothing
-selected, the Checkup button and the title menu. Everything floating shares one family: glass
+selected and the title menu. Everything floating shares one family: glass
 capsules, buttons concentric inside them (button radius + inset = capsule radius), 36–38 pt tall.
 Details is a solid reading surface with the same light rim, brighter along its top edge.
 
@@ -176,9 +183,9 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
 
 - **Accent — Amber** `#D97B2B` (light) / `#F0954A` (dark). Warm, like kraft paper and parcel tape;
   stands apart from the sea of blue utilities. Used sparingly: primary button, selection tint,
-  the drop target, and the Checkup badge when everything is fine is *green*, not amber.
+  and the drop target. No permanent all-clear badge is shown for archive metadata checks.
 - Everything else is system semantic color (`.primary`, `.secondary`, `.separator`, materials).
-- Status: safe = system green, caution = system yellow, blocked = system red. Always paired with an
+- Status: completed = system green, caution = system yellow, blocked = system red. Always paired with an
   icon and words — never color alone.
 
 ## Type
@@ -237,10 +244,11 @@ Reduced Transparency: glass falls back to solid window background (the system do
 
 - **Compact archive identity** in the Browser's title/navigation region. Detailed file counts,
   packed → unpacked sizes and compression facts have one home in Archive Info. Keep encryption
-  and Checkup directly discoverable. Full Browser Details stays visible; Glance provides the
+  and relevant archive notices directly discoverable. Full Browser Details stays visible; Glance provides the
   optional compact experience. The exact home of Archive Info remains Claude Code's decision.
-- **Checkup** lists findings in plain words: "2 files would extract outside the folder — they'll be
-  kept inside", "1 app inside is not signed".
+- **Archive findings** describe the specific scope and consequence. Their text distinguishes a
+  listing-time protection planned for extraction from a completed extraction audit. Ordinary
+  notes are available in Archive Info; normal state does not promote a separate Checkup feature.
 - **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
   Windows, Mac-only files left out, the estimated size. **More Options** is a full-strength heading
   that lists its current settings while closed (up to two lines; a choice changed from the purpose

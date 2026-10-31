@@ -70,7 +70,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .previews: String(localized: "Previews")
         case .passwords: String(localized: "Passwords")
         case .fileTypes: String(localized: "File Types")
-        case .integration: String(localized: "Integration")
+        case .integration: String(localized: "Finder & Permissions")
         case .advanced: String(localized: "Advanced")
         case .licenses: String(localized: "Licenses")
         }

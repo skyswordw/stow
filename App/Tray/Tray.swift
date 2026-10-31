@@ -540,6 +540,16 @@ final class TrayController {
         return chosen.isEmpty ? visibleItems : chosen
     }
     var targetURLs: [URL] { targets.compactMap(\.url) }
+    var packActionTitle: String {
+        selection.isEmpty ? String(localized: "Pack All Shown") : String(localized: "Pack Selected")
+    }
+    var opensArchiveInMainWindow: Bool {
+        let urls = targetURLs
+        return urls.count == 1 && ArchiveTypes.type(forFileName: urls[0].lastPathComponent) != nil
+    }
+    var mainWindowActionTitle: String {
+        opensArchiveInMainWindow ? String(localized: "Open Archive in Full Window") : String(localized: "Open Packing Window…")
+    }
 
     // MARK: - Actions
 
@@ -731,7 +741,7 @@ final class TrayController {
         let urls = targetURLs
         guard !urls.isEmpty else { return }
         app?.showMainWindow()
-        if urls.count == 1, ArchiveTypes.type(forFileName: urls[0].lastPathComponent) != nil {
+        if opensArchiveInMainWindow {
             app?.open(urls[0])
         } else {
             app?.pack(urls)
@@ -1096,14 +1106,16 @@ struct TrayView: View {
     @ViewBuilder private var actionsMenu: some View {
         Button("Quick Look") { tray.quickLook() }
         Divider()
-        Button("Pack…") { tray.pack() }
-        Button("Extract Here") { tray.extract() }.disabled(!tray.canExtract)
+        Button(tray.packActionTitle + "…") { tray.pack() }
+        Button("Extract Archives Beside Originals") { tray.extract() }
+            .disabled(!tray.canExtract)
+            .help("Only archives are extracted. Uses each archive’s folder unless you choose another location.")
         Button("Collect into a Folder…") { tray.beginCollecting() }
             .disabled(tray.targetURLs.isEmpty)
         Divider()
         Button("Share…") { tray.share(from: nil) }
         Button("Show in Finder") { tray.reveal() }
-        Button("Send to Main Window") { tray.sendToMainWindow() }
+        Button(tray.mainWindowActionTitle) { tray.sendToMainWindow() }
     }
 
     // MARK: Footer
@@ -1175,9 +1187,9 @@ struct TrayView: View {
             Button {
                 tray.pack()
             } label: {
-                Label("Pack", systemImage: "archivebox")
+                Label(tray.packActionTitle, systemImage: "archivebox")
             }
-            .accessibilityLabel(String(localized: "Pack"))
+            .accessibilityLabel(tray.packActionTitle)
             .buttonStyle(.borderedProminent)
             .help("Pack these into an archive")
         }

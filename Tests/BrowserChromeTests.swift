@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Stow
 
-/// The words the Browser's title, Details, Archive Info and Checkup button show (#160).
+/// The words the Browser's title, Details, Archive Info and archive findings show (#160).
 @Suite("Browser chrome")
 @MainActor
 struct BrowserChromeTests {
@@ -38,27 +38,48 @@ struct BrowserChromeTests {
         #expect(DetailsPane.compressedFigures(size: 100, packed: 60, staged: nil) == ("60 bytes", "40% smaller"))
         // Equal sizes don't say how a file was stored before; no "already compressed".
         #expect(DetailsPane.compressedFigures(size: 27, packed: 27, staged: nil) == ("27 bytes", nil))
-        #expect(DetailsPane.compressedFigures(size: 100, packed: nil, staged: nil) == ("Unavailable", nil))
-        #expect(DetailsPane.compressedFigures(size: 100, packed: 60, staged: "New") == ("When you save", nil))
+        #expect(DetailsPane.compressedFigures(size: 100, packed: nil, staged: nil) == ("Not reported by the archive", nil))
+        #expect(DetailsPane.compressedFigures(size: 100, packed: 60, staged: "New") == ("Available after saving", nil))
     }
 
     @Test func packedSizeSaysHowItChangedOrThatItIsUnknown() {
         #expect(ArchiveInfoView.packedFigures(Self.archive([Self.entry("a", size: 100, packed: 25)])) == ("25 bytes", "75% smaller"))
         #expect(ArchiveInfoView.packedFigures(Self.archive([Self.entry("a", size: 100, packed: 120)])) == ("120 bytes", "20% larger"))
         // A listing without packed sizes says so rather than "100% smaller".
-        #expect(ArchiveInfoView.packedFigures(Self.archive([Self.entry("a", size: 100, packed: nil)])) == ("Unavailable", nil))
+        #expect(ArchiveInfoView.packedFigures(Self.archive([Self.entry("a", size: 100, packed: nil)])) == ("Not reported by the archive", nil))
     }
 
-    @Test func checkupShieldFollowsTheFindings() {
+    @Test func normalFindingsDoNotDemandAttention() {
         let fine = CheckupFinding(severity: .fine, title: "Names and sizes look normal", detail: "")
-        let handled = CheckupFinding(severity: .handled, title: "1 path tried to leave the folder", detail: "")
-        let caution = CheckupFinding(severity: .caution, title: "Named .zip, but it’s really 7Z", detail: "")
+        let info = CheckupFinding(severity: .info, title: "Metadata", detail: "")
+        let planned = CheckupFinding(severity: .handled, title: "Links point outside", detail: "Will be left out")
+        let caution = CheckupFinding(severity: .caution, title: "Format mismatch", detail: "")
+        #expect(!fine.needsAttention && !info.needsAttention)
+        #expect(planned.needsAttention && caution.needsAttention)
+    }
 
-        let safe = CheckupStatus([fine])
-        // Checkup reads the listing, so it reports no warnings rather than calling the archive safe.
-        #expect(safe.symbol == "checkmark.shield.fill" && safe.summary == "Checkup: no warnings")
-        #expect(CheckupStatus([fine, handled]).summary == "Checkup: no warnings, 1 handled")
-        let warned = CheckupStatus([fine, caution, caution])
-        #expect(warned.symbol == "exclamationmark.shield.fill" && warned.summary == "Checkup: 2 things to know")
+    @Test func detailsNamesItsScopeAndDoesNotCountDescendantsTwice() {
+        let folder = Self.entry("Docs", size: 300, folder: true)
+        let child = Self.entry("Docs/a.txt", size: 100)
+        let archive = Self.entry("inner.zip", size: 50)
+        let nested = Self.entry("inner.zip/a.txt", size: 100)
+        #expect(DetailsPane.heading(for: []) == "Archive Info")
+        #expect(DetailsPane.heading(for: [folder]) == "Folder Info")
+        #expect(DetailsPane.heading(for: [child]) == "File Info")
+        #expect(DetailsPane.heading(for: [folder, child]) == "Selection Info")
+        #expect(DetailsPane.combinedSize(of: [folder, child, archive, nested, child]) == 350)
+        #expect(DetailsPane.combinedSize(of: [child, nested]) == 200)
+        #expect(DetailsPane.combinedSize(of: [Self.entry("Doc", size: 10), child]) == 110)
+    }
+
+    @Test func packedSizeLabelsKeepTheirMeasurementSourceAcrossRelisting() {
+        let file = Self.entry("a.txt", size: 100, packed: 50)
+        let entries = Self.archive([file])
+        #expect(!entries.packedSizeIncludesContainer)
+        let relisted = Archive(entries, files: [file], helpers: [], source: ArchiveSource(url: URL(filePath: "/tmp/clarity-test.zip"), storedPaths: [:]))
+        #expect(!relisted.packedSizeIncludesContainer && relisted.packedSize == 50)
+        let container = Archive(name: "a.7z", format: .sevenZip, files: [file], containerPackedSize: 90)
+        let updated = Archive(container, files: [file], helpers: [], source: ArchiveSource(url: URL(filePath: "/tmp/clarity-test.zip"), storedPaths: [:]))
+        #expect(updated.packedSizeIncludesContainer && updated.packedSize == 90)
     }
 }

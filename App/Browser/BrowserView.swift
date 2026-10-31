@@ -1,9 +1,8 @@
 import SwiftUI
 
 /// The Browser (#160): the archive's files and, beside them, Details, which is always there. The
-/// title bar says which archive this is, holds its editing (Delete, Save) and Search, and how
-/// Checkup went. Floating glass controls sit over the files: getting around above them, and below
-/// them the whole archive's controls
+/// title bar holds the archive identity, editing (Delete, Save), Search and password access.
+/// Floating glass controls sit over the files: navigation above them, and the archive controls below
 /// (Glance, Extract All) on the leading side and Actions on the trailing side: the selection's, or
 /// with nothing selected, installing an archive that's one app.
 /// There is no folder pane: the files, the path, Back, Forward, Up and Search get you everywhere.
@@ -15,7 +14,7 @@ struct BrowserView: View {
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
     @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
     @FocusState private var isSearchFocused: Bool
-    /// Archive Info, opened from Checkup or the title's menu.
+    /// Archive Info, reachable from the title menu regardless of selection.
     @State private var showsArchiveInfo = false
     /// How tall the floating controls are (taller while a failure card shows), so the files keep
     /// exactly that much room below their last row.
@@ -134,6 +133,7 @@ struct BrowserView: View {
     @ViewBuilder
     private var banners: some View {
         VStack(alignment: .leading, spacing: Space.s) {
+            ArchiveNotices(findings: model.archive.checkup)
             if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
             if let summary = model.searchCoverageSummary {
                 DisclosureGroup {
@@ -209,13 +209,22 @@ struct BrowserView: View {
     }
 
     /// The title bar holds the archive itself: its name and menu (the title), how to look at it,
-    /// and Checkup with the password beside it. Tray and New Archive aren't about this archive;
+    /// and password access. Tray and New Archive aren't about this archive;
     /// they stay in the menu bar (Window › Show Tray ⌥⌘T, File › New Archive… ⌘N) and the Tray's
     /// menu-bar icon.
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
             ArchiveTitleMenu(title: model.title, subtitle: model.subtitle) { titleMenu }
+                .popover(isPresented: $showsArchiveInfo, arrowEdge: .bottom) {
+                    ScrollView { ArchiveInfoView(model: model).padding(Space.l) }
+                        .frame(width: 320, height: 420)
+                }
+                .task {
+                    guard ArchiveInfoView.opensForDemo else { return }
+                    try? await Task.sleep(for: .milliseconds(500))
+                    showsArchiveInfo = true
+                }
         }
         .sharedBackgroundVisibility(.hidden)
 
@@ -231,7 +240,7 @@ struct BrowserView: View {
         }
         .overflowPriority(keepsVisible: false)
 
-        // Editing gets its own capsule, apart from the view modes and Checkup, so the first edit
+        // Editing gets its own capsule, apart from the view modes, so the first edit
         // changes only that capsule.
         ToolbarSpacer(.fixed)
 
@@ -242,16 +251,13 @@ struct BrowserView: View {
         }
         .overflowPriority(keepsVisible: true)
 
-        ToolbarSpacer(.fixed)
-
-        // The archive's own state — safe or not, locked or not — always in reach.
-        ToolbarItemGroup(placement: .primaryAction) {
-            CheckupToolbarButton(model: model, isPresented: $showsArchiveInfo)
-            if model.archive.isEncrypted {
+        if model.archive.isEncrypted {
+            ToolbarSpacer(.fixed)
+            ToolbarItem(placement: .primaryAction) {
                 ArchiveUnlockControl(model: model, showsTitle: true)
             }
+            .overflowPriority(keepsVisible: true)
         }
-        .overflowPriority(keepsVisible: true)
     }
 }
 

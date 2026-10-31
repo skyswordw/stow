@@ -57,10 +57,10 @@ nonisolated enum CodeSignature {
                 CheckupFinding(severity: .fine, title: String(localized: "From the Mac App Store"), detail: String(localized: "Signed by Apple for the App Store and unchanged."))
             case .notarized(let signer):
                 CheckupFinding(severity: .fine, title: String(localized: "Signed and notarized"),
-                               detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")) and checked by Apple for malware."))
+                               detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")). The app’s signature and Apple notarization were verified."))
             case .notNotarized(let signer):
                 CheckupFinding(severity: .caution, title: String(localized: "Not notarized by Apple"),
-                               detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")), but Apple hasn’t checked it for malware. macOS may block it when you open it, depending on its download history and your Mac’s security settings."))
+                               detail: String(localized: "Signed by \(signer ?? String(localized: "a registered developer")), but Apple notarization could not be verified. macOS may block it when you open it, depending on its download history and your Mac’s security settings."))
             case .adHoc:
                 CheckupFinding(severity: .caution, title: String(localized: "Not signed by a known developer"),
                                detail: String(localized: "It carries only a local signature, so nobody vouches for who made it. macOS may block it when you open it, depending on its download history and your Mac’s security settings."))

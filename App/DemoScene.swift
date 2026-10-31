@@ -95,7 +95,7 @@ enum DemoScene {
             let scan = Checkup.FormatScan(name: sample.name, real: .sevenZip, realType: "7z", tailSize: 2_048)
             app.browser = BrowserModel(archive: Archive(name: sample.name, format: .sevenZip, files: sample.files,
                                                         checkup: scan.findings + sample.checkup.filter { $0.severity == .info }))
-            CheckupToolbarButton.opensForDemo = true
+            ArchiveInfoView.opensForDemo = true
         case "readonly":
             BrowseDemo.readOnly(in: app)
         case "archive-app":
@@ -222,6 +222,18 @@ enum DemoScene {
                 ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed(Failure(EngineError(.passwordRequired), .extract, name: "Old Backup.rar"))),
                 ("Fonts 2026.zip", .waiting),
             ])
+        case "batch-results", "batch-stopped":
+            app.openArchive(named: SampleArchive.make().name)
+            if scene == "batch-stopped" {
+                app.batch.preview([("Stopped.zip", .cancelled), ("Also Stopped.zip", .cancelled)])
+            } else {
+                app.batch.preview([
+                    ("Completed.zip", .done), ("Completed Too.zip", .done),
+                    ("Stopped.zip", .cancelled), ("Stopped Too.zip", .cancelled),
+                    ("Missing.7z.001", .failed(Failure(EngineError(.missingVolume, "Missing.7z.002 is needed"),
+                                                     .extract, name: "Missing.7z.001"))),
+                ])
+            }
         case "conflict", "conflict-folder":
             app.openArchive(named: SampleArchive.make().name)
             let isFolder = scene == "conflict-folder"
@@ -344,7 +356,7 @@ enum DemoScene {
             model.selection = ["public.zip-archive", "org.7-zip.7-zip-archive", "com.rarlab.rar-archive"]
             showSettingsPane(AssociationsView(model: model), title: String(localized: "File Types"), size: CGSize(width: 560, height: 640))
         case "integration":
-            showSettingsPane(IntegrationView(), title: String(localized: "Integration"), size: CGSize(width: 560, height: 640))
+            showSettingsPane(IntegrationView(), title: String(localized: "Finder & Permissions"), size: CGSize(width: 560, height: 640))
             if defaults.bool(forKey: "StowRepair") { Task { await IntegrationSettings.shared.repairFinderExtension() } }
         case "glance", "glance-empty", "glance-search-empty", "glance-app", "glance-editing", "glance-editing-saving":
             if scene.hasPrefix("glance-editing") {
