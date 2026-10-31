@@ -48,6 +48,11 @@ final class FolderAccess {
 
     /// Granted folders whose scope is active (they stay active while Stow runs).
     private(set) var grants: [URL] = []
+
+    /// The `settings` scene's `-StowLongLists YES`: fictional grants to lay out, never stored.
+    func showGrantsForDemo(_ folders: [URL]) {
+        grants = folders
+    }
     private let defaults: UserDefaults
     private let bookmarks: Bookmarks
     private static let key = "FolderGrants"

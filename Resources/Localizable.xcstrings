@@ -11395,6 +11395,16 @@
           }
         }
       }
+    },
+    "Every page": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有页面"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

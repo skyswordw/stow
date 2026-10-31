@@ -305,25 +305,38 @@ struct AdvancedSettingsView: View {
     }
     var body: some View {
         Form {
+            // Each action sits on the row it acts on, beside what it acts on (#162).
             Section("Temporary files") {
-                LabeledContent("Preview cache", value: usedBytes.bytes)
-                    .monospacedDigit()
-                Button("Clean Up") {
-                    guard !busy else { return }
-                    PreviewCache.cleanUp()
-                    usedBytes = PreviewCache.directoryBytes
-                }
-                .disabled(busy)
-            }
-            Section {
-                Picker("Page", selection: $pageToReset) {
-                    ForEach(resettablePages) { pane in
-                        Text(pane.title).tag(pane)
+                LabeledContent("Preview cache") {
+                    HStack(spacing: Space.m) {
+                        Text(usedBytes.bytes)
+                            .monospacedDigit()
+                        Button("Clean Up") {
+                            guard !busy else { return }
+                            PreviewCache.cleanUp()
+                            usedBytes = PreviewCache.directoryBytes
+                        }
+                        .disabled(busy)
                     }
                 }
-                Button("Reset This Page…", role: .destructive) { confirmsResetPage = true }
-                    .disabled(SettingsKeys.resettableEntries(for: pageToReset).isEmpty)
-                Button("Reset All Preferences…", role: .destructive) { confirmsResetAll = true }
+            }
+            Section {
+                LabeledContent("Page") {
+                    HStack(spacing: Space.m) {
+                        Picker("Page", selection: $pageToReset) {
+                            ForEach(resettablePages) { pane in
+                                Text(pane.title).tag(pane)
+                            }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                        Button("Reset This Page…", role: .destructive) { confirmsResetPage = true }
+                            .disabled(SettingsKeys.resettableEntries(for: pageToReset).isEmpty)
+                    }
+                }
+                LabeledContent("Every page") {
+                    Button("Reset All Preferences…", role: .destructive) { confirmsResetAll = true }
+                }
             } header: {
                 Text("Reset")
             } footer: {

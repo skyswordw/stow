@@ -9,15 +9,16 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             SettingsSidebar(router: router)
-                .navigationSplitViewColumnWidth(SettingsLayout.sidebarWidth)
                 .toolbar(removing: .sidebarToggle)
+                // After the toolbar modifier: before it, the width was ignored (144 pt).
+                .navigationSplitViewColumnWidth(SettingsLayout.sidebarWidth)
         } detail: {
             router.pane.content
                 .accessibilityElement(children: .contain)
                 .navigationTitle(router.pane.title)
         }
         .frame(width: SettingsLayout.width)
-        .frame(minHeight: SettingsLayout.minHeight, idealHeight: SettingsLayout.idealHeight, maxHeight: .infinity)
+        .frame(minHeight: SettingsLayout.minHeight, maxHeight: .infinity)
         // Switching pages doesn't animate (DESIGN.md: view switches don't animate).
         .animation(nil, value: router.pane)
         .onAppear { SettingsAppearance.apply() }
@@ -29,9 +30,9 @@ enum SettingsLayout {
     static let sidebarWidth: CGFloat = 196
     /// Sidebar plus a 560-pt page: wide enough for the grouped forms in both languages.
     static let width: CGFloat = 756
-    /// File Types needs this much for its list and the buttons under it.
-    static let minHeight: CGFloat = 520
-    static let idealHeight: CGFloat = 620
+    /// The window opens at its minimum: tall enough for File Types' list and buttons and for most
+    /// pages without scrolling; people can make it taller.
+    static let minHeight: CGFloat = 600
 }
 
 /// Every page, in `SettingsCategory` order; categories are separated by space, the way System
