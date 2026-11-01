@@ -471,6 +471,8 @@ nonisolated struct PackReport: Equatable, Sendable {
     var estimatedSize: Int64
     var parts: Int
     var notes: [Note]
+    /// Mac helper files that go in anyway, because More Options kept them (#152).
+    var includedMacHelperFiles = 0
 
     var fileCount: Int { included.count { !$0.isFolder } }
     /// File data to hand over, for progress.
@@ -614,8 +616,34 @@ nonisolated enum Compatibility {
             renames: renames,
             estimatedSize: estimated,
             parts: parts,
-            notes: notes(for: options, password: password)
+            notes: notes(for: options, password: password),
+            includedMacHelperFiles: kept.count { !$0.isFolder && isUnderHelperFile($0.path) }
         )
+    }
+
+    /// What a split archive comes out as (#153): its numbered names, and what opening it takes.
+    /// Nothing for one file. `archiveName` is the archive's own name, without its extension.
+    static func partsNote(for options: PackOptions, parts: Int, archiveName: String) -> PackReport.Note? {
+        guard options.format.supportsSplit, !options.split.isNone else { return nil }
+        let names = partNames(archiveName: archiveName, format: options.format, parts: parts)
+        guard parts > 1 else {
+            return .init(
+                tone: .info,
+                title: String(localized: "Probably fits in one part"),
+                detail: String(localized: "Saved as \(names), which opens in an app that joins split archives, such as 7-Zip. Choose “as one file” for a plain \(options.format.displayName).")
+            )
+        }
+        return .init(
+            tone: .info,
+            title: String(localized: "Comes out in about \(parts) parts"),
+            detail: String(localized: "\(names), each at most \(SplitSize.formatBytes(options.split.rawValue)). Opening it needs every part in one folder, and an app that joins split archives, such as 7-Zip.")
+        )
+    }
+
+    /// The parts `ArchiveCreation` writes: "Project.zip.001", or "Project.zip.001 – .003".
+    static func partNames(archiveName: String, format: PackFormat, parts: Int) -> String {
+        let first = archiveName + "." + format.fileExtension + ".001"
+        return parts > 1 ? first + " – " + String(format: ".%03d", parts) : first
     }
 
     /// The file itself, or a folder around it, is Mac-only (`__MACOSX/…`, `.Trashes/…`).
