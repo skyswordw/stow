@@ -2015,16 +2015,6 @@
         }
       }
     },
-    "Pack these into an archive": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "将这些项目压缩成一个压缩包"
-          }
-        }
-      }
-    },
     "Remove from the Tray — the file stays where it is": {
       "localizations": {
         "zh-Hans": {
@@ -2701,9 +2691,33 @@
     "%lld archives need attention": {
       "localizations": {
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 个压缩包需要处理"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个压缩包需要处理"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld archive needs attention"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld archives need attention"
+                }
+              }
+            }
           }
         }
       }
@@ -12156,6 +12170,422 @@
           "stringUnit": {
             "state": "translated",
             "value": "压缩后 %@"
+          }
+        }
+      }
+    },
+    "Extraction stopped": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩已停止"
+          }
+        }
+      }
+    },
+    "Stopped before all were extracted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未全部解压缩即已停止"
+          }
+        }
+      }
+    },
+    "%lld extracted": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已解压缩 %lld 个"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld extracted"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld extracted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld stopped": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已停止 %lld 个"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stopped"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stopped"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld failed": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "失败 %lld 个"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld failed"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "The files stay where they are": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件仍留在原处"
+          }
+        }
+      }
+    },
+    "%lld selected items": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "所选的 %lld 项"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld selected item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld selected items"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "All %lld items in the Tray": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "托盘中的全部 %lld 项"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item in the Tray"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "All %lld items in the Tray"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "All %lld items in “%@”": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$#@arg1@ in “%2$@”"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%lld item"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "All %lld items"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%2$@”中的%1$#@arg1@"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "全部 %lld 项"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Extract %lld Archives Beside Originals": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "将 %lld 个压缩包解压缩到原位置"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Extract Archive Beside Original"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Extract %lld Archives Beside Originals"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Into “%@”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放到“%@”"
+          }
+        }
+      }
+    },
+    "Next to each archive, in %lld folders": {
+      "localizations": {
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "放到各压缩包旁，共 %lld 个文件夹"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Next to the archive, in %lld folder"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Next to each archive, in %lld folders"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@ · %lld other items skipped": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%lld other item skipped"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%lld other items skipped"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "跳过其他 %lld 项"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Copies — the originals stay where they are": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制副本，原件保留在原处"
+          }
+        }
+      }
+    },
+    "Pack everything shown into an archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将当前显示的全部项目压缩成一个压缩包"
+          }
+        }
+      }
+    },
+    "Pack the selected items into an archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将所选项目压缩成一个压缩包"
           }
         }
       }

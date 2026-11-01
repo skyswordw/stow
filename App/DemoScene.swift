@@ -28,7 +28,8 @@ import SwiftUI
 /// install-running (an app part-way into Applications), install-app-open (refused: the installed copy is open, INS-181),
 /// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop),
 /// tray-collect (Collect into a Folder, items from one folder), tray-collect-mixed (from three: people choose where),
-/// tray-collect-taken (a name that's taken), tray-collected (after a real collect: where it went).
+/// tray-collect-taken (a name that's taken), tray-collected (after a real collect: where it went),
+/// tray-more and tray-more-selected (the More menu open over real files; also captured as -menu.png).
 /// Source access (#213): source-access (the recovery picker, folder mode), source-access-file ("Allow only this
 /// archive" checked; `-StowSourcePath <file>` or `-StowSourceName <name>` for either), source-access-unsaved (the grant couldn't be saved).
 /// Empty and error states: open-failed, open-damaged, open-unreadable, finder-failed, extract-damaged, extract-full, extract-denied, extract-retry,
@@ -47,6 +48,9 @@ import SwiftUI
 /// Actions: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Actions),
 /// next-steps-listing (a selection while the archive is still listed: Actions dimmed).
+/// Batch outcomes: batch (running), batch-done, batch-stopped, batch-mixed (done + stopped),
+/// batch-failed-stopped, batch-results (done + stopped + a fifth that failed), batch-last-failed (six,
+/// only the last failed). `-StowBatchExpanded YES` opens Show All.
 /// install-preparing: an install that has started but measured nothing yet (the turning ring).
 /// archive-app and glance-app: an archive that's one app with nothing selected, where Actions offers
 /// Install App (fictional, so it only simulates).
@@ -57,6 +61,9 @@ import SwiftUI
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
 /// `-StowLogLayout YES` also prints who has the keyboard and which toolbar items are showing.
 enum DemoScene {
+    /// `-StowBatchExpanded YES`: the batch panel starts with every result listed.
+    static var batchStartsExpanded: Bool { UserDefaults.standard.bool(forKey: "StowBatchExpanded") }
+
     static func apply(to app: AppState) {
         let defaults = UserDefaults.standard
         guard let scene = defaults.string(forKey: "StowScene") else { return }
@@ -230,16 +237,33 @@ enum DemoScene {
                 ("Brand Kit.zip", .waiting), ("Old Backup.rar", .failed(Failure(EngineError(.passwordRequired), .extract, name: "Old Backup.rar"))),
                 ("Fonts 2026.zip", .waiting),
             ])
-        case "batch-results", "batch-stopped":
+        case "batch-results", "batch-stopped", "batch-done", "batch-mixed", "batch-failed-stopped", "batch-last-failed":
             app.openArchive(named: SampleArchive.make().name)
-            if scene == "batch-stopped" {
+            let missing = Failure(EngineError(.missingVolume, "Missing.7z.002 is needed"), .extract, name: "Missing.7z.001")
+            let locked = Failure(EngineError(.passwordRequired), .extract, name: "Old Backup.rar")
+            switch scene {
+            case "batch-stopped":
                 app.batch.preview([("Stopped.zip", .cancelled), ("Also Stopped.zip", .cancelled)])
-            } else {
+            case "batch-done":
+                app.batch.preview([("Field Recordings.7z", .done), ("server-logs.tar.xz", .done), ("Brand Kit.zip", .done)])
+            case "batch-mixed":
+                app.batch.preview([("Field Recordings.7z", .done), ("server-logs.tar.xz", .done),
+                                   ("Brand Kit.zip", .cancelled)])
+            case "batch-failed-stopped":
+                app.batch.preview([("Old Backup.rar", .failed(locked)), ("Brand Kit.zip", .cancelled),
+                                   ("Fonts 2026.zip", .cancelled)])
+            case "batch-last-failed":
+                // Six jobs, only the last failed: collapsed, it stays in view in place of the fourth.
+                app.batch.preview([
+                    ("Field Recordings.7z", .done), ("server-logs.tar.xz", .done), ("Brand Kit.zip", .done),
+                    ("Fonts 2026.zip", .done), ("Quarterly Photos.zip", .done),
+                    ("A rather long archive name from a camera export 2026-10-31.7z.001", .failed(missing)),
+                ])
+            default:
                 app.batch.preview([
                     ("Completed.zip", .done), ("Completed Too.zip", .done),
                     ("Stopped.zip", .cancelled), ("Stopped Too.zip", .cancelled),
-                    ("Missing.7z.001", .failed(Failure(EngineError(.missingVolume, "Missing.7z.002 is needed"),
-                                                     .extract, name: "Missing.7z.001"))),
+                    ("Missing.7z.001", .failed(missing)),
                 ])
             }
         case "conflict", "conflict-folder":
@@ -471,6 +495,23 @@ enum DemoScene {
             app.tray.show()
             // A copy that failed part-way: the footer's failure card.
             app.tray.failure = Failure(NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)), .copy, name: "Kickoff.key")
+        case "tray-more", "tray-more-selected":
+            // Real files: two archives in two folders among other items, so the More menu names its
+            // scope and where Extract would put things. -selected picks one archive and one document.
+            let urls = demoTrayFiles([("Downloads", ["Brand Assets.zip", "Invoice October.pdf",
+                                                     "Site survey notes from the harbour walk, revised after the client call.pages"]),
+                                      ("Kickoff", ["Kickoff.key", "Fonts 2026.zip"])], taken: nil)
+            app.tray.items = []
+            app.tray.add(urls)
+            app.tray.showArrivalForDemo([])
+            if scene == "tray-more-selected" {
+                app.tray.selection = Set(app.tray.items.prefix(2).map(\.id))
+            }
+            app.tray.show()
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                openTrayMoreMenu()
+            }
         case "tray-collect", "tray-collect-taken", "tray-collect-mixed", "tray-collected":
             // Real files, so the Where rule runs: one folder (it's the default), or three (people choose).
             let layout: [(String, [String])] = scene == "tray-collect-mixed"
@@ -560,10 +601,44 @@ enum DemoScene {
                 }
                 if scene == "glance", let url = glancePlacement(app, name: "\(label)-screen") { print(url.path) }
                 if scene == "next-steps-more", let url = NextStepsDemo.captureWithMenu(name: "\(label)-menu") { print(url.path) }
+                if scene.hasPrefix("tray-more"), let url = trayCaptureWithMenu(name: "\(label)-menu") { print(url.path) }
                 fflush(stdout)
                 exit(0) // terminate(_:) waits on open sheets; this is a screenshot run.
             }
         }
+    }
+
+    private static var trayPanel: NSWindow? {
+        NSApp.windows.first { $0 is NSPanel && $0.isVisible && !$0.className.contains("StatusBar") }
+    }
+
+    /// The Tray's More button in panel coordinates (top-left origin), kept up to date by `TrayView`.
+    static var trayMoreFrame: CGRect?
+
+    /// Clicks the Tray's More button. The menu then tracks on its own; the snapshot task keeps running.
+    private static func openTrayMoreMenu() {
+        guard let panel = trayPanel, let content = panel.contentView, let frame = trayMoreFrame else { return }
+        let point = CGPoint(x: frame.midX, y: content.bounds.height - frame.midY)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            if let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                              windowNumber: panel.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1) {
+                NSApp.postEvent(event, atStart: false)
+            }
+        }
+    }
+
+    /// The Tray panel and its open menu as one image (as `NextStepsDemo.captureWithMenu` does for the main window).
+    private static func trayCaptureWithMenu(name: String) -> URL? {
+        guard let panel = trayPanel, let number = UInt32(exactly: panel.windowNumber) else { return nil }
+        typealias CreateImage = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
+        guard let handle = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", RTLD_LAZY),
+              let symbol = dlsym(handle, "CGWindowListCreateImage") else { return nil }
+        let create = unsafeBitCast(symbol, to: CreateImage.self)
+        let aboveWindow: UInt32 = 1 << 1, includingWindow: UInt32 = 1 << 3, bestResolution: UInt32 = 1 << 3
+        guard let image = create(.null, aboveWindow | includingWindow, number, bestResolution)?.takeRetainedValue(),
+              let data = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else { return nil }
+        let url = FileManager.default.temporaryDirectory.appending(path: "\(name).png")
+        return (try? data.write(to: url)) != nil ? url : nil
     }
 
     /// Real files for the Tray's Collect scenes, in folders inside the sandbox's temporary

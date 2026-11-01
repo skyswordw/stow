@@ -1087,7 +1087,7 @@ struct TrayView: View {
             }
         }
         .contextMenu {
-            actionsMenu
+            actionsMenu(counted: false)
             Divider()
             // No count here: the menu can be built before a right-click's new selection is drawn.
             removeButton(counted: false)
@@ -1097,25 +1097,75 @@ struct TrayView: View {
     /// Removes the selection from the Tray (the files stay). A menu command, with no key of its own.
     private func removeButton(counted: Bool) -> some View {
         let count = tray.selection.count
-        return Button(counted && count > 1 ? String(localized: "Remove \(count) Items from Tray") : String(localized: "Remove from Tray")) {
+        return Button {
             tray.removeSelected()
+        } label: {
+            Text(counted && count > 1 ? String(localized: "Remove \(count) Items from Tray") : String(localized: "Remove from Tray"))
+            Text("The files stay where they are")
         }
         .disabled(tray.selection.isEmpty || tray.folderTitle != nil)
     }
 
-    @ViewBuilder private var actionsMenu: some View {
-        Button("Quick Look") { tray.quickLook() }
-        Divider()
-        Button(tray.packActionTitle + "…") { tray.pack() }
-        Button("Extract Archives Beside Originals") { tray.extract() }
+    /// The Tray's commands. `counted` (the More menu) heads them with what they act on and names the
+    /// archives Extract takes and where they go. The right-click menu can be built before a
+    /// right-click's new selection is drawn, so it leaves the counts out.
+    @ViewBuilder private func actionsMenu(counted: Bool) -> some View {
+        if counted {
+            Section(scopeTitle) { Button("Quick Look") { tray.quickLook() } }
+        } else {
+            Button("Quick Look") { tray.quickLook() }
+        }
+        Section {
+            Button(tray.packActionTitle + "…") { tray.pack() }
+            Button {
+                tray.extract()
+            } label: {
+                Text(counted ? extractTitle : String(localized: "Extract Archives Beside Originals"))
+                if counted, let note = extractNote { Text(note) }
+            }
             .disabled(!tray.canExtract)
             .help("Only archives are extracted. Uses each archive’s folder unless you choose another location.")
-        Button("Collect into a Folder…") { tray.beginCollecting() }
+            Button {
+                tray.beginCollecting()
+            } label: {
+                Text("Collect into a Folder…")
+                Text("Copies — the originals stay where they are")
+            }
             .disabled(tray.targetURLs.isEmpty)
-        Divider()
-        Button("Share…") { tray.share(from: nil) }
-        Button("Show in Finder") { tray.reveal() }
-        Button(tray.mainWindowActionTitle) { tray.sendToMainWindow() }
+        }
+        Section {
+            Button("Share…") { tray.share(from: nil) }
+            Button("Show in Finder") { tray.reveal() }
+            Button(tray.mainWindowActionTitle) { tray.sendToMainWindow() }
+        }
+    }
+
+    /// What the commands act on: everything shown (in the Tray or the folder browsed into), or the selection.
+    private var scopeTitle: String {
+        if !tray.selection.isEmpty { return String(localized: "\(tray.targets.count) selected items") }
+        let count = tray.visibleItems.count
+        if let folder = tray.folderTitle { return String(localized: "All \(count) items in “\(folder)”") }
+        return String(localized: "All \(count) items in the Tray")
+    }
+
+    private var targetArchives: [URL] { tray.targets.filter(\.isArchive).compactMap(\.url) }
+
+    private var extractTitle: String {
+        let count = targetArchives.count
+        return count == 0 ? String(localized: "Extract Archives Beside Originals")
+            : String(localized: "Extract \(count) Archives Beside Originals")
+    }
+
+    /// Where Extract puts things, and what it leaves alone: "Into “Downloads” · 3 other items skipped".
+    private var extractNote: String? {
+        let archives = targetArchives
+        guard !archives.isEmpty else { return nil }
+        let folders = Set(archives.map { $0.deletingLastPathComponent().standardizedFileURL.path })
+        let place = folders.count == 1
+            ? String(localized: "Into “\(FileManager.default.displayName(atPath: folders.first!))”")
+            : String(localized: "Next to each archive, in \(folders.count) folders")
+        let skipped = tray.targets.count - archives.count
+        return skipped > 0 ? String(localized: "\(place) · \(skipped) other items skipped") : place
     }
 
     // MARK: Footer
@@ -1150,6 +1200,8 @@ struct TrayView: View {
         }
     }
 
+    /// What Pack would take, then More and Pack. The count keeps its room before the button grows
+    /// (Chinese titles are long); the More menu heads its commands with the scope.
     private var summaryRow: some View {
         HStack(spacing: Space.s) {
             VStack(alignment: .leading, spacing: 0) {
@@ -1168,9 +1220,11 @@ struct TrayView: View {
                     .liveNumber()
             }
             .lineLimit(1)
-            Spacer(minLength: Space.s)
+            .layoutPriority(1)
+            .accessibilityElement(children: .combine)
+            Spacer(minLength: Space.xs)
             Menu {
-                actionsMenu
+                actionsMenu(counted: true)
                 Divider()
                 removeButton(counted: true)
                 Button("Clear Tray") { tray.clear() }
@@ -1183,15 +1237,17 @@ struct TrayView: View {
             .accessibilityLabel(String(localized: "More"))
             .fixedSize()
             .help("More things to do with these items")
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { DemoScene.trayMoreFrame = $0 }
             // Inside the glass, so the buttons can't take a glass style of their own.
             Button {
                 tray.pack()
             } label: {
-                Label(tray.packActionTitle, systemImage: "archivebox")
+                Label(tray.packActionTitle, systemImage: "archivebox").lineLimit(1)
             }
             .accessibilityLabel(tray.packActionTitle)
             .buttonStyle(.borderedProminent)
-            .help("Pack these into an archive")
+            .help(tray.selection.isEmpty ? String(localized: "Pack everything shown into an archive")
+                  : String(localized: "Pack the selected items into an archive"))
         }
         .controlSize(.large)
     }
