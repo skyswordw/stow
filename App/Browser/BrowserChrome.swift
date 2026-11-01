@@ -123,9 +123,10 @@ struct ArchiveTitleMenu<Items: View>: View {
 }
 
 /// The whole archive's controls, floating at the bottom's leading edge: the way to the archive's
-/// other window, then Extract All, in one glass capsule. The full window offers Glance there;
-/// Glance has Open in Full Window among its own window controls just before it, so switching is
-/// still bottom left in both. Extract All is the
+/// other window in a glass circle of its own, then Extract All in its capsule. Switching windows
+/// isn't something done to the archive, so it stands apart, as ⋯ does beside the Actions stack.
+/// The full window offers Glance there; Glance has Open in Full Window among its own window
+/// controls just before it, so switching is still bottom left in both. Extract All is the
 /// window's primary action until Actions shows, whose front button then carries the accent; it
 /// keeps its place and words either way.
 struct ArchiveActions: View {
@@ -143,7 +144,7 @@ struct ArchiveActions: View {
     }
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(alignment: .bottom, spacing: Space.s) {
             switch switchTo {
             case .glance(let action):
                 switchButton(String(localized: "Glance"), "arrow.down.right.and.arrow.up.left",
@@ -167,17 +168,20 @@ struct ArchiveActions: View {
             .accessibilityLabel(String(localized: "Extract All"))
             .help(model.extractAllUnavailableReason ?? String(localized: "Extract everything to a folder you choose"))
             .disabled(model.extractAllUnavailableReason != nil)
+            .padding(ActionButtonStyle.inset)
+            .accessibleGlass(in: .capsule)
         }
-        .padding(ActionButtonStyle.inset)
-        .accessibleGlass(in: .capsule)
         .fixedSize()
         .accessibilityElement(children: .contain)
     }
 
+    /// A glass circle the capsules' height, like ⋯ beside the Actions stack.
     private func switchButton(_ title: String, _ symbol: String, help: String, action: @escaping () -> Void) -> some View {
         Button(title, systemImage: symbol, action: action)
             .labelStyle(.iconOnly)
             .buttonStyle(ActionButtonStyle(iconOnly: true))
+            .padding(ActionButtonStyle.inset)
+            .accessibleGlass(in: .circle)
             .accessibilityLabel(title)
             .help(help)
     }
@@ -405,9 +409,6 @@ nonisolated enum SearchWidthMotion {
 nonisolated struct TitleBarLayout: Equatable, Sendable {
     var searchWidth: CGFloat
     var titleMaxWidth: CGFloat
-    /// An encrypted archive's password control, after the name: "Enter Password…" while there's
-    /// room, the lock alone when there isn't (its help and accessibility label still say it).
-    var unlockShowsTitle: Bool
 
     static let fieldMinimum: CGFloat = 160
     static let fieldMaximum: CGFloat = 280
@@ -417,7 +418,7 @@ nonisolated struct TitleBarLayout: Equatable, Sendable {
     static let titleSqueezed: CGFloat = 72
     /// Closed Search: the toolbar's round button.
     static let buttonWidth: CGFloat = 36
-    static let unlockTitled: CGFloat = 170
+    /// An encrypted archive's password control after the name: the lock alone.
     static let unlockIcon: CGFloat = 44
     /// Window controls, the toolbar's margins and the gaps between its capsules.
     static let chrome: CGFloat = 156
@@ -431,9 +432,7 @@ nonisolated struct TitleBarLayout: Equatable, Sendable {
     ///   - saveShowsTitle: there are changes to save, so Save says its name.
     init(windowWidth: CGFloat, isSearchOpen: Bool, isEncrypted: Bool = false, saveShowsTitle: Bool = false) {
         var room = max(0, windowWidth - Self.chrome - Self.controls(saveShowsTitle: saveShowsTitle))
-        let search = isSearchOpen ? Self.fieldMinimum : Self.buttonWidth
-        unlockShowsTitle = isEncrypted && room >= search + Self.titleMinimum + Self.unlockTitled
-        if isEncrypted { room -= unlockShowsTitle ? Self.unlockTitled : Self.unlockIcon }
+        if isEncrypted { room -= Self.unlockIcon }
         if isSearchOpen {
             searchWidth = min(max(room - Self.titleMinimum, Self.fieldMinimum), Self.fieldMaximum)
         } else {

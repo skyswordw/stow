@@ -290,7 +290,7 @@ struct BrowserView: View {
         // Password access belongs to the archive, so it follows its name, as Glance's lock does.
         if model.archive.isEncrypted {
             ToolbarItem(placement: .navigation) {
-                ArchiveUnlockControl(model: model, showsTitle: titleBar.unlockShowsTitle)
+                ArchiveUnlockControl(model: model)
             }
             .overflowPriority(keepsVisible: true)
         }

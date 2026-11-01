@@ -17,8 +17,8 @@ Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/1
 
 The user selected the floating-path Browser: path capsule over the files, Glance · Extract All
 and Actions floating along the bottom, fixed Details, and the title bar's controls grouped at
-the trailing edge as Search → view modes → Delete · Save, with Search opening leftward. Save is a
-floppy disk; extraction uses a box with an upward arrow; corners are one concentric system.
+the trailing edge as Search → view modes → Delete · Save, with Search opening leftward. Save is
+an arrow into a box; extraction uses a box with an upward arrow; corners are one concentric system.
 Claude Code's implementation and the exact rules are in [DESIGN.md › Browser layout](../DESIGN.md).
 This supersedes #231's centered Search (PR #241) and its handoff text below; the plain path-row and
 bottom-path alternatives are rejected. Functional contracts (Search/Esc/⌘F, Save flow and enabled

@@ -132,10 +132,11 @@ struct BrowserChromeTests {
         #expect(SearchWidthMotion.progress(0.5) > 0.8)
     }
 
-    @Test func passwordAccessKeepsItsNameWhileThereIsRoom() {
-        #expect(TitleBarLayout(windowWidth: 1100, isSearchOpen: false, isEncrypted: true).unlockShowsTitle)
-        #expect(!TitleBarLayout(windowWidth: 730, isSearchOpen: true, isEncrypted: true).unlockShowsTitle)
-        #expect(!TitleBarLayout(windowWidth: 1100, isSearchOpen: false).unlockShowsTitle)
+    @Test func passwordAccessTakesTheLocksWidthFromTheName() {
+        let plain = TitleBarLayout(windowWidth: 730, isSearchOpen: true)
+        let encrypted = TitleBarLayout(windowWidth: 730, isSearchOpen: true, isEncrypted: true)
+        #expect(encrypted.searchWidth + encrypted.titleMaxWidth
+                == plain.searchWidth + plain.titleMaxWidth - TitleBarLayout.unlockIcon)
     }
 
     /// A deep path folds its middle into a menu one folder at a time, keeping the archive it starts

@@ -77,7 +77,7 @@ alternatives and chose this one; it supersedes the centered Search of #231/PR #2
 plain path-row and bottom-path studies.
 
 - **Title bar.** The archive's name and menu lead, with its password control right after the name
-  when encrypted. Everything you do with the archive is grouped at the **trailing edge**, in this
+  when encrypted: the lock alone, its words ("Unlock Archive…") in its help and accessibility label. Everything you do with the archive is grouped at the **trailing edge**, in this
   order: **Search → view modes → Delete · Save**. Search is a magnifying-glass button; a click or
   ⌘F opens it into a field that grows **leftward**, toward the name, so the view and editing
   controls never move. It stays open while it has the keyboard or a query and closes when it
@@ -89,8 +89,10 @@ plain path-row and bottom-path studies.
   composes in it without filtering on half-typed pinyin, and while an input method is composing,
   Esc is the input method's (it cancels the composition; Search stays open). `TitleBarLayout` gives it room
   from free space first, then from the name (which truncates in the middle), never from the path.
-- **Save is a floppy disk** (the `SaveDisk` custom symbol), named "Save Changes" with ⌘S in its
-  help; the earlier arrow-into-tray Save read like extraction. Disabled when there's nothing to save.
+- **Save is an arrow into a box** (`square.and.arrow.down`, as the save confirmation shows), a
+  system symbol like Delete's `trash`, so the two share one weight and size; a custom floppy disk never
+  matched (user's choice, 2026-11-01). Extract's arrow comes *out* of a bin, so the two read apart.
+  Named "Save Changes" with ⌘S in its help. Disabled when there's nothing to save.
 - **Extraction is a box with an arrow out of it** (`arrow.up.bin`): Extract All and the Actions
   stack's Extract, with their words kept. Pack keeps its box.
 - **Path.** The floating capsule over the files keeps Back · Forward · Up and the route. A short
@@ -127,7 +129,7 @@ ArcZip observations behind this.
 | Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width, a deep path uses the whole row and folds its middle folders into a ⋯ menu |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
 | Details (always there, right) | An inset panel, not a strip of the window, 8 pt off the window's edges with an 18 pt radius: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
-| Archive controls, floating bottom leading | One glass capsule: **Glance** · **Extract All** (box-with-arrow icon) |
+| Archive controls, floating bottom leading | **Glance** in a glass circle of its own (switching windows isn't done to the archive), then **Extract All** (box-with-arrow icon) in its capsule, mirroring ⋯ beside the Actions stack |
 | Actions, floating bottom trailing | ⋯ More, then the **stack**: the front action in the accent with the edges of the others showing behind it. No name or size: Details says what's selected. With nothing selected, **Install App** alone when the archive is one app |
 
 **The Actions stack.** The front button is what the selection is most likely for: **Install** for

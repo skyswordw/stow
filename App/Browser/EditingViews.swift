@@ -164,8 +164,10 @@ struct UnsavedChangesBar: View {
 /// The title bar's editing (#216): Delete for the selection, Save for the archive, there from the
 /// start so editing is found before the first edit rather than after. Nothing to do reads as
 /// disabled, never as missing. Save takes the accent and its name while there's something to
-/// save, like the bar's Save did, and is a floppy disk so it isn't mistaken for Extract (#242); Delete stays quiet, since it only stages a change. Read-only archives keep
-/// Delete pressable so it can say why (as Edit › Delete does), with Extract and Repack.
+/// save, like the bar's Save did. Both are system symbols, so they share one weight and size:
+/// trash for Delete, an arrow into a box for Save, as the save confirmation shows (#242). Delete
+/// stays quiet, since it only stages a change. Read-only archives keep Delete pressable so it can
+/// say why (as Edit › Delete does), with Extract and Repack.
 struct ArchiveEditingControls: View {
     let model: BrowserModel
 
@@ -200,14 +202,11 @@ struct ArchiveEditingControls: View {
         Button {
             Task { await model.saveEdits() }
         } label: {
-            // A floppy disk (#242): the arrow-into-tray Save read too much like Extract.
-            Label { Text("Save") } icon: { Self.saveSymbol }
+            // The arrow goes into the box; Extract's (`arrow.up.bin`) comes out of it. A custom disk
+            // couldn't match the system symbols beside it (#242).
+            Label("Save", systemImage: "square.and.arrow.down")
         }
     }
-
-    /// The custom symbol as AppKit's image: the toolbar draws its buttons with AppKit and drops a
-    /// SwiftUI asset image (`Image(.saveDisk)` shows nothing there).
-    static let saveSymbol: Image = NSImage(named: "SaveDisk").map(Image.init(nsImage:)) ?? Image(systemName: "externaldrive")
 
     private func deleteHelp(_ selection: [String]) -> String {
         let edits = model.editSession
