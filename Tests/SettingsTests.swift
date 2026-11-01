@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import Stow
 
@@ -352,4 +353,12 @@ struct SettingsTests {
         router.open = {}
     }
 
+    /// Folder rows show the real home as "~" (never the account name) and drop the trailing slash.
+    @Test @MainActor func folderRowPaths() {
+        let home = FolderAccess.home
+        #expect(FolderGrantRow<EmptyView>.displayPath(home.appending(path: "Library/Fonts", directoryHint: .isDirectory)) == "~/Library/Fonts")
+        #expect(FolderGrantRow<EmptyView>.displayPath(home) == "~")
+        #expect(FolderGrantRow<EmptyView>.displayPath(URL(filePath: "/Applications", directoryHint: .isDirectory)) == "/Applications")
+        #expect(FolderGrantRow<EmptyView>.displayPath(URL(filePath: "/Volumes/Shared/Brand Kit/", directoryHint: .isDirectory)) == "/Volumes/Shared/Brand Kit")
+    }
 }

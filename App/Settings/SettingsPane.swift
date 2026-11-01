@@ -86,7 +86,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .previews: "eye"
         case .passwords: "lock"
         case .fileTypes: "doc.on.doc"
-        case .integration: "puzzlepiece.extension"
+        case .integration: "folder.badge.gearshape"
         case .advanced: "slider.horizontal.3"
         case .licenses: "doc.text"
         }

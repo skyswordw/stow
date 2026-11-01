@@ -211,16 +211,25 @@ Switching pages doesn't animate.
 | Archive work | Extraction · Installing · Packing |
 | Interaction | Actions · **Glance** · Previews |
 | Security | Passwords |
-| System integration | File Types · Integration |
+| System integration | File Types · Finder & Permissions |
 | Advanced | Advanced (cache, reset) · Licenses |
 
 The groups are separated by space, not headings, so no heading repeats the name of the only page
 under it. Every page is a grouped form: one choice per row, its explanation in the section's
 footer right under it, no boxes of our own. Plain sidebar symbols, no coloured tiles.
 
-- **Actions** keeps the master switch first, then a **Preview**: pick a sample selection (two
-  photos, an app, fonts…) and it says in words what's in front, what's behind it and what waits
-  only in More, recomputed from the toggles below. Words, not buttons, so nothing looks runnable.
+- **Actions** keeps the master switch first, then a **Preview** (#161): pick a sample selection
+  (two photos, an app, fonts…, or nothing selected in an archive of one app) and a small drawing
+  shows the Browser's stack twice — at rest (More ⋯, the front action, the edges of the others
+  above it) and fanned out (what pointing at it or clicking the edges shows). Two rows under it
+  say what each menu holds: More (⋯) is every action but the front one; File › Actions is all of
+  them. Recomputed from the toggles below. The drawing is flat (no glass), smaller than the real
+  buttons and takes no clicks, so it reads as a picture, not a control; VoiceOver reads it as one
+  sentence (what's in front, what's behind it).
+- **Installing** and **Finder & Permissions** show folder access the same way (#162): a folder
+  symbol, the folder's name over its path (home as `~`), **Forget** on the trailing edge, and the
+  same footer sentences about subfolders and what Forget does. The first-open-check toggle's footer
+  is two short paragraphs: what the check is, then when to turn it on.
 - **Glance** holds what General used to: opening from Finder in Glance (off: the full Browser is
   the default), the window material and colourful controls. While Reduce Transparency is on, the
   footer says Glance is solid whatever is chosen; the choice itself is kept.

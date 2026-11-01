@@ -101,16 +101,6 @@
         }
       }
     },
-    "Folder access includes files and subfolders. Remove forgets Stow’s saved authorization; macOS may keep access until Stow quits. Some protected locations may still be unavailable.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "文件夹授权包含其中的文件和子文件夹。移除会删除 Stow 保存的授权；macOS 可能在 Stow 退出前仍保留访问权限。部分受保护的位置仍可能无法访问。"
-          }
-        }
-      }
-    },
     "Finder window layout": {
       "localizations": {
         "zh-Hans": {
@@ -9100,16 +9090,6 @@
         }
       }
     },
-    "macOS marks apps that came from the internet so Gatekeeper can check them the first time they open. Removing the mark skips that check — only turn this on if you trust everything you install. Unsigned or unnotarized apps still get a warning from Stow first.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS 会标记来自互联网的 App，以便在首次打开时执行安全检查。移除标记会跳过此检查，请仅在信任所有安装内容时开启。对于未签名或未经公证的 App，Stow 仍会先显示警告。"
-          }
-        }
-      }
-    },
     "macOS needs your OK in Login Items settings.": {
       "localizations": {
         "zh-Hans": {
@@ -11290,16 +11270,6 @@
         }
       }
     },
-    "Behind it": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "其后"
-          }
-        }
-      }
-    },
     "Colourful window controls": {
       "localizations": {
         "zh-Hans": {
@@ -11330,32 +11300,12 @@
         }
       }
     },
-    "In front": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最前"
-          }
-        }
-      }
-    },
     "Nothing": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "无"
-          }
-        }
-      }
-    },
-    "Only in More (⋯)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仅在“更多”（⋯）中"
           }
         }
       }
@@ -11954,16 +11904,6 @@
         }
       }
     },
-    "Rest the pointer on the action buttons or click their exposed edges to show alternatives. More (⋯) lists alternatives; File › Actions lists all available commands.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "将指针停在操作按钮上，或点按露出的按钮边缘，可展开其他操作。“更多”（⋯）列出其他操作，“文件 › 快捷操作”列出所有可用命令。"
-          }
-        }
-      }
-    },
     "The main action appears in front, with up to two alternatives behind it. Turning off a suggestion hides its button, not the command in the menus.": {
       "localizations": {
         "zh-Hans": {
@@ -11980,16 +11920,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "跳过 macOS 对已安装 App 的首次打开检查"
-          }
-        }
-      }
-    },
-    "Stow asks for access before installing in a folder. Remembered access includes files and subfolders. Forget removes Stow’s saved authorization; macOS may keep access until Stow quits.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "首次安装到某个文件夹前，Stow 会请求访问权限。记住的权限包括其中的文件和子文件夹。“忘记”会移除 Stow 保存的授权；macOS 可能会保留访问权限，直到 Stow 退出。"
           }
         }
       }
@@ -12686,6 +12616,136 @@
           "stringUnit": {
             "state": "translated",
             "value": "前往更上层的文件夹：%@"
+          }
+        }
+      }
+    },
+    "Point at the stack or click its edges to show the actions behind the front one. More (⋯) lists every action except the front one; File › Actions lists them all, hidden suggestions included.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将指针移到操作按钮上，或点按其露出的边缘，可展开最前操作后面的其他操作。“更多”（⋯）列出除最前操作外的所有操作；“文件 › 快捷操作”列出全部操作，包括已隐藏的建议。"
+          }
+        }
+      }
+    },
+    "Nothing, in an archive of one app": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未选择（压缩包仅含一个 App）"
+          }
+        }
+      }
+    },
+    "More (⋯)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多（⋯）"
+          }
+        }
+      }
+    },
+    "Not shown with nothing selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未选择项目时不显示"
+          }
+        }
+      }
+    },
+    "File › Actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件 › 快捷操作"
+          }
+        }
+      }
+    },
+    "At rest": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起时"
+          }
+        }
+      }
+    },
+    "Pointed at, or edges clicked": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指针悬停或点按边缘后"
+          }
+        }
+      }
+    },
+    "In front: %@. Behind it: %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最前：%1$@。其后：%2$@。"
+          }
+        }
+      }
+    },
+    "macOS marks apps that came from the internet so Gatekeeper can check them the first time they open. Turning this on removes the mark, so that check is skipped.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 会标记来自互联网的 App，以便在首次打开时执行安全检查。开启此项会移除该标记，从而跳过这项检查。"
+          }
+        }
+      }
+    },
+    "Only turn this on if you trust everything you install. Unsigned or unnotarized apps still get a warning from Stow first.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请仅在信任所有安装内容时开启。对于未签名或未经公证的 App，Stow 仍会先显示警告。"
+          }
+        }
+      }
+    },
+    "Stow asks the first time it installs into each folder. Access includes the folder’s files and subfolders. Forget removes Stow’s saved authorization; macOS may keep access until Stow quits.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 首次安装到某个文件夹时会请求访问权限。授权包括该文件夹中的文件和子文件夹。“忘记”会移除 Stow 保存的授权；macOS 可能会保留访问权限，直到 Stow 退出。"
+          }
+        }
+      }
+    },
+    "Access includes the folder’s files and subfolders. Forget removes Stow’s saved authorization; macOS may keep access until Stow quits. Some protected locations may still be unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "授权包括该文件夹中的文件和子文件夹。“忘记”会移除 Stow 保存的授权；macOS 可能会保留访问权限，直到 Stow 退出。部分受保护的位置仍可能无法访问。"
+          }
+        }
+      }
+    },
+    "Nothing behind it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其后没有其他操作"
           }
         }
       }

@@ -127,7 +127,7 @@ The first time an action needs a folder Stow can't write in, Stow shows an Open 
 pointing at that folder and says why ("Choose Allow to let Stow extract … here — and next time,
 anything in this folder"). Allow grants that folder and everything inside, kept as a
 security-scoped bookmark; picking a different folder uses it once and remembers nothing.
-Settings › Integration lists every grant with Remove. Services and opened documents already
+Settings › Finder & Permissions lists every grant with Forget. Services and opened documents already
 normally give Stow read access to the files themselves. When an archive open is denied (including
 files passed from another app), Stow offers the system picker at its source folder. Select that
 folder to remember access, or select only the original archive. Folder access includes read/write
@@ -166,7 +166,7 @@ extension and Tray (⌥⌘T). Skip or Get Started finishes it; Help › Welcome 
 Resetting preferences keeps first-run completion remembered.
 
 Stow has a Settings window (⌘,): a sidebar of General, Extraction, Installing, Packing, Actions,
-Glance, Previews, Passwords, File Types, Integration, Advanced and Licenses pages, beside one
+Glance, Previews, Passwords, File Types, Finder & Permissions, Advanced and Licenses pages, beside one
 scrolling page. Tray controls live in General. The host lives in `App/Settings` and reuses the extraction and
 installing forms in `App/Options`. Advanced can clean preview caches and reset preferences.
 
