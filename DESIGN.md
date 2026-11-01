@@ -55,10 +55,9 @@ expanded action-stack crops are the preferred interaction reference to investiga
 a single enclosing capsule nor fidelity to Codex's earlier mockups is required. See the
 [current direction and evidence](Handoff/browser-design-direction-reset.md).
 
-Existing main builds still say “Next Steps”;
-[issue #161](https://github.com/skyswordw/stow/issues/161) tracks the public-copy and presentation
-transition. “快捷操作” is a proposed Simplified Chinese localization, pending copy review.
-Internal types and stored preference keys may retain their existing names. Preserve explicit
+The app, Settings, the More menu, File › Actions and the website say **Actions** (Simplified
+Chinese **快捷操作**); [issue #161](https://github.com/skyswordw/stow/issues/161) tracked the
+transition. Internal `NextStep*` types and stored preference keys keep their existing names. Preserve explicit
 user preferences where compatible with these newer product decisions. The
 [earlier product design review](Handoff/product-design-review-2026-10-24.md) retains historical
 evidence; its optional-pane composition and mockups are superseded.
@@ -113,6 +112,17 @@ put, unaccented. Archive facts live in one place, Archive Info, reached from Det
 selected, the Checkup button and the title menu. Everything floating shares one family: glass
 capsules, buttons concentric inside them (button radius + inset = capsule radius), 36–38 pt tall.
 Details is a solid reading surface with the same light rim, brighter along its top edge.
+
+**Actions' states, all in the same place.** Ready is the stack. A step that has started but measured
+nothing yet (a password, the engine starting) shows its capsule with a turning ring and no
+percentage; then the ring fills with the percentage beside it, and Stop. Done says where things
+went, with Show in Finder; a failure grows into a card with what happened, its one action, Copy
+Details and Dismiss. Stopping leaves nothing behind and the stack comes straight back. While a step
+runs, Extract All waits, dimmed, its help tag saying why; while the archive is still being listed,
+Actions and Extract All are dimmed the same way. A dimmed stack button gives up the accent rather
+than fading. In a narrow window the words give way first: stacked labels shorten in the middle
+(280 pt at most), a failure card puts Copy Details under its action, and several results inside
+other archives say only "Select one result to show it".
 
 ## Glance layout (#159)
 
@@ -213,6 +223,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Actions content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
 | Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
+| A step has started but measured nothing yet | A quarter arc turns in the progress ring; it stands still under Reduce Motion | 1 turn/s, linear |
 | Actions shown/hidden or its stack opened/closed by a key (arrows, ⌘A, Esc) | **None** | — |
 | Actions stack fans out (pointer rests 140 ms on it, or its edges clicked) | Spring: each action rises from behind the front button, scale 0.9 → 1 + opacity; folds back with an ease-out 450 ms after the pointer leaves (ArcZip lingers 0.5–1 s; it also opens at once, which flashes on every pass, so Stow waits 140 ms). Choosing an action or a new selection folds it at once, unanimated. Fade only under Reduce Motion | `response 0.32, damping 1.0` in, 180 ms out |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |

@@ -44,8 +44,10 @@ import SwiftUI
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
 /// glance-editing and glance-editing-saving: the editing scene's changes in Glance, nothing selected.
 /// glance-opening: Glance from Finder while the archive is still opening (Close stops it).
-/// Next Steps: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
-/// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Next Steps).
+/// Actions: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
+/// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Actions),
+/// next-steps-listing (a selection while the archive is still listed: Actions dimmed).
+/// install-preparing: an install that has started but measured nothing yet (the turning ring).
 /// archive-app and glance-app: an archive that's one app with nothing selected, where Actions offers
 /// Install App (fictional, so it only simulates).
 /// `-nextSteps.hidden quickLook,extract` and `-nextSteps.shown NO` try other choices without saving them.
@@ -111,6 +113,12 @@ enum DemoScene {
                     NextStepsDemo.openMoreMenu()
                 }
             }
+        case "next-steps-listing":
+            // Two photos selected while the archive is still being listed: Actions and Extract All
+            // are dimmed until it's done.
+            app.browser = BrowserModel(archive: SampleArchive.make(), isListing: true)
+            app.browser?.folder = "Photos"
+            app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
         case "next-steps-settings":
             SettingsRouter.shared.show(.nextSteps)
         case "grid":
@@ -303,12 +311,13 @@ enum DemoScene {
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
             app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailure(scene, name: SampleArchive.make().name))))
-        case "install-running", "install-app-open":
-            // An app part-way into Applications, or refused because the installed copy is open (INS-181).
+        case "install-running", "install-preparing", "install-app-open":
+            // An app part-way into Applications (or just started, nothing measured yet), or refused
+            // because the installed copy is open (INS-181).
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.folder = "Prototype"
             app.browser?.selection = ["Prototype/Harbor Prototype.app"]
-            let phase: ActivityPhase = scene == "install-running" ? .running(0.42)
+            let phase: ActivityPhase = scene == "install-running" ? .running(0.42) : scene == "install-preparing" ? .running(0)
                 : .failed(Failure(Installer.RunningApp(name: "Harbor Prototype"), .install, name: "Harbor Prototype"))
             app.browser?.previewActivity(.init(step: .moveToApplications, itemCount: 1, phase: phase, name: "Harbor Prototype"))
         case "checkup": app.openArchive(named: SampleArchive.make().name); app.browser?.navigate(to: "Prototype") // just opened, nothing selected

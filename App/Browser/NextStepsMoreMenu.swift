@@ -44,6 +44,8 @@ struct NextStepsMoreItems: View {
             Button(step.title, systemImage: step.symbol) { run(step) }
                 .labelStyle(.titleAndIcon)
                 .keyboardShortcut(showsShortcuts ? step.menuShortcut : nil)
+                // Dimmed, like the stack, until the archive is listed: they'd do nothing yet.
+                .disabled(model.actionsUnavailableReason != nil)
         }
         if !alternatives.isEmpty { Divider() }
         // The same symbol as Settings › Actions, so the menu item and the pane read as one feature.
