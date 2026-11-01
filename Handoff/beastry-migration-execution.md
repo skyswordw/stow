@@ -25,8 +25,8 @@ VoiceOver acceptance remains deferred under #93.
 
 Local combined build and test: 615 tests in 91 suites passed; localization export
 found 0 missing out of 1,185 strings. Website asset paths and inline JavaScript
-syntax passed checks. Updated-head GitHub checks are verified separately before
-cutover. Website screenshot refreshes after subsequent design work remain separate
+syntax passed checks. All updated-head GitHub checks passed before cutover. PRs #237, #239, #240
+and #243 were merged, and merged main d3ec297 passed CI. Website screenshot refreshes after subsequent design work remain separate
 visual work, rather than an additional migration acceptance gate.
 
 ## Backup and access
@@ -72,7 +72,47 @@ Bundle identifiers, Apple Team ID/App Group, signing identity, and Sparkle key
 pair are unchanged. Published releases are preserved. Old clients' feed and DMG
 URLs must continue through GitHub redirects; never recreate `skyswordw/stow`.
 
-## Cutover status
+## Cutover results
 
-Pending completion of the updated-head PR checks and merged-main verification.
-Repository transfer and production signing validation have not yet been performed.
+The existing repository was transferred to **Beastry/stow**, retaining repository
+ID **1427726812**, public visibility, and default branch main. Verification before
+merging the migration patch confirmed:
+
+- All 66 branch/tag references exactly matched the final pre-transfer snapshot.
+- All 9 repository secret names and all 9 release asset IDs, sizes and digests matched.
+- Every saved Issue/PR record and its assignees remained present and unchanged.
+- Both collaborators have admin access; Actions remain enabled with default token
+  permission read and workflow PR-review approval disabled.
+- Pages remains a workflow site with no custom domain; the github-pages environment
+  still restricts deployments to main.
+
+[Migration PR #244](https://github.com/Beastry/stow/pull/244) passed all five checks
+(build-test, universal, snapshots, package, cask) and was merged as 656f543. It also
+updates the Homebrew CI audit for Homebrew 6: explicitly trust only the generated
+stow-ci/local/stow cask in the disposable runner, without disabling tap trust.
+The local origin remote now points to git@github.com:Beastry/stow.git. Other
+collaborators must update their own local remotes.
+
+[Pages deployment](https://github.com/Beastry/stow/actions/runs/41292524987) succeeded.
+The new homepage at https://beastry.github.io/stow/ and rendered README return HTTP
+200 and contain destination repository/site links. GitHub does not redirect the
+old Pages host; repository redirects are separate.
+
+Both old and new latest appcast URLs, and both old and new v0.1.2 DMG URLs, return
+HTTP 200 after redirects and match their pre-transfer SHA-256 hashes. The installed
+signed Stow 0.1.2 (build 516, using the old feed URL) completed Check for Updates
+successfully both before and after transfer, reporting that it is up to date.
+These native menu/alert checks used AX automation, not VoiceOver. No update was
+installed. Actual upgrade installation remains acceptance work for the next
+published release; an unchanged latest release cannot demonstrate that step.
+
+Production signing, notarization, and appcast verification are tracked in the
+[artifact-only Release validation](https://github.com/Beastry/stow/actions/runs/41292538244),
+using version 0.1.3 with draft-release=false on 656f543. This is a validation build,
+not an authorized publication: it must not create a release or version tag. The
+[post-transfer main CI](https://github.com/Beastry/stow/actions/runs/41292524845)
+also validates the destination repository environment.
+
+Preserve the original skyswordw/stow redirect namespace indefinitely. The current
+published versions remain v0.1.0, v0.1.1 and v0.1.2; no existing release asset was
+rewritten. No Finder or Quick Look registration was performed during this work.

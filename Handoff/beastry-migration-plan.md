@@ -1,8 +1,8 @@
 # Stow migration to Beastry
 
-Prepared on 2026-10-31 (Pacific/Honolulu). Status: execution authorized; PR integration and backups are in progress.
-The baseline below records the earlier planning inspection; see the execution record for
-current results. Organization-wide policies are outside the migration changes.
+Prepared on 2026-10-31 (Pacific/Honolulu). Status: repository transferred to Beastry/stow; see the
+[execution record](beastry-migration-execution.md) for verified results. The baseline below
+records the earlier planning inspection. Organization-wide policies were not changed.
 
 ## Direction and timing
 
