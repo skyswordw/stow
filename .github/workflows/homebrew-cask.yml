@@ -72,6 +72,8 @@ jobs:
           tap=$(brew --repository stow-ci/local)
           mkdir -p "$tap/Casks"
           cp build/homebrew/stow.rb "$tap/Casks/stow.rb"
+          # Homebrew 6 requires explicit trust before loading this generated cask for audit.
+          brew trust --cask stow-ci/local/stow
           brew style --cask stow-ci/local/stow
           if [[ "$EVENT" == pull_request ]]; then
             brew audit --cask stow-ci/local/stow

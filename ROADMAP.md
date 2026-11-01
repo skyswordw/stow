@@ -22,7 +22,7 @@ distinguishes working features from those still awaiting macOS verification. Ope
 bookmark history, and Glance now has optional colourful window controls (off by default).
 
 **Released:** notarized **v0.1.0** and **v0.1.1** shipped on
-[GitHub Releases](https://github.com/skyswordw/stow/releases), with signed DMGs and Sparkle appcasts.
+[GitHub Releases](https://github.com/Beastry/stow/releases), with signed DMGs and Sparkle appcasts.
 The release pipeline automates signing, notarization, stapling and bundle/appcast checks. Still
 open: a clean-Mac Gatekeeper and live Finder hand-off check (#32/#38, Tests #17), a live Sparkle
 update check (Tests #21), Homebrew tap publication, and the deferred work below. The source tree

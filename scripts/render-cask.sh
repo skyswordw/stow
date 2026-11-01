@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 usage() { echo "usage: $0 <version> [--dmg <path>] [--output <path>] [--repo owner/name]" >&2; exit 2; }
 [[ $# -ge 1 ]] || usage
 version=${1#v}; shift
-dmg="" output="build/homebrew/stow.rb" repo="skyswordw/stow"
+dmg="" output="build/homebrew/stow.rb" repo="Beastry/stow"
 while [[ $# -gt 0 ]]; do
   case $1 in
     --dmg) dmg=${2:?}; shift 2 ;;
@@ -22,12 +22,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ $version =~ ^[0-9]+(\.[0-9]+){1,3}([-.][0-9A-Za-z.]+)?$ ]] || { echo "error: bad version '$version'" >&2; exit 2; }
+[[ $repo =~ ^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$ ]] || { echo "error: bad repository '$repo'" >&2; exit 2; }
 
 template=packaging/homebrew/stow.rb
 asset="Stow-$version.dmg"
 url="https://github.com/$repo/releases/download/v$version/$asset"
+owner=$(printf '%s' "${repo%%/*}" | tr '[:upper:]' '[:lower:]')
+homepage="https://$owner.github.io/${repo#*/}/"
 # The template's url must keep matching the asset name and tag this script uses.
-grep -q 'releases/download/v#{version}/Stow-#{version}.dmg' "$template" \
+grep -Fq 'https://github.com/@REPOSITORY@/releases/download/v#{version}/Stow-#{version}.dmg' "$template" \
   || { echo "error: $template url no longer matches v<version>/$asset" >&2; exit 1; }
 
 work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
@@ -48,8 +51,9 @@ fi
 
 mkdir -p "$(dirname "$output")"
 # Drop the template's own header comment (everything before the `cask` line).
-sed -e '1,/^cask /{/^#/d;}' -e "s/@VERSION@/$version/" -e "s/@SHA256@/$sha256/" "$template" > "$output"
-if grep -q '@[A-Z0-9]*@' "$output"; then
+sed -e '1,/^cask /{/^#/d;}' -e "s/@VERSION@/$version/" -e "s/@SHA256@/$sha256/" \
+  -e "s|@REPOSITORY@|$repo|g" -e "s|@HOMEPAGE@|$homepage|g" "$template" > "$output"
+if grep -q '@[A-Z0-9_]*@' "$output"; then
   echo "error: unfilled placeholder in $output" >&2; exit 1
 fi
 echo "Rendered $output (version $version, sha256 $sha256)" >&2

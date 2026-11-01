@@ -14,14 +14,18 @@
 Locally: `scripts/render-cask.sh 1.0.0` (downloads the DMG) or
 `scripts/render-cask.sh 1.0.0 --dmg path/to/Stow-1.0.0.dmg`; output goes to `build/homebrew/stow.rb`.
 
+The default repository is `Beastry/stow`. `--repo owner/name` changes both the download URL
+and the rendered cask's URL and GitHub Pages homepage. The template's `@REPOSITORY@` and
+`@HOMEPAGE@` placeholders are filled with the version and checksum; none may remain in the output.
+
 ## Where it is published (to decide)
 
-- **Own tap** (`skyswordw/homebrew-tap`, `Casks/stow.rb`): `brew install --cask skyswordw/tap/stow`.
+- **Own tap** (`Beastry/homebrew-tap`, `Casks/stow.rb`): `brew install --cask Beastry/tap/stow`.
   Works from the first release; no review, no notability bar.
 - **homebrew/homebrew-cask**: needs a signed and notarized app, and a notable enough repository
   (self-submitted casks need roughly 75+ stars, or 30+ forks/watchers). The token `stow` collides with
   the GNU Stow formula in homebrew/core, which `brew audit --new --strict` rejects; the Cask Cookbook
-  asks for a vendor prefix (`skyswordw-stow`) or an `-app` suffix (`stow-app`). Stow is also still a
+  asks for a vendor prefix (`beastry-stow`) or an `-app` suffix (`stow-app`). Stow is also still a
   working name.
 
 ## Assumptions the template makes

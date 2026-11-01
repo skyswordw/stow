@@ -18,7 +18,7 @@
 #   SPARKLE_BIN             folder with Sparkle's sign_update; default from scripts/fetch-sparkle.sh
 #   RELEASE_NOTES           Markdown shown in the update window; default website/release-notes/v<version>.md
 #                           when it exists (the full notes are always linked: the GitHub release page)
-#   REPO                    owner/name for the URLs; default skyswordw/stow
+#   REPO                    owner/name for the URLs; default Beastry/stow
 #   OUT                     output; default appcast.xml next to the DMG (never committed)
 #   REQUIRE_APPCAST=1       fail instead of skipping when no key is set
 #   DRY_RUN=1               CI check on PRs: accepts Stow-<v>-unsigned.dmg and a throwaway key (the
@@ -42,7 +42,7 @@ else
   [[ $name =~ ^Stow-([0-9][0-9A-Za-z.-]*)\.dmg$ && $name != *-unsigned.dmg ]] || die "expected a signed Stow-<version>.dmg, got $name"
 fi
 version=${BASH_REMATCH[1]}
-REPO=${REPO:-skyswordw/stow}
+REPO=${REPO:-Beastry/stow}
 APP=${APP:-$(dirname "$dmg")/Stow.app}
 OUT=${OUT:-$(dirname "$dmg")/appcast.xml}
 

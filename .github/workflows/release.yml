@@ -226,6 +226,7 @@ jobs:
         if: ${{ steps.package.outputs.mode == 'notarized' }}
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          REPO: ${{ github.repository }}
           DMG: ${{ steps.package.outputs.dmg }}
         run: |
           set -euo pipefail

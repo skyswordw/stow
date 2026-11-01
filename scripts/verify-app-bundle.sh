@@ -60,7 +60,7 @@ app = sys.argv[1]
 info = plistlib.load(open(f"{app}/Contents/Info.plist", "rb"))
 problems = []
 feed = info.get("SUFeedURL", "")
-if feed != "https://github.com/skyswordw/stow/releases/latest/download/appcast.xml":
+if feed != "https://github.com/Beastry/stow/releases/latest/download/appcast.xml":
     problems.append(f"SUFeedURL is {feed!r}")
 try:
     if len(base64.b64decode(info.get("SUPublicEDKey", ""), validate=True)) != 32: raise ValueError
