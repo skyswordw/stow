@@ -42,7 +42,7 @@ private struct ListedPreview: View {
                     PackedBar(packed: packed, total: model.totalSize)
                 }
                 if let finding = model.headline {
-                    CheckupLine(finding: finding, cautionCount: model.cautionCount)
+                    FindingLine(finding: finding, cautionCount: model.cautionCount)
                 }
             }
             .padding(16)
@@ -157,31 +157,48 @@ private struct PackedBar: View {
     }
 }
 
-/// One line of Checkup: the finding that matters most, in plain words.
-private struct CheckupLine: View {
+/// The finding that matters most, only when there is one: what it is and, under it, what it means.
+/// Tinted like the app's notice card above the files; an ordinary archive shows no line at all.
+private struct FindingLine: View {
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.colorScheme) private var colorScheme
     let finding: CheckupFinding
     let cautionCount: Int
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: symbol)
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            glyph
+                .frame(width: 14)
                 .accessibilityHidden(true)
-                .foregroundStyle(color)
-            Text(finding.title).font(.callout)
-            if cautionCount > 1 {
-                Text("+\(cautionCount - 1) more")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(finding.title)
+                        .font(.callout.weight(.medium))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if cautionCount > 1 {
+                        Text("+\(cautionCount - 1) more")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
+                    }
+                }
+                if !finding.detail.isEmpty {
+                    Text(finding.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(.primary.opacity(0.04), in: .rect(cornerRadius: 8))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(color.opacity(colorScheme == .dark ? 0.09 : 0.1), in: shape)
         .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(.primary.opacity(contrast == .increased ? 0.45 : 0))
+            shape.strokeBorder(color.opacity(contrast == .increased ? 0.8 : colorScheme == .dark ? 0.18 : 0.28))
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
@@ -189,19 +206,20 @@ private struct CheckupLine: View {
         .help(finding.detail)
     }
 
-    // Mirrors CheckupFinding.Severity in App/Design/Theme.swift (not compiled into the extension).
-    private var symbol: String {
+    // Mirrors FindingGlyph in App/Browser/ArchiveInfoView.swift (not compiled into the extension).
+    @ViewBuilder
+    private var glyph: some View {
         switch finding.severity {
-        case .fine: "checkmark.shield.fill"
-        case .info: "info.circle.fill"
-        case .handled: "shield.lefthalf.filled"
-        case .caution: "exclamationmark.triangle.fill"
+        case .caution: Image(systemName: "exclamationmark.triangle.fill").symbolRenderingMode(.multicolor)
+        case .handled: Image(systemName: "shield.lefthalf.filled").foregroundStyle(color)
+        case .info: Image(systemName: "info.circle.fill").foregroundStyle(color)
+        case .fine: Image(systemName: "checkmark.circle").foregroundStyle(color)
         }
     }
 
     private var color: Color {
         switch finding.severity {
-        case .fine: .green
+        case .fine: .secondary
         case .info: .secondary
         case .handled: .blue
         case .caution: .yellow

@@ -51,7 +51,9 @@ scripts/snapshot.sh <scene> [light|dark]   # → snapshots/
 Scenes: `editing`, `readonly`, `welcome`, `grid`, `list`, `fonts`, `search`, `activity`, `pack`, `tray`, `quicklook`
 (`-StowPreview encrypted|slow`), `associations`, `integration` (`-StowRepair YES`), `batch`,
 `conflict`, `conflict-folder`, `signature-warning`, `replace-app`, `extract-options`, `install-options`,
-`packing`, `packed`, `packrun`, `checkup`, `install-preparing`, `install-done`, `open-unreadable`, `source-access`, `source-access-file` (both take `-StowSourcePath <file>` or
+`packing`, `packed`, `packrun`, `checkup`, `install-preparing`, `install-done`, `open-unreadable`, Details and archive notices (`details-clean`, `details-planned`,
+`details-more`, `details-notices-open`, `details-folder`, `details-multi`, `details-edited`, `details-app`,
+`details-app-signed`, `details-long`; `-StowNoticesOpen YES` opens the notice card in any scene), `source-access`, `source-access-file` (both take `-StowSourcePath <file>` or
 `-StowSourceName <name>`), `source-access-unsaved`. Browsing scenes take `-StowOpen <path>` plus the flags listed in
 `App/Browser/BrowseDemo.swift`.
 `open -StowOpen <path> -StowRun extractAll|install|fonts|installer` runs a real step

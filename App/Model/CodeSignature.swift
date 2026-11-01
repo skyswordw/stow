@@ -27,6 +27,16 @@ nonisolated enum CodeSignature {
         /// Signed with a certificate macOS doesn't trust for apps.
         case untrusted
 
+        /// Developer identity supported by this verdict. App Store distribution alone does not
+        /// identify the developer; only the Apple verdict establishes that Apple made the app.
+        var developerName: String {
+            switch self {
+            case .apple: String(localized: "Apple")
+            case .notarized(let signer), .notNotarized(let signer): signer ?? String(localized: "Registered developer")
+            case .appStore, .adHoc, .unsigned, .broken, .untrusted: String(localized: "Not identified")
+            }
+        }
+
         /// Whether installing should stop and ask first.
         var needsConfirmation: Bool {
             switch self {

@@ -64,6 +64,8 @@ enum DemoScene {
         guard let scene = defaults.string(forKey: "StowScene") else { return }
         if scene == "a11y-contrast" { defaults.register(defaults: ["StowIncreaseContrast": true]) }
         if scene == "a11y-solid" { defaults.register(defaults: ["StowReduceTransparency": true]) }
+        // Any scene: the archive notice card above the files starts open.
+        if defaults.bool(forKey: "StowNoticesOpen") { ArchiveNotices.expandsForDemo = true }
         switch defaults.string(forKey: "StowAppearance") {
         case "light": NSApp.appearance = NSAppearance(named: .aqua)
         case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -344,6 +346,53 @@ enum DemoScene {
             // Just opened, nothing selected; `-StowSelect "Harbor Prototype.app"` selects the app.
             app.openDemo(SampleArchive.prototypeBuild())
             if let name = defaults.string(forKey: "StowSelect") { app.browser?.select([name]) }
+        case "details-clean", "details-planned", "details-more":
+            // Details with nothing selected. clean: an ordinary archive with only routine notes, so
+            // nothing is promoted above the files. planned: a protection Stow will apply when
+            // extracting, and nothing else. more: More Archive Information open on the sample.
+            var archive = SampleArchive.make()
+            switch scene {
+            case "details-clean": archive.checkup = archive.checkup.filter { !$0.needsAttention }
+            case "details-planned": archive.checkup = archive.checkup.filter { $0.severity != .caution }
+            default: ArchiveInfoView.disclosesForDemo = true
+            }
+            app.browser = BrowserModel(archive: archive)
+            app.browser?.folder = "Photos"
+        case "details-notices-open":
+            // The notice card opened while a file is selected: warnings stay with the files.
+            app.browser = BrowserModel(archive: SampleArchive.make())
+            app.browser?.folder = "Specs"
+            app.browser?.selection = ["Specs/Brand Guidelines.pdf"]
+            ArchiveNotices.expandsForDemo = true
+        case "details-folder":
+            app.browser = BrowserModel(archive: SampleArchive.make())
+            app.browser?.selection = ["Photos"]
+        case "details-multi":
+            // A folder and a file inside it, as recursive search can select them: counted once.
+            app.browser = BrowserModel(archive: SampleArchive.make())
+            app.browser?.viewMode = .list
+            app.browser?.selection = ["Photos", "Photos/Lighthouse.jpg", "README.md"]
+        case "details-edited":
+            // The editing scene's pending changes with nothing selected: which figures count them.
+            BrowseDemo.editing(in: app)
+            app.browser?.selection = []
+        case "details-app", "details-app-signed":
+            app.browser = BrowserModel(archive: SampleArchive.make())
+            app.browser?.folder = "Prototype"
+            app.browser?.selection = ["Prototype/Harbor Prototype.app"]
+            app.browser?.showSignatureForDemo(scene == "details-app" ? .notNotarized(signer: "Harbor Studio Ltd")
+                                              : .notarized(signer: "Harbor Studio Ltd"),
+                                              for: "Prototype/Harbor Prototype.app")
+        case "details-long":
+            // Long names everywhere: the archive, a deep folder chain and the file.
+            let deep = "Client Deliverables/Final Approved Versions/Print and Web/High Resolution Masters"
+            let name = "Harbor Rebrand Handoff — Final Approved Deliverables for Print and Web (Revision 7).zip"
+            let sample = SampleArchive.make(named: name)
+            let file = ArchiveEntry(path: deep + "/Harbor Lighthouse Hero Photograph, Golden Hour, Uncropped Master.jpg",
+                                    isFolder: false, size: 18_400_000, packedSize: 18_100_000, modified: .now)
+            app.browser = BrowserModel(archive: Archive(name: name, format: .zip, files: sample.files + [file], checkup: sample.checkup))
+            app.browser?.folder = deep
+            app.browser?.selection = [file.path]
         case "pack-failed":
             app.packing.preview(name: "Harbor Handoff.zip", phase: .failed(demoFailure("pack-failed", name: "Harbor Handoff.zip")))
         case "pack-failed-dmg":

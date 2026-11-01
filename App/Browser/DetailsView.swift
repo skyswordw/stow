@@ -11,9 +11,15 @@ struct DetailsPane: View {
         // Search results inside other archives count too, so Details matches what's highlighted.
         let selected = model.selectedEntries + model.selection.compactMap { model.nestedHits[$0]?.entry }
         VStack(alignment: .leading, spacing: 0) {
-            Text(Self.heading(for: selected))
+            Label {
+                Text(Self.heading(for: selected))
+            } icon: {
+                Image(systemName: Self.headingSymbol(for: selected))
+                    .accessibilityHidden(true)
+            }
                 .font(.headline)
                 .foregroundStyle(.secondary)
+                .labelStyle(DetailsHeadingLabelStyle())
                 .accessibilityAddTraits(.isHeader)
                 .padding(.horizontal, Space.l)
                 .padding(.top, Space.l)
@@ -55,6 +61,16 @@ extension DetailsPane {
         }
     }
 
+    /// The heading's glyph names its subject as the words do: the archive, a file, a folder, or a
+    /// selection of several.
+    static func headingSymbol(for entries: [ArchiveEntry]) -> String {
+        switch entries.count {
+        case 0: "archivebox"
+        case 1: entries[0].kind == .folder ? "folder" : "doc"
+        default: "square.on.square"
+        }
+    }
+
     /// Recursive search may select a folder/archive and an item inside it. Count each selected
     /// outer item once, rather than adding its already-included descendants again.
     static func combinedSize(of entries: [ArchiveEntry]) -> Int64 {
@@ -68,6 +84,19 @@ extension DetailsPane {
                 parent = ArchiveEntry.parent(of: parent)
             }
             return total + entry.size
+        }
+    }
+}
+
+/// The heading's glyph sits on the text's baseline at a fixed width, so the words don't shift as the
+/// subject changes from archive to file to folder.
+private struct DetailsHeadingLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            configuration.icon
+                .imageScale(.small)
+                .frame(width: 16)
+            configuration.title
         }
     }
 }
@@ -120,7 +149,7 @@ private struct NestedDetail: View {
             ] + (hit.inner.modified > Date(timeIntervalSince1970: 0) ? [
                 PropertyRow(String(localized: "Modified"), hit.inner.modified.formatted(date: .abbreviated, time: .shortened)),
             ] : []) + [
-                PropertyRow(String(localized: "Location in archive"), location),
+                PropertyRow(String(localized: "Location in archive"), location, layout: .stacked),
             ])
         }
     }
@@ -152,10 +181,10 @@ private struct EntryDetail: View {
                 PropertyRow(String(localized: "Size"), entry.size.bytes),
                 PropertyRow(String(localized: "Packed file data"), compressed.value, detail: compressed.saved),
             ] + (hasDate ? [PropertyRow(String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened))] : []) + [
-                PropertyRow(String(localized: "Location in archive"), model.location(ofFolder: entry.parent)),
+                PropertyRow(String(localized: "Location in archive"), model.location(ofFolder: entry.parent), layout: .stacked),
             ])
 
-            if entry.kind == .app, model.archive.source != nil {
+            if entry.kind == .app, model.archive.source != nil || model.signatures[entry.path] != nil {
                 SignatureSection(entry: entry, model: model)
             }
         }
@@ -218,20 +247,9 @@ private struct SignatureSection: View {
         VStack(alignment: .leading, spacing: Space.s) {
             SectionLabel(String(localized: "Developer Verification"))
             if let verdict = model.signatures[entry.path] {
-                let finding = verdict.finding
-                HStack(alignment: .firstTextBaseline, spacing: Space.s) {
-                    Image(systemName: finding.severity.symbol)
-                        .accessibilityHidden(true)
-                        .foregroundStyle(finding.severity.color)
-                        .frame(width: 16)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(finding.title).font(.callout.weight(.medium))
-                        Text(finding.detail)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
+                // Who made it first, then what was verified about them, then the evidence.
+                PropertyList([PropertyRow(String(localized: "Developer"), verdict.developerName)])
+                ArchiveFindingRows(findings: [verdict.finding])
             } else if model.checkingSignature == entry.path {
                 HStack(spacing: Space.s) {
                     ProgressView().controlSize(.small)
@@ -242,9 +260,11 @@ private struct SignatureSection: View {
                 Text("Checks the app’s signature and Apple notarization. Also checked before installing.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
+
 }
 
 private struct MultiDetail: View {
@@ -277,10 +297,18 @@ private struct MultiDetail: View {
                 .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                 .liveNumber()
 
-            PropertyList([
-                PropertyRow(String(localized: "Combined file size"), DetailsPane.combinedSize(of: entries).bytes,
-                            detail: String(localized: "Items inside selected folders or archives are counted once.")),
-            ])
+            VStack(alignment: .leading, spacing: Space.xs) {
+                PropertyList([
+                    PropertyRow(String(localized: "Combined file size"), DetailsPane.combinedSize(of: entries).bytes),
+                ])
+                // Only worth saying when something selected can hold other items.
+                if entries.contains(where: \.isNavigable) {
+                    Text("Items inside selected folders or archives are counted once.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 }
@@ -288,15 +316,28 @@ private struct MultiDetail: View {
 /// One of Details' properties: a name, its value, and an optional quieter note under the value
 /// ("40% smaller").
 struct PropertyRow: Identifiable {
+    enum Tone { case note, pending }
+    enum Layout {
+        /// Name and value on one line, the value on the trailing edge.
+        case inline
+        /// The name above, the value under it at full width: paths, which read from the start.
+        case stacked
+    }
+
     let label: String
     let value: String
     var detail: String?
+    /// Pending notes (“Including unsaved changes”) take the accent, as staged files' tags do.
+    var tone: Tone = .note
+    var layout: Layout = .inline
     var id: String { label }
 
-    init(_ label: String, _ value: String, detail: String? = nil) {
+    init(_ label: String, _ value: String, detail: String? = nil, tone: Tone = .note, layout: Layout = .inline) {
         self.label = label
         self.value = value
         self.detail = detail
+        self.tone = tone
+        self.layout = layout
     }
 }
 
@@ -310,23 +351,26 @@ struct PropertyList: View {
         VStack(spacing: 0) {
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                 if index > 0 { Divider() }
-                HStack(alignment: .firstTextBaseline, spacing: Space.m) {
-                    Text(row.label)
-                        .foregroundStyle(.secondary)
-                        .fixedSize()
-                    Spacer(minLength: 0)
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text(row.value)
-                            .multilineTextAlignment(.trailing)
-                            .monospacedDigit()
-                            .fixedSize(horizontal: false, vertical: true)
-                            .textSelection(.enabled)
-                            .help(row.value)
-                        if let detail = row.detail {
-                            Text(detail)
-                                .font(.caption)
+                Group {
+                    switch row.layout {
+                    case .inline:
+                        HStack(alignment: .firstTextBaseline, spacing: Space.m) {
+                            Text(row.label)
                                 .foregroundStyle(.secondary)
-                                .monospacedDigit()
+                                .fixedSize()
+                            Spacer(minLength: 0)
+                            VStack(alignment: .trailing, spacing: 1) {
+                                value(row, alignment: .trailing)
+                                detail(row)
+                            }
+                        }
+                    case .stacked:
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(row.label)
+                                .foregroundStyle(.secondary)
+                            value(row, alignment: .leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            detail(row)
                         }
                     }
                 }
@@ -335,6 +379,25 @@ struct PropertyList: View {
             }
         }
         .font(.callout)
+    }
+
+    private func value(_ row: PropertyRow, alignment: TextAlignment) -> some View {
+        Text(row.value)
+            .multilineTextAlignment(alignment)
+            .monospacedDigit()
+            .fixedSize(horizontal: false, vertical: true)
+            .textSelection(.enabled)
+            .help(row.value)
+    }
+
+    @ViewBuilder
+    private func detail(_ row: PropertyRow) -> some View {
+        if let detail = row.detail {
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(row.tone == .pending ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                .monospacedDigit()
+        }
     }
 }
 

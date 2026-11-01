@@ -26,6 +26,17 @@ struct CodeSignatureTests {
         #expect(CodeSignature.signerName("Apple Mac OS Application Signing") == "Apple Mac OS Application Signing")
     }
 
+    @Test func developerIdentityDoesNotConfuseStoreDistributionWithAppleAuthorship() {
+        #expect(CodeSignature.Verdict.apple.developerName == String(localized: "Apple"))
+        #expect(CodeSignature.Verdict.appStore.developerName == String(localized: "Not identified"))
+        #expect(CodeSignature.Verdict.notarized(signer: "Jane Doe").developerName == "Jane Doe")
+        #expect(CodeSignature.Verdict.notNotarized(signer: "Jane Doe").developerName == "Jane Doe")
+        #expect(CodeSignature.Verdict.notarized(signer: nil).developerName == String(localized: "Registered developer"))
+        for verdict: CodeSignature.Verdict in [.adHoc, .unsigned, .broken, .untrusted] {
+            #expect(verdict.developerName == String(localized: "Not identified"))
+        }
+    }
+
     @Test func systemAppIsApple() {
         #expect(CodeSignature.assess(URL(filePath: "/System/Applications/Calculator.app")) == .apple)
     }
