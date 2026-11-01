@@ -5,7 +5,7 @@ import SwiftUI
 /// selected file at the end. A selected folder opens as the next column.
 struct ContentColumns: View {
     @Bindable var model: BrowserModel
-    var isSearchFocused: FocusState<Bool>.Binding
+    var isSearchFocused: Binding<Bool>
     @FocusState private var isFocused: Bool
 
     static let columnWidth: CGFloat = 240
@@ -196,71 +196,127 @@ private struct PreviewColumn: View {
 
 /// Where you are, archive by archive and folder by folder; every part is a place to go back to.
 /// Sits in the Browser's navigation capsule, after Back, Forward and Up. A short path takes only its
-/// own width, so the capsule hugs it; a deep one scrolls, keeping the current folder in view.
+/// own width, so the capsule hugs it, and the whole route shows while it fits. A deep one folds the
+/// folders in its middle into a "…" menu, one at a time, so the archive it starts from and where
+/// you are stay readable and every part is still one click away (#242).
 struct Breadcrumbs: View {
     @Environment(\.colorSchemeContrast) private var contrast
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let model: BrowserModel
-    /// Whether the trail is wider than its room; its cut-off start then fades instead of clipping a word.
-    @State private var overflows = false
 
     static let height: CGFloat = 28
 
     var body: some View {
         let segments = model.pathSegments
         ViewThatFits(in: .horizontal) {
-            trail(segments)
-                .fixedSize()
-            ScrollView(.horizontal) {
-                trail(segments)
+            ForEach(Self.folds(count: segments.count), id: \.self) { fold in
+                trail(segments, fold: fold)
+                    .fixedSize()
             }
-            .scrollIndicators(.never)
-            .defaultScrollAnchor(.leading, for: .alignment)
-            .defaultScrollAnchor(.trailing, for: .initialOffset)
-            // Where you are stays in view when the window narrows or you go deeper.
-            .defaultScrollAnchor(.trailing, for: .sizeChanges)
-            .onScrollGeometryChange(for: Bool.self) { $0.contentSize.width > $0.containerSize.width + 1 } action: { overflows = $1 }
-            .mask {
-                if overflows {
-                    LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12)],
-                                   startPoint: .leading, endPoint: .trailing)
-                } else {
-                    Color.black
-                }
-            }
+            // Nothing fits whole: the menu, then where you are, truncated in the middle.
+            trail(segments, fold: Fold(count: segments.count, hidden: segments.count - 1))
         }
         .accessibilityElement(children: .contain)
     }
 
-    private func trail(_ segments: [BrowserModel.PathSegment]) -> some View {
+    /// Which parts of a path of `count` parts show: the first (the archive), then a menu for
+    /// `hidden` parts after it, then the rest. The last fold hides everything but where you are.
+    struct Fold: Hashable {
+        let count: Int
+        let hidden: Int
+
+        /// The archive the path starts from stays while anything else does.
+        var head: Range<Int> { hidden >= count - 1 ? 0..<0 : 0..<min(1, count) }
+        var folded: Range<Int> { head.upperBound..<(head.upperBound + hidden) }
+        var tail: Range<Int> { folded.upperBound..<count }
+    }
+
+    /// Every way to show a path, from the whole route to only where you are, in the order
+    /// `ViewThatFits` tries them.
+    static func folds(count: Int) -> [Fold] {
+        guard count > 2 else { return [Fold(count: count, hidden: 0)] }
+        return (0...(count - 1)).map { Fold(count: count, hidden: $0) }
+    }
+
+    private func trail(_ segments: [BrowserModel.PathSegment], fold: Fold) -> some View {
         HStack(spacing: 2) {
-            ForEach(Array(segments.enumerated()), id: \.element.id) { index, segment in
-                if index > 0 {
-                    Image(systemName: "chevron.compact.right").accessibilityHidden(true)
-                        .font(.caption)
-                        .foregroundStyle(contrastStyle.metadata)
-                }
-                Button {
-                    model.go(to: segment)
-                } label: {
-                    Label {
-                        Text(segment.title).lineLimit(1)
-                    } icon: {
-                        Image(systemName: segment.isArchive ? "archivebox.fill" : "folder.fill")
-                            .foregroundStyle(segment.isArchive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                    }
-                    .font(.callout)
-                    .fontWeight(index == segments.count - 1 ? .semibold : .regular)
-                    .foregroundStyle(index == segments.count - 1 ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(PathButtonStyle())
-                .help(segment.isArchive ? String(localized: "Go to the top of “\(segment.title)”") : String(localized: "Go to “\(segment.title)”"))
+            ForEach(fold.head, id: \.self) { index in
+                segmentButton(segments[index], index: index, isLast: index == segments.count - 1)
+            }
+            if !fold.folded.isEmpty {
+                if !fold.head.isEmpty { separator }
+                foldedMenu(Array(segments[fold.folded]))
+            }
+            ForEach(fold.tail, id: \.self) { index in
+                if index > 0 { separator }
+                segmentButton(segments[index], index: index, isLast: index == segments.count - 1)
             }
         }
         .frame(height: Self.height)
+    }
+
+    private var separator: some View {
+        Image(systemName: "chevron.compact.right").accessibilityHidden(true)
+            .font(.caption)
+            .foregroundStyle(contrastStyle.metadata)
+    }
+
+    private func segmentButton(_ segment: BrowserModel.PathSegment, index: Int, isLast: Bool) -> some View {
+        Button {
+            model.go(to: segment)
+        } label: {
+            Label {
+                Text(segment.title).lineLimit(1).truncationMode(.middle)
+            } icon: {
+                icon(segment)
+            }
+            .font(.callout)
+            .fontWeight(isLast ? .semibold : .regular)
+            .foregroundStyle(isLast ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .contentShape(.rect)
+        }
+        .buttonStyle(PathButtonStyle())
+        .help(help(segment))
+        // Where you are keeps its place; it's the one that may truncate.
+        .layoutPriority(isLast ? 0 : 1)
+    }
+
+    /// The folders the path has no room for, outermost first, each a place to go.
+    private func foldedMenu(_ folded: [BrowserModel.PathSegment]) -> some View {
+        Menu {
+            ForEach(folded) { segment in
+                Button {
+                    model.go(to: segment)
+                } label: {
+                    Label { Text(segment.title) } icon: { icon(segment) }
+                }
+                .help(help(segment))
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .frame(width: 26, height: Self.height - 6)
+                .contentShape(.rect)
+        }
+        .menuStyle(.button)
+        .buttonStyle(PathButtonStyle())
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel(String(localized: "Enclosing Folders"))
+        .accessibilityValue(folded.map(\.title).joined(separator: ", "))
+        .help(String(localized: "Go to a folder further up: \(folded.map(\.title).joined(separator: " › "))"))
+    }
+
+    private func icon(_ segment: BrowserModel.PathSegment) -> some View {
+        Image(systemName: segment.isArchive ? "archivebox.fill" : "folder.fill")
+            .foregroundStyle(segment.isArchive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+    }
+
+    private func help(_ segment: BrowserModel.PathSegment) -> String {
+        segment.isArchive ? String(localized: "Go to the top of “\(segment.title)”") : String(localized: "Go to “\(segment.title)”")
     }
 }
 

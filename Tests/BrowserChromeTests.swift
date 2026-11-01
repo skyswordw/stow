@@ -82,4 +82,81 @@ struct BrowserChromeTests {
         let updated = Archive(container, files: [file], helpers: [], source: ArchiveSource(url: URL(filePath: "/tmp/clarity-test.zip"), storedPaths: [:]))
         #expect(updated.packedSizeIncludesContainer && updated.packedSize == 90)
     }
+
+    /// Search is a button until it's opened, then a field that takes the free room and then the
+    /// name's, never the view and editing controls' (#242).
+    @Test func searchOpensIntoTheTitleBarsFreeRoom() {
+        let closed = TitleBarLayout(windowWidth: 1100, isSearchOpen: false)
+        #expect(closed.searchWidth == TitleBarLayout.buttonWidth)
+        #expect(closed.titleMaxWidth == TitleBarLayout.titleMaximum)
+
+        // A wide window: the full field, and the name keeps all its room.
+        let open = TitleBarLayout(windowWidth: 1100, isSearchOpen: true)
+        #expect(open.searchWidth == TitleBarLayout.fieldMaximum)
+        #expect(open.titleMaxWidth == TitleBarLayout.titleMaximum)
+
+        // The narrowest window (480 pt of files beside 250 pt of Details): a shorter field, and the
+        // name gives way to it rather than the field closing.
+        let narrow = TitleBarLayout(windowWidth: 730, isSearchOpen: true)
+        #expect(narrow.searchWidth >= TitleBarLayout.fieldMinimum)
+        #expect(narrow.searchWidth < TitleBarLayout.fieldMaximum)
+        #expect(narrow.titleMaxWidth >= TitleBarLayout.titleSqueezed)
+        #expect(narrow.titleMaxWidth < TitleBarLayout(windowWidth: 730, isSearchOpen: false).titleMaxWidth)
+    }
+
+    /// Save saying its name (there are changes) takes its room from Search and the name, not the reverse.
+    @Test func saveWithItsNameLeavesSearchLessRoom() {
+        let plain = TitleBarLayout(windowWidth: 760, isSearchOpen: true)
+        let saving = TitleBarLayout(windowWidth: 760, isSearchOpen: true, saveShowsTitle: true)
+        #expect(saving.searchWidth + saving.titleMaxWidth <= plain.searchWidth + plain.titleMaxWidth)
+        #expect(saving.searchWidth >= TitleBarLayout.fieldMinimum)
+    }
+
+    /// Opening and closing Search move its width over a few frames; ⌘F and Reduce Motion don't (#242).
+    @Test func searchWidthMovesOnlyForAPointerAndWithoutReduceMotion() {
+        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: false, reduceMotion: false) == SearchWidthMotion.opening)
+        #expect(SearchWidthMotion.duration(opening: false, byKeyboard: false, reduceMotion: false) == SearchWidthMotion.closing)
+        // Closing is quicker than opening, as everything leaving is (DESIGN.md › Motion).
+        #expect(SearchWidthMotion.closing < SearchWidthMotion.opening)
+        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: true, reduceMotion: false) == nil)
+        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: false, reduceMotion: true) == nil)
+        #expect(SearchWidthMotion.duration(opening: false, byKeyboard: false, reduceMotion: true) == nil)
+
+        // The curve starts and ends where it should, never runs backwards and never overshoots.
+        #expect(SearchWidthMotion.progress(0) == 0 && SearchWidthMotion.progress(1) == 1)
+        #expect(SearchWidthMotion.progress(-1) == 0 && SearchWidthMotion.progress(2) == 1)
+        let steps = stride(from: 0.0, through: 1.0, by: 0.05).map(SearchWidthMotion.progress)
+        #expect(zip(steps, steps.dropFirst()).allSatisfy { $0 <= $1 })
+        #expect(steps.allSatisfy { $0 >= 0 && $0 <= 1 })
+        // Ease-out: most of the way there by halfway.
+        #expect(SearchWidthMotion.progress(0.5) > 0.8)
+    }
+
+    @Test func passwordAccessTakesTheLocksWidthFromTheName() {
+        let plain = TitleBarLayout(windowWidth: 730, isSearchOpen: true)
+        let encrypted = TitleBarLayout(windowWidth: 730, isSearchOpen: true, isEncrypted: true)
+        #expect(encrypted.searchWidth + encrypted.titleMaxWidth
+                == plain.searchWidth + plain.titleMaxWidth - TitleBarLayout.unlockIcon)
+    }
+
+    /// A deep path folds its middle into a menu one folder at a time, keeping the archive it starts
+    /// from and where you are, until only where you are is left (#242).
+    @Test func deepPathsFoldTheirMiddleFirst() {
+        #expect(Breadcrumbs.folds(count: 1).map(\.hidden) == [0])
+        #expect(Breadcrumbs.folds(count: 2).map(\.hidden) == [0])
+
+        let folds = Breadcrumbs.folds(count: 5)
+        #expect(folds.map(\.hidden) == [0, 1, 2, 3, 4])
+        // The whole route first.
+        #expect(folds[0].head == 0..<1 && folds[0].folded.isEmpty && folds[0].tail == 1..<5)
+        // Then the folder after the archive goes into the menu, then the next.
+        #expect(folds[1].head == 0..<1 && folds[1].folded == 1..<2 && folds[1].tail == 2..<5)
+        #expect(folds[3].head == 0..<1 && folds[3].folded == 1..<4 && folds[3].tail == 4..<5)
+        // Last: the menu holds everything above where you are, archive included.
+        #expect(folds[4].head.isEmpty && folds[4].folded == 0..<4 && folds[4].tail == 4..<5)
+        // Every part is either shown or in the menu, exactly once.
+        for fold in folds {
+            #expect(fold.head.count + fold.folded.count + fold.tail.count == 5)
+        }
+    }
 }
