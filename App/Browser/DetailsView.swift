@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Details (#160): always beside the files. A preview, what the selection is and its properties,
@@ -79,12 +80,19 @@ private extension View {
     }
 }
 
+/// Details as one rounded surface (#242). The system's inspector column is glass with a shadow
+/// and a hairline along its leading edge; under the panel's own rounded rim those read as a second,
+/// square outline. So below the title bar the column takes the window's background, as the files
+/// do, its edge views go, and the panel is what shows: inset by the same distance as the floating
+/// capsules, its top level with the path's, and its radius the window's corner radius less that
+/// inset. In dark appearances the title bar keeps the column's glass, which matches the title bar
+/// over the files there.
 private struct DetailsPanelSurface: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: Radius.panel + 4, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: Radius.windowPanel, style: .continuous)
         let dark = colorScheme == .dark
         let increased = ContrastStyle.resolve(contrast).increased
         content
@@ -100,8 +108,68 @@ private struct DetailsPanelSurface: ViewModifier {
             }
             .clipShape(shape)
             .shadow(color: .black.opacity(dark ? 0.3 : 0.07), radius: dark ? 10 : 8, y: 2)
-            .padding(.horizontal, Space.s)
-            .padding(.bottom, Space.s)
+            .padding(.horizontal, Radius.windowInset)
+            .padding(.top, FloatingGlass.topInset)
+            .padding(.bottom, Radius.windowInset)
+            .background {
+                // Under the title bar too in light appearances, where the title bar over the files
+                // is the window's background; the column's glass there read as a grey block. In dark
+                // ones the title bar over the files is lighter, and the glass matches it better.
+                Rectangle().fill(.windowBackground)
+                    .ignoresSafeArea(edges: dark ? [.horizontal, .bottom] : .all)
+                    .background { InspectorSeams() }
+                    .accessibilityHidden(true)
+            }
+    }
+}
+
+/// Hides the inspector column's own edge, the shadow and hairline AppKit draws beside it, so
+/// Details' rounded panel is its only outline (#242). The column still resizes: the split view
+/// takes the drag itself, not the hairline's view.
+private struct InspectorSeams: NSViewRepresentable {
+    func makeNSView(context: Context) -> SeamHider { SeamHider() }
+    func updateNSView(_ view: SeamHider, context: Context) { view.hideSeams() }
+
+    final class SeamHider: NSView {
+        private var observer: NSObjectProtocol?
+
+        /// Removed when the view leaves its window (`viewDidMoveToWindow` with no window).
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+            observer = nil
+            guard window != nil, let split = splitView else { return }
+            hideSeams()
+            // AppKit may bring them back when the columns change size.
+            observer = NotificationCenter.default.addObserver(forName: NSSplitView.didResizeSubviewsNotification,
+                                                              object: split, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.hideSeams() }
+            }
+        }
+
+        override func layout() {
+            super.layout()
+            hideSeams()
+        }
+
+        func hideSeams() {
+            guard let split = splitView else { return }
+            for view in split.subviews where Self.seamClasses.contains(String(describing: type(of: view))) {
+                if !view.isHidden { view.isHidden = true }
+            }
+        }
+
+        /// The nearest split view holding this one: the inspector's.
+        private var splitView: NSSplitView? {
+            var ancestor = superview
+            while let current = ancestor {
+                if let split = current as? NSSplitView { return split }
+                ancestor = current.superview
+            }
+            return nil
+        }
+
+        private static let seamClasses: Set<String> = ["_NSSplitViewShadowView", "NSSplitDividerView"]
     }
 }
 

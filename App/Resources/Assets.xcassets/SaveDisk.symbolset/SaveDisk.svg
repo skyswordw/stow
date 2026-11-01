@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Stow's Save: a floppy disk, drawn to sit with SF Symbols' square glyphs (Regular, Medium scale). -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="3300" height="2200">
+ <g id="Notes">
+  <text style="stroke:none;fill:black;font-family:sans-serif;font-size:13" transform="matrix(1 0 0 1 263 322)">Template v.3.0</text>
+ </g>
+ <g id="Guides">
+  <line id="Baseline-S" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="696" y2="696"/>
+  <line id="Capline-S" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="625.541" y2="625.541"/>
+  <line id="Baseline-M" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1126" y2="1126"/>
+  <line id="Capline-M" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1055.54" y2="1055.54"/>
+  <line id="Baseline-L" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1556" y2="1556"/>
+  <line id="Capline-L" style="fill:none;stroke:#27AAE1;opacity:1;stroke-width:0.5;" x1="263" x2="3036" y1="1485.54" y2="1485.54"/>
+  <line id="left-margin-Regular-M" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1388.2" x2="1388.2" y1="1030" y2="1150"/>
+  <line id="right-margin-Regular-M" style="fill:none;stroke:#00AEEF;stroke-width:0.5;opacity:1.0;" x1="1480.2" x2="1480.2" y1="1030" y2="1150"/>
+ </g>
+ <g id="Symbols">
+  <g id="Regular-M">
+   <g transform="matrix(1 0 0 1 1391.2 1126)">
+    <path d="M69.058 -77.858L85.058 -61.858C85.789 -61.126 86.200 -60.134 86.200 -59.100L86.200 -8.700C86.200 0.081 79.081 7.200 70.300 7.200L64.380 7.200L21.820 7.200L15.900 7.200C7.119 7.200 0.000 0.081 0.000 -8.700L0.000 -63.100C0.000 -71.881 7.119 -79.000 15.900 -79.000L66.300 -79.000C67.334 -79.000 68.326 -78.589 69.058 -77.858ZM25.720 -71.200L25.720 -58.940C25.720 -58.885 25.765 -58.840 25.820 -58.840L55.420 -58.840C57.574 -58.840 59.320 -57.094 59.320 -54.940C59.320 -52.786 57.574 -51.040 55.420 -51.040L25.820 -51.040C21.457 -51.040 17.920 -54.577 17.920 -58.940L17.920 -71.200L15.900 -71.200L15.072 -71.158C10.987 -70.743 7.800 -67.294 7.800 -63.100L7.800 -8.700C7.800 -4.226 11.426 -0.600 15.900 -0.600L17.920 -0.600L17.920 -26.300C17.920 -30.663 21.457 -34.200 25.820 -34.200L60.380 -34.200C64.743 -34.200 68.280 -30.663 68.280 -26.300L68.280 -0.600L70.300 -0.600C74.774 -0.600 78.400 -4.226 78.400 -8.700L78.400 -57.485L64.685 -71.200ZM25.820 -26.400C25.765 -26.400 25.720 -26.355 25.720 -26.300L25.720 -0.600L60.480 -0.600L60.480 -26.300C60.480 -26.355 60.435 -26.400 60.380 -26.400Z"/>
+   </g>
+  </g>
+ </g>
+</svg>

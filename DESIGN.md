@@ -46,7 +46,8 @@ and prominent normal-status report. Keep archive checks and concrete notices, wi
 malware scanning or general safety. Archive Info remains reachable from the title menu during
 selection; Details labels its archive/file/folder/selection scope. This supersedes the historical
 always-visible shield guidance. See the [functional implementation handoff](Handoff/clarity-functional-implementation.md).
-The central Search/trailing-controls proposal remains a separate visual task in #231.
+The title bar's composition is now #242's floating-path direction, under Browser layout; the
+centered-search proposal (#231, PR #241) is superseded.
 
 **Current direction after the user's PR #177 review, 2026-10-24:** the full Browser remains
 the default; Glance is optional. The full Browser has a file workspace and **fixed, visible
@@ -71,9 +72,41 @@ evidence; its optional-pane composition and mockups are superseded.
 
 ## Browser layout (#160, #161)
 
-**Toolbar Search and editing (#215/#216, 2026-10-30).** Search is the system toolbar search
-field, trailing in the title bar: a field while the window has room, a magnifying-glass button
-when it doesn't, expanded by a click or ⌘F. The navigation row keeps its whole width for the path.
+**Floating-path direction (#242, user's choice 2026-10-31).** The user compared interactive
+alternatives and chose this one; it supersedes the centered Search of #231/PR #241 and the
+plain path-row and bottom-path studies.
+
+- **Title bar.** The archive's name and menu lead, with its password control right after the name
+  when encrypted. Everything you do with the archive is grouped at the **trailing edge**, in this
+  order: **Search → view modes → Delete · Save**. Search is a magnifying-glass button; a click or
+  ⌘F opens it into a field that grows **leftward**, toward the name, so the view and editing
+  controls never move. It stays open while it has the keyboard or a query and closes when it
+  lets go empty. It's the Browser's own field (the system toolbar field always settles last, at
+  the window's end) with the system field's contracts: one query, Esc clears it and returns the
+  keyboard to the files in one step, CJK input composes in it. `TitleBarLayout` gives it room
+  from free space first, then from the name (which truncates in the middle), never from the path.
+- **Save is a floppy disk** (the `SaveDisk` custom symbol), named "Save Changes" with ⌘S in its
+  help; the earlier arrow-into-tray Save read like extraction. Disabled when there's nothing to save.
+- **Extraction is a box with an arrow out of it** (`arrow.up.bin`): Extract All and the Actions
+  stack's Extract, with their words kept. Pack keeps its box.
+- **Path.** The floating capsule over the files keeps Back · Forward · Up and the route. A short
+  path takes its natural width; the whole route shows while it fits. A deep one folds the folders
+  after the archive into a **⋯ menu**, one at a time, keeping the archive it starts from and where
+  you are; at the very narrowest only ⋯ and where you are (truncated in the middle) remain.
+  Every part stays one click away, and Search opening never takes the path's width.
+
+**Shape (#242).** One set of shape tokens, concentric where surfaces nest, not one radius
+everywhere. Details, the path capsule and the bottom capsules all stand **8 pt** (`Radius.windowInset`)
+off the window's and the files' edges, so their edges line up, and the top of Details is level
+with the top of the path. Details is the panel in the window's corner, so its radius is the
+window's (≈ 26 pt) less that inset: **18 pt**. Every floating capsule is 38 pt tall (radius 19,
+also ≈ window radius − inset) with 30 pt buttons concentric inside at a 4 pt inset. The system
+inspector's own edge (its glass, side shadow and hairline) is replaced by the window's background,
+so Details' rounded rim is its only outline: no square strip beside it, no doubled edge.
+
+**Toolbar Search and editing (#215/#216, 2026-10-30).** Search moved from the navigation row to
+the title bar (where in the title bar is now #242's, above). The navigation row keeps its whole
+width for the path.
 Delete and Save sit in their own capsule after the view modes from the moment an
 archive opens, disabled when there's nothing to delete or save, so editing is found before the
 first edit. Save is the one Save in the full window: with changes pending it becomes a prominent
@@ -86,11 +119,11 @@ ArcZip observations behind this.
 
 | Region | Holds |
 | --- | --- |
-| Title bar | Archive name/menu and subtitle, view modes, **Delete · Save**, encrypted-archive controls, then **Search**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and password access stay |
-| Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width and a deep path can use the whole row |
+| Title bar | Leading: archive name/menu and subtitle, then the password control when encrypted. Trailing: **Search** (a button that opens leftward), view modes, **Delete · Save**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3); Search, editing and password access stay |
+| Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width, a deep path uses the whole row and folds its middle folders into a ⋯ menu |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
-| Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
-| Archive controls, floating bottom leading | One glass capsule: **Glance** · **Extract All** |
+| Details (always there, right) | An inset panel, not a strip of the window, 8 pt off the window's edges with an 18 pt radius: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
+| Archive controls, floating bottom leading | One glass capsule: **Glance** · **Extract All** (box-with-arrow icon) |
 | Actions, floating bottom trailing | ⋯ More, then the **stack**: the front action in the accent with the edges of the others showing behind it. No name or size: Details says what's selected. With nothing selected, **Install App** alone when the archive is one app |
 
 **The Actions stack.** The front button is what the selection is most likely for: **Install** for
@@ -117,7 +150,7 @@ One prominent action at a time: Extract All carries the accent while Actions is 
 Actions is up, for a selection or an archive's app, the stack's front does and Extract All stays
 put, unaccented. Archive facts live in one place, Archive Info, reached from Details with nothing
 selected and the title menu. Everything floating shares one family: glass
-capsules, buttons concentric inside them (button radius + inset = capsule radius), 36–38 pt tall.
+capsules, buttons concentric inside them (button radius + inset = capsule radius), all 38 pt tall.
 Details is a solid reading surface with the same light rim, brighter along its top edge.
 
 **Actions' states, all in the same place.** Ready is the stack. A step that has started but measured
@@ -141,7 +174,7 @@ the window and the folder in a bar under it, with Stow's own pieces.
 | Region | Holds |
 | --- | --- |
 | Header (no title bar) | The archive's format badge (32 pt), its name semibold with “ZIP archive · 17 files” under it, wherever you are inside it; when encrypted, a 20 pt lock badge right after the name: accent-filled while locked, a spinner while a password is checked, a quiet open lock once one has worked. Dragging the header moves the window; the window keeps its title for the Window menu |
-| Navigation, floating under the header | The Browser's capsule: Back · Forward · Up │ the path from the archive down, running the window's width (no Search beside it); a deep path fades at its start and keeps where you are in view |
+| Navigation, floating under the header | The Browser's capsule: Back · Forward · Up │ the path from the archive down, running the window's width (no Search beside it); a deep path folds its middle folders into a ⋯ menu and keeps where you are in view (#242) |
 | Files | Name and size, straight on the window's one surface: Liquid Glass with a wash of the window colour for legibility, or classic frosted (Settings › Glance); solid under Reduce Transparency. No card, no frame. The badge and the rows' icons share the 16 pt margin |
 | Window controls, floating bottom leading | **Close** · **Pin on Top** · **Open in Full Window** in one glass capsule of icon buttons, like the navigation capsule's. Pinned: the pin fills in the accent with a ring round it |
 | Archive controls, floating after them | **Extract All**. When the row has no room for its words (400 pt with Actions showing), it keeps its icon alone. While changes are pending or saving it drops the accent, so the bar's Save, right under it, is the one prominent action |
@@ -217,6 +250,9 @@ Numbers that change (counts, sizes, progress) use `.monospacedDigit()` and
 
 - 4-pt grid. Spacing tokens: 4, 8, 12, 16, 24, 32.
 - Corner radii are **concentric**: a window-level panel 16, cards inside 12, chips inside 8.
+- A surface in a window corner takes the window's radius less its inset: the Browser's Details is
+  18 pt at an 8 pt inset (`Radius.windowPanel`). Floating capsules are 38 pt (radius 19) at the
+  same inset. Consistent means concentric, not one number (#242).
 - Separation by spacing and subtle fills first; hairline separators only where lists need them.
 
 ## Motion

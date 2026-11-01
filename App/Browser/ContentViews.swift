@@ -44,7 +44,7 @@ struct GridMetrics {
 
 struct ContentGrid: View {
     @Bindable var model: BrowserModel
-    var isSearchFocused: FocusState<Bool>.Binding
+    var isSearchFocused: Binding<Bool>
     @State private var hover = HoverPreviewModel()
     @State private var marquee: (start: CGPoint, current: CGPoint, base: Set<ArchiveEntry.ID>, toggling: Bool)?
     @FocusState private var isFocused: Bool
@@ -267,7 +267,7 @@ extension View {
 
 struct ContentList: View {
     @Bindable var model: BrowserModel
-    var isSearchFocused: FocusState<Bool>.Binding
+    var isSearchFocused: Binding<Bool>
     @State private var hover = HoverPreviewModel()
     /// Takes initial keyboard focus unless Search owns it: filtering can recreate this table
     /// while someone is typing (#177).

@@ -12159,6 +12159,56 @@
           }
         }
       }
+    },
+    "Search (⌘F)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索（⌘F）"
+          }
+        }
+      }
+    },
+    "Save Changes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存更改"
+          }
+        }
+      }
+    },
+    "Save changes to “%@” (⌘S)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将更改保存到“%@”（⌘S）"
+          }
+        }
+      }
+    },
+    "Enclosing Folders": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上层文件夹"
+          }
+        }
+      }
+    },
+    "Go to a folder further up: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往更上层的文件夹：%@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

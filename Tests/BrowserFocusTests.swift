@@ -44,6 +44,22 @@ struct BrowserFocusTests {
         try await fixture.typeIntoSearch("beta", expecting: "beta")
     }
 
+    /// Esc clears Search and hands the keyboard back to the files in one step (#215), from the
+    /// Browser's own title-bar field (#231).
+    @Test(arguments: [BrowserModel.ViewMode.list, .grid])
+    func escapeClearsSearchAndReturnsTheKeyboard(mode: BrowserModel.ViewMode) async throws {
+        let fixture = Fixture(mode: mode)
+        defer { fixture.close() }
+        let editor = try await fixture.focusSearch()
+        try await fixture.typeIntoSearch("alp", expecting: "alp")
+        #expect(fixture.window.firstResponder === editor)
+        let escape = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: 0, windowNumber: fixture.window.windowNumber, context: nil,
+            characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53))
+        fixture.window.sendEvent(escape)
+        try await fixture.wait { fixture.model.query.isEmpty && !(fixture.window.firstResponder is NSTextView) }
+    }
+
     @Test func theListStillTakesInitialKeyboardFocus() async throws {
         let fixture = Fixture(mode: .list)
         defer { fixture.close() }
@@ -108,7 +124,11 @@ struct BrowserFocusTests {
             app.browser = model
             window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 700),
                               styleMask: [.titled, .resizable], backing: .buffered, defer: false)
-            host = NSHostingController(rootView: BrowserView(model: model).environment(app))
+            let host = NSHostingController(rootView: BrowserView(model: model).environment(app))
+            // Search lives in the title bar (#231), so the window carries the view's toolbar
+            // as the app's own windows do.
+            host.sceneBridgingOptions = [.toolbars, .title]
+            self.host = host
             window.contentViewController = host
             host.view.layoutSubtreeIfNeeded()
         }

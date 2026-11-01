@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// The Browser (#160): the archive's files and, beside them, Details, which is always there. The
-/// title bar holds the archive identity, editing (Delete, Save), Search and password access.
+/// title bar holds the archive identity and password access on the leading side, and at the
+/// trailing end Search, the view modes and editing (Delete, Save) (#242).
 /// Floating glass controls sit over the files: navigation above them, and the archive controls below
 /// (Glance, Extract All) on the leading side and Actions on the trailing side: the selection's, or
 /// with nothing selected, installing an archive that's one app.
@@ -13,12 +14,19 @@ struct BrowserView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
     @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
-    @FocusState private var isSearchFocused: Bool
+    /// Whether Search has the keyboard. The field lives in the toolbar, which SwiftUI hosts apart
+    /// from this view, so the field keeps its own focus state and mirrors it here (#231).
+    @State private var isSearchFocused = false
     /// Archive Info, reachable from the title menu regardless of selection.
     @State private var showsArchiveInfo = false
     /// How tall the floating controls are (taller while a failure card shows), so the files keep
     /// exactly that much room below their last row.
     @State private var floatingHeight: CGFloat = 62
+    /// The window's width, which the title bar shares between the archive's name and Search.
+    @State private var windowWidth: CGFloat = 1100
+    /// Search opened by its button or ⌘F; it closes again when it lets go of the keyboard empty.
+    @State private var isSearchExpanded = false
+    @State private var searchFocusRequest = 0
 
     var body: some View {
         // Keep the navigation inset attached to one stable container as the file view changes.
@@ -65,18 +73,17 @@ struct BrowserView: View {
                     .accessibilitySortPriority(1)
                     .inspectorColumnWidth(min: 250, ideal: DetailsPane.idealWidth, max: 400)
             }
+            // The whole window's width, Details included: the title bar spans it (`TitleBarLayout`).
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { windowWidth = $0 }
             // The window keeps its title (Window menu, Mission Control); the title bar shows
             // it as the archive's menu instead (`ArchiveTitleMenu`), with a visible chevron.
             .navigationTitle(model.title)
             .navigationSubtitle(model.subtitle)
             .toolbar(removing: .title)
             .toolbar { toolbar }
-            // Search, in the title bar (#215): the system's toolbar field, a field while there's room
-            // and a button when there isn't. Same query and results as before.
-            .searchable(text: $model.query, placement: .toolbar, prompt: Text(searchPrompt))
-            .searchFocused($isSearchFocused)
             // ⌘F (Edit › Find…) puts the keyboard in the search field.
-            .onChange(of: model.searchFocusRequest) { isSearchFocused = true }
+            .onChange(of: model.searchFocusRequest) { activateSearch() }
+            .onChange(of: isSearchFocused) { _, focused in if !focused { isSearchExpanded = false } }
             .onKeyPress(.escape) {
                 if model.renamingPath != nil {
                     model.renamingPath = nil
@@ -107,6 +114,21 @@ struct BrowserView: View {
                 }
                 .id(ObjectIdentifier(model))
             }
+    }
+
+    private var titleBar: TitleBarLayout {
+        TitleBarLayout(windowWidth: windowWidth, isSearchOpen: isSearchExpanded || isSearchFocused || !model.query.isEmpty,
+                       isEncrypted: model.archive.isEncrypted, saveShowsTitle: model.editSession.canSave)
+    }
+
+    /// Opens Search, then gives it the keyboard once the field exists.
+    private func activateSearch() {
+        withAnimation(Motion.current(Motion.appear)) { isSearchExpanded = true }
+        Task { @MainActor in
+            await Task.yield()
+            isSearchFocused = true
+            searchFocusRequest += 1
+        }
     }
 
     private var searchPrompt: String {
@@ -203,19 +225,22 @@ struct BrowserView: View {
             // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
             .animation(Motion.presence(showsActions, reduceMotion: reduceMotion), value: showsActions)
         }
-        .padding(.horizontal, Space.l)
+        // The same distance from the window's edges as the path above and Details beside (#242).
+        .padding(.horizontal, FloatingGlass.edgeInset)
         .padding(.top, Space.s)
-        .padding(.bottom, Space.l)
+        .padding(.bottom, FloatingGlass.edgeInset)
     }
 
-    /// The title bar holds the archive itself: its name and menu (the title), how to look at it,
-    /// and password access. Tray and New Archive aren't about this archive;
-    /// they stay in the menu bar (Window › Show Tray ⌥⌘T, File › New Archive… ⌘N) and the Tray's
-    /// menu-bar icon.
+    /// The title bar (#242): the archive itself on the leading side (its name and menu, then its
+    /// password control), and what you do with it grouped at the trailing end: Search, the view
+    /// modes, then Delete · Save. Search starts as a magnifying glass and opens leftward into the
+    /// room the name leaves, so the controls after it never move. Tray and New Archive aren't about
+    /// this archive; they stay in the menu bar (Window › Show Tray ⌥⌘T, File › New Archive… ⌘N)
+    /// and the Tray's menu-bar icon.
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
-            ArchiveTitleMenu(title: model.title, subtitle: model.subtitle) { titleMenu }
+            ArchiveTitleMenu(title: model.title, subtitle: model.subtitle, maxWidth: titleBar.titleMaxWidth) { titleMenu }
                 .popover(isPresented: $showsArchiveInfo, arrowEdge: .bottom) {
                     ScrollView { ArchiveInfoView(model: model).padding(Space.l) }
                         .frame(width: 320, height: 420)
@@ -227,8 +252,28 @@ struct BrowserView: View {
                 }
         }
         .sharedBackgroundVisibility(.hidden)
+        // The archive's identity is the last thing to go.
+        .overflowPriority(keepsVisible: true)
+
+        // Password access belongs to the archive, so it follows its name, as Glance's lock does.
+        if model.archive.isEncrypted {
+            ToolbarItem(placement: .navigation) {
+                ArchiveUnlockControl(model: model, showsTitle: titleBar.unlockShowsTitle)
+            }
+            .overflowPriority(keepsVisible: true)
+        }
 
         ToolbarSpacer(.flexible)
+
+        // First of the trailing group, so it has the title bar's free room to open into.
+        ToolbarItem {
+            ToolbarSearchField(query: $model.query, prompt: searchPrompt, isFocused: $isSearchFocused,
+                               focusRequest: searchFocusRequest, width: titleBar.searchWidth,
+                               activate: activateSearch)
+        }
+        .overflowPriority(keepsVisible: true)
+
+        ToolbarSpacer(.fixed)
 
         ToolbarItem {
             Picker("View", selection: $model.viewMode) {
@@ -250,14 +295,6 @@ struct BrowserView: View {
             ArchiveEditingControls(model: model)
         }
         .overflowPriority(keepsVisible: true)
-
-        if model.archive.isEncrypted {
-            ToolbarSpacer(.fixed)
-            ToolbarItem(placement: .primaryAction) {
-                ArchiveUnlockControl(model: model, showsTitle: true)
-            }
-            .overflowPriority(keepsVisible: true)
-        }
     }
 }
 

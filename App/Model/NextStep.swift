@@ -38,7 +38,8 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
         case .openInside: "rectangle.stack"
         case .quickLook: "eye"
         case .pack: "archivebox"
-        case .extract: "arrow.down.to.line"
+        // Taking things out of the archive box (#242): not a download arrow, which Save had too.
+        case .extract: "arrow.up.bin"
         }
     }
 

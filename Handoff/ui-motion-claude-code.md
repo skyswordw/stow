@@ -13,6 +13,18 @@ Claude Code retains visual and motion ownership.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Browser floating-path direction — #242 (2026-10-31)
+
+The user selected the floating-path Browser: path capsule over the files, Glance · Extract All
+and Actions floating along the bottom, fixed Details, and the title bar's controls grouped at
+the trailing edge as Search → view modes → Delete · Save, with Search opening leftward. Save is a
+floppy disk; extraction uses a box with an upward arrow; corners are one concentric system.
+Claude Code's implementation and the exact rules are in [DESIGN.md › Browser layout](../DESIGN.md).
+This supersedes #231's centered Search (PR #241) and its handoff text below; the plain path-row and
+bottom-path alternatives are rejected. Functional contracts (Search/Esc/⌘F, Save flow and enabled
+states, Actions stack, installs and signature checks) are unchanged; see the PR for any
+behavior notes.
+
 ## Browser toolbar follow-up — #215, #216 (2026-10-27)
 
 The [native toolbar comparison](browser-toolbar-search-editing.md) records the user's request
@@ -43,8 +55,8 @@ nonmodal persistence-warning proposal in PR #223 is not implemented by this chan
 
 Read the [implementation handoff](clarity-functional-implementation.md) for #229/#230/#232–#234
 and the functional/copy portions of #153/#161/#162. The user authorized Codex to implement all
-independently actionable findings. The prior permanent-Checkup requirement is superseded; #231
-retains the central-search toolbar composition for Claude Code. New result/disclosure controls
+independently actionable findings. The prior permanent-Checkup requirement is superseded; the
+central-search toolbar composition once kept in #231 is superseded by #242. New result/disclosure controls
 use existing native styles and still need Claude Code's visual review. No active assignment or
 visual acceptance is claimed. The [audit](product-clarity-audit-2026-10-31.md) distinguishes
 source findings from native evidence and links the published issues.
