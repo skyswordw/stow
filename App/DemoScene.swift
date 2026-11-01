@@ -26,7 +26,7 @@ import SwiftUI
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
 /// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
 /// install-running (an app part-way into Applications), install-done (installed), install-app-open (refused: the installed copy is open, INS-181).
-/// The Checkup walkthrough (checkup, signature-warning, replace-app, install-*, activity) uses "Harbor Prototype 1.3.zip",
+/// The install walkthrough (checkup, signature-warning, replace-app, install-*, activity) uses "Harbor Prototype 1.3.zip",
 /// an app build, because Try the Sample's ZIP holds no app; `checkup -StowSelect "Harbor Prototype.app"` selects it.
 /// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop),
 /// tray-collect (Collect into a Folder, items from one folder), tray-collect-mixed (from three: people choose where),
@@ -271,6 +271,14 @@ enum DemoScene {
                 : .signature(app: "Harbor Prototype.app", verdict: .notNotarized(signer: "Harbor Studio"))
             Task {
                 try? await Task.sleep(for: .milliseconds(300))
+                // As when someone chooses Install App: Stow in front, its window key, so the prompt
+                // comes down as that window's sheet (macOS may put activation off for a moment).
+                for _ in 0..<50 where !NSApp.isActive {
+                    NSApp.activate()
+                    try? await Task.sleep(for: .milliseconds(200))
+                }
+                NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }?.makeKeyAndOrderFront(nil)
+                try? await Task.sleep(for: .milliseconds(200))
                 _ = await Prompts.ask(question)
             }
         case "open-failed", "open-damaged":

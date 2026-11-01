@@ -325,7 +325,7 @@ final class AppState {
         openDemo(SampleArchive.make(named: name))
     }
 
-    /// Any in-memory listing, for design-review scenes (the Checkup walkthrough's prototype build).
+    /// Any in-memory listing, for design-review scenes (the install walkthrough's prototype build).
     func openDemo(_ archive: Archive) {
         mainWindowDismissed = false
         cancelOpening()

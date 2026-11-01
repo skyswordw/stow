@@ -1,12 +1,12 @@
 #!/bin/zsh
 # Retakes every website screenshot and walkthrough frame in light and dark (#69):
-#   scripts/website-shots.sh [name]      # e.g. grid, checkup-3; no name retakes all of them
+#   scripts/website-shots.sh [name]      # e.g. grid, install-3; no name retakes all of them
 # Builds nothing: run after `xcodebuild … build`. PNGs land in snapshots/website/, WebPs in
 # website/assets/ (needs `cwebp`: brew install webp). Brings Stow to the front for each capture, so
 # windows look active; leave the Mac alone while it runs. A locked screen captures blank windows.
 #
 # The browsing shots open Try the Sample's own ZIP through the engine, so they show exactly what it
-# shows. The Checkup walkthrough uses "Harbor Prototype 1.3.zip" (an app build; the sample holds no
+# shows. The install walkthrough uses "Harbor Prototype 1.3.zip" (an app build; the sample holds no
 # app), and Pack packs a real "Harbor Handoff" folder made here from the sample's files.
 set -e; setopt null_glob
 cd "${0:a:h}/.."
@@ -21,7 +21,7 @@ handoff=~/Library/Containers/app.stow.Stow/Data/tmp/Harbor\ Handoff
 rm -rf $handoff; mkdir -p $handoff
 sample="$PWD/Resources/Sample/Harbor Rebrand Handoff"
 cp -R "$sample/Photos" "$sample/Specs" "$sample/Logo" "$sample/Screens" "$sample/README.md" $handoff/
-printf 'x' > $handoff/.DS_Store; printf 'x' > $handoff/Photos/.DS_Store; printf 'x' > "$handoff/Photos/._Lighthouse.jpg"
+printf 'x' > $handoff/.DS_Store; printf 'x' > $handoff/Photos/.DS_Store
 printf 'Copy for the App Store page, round 2.\n' > "$handoff/Specs/Store Copy: Round 2.txt"
 printf 'Which photo leads the launch post?\n' > "$handoff/Specs/Open Questions?.txt"
 printf 'Book the photographer for the Oamaru reshoot.\n' > "$handoff/Specs/To do."
@@ -38,7 +38,7 @@ shoot() {
     [[ -f $file ]] || { echo "missing: $name $look" >&2; continue; }
     cp $file $png/$name-$look.png
     local dest=website/assets/$name-$look.webp
-    [[ $name == (checkup|pack)-* ]] && dest=website/assets/tour/$name-$look.webp
+    [[ $name == (install|pack)-* ]] && dest=website/assets/tour/$name-$look.webp
     cwebp -quiet -q 86 -alpha_q 100 -m 6 $file -o $dest && echo $dest
   done
 }
@@ -54,11 +54,12 @@ pick=panel1 shoot tray tray ""
 shoot recents recents 600x436
 pick=window1 shoot quicklook quicklook 550x450 -StowOpen $zip -StowSnapshotDelay 4
 
-shoot checkup-1 checkup 800x573
-shoot checkup-2 checkup 800x573 -StowSelect "Harbor Prototype.app"
-pick=combined shoot checkup-3 signature-warning 800x573 -StowSnapshotDelay 2
-pick=combined shoot checkup-4 replace-app 800x573 -StowSnapshotDelay 2
-shoot checkup-5 install-done 800x573
+# Installing an app: the `checkup` scene is the archive just opened, with its notice above the files.
+shoot install-1 checkup 800x573
+shoot install-2 checkup 800x573 -StowSelect "Harbor Prototype.app"
+pick=combined shoot install-3 signature-warning 800x573 -StowSnapshotDelay 2
+pick=combined shoot install-4 replace-app 800x573 -StowSnapshotDelay 2
+shoot install-5 install-done 800x573
 
 pick=combined shoot pack-1 pack 800x582 -StowPack $handoff -PackAudience windows -StowSnapshotDelay 3
 pick=combined shoot pack-2 pack 800x582 -StowPack $handoff -PackAudience mac -StowSnapshotDelay 3

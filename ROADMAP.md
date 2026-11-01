@@ -113,7 +113,7 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 | Consistency | One progress capsule style for packing, extracting, installing and batch; one prompt style for conflicts, signatures and passwords. |
 | Accessibility | done (#29): composed VoiceOver labels (grid, list, columns, Glance, Tray, nested search results, Actions), headers for the rotor, reading order content → Details → archive controls → Actions, keyboard paths (Tray rows, onboarding, Quick Look); no animation for keyboard actions, solid surfaces under Reduce Transparency, stronger outlines and metadata under Increase Contrast. Manual VoiceOver checklist in #66 / #38 |
 | Empty and error states | Every failure says what happened and what to do, in plain words, with one action. |
-| Website | `scripts/website-shots.sh` retakes every screenshot and walkthrough frame in light and dark. Browsing shots open Try the Sample's own ZIP through the engine; the Checkup walkthrough shows a separate app build ("Harbor Prototype 1.3.zip") because the sample holds no app. A real product video of Pack and Checkup remains open (#31). |
+| Website | `scripts/website-shots.sh` retakes every screenshot and walkthrough frame in light and dark. Browsing shots open Try the Sample's own ZIP through the engine; the install walkthrough shows a separate app build ("Harbor Prototype 1.3.zip") because the sample holds no app. A real product video of Pack and installing an app remains open (#31). |
 
 ## Release engineering
 

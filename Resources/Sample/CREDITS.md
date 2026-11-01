@@ -68,19 +68,20 @@ shows them.
 
 ## Website screenshots and walkthrough
 
-Every browsing screenshot on the website (the hero, Next Steps, editing, Glance and Quick Look) is
+Every browsing screenshot on the website (the hero, Actions, editing, Glance and Quick Look) is
 rendered from `Harbor Rebrand Handoff.zip` itself, opened through the engine, so it shows exactly
 what Try the Sample shows. `scripts/website-shots.sh` retakes them all in light and dark.
 
 - The editing shot stages three unsaved changes on that ZIP (nothing is saved). Its two added
   files are made at capture time: `Field Notes.txt` (text we wrote) and `Contact Sheet.pdf`, a
   contact sheet of the five CC0 photos above. Neither introduces a new license.
-- The Checkup walkthrough installs an app, and the sample holds none (#91). It shows a separate
+- The install walkthrough installs an app, and the sample holds none (#91). It shows a separate
   in-memory archive, `Harbor Prototype 1.3.zip` (`Harbor Prototype.app`, `Install Helper.pkg`),
   under its own name. The app icon is `Design/DemoAppIcon.svg` (ours); the installer icon is
   macOS's own document icon.
 - The Pack walkthrough packs a real `Harbor Handoff` folder: a copy of this sample's files plus a
   few made-up notes and Finder files, so the sheet has names to adjust and files to leave out.
+  The website's interactive Pack demo and hover demo list the same files at their real sizes.
 - The Tray shot uses the system's icons for documents named in it; the Recent list's names are
   made up and those files don't exist.
 

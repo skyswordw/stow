@@ -89,7 +89,7 @@ enum SampleArchive {
         )
     }
 
-    /// A beta build handed to testers: the app the Checkup walkthrough installs. Try the Sample's ZIP
+    /// A beta build handed to testers: the app the install walkthrough installs. Try the Sample's ZIP
     /// holds no app (#91), so the walkthrough shows this archive under its own name instead of
     /// pretending the sample has a Prototype folder.
     static func prototypeBuild() -> Archive {
