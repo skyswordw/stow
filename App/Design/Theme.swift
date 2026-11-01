@@ -11,11 +11,20 @@ enum Space {
     static let xxl: CGFloat = 32
 }
 
-/// Concentric radii: panel ⊃ card ⊃ chip.
+/// Concentric radii: panel ⊃ card ⊃ chip. See DESIGN.md › Space & shape.
 enum Radius {
     static let panel: CGFloat = 16
     static let card: CGFloat = 12
     static let chip: CGFloat = 8
+
+    /// A macOS 26 window with a toolbar rounds its corners at about this radius.
+    static let window: CGFloat = 26
+    /// How far the Browser's floating surfaces (Details, the path and the capsules along the
+    /// bottom) stand off the window's edges (#242). One inset everywhere keeps their edges aligned.
+    static let windowInset: CGFloat = Space.s
+    /// Details, the one panel that sits in a window corner: concentric with it (window radius
+    /// − inset), so the panel's corner follows the window's instead of fighting it.
+    static let windowPanel: CGFloat = window - windowInset
 }
 
 /// Motion presets. See DESIGN.md › Motion. Everything goes through `resolved` so

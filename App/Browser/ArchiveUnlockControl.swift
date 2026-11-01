@@ -24,9 +24,6 @@ enum ArchiveLockState: Equatable {
 /// target never moves and clicking it again cancels (Handoff › Motion intent).
 struct ArchiveUnlockControl: View {
     let model: BrowserModel
-    /// The Browser's toolbar says what the lock means beside it, so a locked archive reads as one
-    /// without a hover.
-    var showsTitle = false
     /// Glance's header: a small badge after the archive's name, filled in the accent while the
     /// archive is locked. Same actions, labels and help.
     var badge = false
@@ -40,7 +37,7 @@ struct ArchiveUnlockControl: View {
             case .checking:
                 Button { model.cancelUnlocking() } label: {
                     Label {
-                        if showsTitle { title(String(localized: "Unlocking…")) } else { Text("Cancel Unlocking") }
+                        Text("Cancel Unlocking")
                     } icon: {
                         ProgressView().controlSize(badge ? .mini : .small)
                     }
@@ -51,7 +48,7 @@ struct ArchiveUnlockControl: View {
             case .locked:
                 Button { model.unlockArchive() } label: {
                     Label {
-                        if showsTitle { title(String(localized: "Enter Password…")) } else { Text("Unlock Archive…") }
+                        Text("Unlock Archive…")
                     } icon: {
                         Image(systemName: "lock.fill")
                     }
@@ -71,18 +68,10 @@ struct ArchiveUnlockControl: View {
         .modifier(LockBadge(state: state, isBadge: badge))
     }
 
+    /// The lock alone, in the title bar as in Glance's badge: it says the archive is locked by
+    /// itself, and its words are its help and accessibility label.
     private var labelStyle: AnyLabelStyle {
-        showsTitle ? AnyLabelStyle(.titleAndIcon) : badge ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.automatic)
-    }
-
-    /// Locked and checking share one width, so the button doesn't resize while a password is checked.
-    private func title(_ shown: String) -> some View {
-        ZStack(alignment: .leading) {
-            Text("Enter Password…").hidden()
-            Text("Unlocking…").hidden()
-            Text(shown)
-        }
-        .accessibilityHidden(true)
+        badge ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.automatic)
     }
 }
 
