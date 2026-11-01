@@ -21,7 +21,23 @@ instructions requiring Search beside the breadcrumbs. Search moves into the uppe
 a stable Delete/Save entry is the recommended editing direction. The exact composition and
 pending-changes-bar treatment remain Claude Code's responsibility. Preserve fixed Details,
 floating Actions, staged edits, source preservation, save/conflict recovery and keyboard routing.
-These are open implementation tasks, not shipped controls or final visual approval.
+PR #222 delivered the toolbar controls and system toolbar search. Its documented behavior change
+is that Escape clears Search and returns keyboard focus to the files in one step. The
+[2026-10-31 functional verification](open-issue-verification-2026-10-31.md) records current-main
+search, command routing, staged Delete/Undo/Redo/Save and Browser/Glance checks. Claude Code
+retains visual/motion ownership; this functional verification is not a new visual approval.
+
+## Source authorization window ownership — #213 (2026-10-31)
+
+The recovery picker previously attached to any key non-panel window, including Settings. It now
+uses a visible Browser, Welcome or Glance window that has no attached sheet. A focused archive
+window takes precedence; otherwise Glance, Browser, then Welcome are preferred. Hidden windows,
+unrelated windows and sheets cannot own it; with no eligible host it opens independently.
+
+Codex owns this routing correction and its regression tests. Scope validation, explicit Allow,
+verified reads, persistence and cancellation retain their existing contracts. Claude Code owns
+presentation and motion. Real WeChat/signed-build acceptance remains #212; the optional
+nonmodal persistence-warning proposal in PR #223 is not implemented by this change.
 
 ## Browser window close and Dock reopen — 2026-10-28
 
