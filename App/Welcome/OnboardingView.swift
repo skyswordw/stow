@@ -28,7 +28,7 @@ struct OnboardingView: View {
                             if step == .archives {
                                 VStack(alignment: .leading, spacing: Space.xs) {
                                     Text("Preview without extracting")
-                                    Text("Extract safely")
+                                    Text("Extract into a folder you choose")
                                     Text("Pack for Windows, Mac, Linux and the web")
                                 }
                                 .font(.caption)
@@ -81,7 +81,7 @@ struct OnboardingView: View {
         case .fileTypes:
             Button("Choose File Types…") { showSettings(.fileTypes) }
         case .finder:
-            Button("Integration Settings…") { showSettings(.integration) }
+            Button("Finder & Permissions…") { showSettings(.integration) }
         case .tray:
             Button("Show Tray") { app.tray.show() }
         }

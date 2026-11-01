@@ -11579,6 +11579,586 @@
           }
         }
       }
+    },
+    "Missing archive parts — keep all parts together": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少分卷，请将所有分卷放在同一文件夹中"
+          }
+        }
+      }
+    },
+    "%lld of %lld archives finished": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已结束 %lld 个，共 %lld 个压缩包"
+          }
+        }
+      }
+    },
+    "Completed: %lld · Stopped: %lld · Failed: %lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成：%lld · 已停止：%lld · 失败：%lld"
+          }
+        }
+      }
+    },
+    "Stop unfinished jobs. Archives already extracted are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止尚未完成的任务，保留已经解压缩的文件。"
+          }
+        }
+      }
+    },
+    "Clear Results": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除结果列表"
+          }
+        }
+      }
+    },
+    "Remove these results from the list. Extracted files are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除列表中的结果，已解压缩的文件会保留。"
+          }
+        }
+      }
+    },
+    "Show Fewer Results": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起结果列表"
+          }
+        }
+      }
+    },
+    "Show All %lld Results": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看全部 %lld 项结果"
+          }
+        }
+      }
+    },
+    "Files in archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包内文件数"
+          }
+        }
+      }
+    },
+    "Including unsaved changes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含尚未保存的更改"
+          }
+        }
+      }
+    },
+    "Total file size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包内文件总大小"
+          }
+        }
+      }
+    },
+    "Archive file size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包文件大小"
+          }
+        }
+      }
+    },
+    "Packed file data": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件压缩后大小"
+          }
+        }
+      }
+    },
+    "From the last saved archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次保存时的数值"
+          }
+        }
+      }
+    },
+    "More Archive Information": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多压缩包信息"
+          }
+        }
+      }
+    },
+    "Compared with the file contents before compression. Includes archive overhead when reported.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与压缩前的文件内容大小相比；如果压缩包提供的是整体大小，也包含格式本身的额外数据。"
+          }
+        }
+      }
+    },
+    "Not reported by the archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包未提供此信息"
+          }
+        }
+      }
+    },
+    "Folder Info": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹信息"
+          }
+        }
+      }
+    },
+    "File Info": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件信息"
+          }
+        }
+      }
+    },
+    "Selection Info": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项信息"
+          }
+        }
+      }
+    },
+    "Location in archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包内位置"
+          }
+        }
+      }
+    },
+    "Available after saving": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存后可查看"
+          }
+        }
+      }
+    },
+    "Developer Verification": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开发者验证"
+          }
+        }
+      }
+    },
+    "Verify Developer": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "验证开发者"
+          }
+        }
+      }
+    },
+    "Checks the app’s signature and Apple notarization. Also checked before installing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查 App 的签名和 Apple 公证情况，安装前也会自动检查。"
+          }
+        }
+      }
+    },
+    "%lld items selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已选 %lld 项"
+          }
+        }
+      }
+    },
+    "Combined file size": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项总大小"
+          }
+        }
+      }
+    },
+    "Items inside selected folders or archives are counted once.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选文件夹或压缩包中的子项不会重复计入。"
+          }
+        }
+      }
+    },
+    "Pack All Shown": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩当前全部项目"
+          }
+        }
+      }
+    },
+    "Pack Selected": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩所选项"
+          }
+        }
+      }
+    },
+    "Open Archive in Full Window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在完整窗口中打开压缩包"
+          }
+        }
+      }
+    },
+    "Open Packing Window…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开压缩窗口…"
+          }
+        }
+      }
+    },
+    "Extract Archives Beside Originals": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩到各压缩包所在位置"
+          }
+        }
+      }
+    },
+    "Only archives are extracted. Uses each archive’s folder unless you choose another location.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅处理压缩包。除非另选位置，否则解压缩到各压缩包所在的文件夹。"
+          }
+        }
+      }
+    },
+    "Show suggested file actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示建议的文件操作"
+          }
+        }
+      }
+    },
+    "Actions offer commands for your selection, or Install App when an archive contains one app. Turning this off hides suggestions; commands remain in the menus.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷操作会根据所选项提供命令；压缩包内只有一个 App 时，也会提供“安装 App”。关闭后仅隐藏操作建议，仍可通过菜单执行命令。"
+          }
+        }
+      }
+    },
+    "Rest the pointer on the action buttons or click their exposed edges to show alternatives. More (⋯) lists alternatives; File › Actions lists all available commands.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将指针停在操作按钮上，或点按露出的按钮边缘，可展开其他操作。“更多”（⋯）列出其他操作，“文件 › 快捷操作”列出所有可用命令。"
+          }
+        }
+      }
+    },
+    "The main action appears in front, with up to two alternatives behind it. Turning off a suggestion hides its button, not the command in the menus.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主要操作显示在最前面，其后最多有两个其他操作。关闭某项建议只会隐藏按钮，菜单中的命令仍可使用。"
+          }
+        }
+      }
+    },
+    "Skip macOS’s first-open check for installed apps": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过 macOS 对已安装 App 的首次打开检查"
+          }
+        }
+      }
+    },
+    "Stow asks for access before installing in a folder. Remembered access includes files and subfolders. Forget removes Stow’s saved authorization; macOS may keep access until Stow quits.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首次安装到某个文件夹前，Stow 会请求访问权限。记住的权限包括其中的文件和子文件夹。“忘记”会移除 Stow 保存的授权；macOS 可能会保留访问权限，直到 Stow 退出。"
+          }
+        }
+      }
+    },
+    "Finder & Permissions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finder 与权限"
+          }
+        }
+      }
+    },
+    "Compression level for each recipient preset": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各接收方预设的压缩级别"
+          }
+        }
+      }
+    },
+    "Verify archive contents after packing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后验证包内内容"
+          }
+        }
+      }
+    },
+    "Will verify archive contents": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成后验证包内内容"
+          }
+        }
+      }
+    },
+    "Finder support files omitted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不包含 Finder 辅助文件"
+          }
+        }
+      }
+    },
+    "Finder support files included": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含 Finder 辅助文件"
+          }
+        }
+      }
+    },
+    "Finder tags and attributes kept": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留 Finder 标签和扩展属性"
+          }
+        }
+      }
+    },
+    "Finder tags and attributes omitted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不保留 Finder 标签和扩展属性"
+          }
+        }
+      }
+    },
+    "Reads back the new archive to check its contents. Takes extra time; does not scan for malware.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新读取生成的压缩包，验证内容能否正常读取。这需要额外时间，不会扫描恶意软件。"
+          }
+        }
+      }
+    },
+    "Reset These Options": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置这些选项"
+          }
+        }
+      }
+    },
+    "· contents verified": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· 已验证包内内容"
+          }
+        }
+      }
+    },
+    "Stow read back the new archive to verify its contents": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 已重新读取生成的压缩包并验证其内容"
+          }
+        }
+      }
+    },
+    "Signed by %@. The app’s signature and Apple notarization were verified.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由 %@ 签名。已验证 App 的签名和 Apple 公证情况。"
+          }
+        }
+      }
+    },
+    "Signed by %@, but Apple notarization could not be verified. macOS may block it when you open it, depending on its download history and your Mac’s security settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由 %@ 签名，但未能验证 Apple 公证情况。根据下载记录和 Mac 的安全设置，macOS 可能会阻止它打开。"
+          }
+        }
+      }
+    },
+    "Extract into a folder you choose": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压缩到你选择的文件夹"
+          }
+        }
+      }
+    },
+    "%@ — %lld more": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@，另有 %lld 项提示"
+          }
+        }
+      }
+    },
+    "Finder & Permissions…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finder 与权限…"
+          }
+        }
+      }
+    },
+    "%@ packed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后 %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

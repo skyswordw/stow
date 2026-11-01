@@ -323,17 +323,17 @@ struct PackSheet: View {
     /// choices go without saying, and only the ones changed from it are named.
     private var optionsSummary: String {
         var parts = [compressionSummary]
-        if options.verify { parts.append(String(localized: "Tested after packing")) }
+        if options.verify { parts.append(String(localized: "Will verify archive contents")) }
         if options.format == .dmg { parts.append(options.diskImageFilesystem.title) }
         if changesHelperFiles {
             parts.append(options.dropsMacHelperFiles
-                ? String(localized: "No Mac support files")
-                : String(localized: "Keeping Mac support files"))
+                ? String(localized: "Finder support files omitted")
+                : String(localized: "Finder support files included"))
         }
         if changesMacMetadata {
             parts.append(options.effectiveKeepsMacMetadata
-                ? String(localized: "Storing Mac metadata")
-                : String(localized: "No Mac metadata"))
+                ? String(localized: "Finder tags and attributes kept")
+                : String(localized: "Finder tags and attributes omitted"))
         }
         if options.format == .sevenZip, options.usesPassword, !options.encryptFilenames {
             parts.append(String(localized: "File names visible"))
@@ -455,7 +455,8 @@ struct PackSheet: View {
                     if let text = splitCaption(report) { caption(text) }
                 }
                 optionRow("Verify") {
-                    Toggle("Test every file once it’s packed", isOn: $options.verify)
+                    Toggle("Verify archive contents after packing", isOn: $options.verify)
+                    caption(String(localized: "Reads back the new archive to check its contents. Takes extra time; does not scan for malware."))
                 }
 
                 if options.format == .dmg {
@@ -545,7 +546,7 @@ struct PackSheet: View {
                     Button {
                         options.resetToPurposeDefaults()
                     } label: {
-                        Label("Reset", systemImage: "arrow.uturn.backward")
+                        Label("Reset These Options", systemImage: "arrow.uturn.backward")
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.tint)

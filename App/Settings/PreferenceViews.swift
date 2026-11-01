@@ -118,7 +118,7 @@ struct PackingSettingsView: View {
                     ForEach(Audience.allCases) { item in Text(item.phrase.sentenceCased).tag(item.rawValue) }
                 }
             }
-            Section("Compression level for each destination") {
+            Section("Compression level for each recipient preset") {
                 ForEach(Audience.allCases) { item in LevelSetting(audience: item) }
             }
             // What comes out, then how hard the Mac works on it: the order of the Pack sheet's More Options.
@@ -134,7 +134,7 @@ struct PackingSettingsView: View {
                 .popover(isPresented: $editingCustom, arrowEdge: .trailing) {
                     SplitSizeEditor(initial: current) { volume = Int($0.rawValue) }
                 }
-                Toggle("Check archives after packing", isOn: $verify)
+                Toggle("Verify archive contents after packing", isOn: $verify)
                 Picker("CPU cores for packing", selection: $cores) {
                     Text("All").tag(0)
                     ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }

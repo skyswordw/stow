@@ -93,6 +93,8 @@ struct GlanceView: View {
     var body: some View {
         VStack(spacing: 0) {
             GlanceHeader(model: model)
+            ArchiveNotices(findings: model.archive.checkup)
+                .padding(.horizontal, GlanceLayout.inset)
             files
         }
         // The header takes the title bar's place, so it starts at the window's top edge.

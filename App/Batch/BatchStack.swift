@@ -6,6 +6,7 @@ struct BatchStack: View {
     let queue: BatchQueue
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @State private var showsAllResults = false
     private let visibleRows = 4
 
     var body: some View {
@@ -21,26 +22,42 @@ struct BatchStack: View {
     private var panel: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             HStack {
-                ActivityLabel(phase: overall, title: header)
+                HStack(spacing: Space.s) {
+                    ActivityGlyph(queue.summary.glyph)
+                    Text(queue.summary.title).font(.callout.weight(.medium))
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(queue.summary.title)
                 Spacer()
                 if queue.isActive {
                     Button("Stop All") { queue.cancelAll() }
-                        .help("Stop — nothing is left half-extracted")
+                        .help("Stop unfinished jobs. Archives already extracted are kept.")
                 } else {
-                    Button("Clear") { queue.clearFinished() }
+                    Button("Clear Results") { queue.clearFinished(); showsAllResults = false }
+                        .help("Remove these results from the list. Extracted files are kept.")
                 }
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
 
-            ForEach(queue.jobs.prefix(visibleRows)) { job in
-                BatchRow(job: job, queue: queue)
+            if showsAllResults {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: Space.s) {
+                        ForEach(queue.jobs) { job in BatchRow(job: job, queue: queue) }
+                    }
+                }
+                .frame(maxHeight: 240)
+            } else {
+                ForEach(queue.jobs.prefix(visibleRows)) { job in
+                    BatchRow(job: job, queue: queue)
+                }
             }
             if queue.jobs.count > visibleRows {
-                Text("+ \(queue.jobs.count - visibleRows) more")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .liveNumber()
+                Button(showsAllResults ? String(localized: "Show Fewer Results")
+                       : String(localized: "Show All \(queue.jobs.count) Results")) {
+                    showsAllResults.toggle()
+                }
+                .buttonStyle(.borderless)
             }
         }
         .padding(Space.m)
@@ -48,33 +65,6 @@ struct BatchStack: View {
         .accessibleGlass(in: .rect(cornerRadius: Radius.panel))
     }
 
-    private var header: String {
-        let total = queue.jobs.count
-        let failed = queue.jobs.filter { if case .failed = $0.phase { true } else { false } }.count
-        if queue.isActive { return String(localized: "Extracting \(min(queue.finishedCount + 1, total)) of \(total)") }
-        if failed > 0 { return failed == 1 ? String(localized: "1 archive needs attention") : String(localized: "\(failed) archives need attention") }
-        return total == 1 ? String(localized: "1 archive done") : String(localized: "\(total) archives done")
-    }
-
-    /// The whole batch as one capsule state: a ring over every archive while it runs.
-    private var overall: ActivityPhase {
-        let total = Double(max(queue.jobs.count, 1))
-        if queue.isActive {
-            let current = queue.jobs.reduce(0.0) { sum, job in
-                if case .running(let progress) = job.phase { return sum + progress }
-                return job.isFinished ? sum + 1 : sum
-            }
-            return .running(current / total)
-        }
-        if let failure = queue.jobs.lazy.compactMap({ job -> Failure? in
-            if case .failed(let failure) = job.phase { failure } else { nil }
-        }).first {
-            var summary = Failure(kind: failure.kind, title: header, advice: "", code: failure.code)
-            summary.diagnostic = failure.diagnostic
-            return .failed(summary)
-        }
-        return .done
-    }
 }
 
 private struct BatchRow: View {

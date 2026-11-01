@@ -11,7 +11,7 @@ struct DetailsPane: View {
         // Search results inside other archives count too, so Details matches what's highlighted.
         let selected = model.selectedEntries + model.selection.compactMap { model.nestedHits[$0]?.entry }
         VStack(alignment: .leading, spacing: 0) {
-            Text("Details")
+            Text(Self.heading(for: selected))
                 .font(.headline)
                 .foregroundStyle(.secondary)
                 .accessibilityAddTraits(.isHeader)
@@ -40,12 +40,36 @@ struct DetailsPane: View {
         // instead of asking the column for more room.
         .frame(minWidth: 0, idealWidth: Self.idealWidth, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .detailsPanel()
-        .accessibilityLabel(String(localized: "Details"))
+        .accessibilityLabel(Self.heading(for: selected))
     }
 }
 
 extension DetailsPane {
     static let idealWidth: CGFloat = 290
+
+    static func heading(for entries: [ArchiveEntry]) -> String {
+        switch entries.count {
+        case 0: String(localized: "Archive Info")
+        case 1: entries[0].kind == .folder ? String(localized: "Folder Info") : String(localized: "File Info")
+        default: String(localized: "Selection Info")
+        }
+    }
+
+    /// Recursive search may select a folder/archive and an item inside it. Count each selected
+    /// outer item once, rather than adding its already-included descendants again.
+    static func combinedSize(of entries: [ArchiveEntry]) -> Int64 {
+        let paths = Set(entries.map(\.path))
+        var seen = Set<String>()
+        return entries.reduce(Int64(0)) { total, entry in
+            guard seen.insert(entry.path).inserted else { return total }
+            var parent = entry.parent
+            while !parent.isEmpty {
+                if paths.contains(parent) { return total }
+                parent = ArchiveEntry.parent(of: parent)
+            }
+            return total + entry.size
+        }
+    }
 }
 
 private extension View {
@@ -93,8 +117,10 @@ private struct NestedDetail: View {
             ItemIdentity(name: hit.inner.name, kind: hit.inner.kindDescription.capitalizedFirst)
             PropertyList([
                 PropertyRow(String(localized: "Size"), hit.inner.size.bytes),
+            ] + (hit.inner.modified > Date(timeIntervalSince1970: 0) ? [
                 PropertyRow(String(localized: "Modified"), hit.inner.modified.formatted(date: .abbreviated, time: .shortened)),
-                PropertyRow(String(localized: "Location"), location),
+            ] : []) + [
+                PropertyRow(String(localized: "Location in archive"), location),
             ])
         }
     }
@@ -124,9 +150,9 @@ private struct EntryDetail: View {
                                                            staged: model.editSession.state(for: entry.path))
             PropertyList([
                 PropertyRow(String(localized: "Size"), entry.size.bytes),
-                PropertyRow(String(localized: "Compressed size"), compressed.value, detail: compressed.saved),
+                PropertyRow(String(localized: "Packed file data"), compressed.value, detail: compressed.saved),
             ] + (hasDate ? [PropertyRow(String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened))] : []) + [
-                PropertyRow(String(localized: "Location"), model.location(ofFolder: entry.parent)),
+                PropertyRow(String(localized: "Location in archive"), model.location(ofFolder: entry.parent)),
             ])
 
             if entry.kind == .app, model.archive.source != nil {
@@ -145,9 +171,9 @@ extension DetailsPane {
     /// aren't packed until Save.
     static func compressedFigures(size: Int64, packed: Int64?, staged: String?) -> (value: String, saved: String?) {
         if staged == String(localized: "New") || staged == String(localized: "Replaced") {
-            return (String(localized: "When you save"), nil)
+            return (String(localized: "Available after saving"), nil)
         }
-        guard let packed else { return (String(localized: "Unavailable"), nil) }
+        guard let packed else { return (String(localized: "Not reported by the archive"), nil) }
         guard size > 0 else { return (packed.bytes, nil) }
         let saved = 1 - Double(packed) / Double(size)
         return (packed.bytes, saved < 0.02 ? nil : String(localized: "\(Int((saved * 100).rounded()))% smaller"))
@@ -190,7 +216,7 @@ private struct SignatureSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            SectionLabel(String(localized: "Signature"))
+            SectionLabel(String(localized: "Developer Verification"))
             if let verdict = model.signatures[entry.path] {
                 let finding = verdict.finding
                 HStack(alignment: .firstTextBaseline, spacing: Space.s) {
@@ -212,8 +238,8 @@ private struct SignatureSection: View {
                     Text("Checking…").font(.callout).foregroundStyle(.secondary)
                 }
             } else {
-                Button("Check Signature", systemImage: "checkmark.seal") { model.checkSignature(entry) }
-                Text("Also checked before installing.")
+                Button("Verify Developer", systemImage: "checkmark.seal") { model.checkSignature(entry) }
+                Text("Checks the app’s signature and Apple notarization. Also checked before installing.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -247,12 +273,13 @@ private struct MultiDetail: View {
             .frame(maxWidth: .infinity, minHeight: 136)
             .accessibilityHidden(true)
 
-            Text("\(entries.count) items")
+            Text("\(entries.count) items selected")
                 .font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                 .liveNumber()
 
             PropertyList([
-                PropertyRow(String(localized: "Size"), entries.reduce(Int64(0)) { $0 + $1.size }.bytes),
+                PropertyRow(String(localized: "Combined file size"), DetailsPane.combinedSize(of: entries).bytes,
+                            detail: String(localized: "Items inside selected folders or archives are counted once.")),
             ])
         }
     }
@@ -292,7 +319,6 @@ struct PropertyList: View {
                         Text(row.value)
                             .multilineTextAlignment(.trailing)
                             .monospacedDigit()
-                            .lineLimit(4)
                             .fixedSize(horizontal: false, vertical: true)
                             .textSelection(.enabled)
                             .help(row.value)
