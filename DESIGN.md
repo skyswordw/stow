@@ -89,7 +89,7 @@ ArcZip observations behind this.
 | Title bar | Archive name/menu and subtitle, view modes, **Delete · Save**, encrypted-archive controls, then **Search**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and password access stay |
 | Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width and a deep path can use the whole row |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
-| Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
+| Details (always there, right) | An inset panel, not a strip of the window. Its heading names the subject with a glyph and words: **Archive Info**, **File Info**, **Folder Info** or **Selection Info**. Then a content-sized preview, the name and kind, and properties as label ↔ value rows with hairlines (Size, Packed file data with the saving underneath, Modified, **Location in archive** stacked under its label at full width: “Showcase.zip › Showcase › Docs”). A note that qualifies a figure sits under that figure, in the accent when it counts unsaved changes. An app leads Developer Verification with the developer, then what was verified. **Archive Info** when nothing is selected: the three figures, the password control, then routine facts and ordinary notes behind More Archive Information. No toggle, no close button, no action buttons |
 | Archive controls, floating bottom leading | One glass capsule: **Glance** · **Extract All** |
 | Actions, floating bottom trailing | ⋯ More, then the **stack**: the front action in the accent with the edges of the others showing behind it. No name or size: Details says what's selected. With nothing selected, **Install App** alone when the archive is one app |
 
@@ -260,6 +260,11 @@ Reduced Transparency: glass falls back to solid window background (the system do
 - **Archive findings** describe the specific scope and consequence. Their text distinguishes a
   listing-time protection planned for extraction from a completed extraction audit. Ordinary
   notes are available in Archive Info; normal state does not promote a separate Checkup feature.
+  Findings that need attention show as one tinted card above the files (Browser and Glance), aligned
+  with the navigation capsule: the most important finding's glyph and title, “+N more”, and a native
+  disclosure that gives its consequence and then the others. Cautions use the system's multicolour
+  warning triangle; planned or completed handling uses the blue half shield. Quick Look shows the same
+  card's first finding with its consequence under it. A normal archive shows no card and no line.
 - **Pack sentence** shows a live report underneath of what it will do. When the archive is split it
   leads with what comes out: about how many parts, their numbered names ("Harbor.zip.001 – .003"),
   each part's limit, and that opening it needs every part and an app that joins them. Then what

@@ -93,7 +93,7 @@ struct GlanceView: View {
     var body: some View {
         VStack(spacing: 0) {
             GlanceHeader(model: model)
-            ArchiveNotices(findings: model.archive.checkup)
+            ArchiveNotices(findings: model.archive.checkup, placement: .glance)
                 .padding(.horizontal, GlanceLayout.inset)
             files
         }

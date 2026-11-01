@@ -1280,6 +1280,12 @@ final class BrowserModel {
         isUnlocking = true
     }
 
+    /// Design review: Details' Developer Verification with a verdict, for the sample's fictional app
+    /// (`-StowScene details-app`).
+    func showSignatureForDemo(_ verdict: CodeSignature.Verdict, for path: String) {
+        signatures[path] = verdict
+    }
+
     /// Where an app goes: the disk image's own "drag to Applications" shortcut, or /Applications.
     private func installFolder(for entry: ArchiveEntry) -> URL {
         if let override = FolderAccess.override { return override }
