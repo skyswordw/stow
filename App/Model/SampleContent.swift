@@ -71,7 +71,14 @@ enum SampleContent {
 
     private static func key(_ entry: ArchiveEntry) -> String { "\(entry.size) \(entry.modified.timeIntervalSince1970)" }
 
-    private static let keys = Set((SampleArchive.make().files + SampleArchive.oldExplorations).map { key($0) })
+    private static let keys = Set((SampleArchive.make().files + SampleArchive.oldExplorations
+                                   + SampleArchive.prototypeBuild().files).map { key($0) })
+
+    /// The sample photos on disk, for demos that need real pictures (a contact sheet, a Tray drop).
+    static func photo(named name: String) -> URL? {
+        guard let url = folder?.appending(path: "Photos/\(name)"), FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
+    }
 
     private static let files: [String: String] = {
         guard let folder else { return [:] }

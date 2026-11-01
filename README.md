@@ -8,8 +8,9 @@ recipient's computer. *Stow* is a working name.
 **Status:** prototype. Real archives open, browse, preview and extract through a sandboxed 7-Zip
 engine; packing creates real archives; the install Actions (apps, fonts, installer packages) and
 Finder integration (Quick Look, context menu, Services, file types) are real. "Try the Sample" opens a
-bundled genuine ZIP through the normal engine. The Recent list and most design-review scenes still use
-fictional sample data.
+bundled genuine ZIP through the normal engine, and the website's browsing screenshots are rendered from that
+same ZIP (`scripts/website-shots.sh`). The Recent list and most design-review scenes still use fictional
+sample data.
 
 - 🧪 Staged ZIP / 7Z / TAR editing: add, delete, rename, replace, undo/redo, and atomic Save (pending macOS verification).
 - 🧪 Read-only archives explain the limitation and offer Extract and Repack as ZIP or 7Z (pending macOS verification).
@@ -50,7 +51,7 @@ scripts/snapshot.sh <scene> [light|dark]   # → snapshots/
 Scenes: `editing`, `readonly`, `welcome`, `grid`, `list`, `fonts`, `search`, `activity`, `pack`, `tray`, `quicklook`
 (`-StowPreview encrypted|slow`), `associations`, `integration` (`-StowRepair YES`), `batch`,
 `conflict`, `conflict-folder`, `signature-warning`, `replace-app`, `extract-options`, `install-options`,
-`packing`, `packed`, `packrun`, `open-unreadable`, `source-access`, `source-access-file` (both take `-StowSourcePath <file>` or
+`packing`, `packed`, `packrun`, `checkup`, `install-preparing`, `install-done`, `open-unreadable`, `source-access`, `source-access-file` (both take `-StowSourcePath <file>` or
 `-StowSourceName <name>`), `source-access-unsaved`. Browsing scenes take `-StowOpen <path>` plus the flags listed in
 `App/Browser/BrowseDemo.swift`.
 `open -StowOpen <path> -StowRun extractAll|install|fonts|installer` runs a real step
