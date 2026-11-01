@@ -4,7 +4,7 @@ import Foundation
 /// next. Every error alert, failed capsule and failed batch row says it the same way.
 struct Failure: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
-        case notAnArchive, damaged, needsPassword, diskFull, noWriteAccess, noReadAccess, engine, appRunning, other
+        case notAnArchive, missingParts, damaged, needsPassword, diskFull, noWriteAccess, noReadAccess, engine, appRunning, other
     }
 
     /// The one next step a failure offers, besides dismissing it.
@@ -74,6 +74,7 @@ struct Failure: Equatable, Sendable {
     var brief: String {
         switch kind {
         case .notAnArchive: String(localized: "Not an archive Stow can read")
+        case .missingParts: String(localized: "Missing archive parts — keep all parts together")
         case .damaged: String(localized: "Damaged — download it again")
         case .needsPassword: String(localized: "Needs its password")
         case .diskFull: String(localized: "Not enough space")
@@ -102,6 +103,7 @@ struct Failure: Equatable, Sendable {
     static func reason(for kind: Kind) -> ErrorCode.Reason {
         switch kind {
         case .notAnArchive: .notAnArchive
+        case .missingParts: .missingVolume
         case .damaged: .damagedData
         case .needsPassword: .passwordRequired
         case .diskFull: .diskFull
@@ -150,7 +152,7 @@ struct Failure: Equatable, Sendable {
                  destination: URL?, needs bytes: Int64) {
         switch (engine.failure, cause) {
         case (.missingVolume, _):
-            self.init(kind: .damaged,
+            self.init(kind: .missingParts,
                       title: String(localized: "“\(name)” needs all its archive parts"),
                       advice: engine.message, action: .showInFinder)
         case (.notAnArchive, _):

@@ -10,8 +10,8 @@ struct PackActivityBar: View {
             GlassEffectContainer(spacing: Space.s) {
                 ActivityCapsule(phase: activity.phase,
                                 title: activity.phase == .done ? activity.doneTitle : String(localized: "Packing “\(activity.name)”"),
-                                note: activity.verified ? String(localized: "· tested") : nil,
-                                noteHelp: String(localized: "Stow opened the new archive and checked every file"),
+                                note: activity.verified ? String(localized: "· contents verified") : nil,
+                                noteHelp: String(localized: "Stow read back the new archive to verify its contents"),
                                 glass: glass,
                                 stop: activity.isSample ? nil : { packing.cancel() },
                                 showInFinder: activity.placed.isEmpty ? nil : { packing.showInFinder() },

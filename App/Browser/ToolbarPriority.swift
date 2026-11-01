@@ -1,8 +1,8 @@
 import SwiftUI
 
 extension ToolbarContent {
-    /// Which toolbar items give way first when the window is narrow. Extract All, Checkup (with
-    /// the archive's password) and Glance stay out of the overflow menu as long as anything does
+    /// Which toolbar items give way first when the window is narrow. Editing, password access
+    /// and Glance stay out of the overflow menu as long as anything does
     /// (#159, #160); the view switcher, which the View menu also has (⌘1–3), goes first.
     ///
     /// SwiftUI's own priority arrived in macOS 26.1; 26.0 keeps the system's order. (Setting

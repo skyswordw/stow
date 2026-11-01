@@ -32,9 +32,16 @@ struct QuickLookPreviewTests {
         let fine = CheckupFinding(severity: .fine, title: "fine", detail: "")
         let handled = CheckupFinding(severity: .handled, title: "handled", detail: "")
         let caution = CheckupFinding(severity: .caution, title: "caution", detail: "")
-        #expect(ArchivePreviewModel.headline(of: [fine, handled, caution]).title == "caution")
-        #expect(ArchivePreviewModel.headline(of: [fine, handled]).title == "handled")
-        #expect(ArchivePreviewModel.headline(of: []).severity == .fine)
+        #expect(ArchivePreviewModel.headline(of: [fine, handled, caution])?.title == "caution")
+        #expect(ArchivePreviewModel.headline(of: [fine, handled])?.title == "handled")
+        #expect(ArchivePreviewModel.headline(of: []) == nil)
+        #expect(ArchivePreviewModel.headline(of: [fine]) == nil)
+    }
+
+    @Test func packedSummaryDoesNotClaimSavingsWhenTheArchiveGrew() {
+        #expect(ArchivePreviewModel.packedSummary(packed: 120, total: 100) == "120 bytes packed")
+        #expect(ArchivePreviewModel.packedSummary(packed: 100, total: 100) == "100 bytes packed")
+        #expect(ArchivePreviewModel.packedSummary(packed: 50, total: 100) == "50 bytes packed · 50% smaller")
     }
 
     @Test func slowListingFallsBackInTime() async {
@@ -65,7 +72,7 @@ struct QuickLookPreviewTests {
         let content = await ArchivePreviewLoader.load(zip) { try await ArchiveEngine.shared.list($0) }
         guard case .listed(let model) = content else { Issue.record("expected a listing, got \(content)"); return }
         #expect(model.rows.map(\.id) == ["Docs", "Docs/a.txt", "b.txt"])
-        #expect(model.headline.severity == .fine)
+        #expect(model.headline == nil)
     }
 
     @Test(arguments: [("logs.tar.xz", "logs.tar"), ("a.tgz", "a.tar"), ("notes.txt.gz", "notes.txt"), ("x.bz2", "x")])

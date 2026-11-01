@@ -19,7 +19,7 @@ nonisolated struct ArchivePreviewModel: Sendable {
     var totalSize: Int64
     var packedSize: Int64?
     var isEncrypted: Bool
-    var headline: CheckupFinding
+    var headline: CheckupFinding?
     var cautionCount: Int
     /// Folders first, then files, depth-first — capped so a huge archive still opens instantly.
     var rows: [Row]
@@ -67,12 +67,20 @@ nonisolated struct ArchivePreviewModel: Sendable {
     }
 
     /// The finding that matters most: a caution, then anything Stow handled, then the rest.
-    static func headline(of findings: [CheckupFinding]) -> CheckupFinding {
-        let order: [CheckupFinding.Severity] = [.caution, .handled, .info, .fine]
+    static func headline(of findings: [CheckupFinding]) -> CheckupFinding? {
+        let order: [CheckupFinding.Severity] = [.caution, .handled]
         for severity in order {
             if let finding = findings.first(where: { $0.severity == severity }) { return finding }
         }
-        return CheckupFinding(severity: .fine, title: String(localized: "Names and sizes look normal"), detail: "")
+        return nil
+    }
+
+    /// A larger/equal packed value is not a saving. Keep the raw value without a false "smaller" claim.
+    static func packedSummary(packed: Int64, total: Int64) -> String {
+        guard total > 0, packed < total else { return String(localized: "\(packed.bytes) packed") }
+        let saving = Int(((1 - Double(packed) / Double(total)) * 100).rounded())
+        guard saving > 0 else { return String(localized: "\(packed.bytes) packed") }
+        return String(localized: "\(packed.bytes) packed · \(saving)% smaller")
     }
 
     var summary: String {

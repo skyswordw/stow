@@ -65,7 +65,7 @@ struct InstallOptionsView: View {
                 }
             }
             Section {
-                Toggle("Remove the quarantine flag from installed apps", isOn: $removeQuarantine)
+                Toggle("Skip macOS’s first-open check for installed apps", isOn: $removeQuarantine)
             } footer: {
                 Text("macOS marks apps that came from the internet so Gatekeeper can check them the first time they open. Removing the mark skips that check — only turn this on if you trust everything you install. Unsigned or unnotarized apps still get a warning from Stow first.")
                     .foregroundStyle(.secondary)
@@ -76,7 +76,7 @@ struct InstallOptionsView: View {
             } header: {
                 Text("Folders Stow may install into").accessibilityAddTraits(.isHeader)
             } footer: {
-                Text("Stow is sandboxed. It asks once before the first install into a folder and remembers only that folder.")
+                Text("Stow asks for access before installing in a folder. Remembered access includes files and subfolders. Forget removes Stow’s saved authorization; macOS may keep access until Stow quits.")
                     .foregroundStyle(.secondary)
             }
         }

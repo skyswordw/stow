@@ -39,6 +39,16 @@ verified reads, persistence and cancellation retain their existing contracts. Cl
 presentation and motion. Real WeChat/signed-build acceptance remains #212; the optional
 nonmodal persistence-warning proposal in PR #223 is not implemented by this change.
 
+## Functional clarity implementation — 2026-10-31
+
+Read the [implementation handoff](clarity-functional-implementation.md) for #229/#230/#232–#234
+and the functional/copy portions of #153/#161/#162. The user authorized Codex to implement all
+independently actionable findings. The prior permanent-Checkup requirement is superseded; #231
+retains the central-search toolbar composition for Claude Code. New result/disclosure controls
+use existing native styles and still need Claude Code's visual review. No active assignment or
+visual acceptance is claimed. The [audit](product-clarity-audit-2026-10-31.md) distinguishes
+source findings from native evidence and links the published issues.
+
 ## Browser window close and Dock reopen — 2026-10-28
 
 Codex owns this lifecycle correction; Claude Code retains visual and motion ownership.

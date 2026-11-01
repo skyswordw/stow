@@ -41,7 +41,9 @@ private struct ListedPreview: View {
                 if let packed = model.packedSize, model.totalSize > 0 {
                     PackedBar(packed: packed, total: model.totalSize)
                 }
-                CheckupLine(finding: model.headline, cautionCount: model.cautionCount)
+                if let finding = model.headline {
+                    CheckupLine(finding: finding, cautionCount: model.cautionCount)
+                }
             }
             .padding(16)
 
@@ -145,7 +147,7 @@ private struct PackedBar: View {
                 }
             }
             .frame(height: 4)
-            Text(packed > 0 ? String(localized: "\(packed.bytes) packed · \(Int(((1 - fraction) * 100).rounded()))% smaller") : String(localized: "Size after packing unknown"))
+            Text(ArchivePreviewModel.packedSummary(packed: packed, total: total))
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
@@ -166,8 +168,7 @@ private struct CheckupLine: View {
             Image(systemName: symbol)
                 .accessibilityHidden(true)
                 .foregroundStyle(color)
-            Text("Checkup: ").font(.callout.weight(.semibold))
-                + Text(finding.title).font(.callout)
+            Text(finding.title).font(.callout)
             if cautionCount > 1 {
                 Text("+\(cautionCount - 1) more")
                     .font(.caption)

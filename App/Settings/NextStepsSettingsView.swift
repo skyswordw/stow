@@ -14,9 +14,9 @@ struct NextStepsSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Show Actions when you select something", isOn: $isShown)
+                Toggle("Show suggested file actions", isOn: $isShown)
             } footer: {
-                Text("Actions float above the files you select, with the right one first. When they’re off, every action is still in the menus.")
+                Text("Actions offer commands for your selection, or Install App when an archive contains one app. Turning this off hides suggestions; commands remain in the menus.")
             }
             // What the toggles below add up to, for a selection people can pick (#162). Read-only
             // words, not buttons: nothing here runs an action.
@@ -28,7 +28,7 @@ struct NextStepsSettingsView: View {
             } header: {
                 Text("Preview")
             } footer: {
-                Text("Resting the pointer on the stack fans out the actions behind the front one. More (⋯) and File › Actions list every action.")
+                Text("Rest the pointer on the action buttons or click their exposed edges to show alternatives. More (⋯) lists alternatives; File › Actions lists all available commands.")
             }
             .disabled(!isShown)
             Section {
@@ -52,7 +52,7 @@ struct NextStepsSettingsView: View {
                 Text("Suggested Actions")
             } footer: {
                 VStack(alignment: .leading, spacing: Space.m) {
-                    Text("Up to two suggestions appear beside Extract, most specific first. Suggestions you turn off stay in the More menu.")
+                    Text("The main action appears in front, with up to two alternatives behind it. Turning off a suggestion hides its button, not the command in the menus.")
                     // Also brings Actions back when it's turned off, so it stays enabled.
                     Button("Restore Defaults") { NextStepsSettings.restoreDefaults() }
                         .disabled(settings.isDefault)
