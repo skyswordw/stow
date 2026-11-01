@@ -309,16 +309,22 @@ Reduced Transparency: glass falls back to solid window background (the system do
   card's first finding with its consequence under it. A normal archive shows no card and no line.
 - **Pack sentence** shows a live report underneath of what it will do. When the archive is split it
   leads with what comes out: about how many parts, their numbered names ("Harbor.zip.001 – .003"),
-  each part's limit, and that opening it needs every part and an app that joins them. Then what
-  changes on the way: names adjusted for Windows, Mac-only files left out (or kept, when More Options
-  kept them). The footer says the size as an estimate in words ("About 27.3 MB in 3 parts"), beside
+  each part's limit, and that opening it needs every part and an app that joins them. A caution
+  (the recipient may not be able to open it) comes before even that. Then what changes on the way:
+  names adjusted for Windows (with Review names right under that line), Mac-only files left out (or
+  kept, when More Options kept them), links left out; then what's simply true of the format.
+  "All names work there" is good news, so it stays, but last: never above a change (#153). The footer says the size as an estimate in words ("About 27.3 MB in 3 parts"), beside
   Cancel and Pack, where it stays in view however far the middle scrolls. **More Options** is a full-strength heading
-  that lists its current settings while closed (up to two lines; a choice changed from the purpose
-  is named, the usual ones go without saying). Inside, hairlines divide a few groups: what comes
+  that lists its current settings while closed, under the title and lined up with it, each fact
+  whole and never cut off: compression, a planned check while it's on, then every choice changed
+  from the purpose, last and marked with the same amber pencil as the open rows, with **Reset These
+  Options** straight after them. A planned check has a hollow dotted check ("Will verify archive
+  contents"); the filled check and "contents verified" belong to the finished pack only. Inside, hairlines divide a few groups: what comes
   out (compression, parts, verify), a disk image's layout, what the password covers, what a Mac
   adds, CPU cores. A purpose's own defaults are checkboxes showing what will happen; one changed
-  from the purpose says so under it, and an amber **Reset** appears in the heading only while
-  something differs. Choices a format can't offer say why in plain words instead of only in a
+  from the purpose says so under it. While something differs, Reset also closes the open section,
+  under its last row, with its reach in words: the purpose's usual choices, for this archive only;
+  compression stays as set and Settings don't change. Nothing to reset, no Reset. Choices a format can't offer say why in plain words instead of only in a
   tooltip; a choice that can't apply at all (Encrypt file names without a password) isn't shown.
   **Custom…** opens one part-size editor in a popover from whatever was clicked, with the part
   count and part names for these items as people type. When the screen is short, only the middle of the sheet scrolls (its
