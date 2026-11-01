@@ -25,7 +25,9 @@ import SwiftUI
 /// entries, in memory only),
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
 /// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
-/// install-running (an app part-way into Applications), install-app-open (refused: the installed copy is open, INS-181),
+/// install-running (an app part-way into Applications), install-done (installed), install-app-open (refused: the installed copy is open, INS-181).
+/// The install walkthrough (checkup, signature-warning, replace-app, install-*, activity) uses "Harbor Prototype 1.3.zip",
+/// an app build, because Try the Sample's ZIP holds no app; `checkup -StowSelect "Harbor Prototype.app"` selects it.
 /// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop),
 /// tray-collect (Collect into a Folder, items from one folder), tray-collect-mixed (from three: people choose where),
 /// tray-collect-taken (a name that's taken), tray-collected (after a real collect: where it went).
@@ -164,9 +166,8 @@ enum DemoScene {
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.query = "harbor"
         case "activity":
-            app.openArchive(named: SampleArchive.make().name)
-            app.browser?.folder = "Prototype"
-            app.browser?.selection = ["Prototype/Harbor Prototype.app"]
+            app.openDemo(SampleArchive.prototypeBuild())
+            app.browser?.selection = ["Harbor Prototype.app"]
             app.browser?.run(.moveToApplications)
         case "pack":
             if let path = defaults.string(forKey: "StowPack") {
@@ -265,14 +266,21 @@ enum DemoScene {
                 _ = await Prompts.resolve(Placement.Conflict(name: name, existing: existing, incoming: incoming, canMerge: isFolder))
             }
         case "signature-warning", "replace-app":
-            app.openArchive(named: SampleArchive.make().name)
-            app.browser?.folder = "Prototype"
-            app.browser?.selection = ["Prototype/Harbor Prototype.app"]
+            app.openDemo(SampleArchive.prototypeBuild())
+            app.browser?.selection = ["Harbor Prototype.app"]
             let question: Installer.Question = scene == "replace-app"
                 ? .replaceApp(app: "Harbor Prototype.app", installed: "1.2", incoming: "1.3")
                 : .signature(app: "Harbor Prototype.app", verdict: .notNotarized(signer: "Harbor Studio"))
             Task {
                 try? await Task.sleep(for: .milliseconds(300))
+                // As when someone chooses Install App: Stow in front, its window key, so the prompt
+                // comes down as that window's sheet (macOS may put activation off for a moment).
+                for _ in 0..<50 where !NSApp.isActive {
+                    NSApp.activate()
+                    try? await Task.sleep(for: .milliseconds(200))
+                }
+                NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }?.makeKeyAndOrderFront(nil)
+                try? await Task.sleep(for: .milliseconds(200))
                 _ = await Prompts.ask(question)
             }
         case "open-failed", "open-damaged":
@@ -325,16 +333,19 @@ enum DemoScene {
             app.browser?.folder = "Photos"
             app.browser?.selection = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
             app.browser?.previewActivity(.init(step: .extract, itemCount: 2, phase: .failed(demoFailure(scene, name: SampleArchive.make().name))))
-        case "install-running", "install-preparing", "install-app-open":
-            // An app part-way into Applications (or just started, nothing measured yet), or refused
-            // because the installed copy is open (INS-181).
-            app.openArchive(named: SampleArchive.make().name)
-            app.browser?.folder = "Prototype"
-            app.browser?.selection = ["Prototype/Harbor Prototype.app"]
+        case "install-running", "install-preparing", "install-done", "install-app-open":
+            // An app part-way into Applications (or just started, nothing measured yet), installed, or
+            // refused because the installed copy is open (INS-181).
+            app.openDemo(SampleArchive.prototypeBuild())
+            app.browser?.selection = ["Harbor Prototype.app"]
             let phase: ActivityPhase = scene == "install-running" ? .running(0.42) : scene == "install-preparing" ? .running(0)
+                : scene == "install-done" ? .done
                 : .failed(Failure(Installer.RunningApp(name: "Harbor Prototype"), .install, name: "Harbor Prototype"))
             app.browser?.previewActivity(.init(step: .moveToApplications, itemCount: 1, phase: phase, name: "Harbor Prototype"))
-        case "checkup": app.openArchive(named: SampleArchive.make().name); app.browser?.navigate(to: "Prototype") // just opened, nothing selected
+        case "checkup":
+            // Just opened, nothing selected; `-StowSelect "Harbor Prototype.app"` selects the app.
+            app.openDemo(SampleArchive.prototypeBuild())
+            if let name = defaults.string(forKey: "StowSelect") { app.browser?.select([name]) }
         case "details-clean", "details-planned", "details-more":
             // Details with nothing selected. clean: an ordinary archive with only routine notes, so
             // nothing is promoted above the files. planned: a protection Stow will apply when
@@ -465,9 +476,12 @@ enum DemoScene {
                 ("\(home)/Desktop/Kickoff Deck.zip", .now.addingTimeInterval(-24 * 24 * hour)),
             ])
         case "tray":
+            // The photo is the sample's real file, so its row shows a real thumbnail.
+            let pier = SampleContent.photo(named: "Pier at Dawn.jpg")
+            let pierSize = (pier.flatMap { try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize }).map(Int64.init) ?? 224_000
             app.tray.items = [
                 TrayItem(name: "Invoice October.pdf", size: 182_000),
-                TrayItem(name: "Pier at Dawn.jpg", size: 4_210_000),
+                TrayItem(name: "Pier at Dawn.jpg", size: pierSize, url: pier),
                 TrayItem(name: "Kickoff.key", size: 18_900_000),
                 TrayItem(name: "budget-2027.numbers", size: 412_000),
                 TrayItem(name: "Site Photos", size: 0, isFolder: true),
@@ -483,14 +497,9 @@ enum DemoScene {
             let note = folder.appending(path: "Notes.txt"), short = folder.appending(path: "File 01.txt")
             try? Data("Kickoff notes\n\n- Agree the scope\n- Book the photographer\n- Send the brand kit\n".utf8).write(to: note)
             try? Data("01\n".utf8).write(to: short)
-            let picture = folder.appending(path: "Pier at Dawn.png")
-            let image = NSImage(size: CGSize(width: 240, height: 160), flipped: false) { rect in
-                NSGradient(starting: .systemOrange, ending: .systemIndigo)?.draw(in: rect, angle: 90)
-                return true
-            }
-            if let tiff = image.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
-                try? png.write(to: picture)
-            }
+            // The sample's own photo (CC0, see Resources/Sample/CREDITS.md), so the row shows a real thumbnail.
+            let picture = folder.appending(path: "Pier at Dawn.jpg")
+            if let photo = SampleContent.photo(named: "Pier at Dawn.jpg") { try? FileManager.default.copyItem(at: photo, to: picture) }
             let pdf = folder.appending(path: "Invoice October.pdf")
             let page = NSTextView(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
             page.string = "Invoice October\n\nHarbor Studio\n\n3 × Brand workshop\nTotal 4,200"
@@ -591,6 +600,16 @@ enum DemoScene {
                 // `-StowActivate YES`: capture as the front app, so default buttons show their colour.
                 if defaults.bool(forKey: "StowActivate") { NSApp.activate() }
                 try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
+                // Activation is a request macOS may put off while someone works in another app: ask
+                // again until Stow is in front (up to 10 s), so the picture shows active windows.
+                if defaults.bool(forKey: "StowActivate") {
+                    for _ in 0..<50 where !NSApp.isActive {
+                        NSApp.activate()
+                        try? await Task.sleep(for: .milliseconds(200))
+                    }
+                    if !NSApp.isActive { FileHandle.standardError.write(Data("snapshot: Stow isn’t the active app\n".utf8)) }
+                    try? await Task.sleep(for: .milliseconds(300))
+                }
                 // Glance snapshots are named by the edge they opened at, so each edge keeps its own file.
                 let label = scene == "glance" ? "glance-\(glanceEdge(defaults).rawValue)" : scene
                 // The Tray's menu-bar icon lives in a status-bar window of its own; it isn't a scene.
@@ -606,6 +625,10 @@ enum DemoScene {
                     if let toolbar = NSApp.windows.compactMap(\.toolbar).first {
                         print("toolbar:", toolbar.visibleItems?.map(\.label).filter { !$0.isEmpty } ?? [])
                     }
+                }
+                // A window with its sheet, as one picture (the walkthrough's prompt frames).
+                for window in windows where window.sheetParent == nil {
+                    if let sheet = window.attachedSheet, let url = snapshot([sheet, window], name: "\(label)-combined") { print(url.path) }
                 }
                 if scene == "glance", let url = glancePlacement(app, name: "\(label)-screen") { print(url.path) }
                 if scene == "next-steps-more", let url = NextStepsDemo.captureWithMenu(name: "\(label)-menu") { print(url.path) }
@@ -626,7 +649,12 @@ enum DemoScene {
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             for name in names {
                 let url = dir.appending(path: name)
-                FileManager.default.createFile(atPath: url.path, contents: Data(name.utf8))
+                // Sample photos are the real CC0 files, so their rows show real thumbnails.
+                if let photo = SampleContent.photo(named: name) {
+                    try? FileManager.default.copyItem(at: photo, to: url)
+                } else {
+                    FileManager.default.createFile(atPath: url.path, contents: Data(name.utf8))
+                }
                 urls.append(url)
             }
         }
@@ -921,6 +949,23 @@ enum DemoScene {
             .takeRetainedValue() else { return nil }
         let rep = NSBitmapImageRep(cgImage: image)
         guard let data = rep.representation(using: .png, properties: [:]) else { return nil }
+        let url = FileManager.default.temporaryDirectory.appending(path: "\(name).png")
+        return (try? data.write(to: url)) != nil ? url : nil
+    }
+
+    /// Several windows composited together, such as a window and its sheet
+    /// (`CGWindowListCreateImageFromArray`, hidden from the SDK like the call above).
+    private static func snapshot(_ windows: [NSWindow], name: String) -> URL? {
+        typealias CreateImage = @convention(c) (CGRect, CFArray, UInt32) -> Unmanaged<CGImage>?
+        guard let handle = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", RTLD_LAZY),
+              let symbol = dlsym(handle, "CGWindowListCreateImageFromArray") else { return nil }
+        let create = unsafeBitCast(symbol, to: CreateImage.self)
+        // Window IDs go in the array as pointer-sized values, the way Core Graphics reads them.
+        var ids = windows.map { UnsafeRawPointer(bitPattern: UInt($0.windowNumber)) }
+        guard let array = CFArrayCreate(nil, &ids, ids.count, nil) else { return nil }
+        let imageBestResolution: UInt32 = 1 << 3
+        guard let image = create(.null, array, imageBestResolution)?.takeRetainedValue(),
+              let data = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else { return nil }
         let url = FileManager.default.temporaryDirectory.appending(path: "\(name).png")
         return (try? data.write(to: url)) != nil ? url : nil
     }

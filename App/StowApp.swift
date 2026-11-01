@@ -322,10 +322,15 @@ final class AppState {
 
     /// In-memory sample for design-review scenes (`DemoScene`, nested-search demos). Prefer `openSample()` for Try the Sample.
     func openArchive(named name: String) {
+        openDemo(SampleArchive.make(named: name))
+    }
+
+    /// Any in-memory listing, for design-review scenes (the install walkthrough's prototype build).
+    func openDemo(_ archive: Archive) {
         mainWindowDismissed = false
         cancelOpening()
         releaseScope()
-        browser = makeBrowser(SampleArchive.make(named: name))
+        browser = makeBrowser(archive)
     }
 
     private func makeBrowser(_ archive: Archive, isListing: Bool = false) -> BrowserModel {

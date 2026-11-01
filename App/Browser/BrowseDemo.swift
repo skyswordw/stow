@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 import Quartz
 
 /// Launch arguments that drive a real archive opened with `-StowScene open -StowOpen <path>`, for
@@ -9,12 +10,19 @@ import Quartz
 ///     -StowSelect "Mac-Blue.jpg|Sonoma.jpg"   (names in the folder)   -StowQuery "tide"   -StowFind YES (⌘F)
 ///     -StowQuickLook YES   -StowHover "README.md"   -StowMove down   -StowEncodingSheet YES
 ///     -StowActionsOpen YES   (the Actions stack fanned out)   -StowUnlock YES   (asks for the password)
+///     -StowEdits YES   (the editing scene's unsaved changes in Photos; nothing is saved)
 ///
 /// Pair with `-StowSnapshotDelay 5` so thumbnails and previews arrive before the picture.
 enum BrowseDemo {
     static func editing(in app: AppState) {
         app.openArchive(named: SampleArchive.make().name)
         guard let model = app.browser else { return }
+        stageEdits(in: model)
+    }
+
+    /// Three unsaved changes in Photos: two files added, one renamed, one deleted. `-StowEdits YES`
+    /// stages them on a real archive too (Try the Sample's ZIP); nothing is written until Save.
+    static func stageEdits(in model: BrowserModel) {
         model.folder = "Photos"
         model.editSession.add(sampleFilesToAdd(), into: "Photos")
         model.editSession.rename("Photos/Lighthouse.jpg", to: "Harbor Lighthouse.jpg")
@@ -22,29 +30,93 @@ enum BrowseDemo {
         model.selection = ["Photos/Field Notes.txt"]
     }
 
-    /// Two real files to add, so the staged items have a size, a date and a kind like a real drop.
+    /// Two real files to add, so the staged items have a size, a date, a kind and a preview like a
+    /// real drop: the photographer's notes, and a contact sheet of the sample's own photos.
     private static func sampleFilesToAdd() -> [URL] {
         let folder = FileManager.default.temporaryDirectory.appending(path: "Stow-Sample", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let notes = folder.appending(path: "Field Notes.txt")
         let sheet = folder.appending(path: "Contact Sheet.pdf")
-        let text = String(repeating: "Harbor, 6:40 am. Low tide, pier lights still on. Shot the lighthouse from the north jetty.\n", count: 40)
-        try? Data(text.utf8).write(to: notes)
-        let pdf = NSMutableData()
-        var page = CGRect(x: 0, y: 0, width: 612, height: 792)
-        if let consumer = CGDataConsumer(data: pdf), let context = CGContext(consumer: consumer, mediaBox: &page, nil) {
-            for index in 0..<4 {
-                context.beginPDFPage(nil)
-                context.setFillColor(gray: 0.2 + 0.15 * CGFloat(index), alpha: 1)
-                context.fill(page.insetBy(dx: 72, dy: 96))
-                context.endPDFPage()
-            }
-            context.closePDF()
-        }
-        try? (pdf as Data).write(to: sheet)
+        try? Data(fieldNotes.utf8).write(to: notes)
+        try? contactSheet().write(to: sheet)
         let date = Date.now.addingTimeInterval(-2 * 3600)
         for url in [notes, sheet] { try? FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: url.path) }
         return [notes, sheet]
+    }
+
+    private static let fieldNotes = """
+        Harbor shoot, field notes
+
+        Tue 6:10 am. New Brighton pier
+        Low tide 5:52. Pier lights off at 6:20, so the first frames still have them on.
+        Shot from the beach steps, 24 mm, f/8. Pier at Dawn is frame 41; 38 to 44 are all usable.
+
+        Tue 9:30 am. Akaroa lighthouse
+        Clear sky, light from the east until about 10. Walked around to the harbour side for the
+        hills behind the tower. Lighthouse is frame 112. The keeper's gate was locked, so
+        nothing from the gallery this time.
+
+        Tue 7:45 pm. Akaroa moorings
+        Blue hour lasted about 20 minutes. Tripod on the main wharf, 2 s exposures.
+        Harbor at Night is frame 203. Boats swing on the tide, so check sharpness at 100%.
+
+        Wed. Oamaru boat harbour
+        Overcast, flat light, good for the old jetty's texture. Shot on the compact as HEIC.
+
+        To do
+        - Rope Detail: crop tighter for the onboarding card (square, 1:1).
+        - Lighthouse: rename to Harbor Lighthouse before it goes to the app team.
+        - Drop Pier at Dawn from this round; marketing wants it for the launch post only.
+        - Contact sheet attached for anyone without the full set.
+        """
+
+    /// A two-page contact sheet of the sample's photos, captioned like a photographer's proof.
+    private static func contactSheet() -> Data {
+        let pdf = NSMutableData()
+        var page = CGRect(x: 0, y: 0, width: 612, height: 792)
+        guard let consumer = CGDataConsumer(data: pdf),
+              let context = CGContext(consumer: consumer, mediaBox: &page, nil) else { return Data() }
+        let photos = ["Pier at Dawn.jpg", "Lighthouse.jpg", "Harbor at Night.jpg", "Rope Detail.jpg", "Old Jetty.heic"]
+        let images = photos.compactMap { name -> (String, CGImage)? in
+            guard let url = SampleContent.photo(named: name), let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+                  let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                      kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 520,
+                      kCGImageSourceCreateThumbnailWithTransform: true] as CFDictionary) else { return nil }
+            return (name, image)
+        }
+        let margin: CGFloat = 54, gap: CGFloat = 18, columns = 2
+        let cell = (page.width - 2 * margin - gap) / CGFloat(columns)
+        let frame = cell * 2 / 3
+        func text(_ string: String, size: CGFloat, weight: NSFont.Weight, color: NSColor, at point: CGPoint) {
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string: string, attributes: [
+                .font: NSFont.systemFont(ofSize: size, weight: weight), .foregroundColor: color]))
+            context.textPosition = point
+            CTLineDraw(line, context)
+        }
+        for (pageIndex, chunk) in stride(from: 0, to: images.count, by: 4).enumerated() {
+            context.beginPDFPage(nil)
+            context.setFillColor(.white)
+            context.fill(page)
+            text("Harbor shoot · contact sheet", size: 16, weight: .semibold, color: .black,
+                 at: CGPoint(x: margin, y: page.height - margin - 16))
+            text("New Brighton, Akaroa, Oamaru · page \(pageIndex + 1) of \((images.count + 3) / 4)", size: 9,
+                 weight: .regular, color: .darkGray, at: CGPoint(x: margin, y: page.height - margin - 32))
+            for (index, (name, image)) in images[chunk..<min(chunk + 4, images.count)].enumerated() {
+                let x = margin + CGFloat(index % columns) * (cell + gap)
+                let top = page.height - margin - 60 - CGFloat(index / columns) * (frame + 46)
+                let box = CGRect(x: x, y: top - frame, width: cell, height: frame)
+                context.setFillColor(NSColor(white: 0.12, alpha: 1).cgColor)
+                context.fill(box)
+                let scale = min((box.width - 12) / CGFloat(image.width), (box.height - 12) / CGFloat(image.height))
+                let size = CGSize(width: CGFloat(image.width) * scale, height: CGFloat(image.height) * scale)
+                context.draw(image, in: CGRect(x: box.midX - size.width / 2, y: box.midY - size.height / 2,
+                                               width: size.width, height: size.height))
+                text(name, size: 9, weight: .medium, color: .black, at: CGPoint(x: x, y: box.minY - 14))
+            }
+            context.endPDFPage()
+        }
+        context.closePDF()
+        return pdf as Data
     }
 
     static func readOnly(in app: AppState) {
@@ -93,6 +165,7 @@ enum BrowseDemo {
                     model.select(Set(ids), scroll: true)
                 }
             }
+            if defaults.bool(forKey: "StowEdits") { stageEdits(in: model) }
             if let query = defaults.string(forKey: "StowQuery") { model.query = query }
             if defaults.bool(forKey: "StowFind") { model.focusSearch() }
             try? await Task.sleep(for: .milliseconds(400))
@@ -100,6 +173,11 @@ enum BrowseDemo {
             if defaults.bool(forKey: "StowGlance") {
                 let visible = (NSScreen.main ?? NSScreen.screens[0]).visibleFrame
                 app.glance.collapse(near: CGPoint(x: visible.midX, y: visible.midY), animated: false)
+                // Glance shows a list; coming from another view mode can drop the selection, so pick it again.
+                if let names = defaults.string(forKey: "StowSelect"), model.selection.isEmpty {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    model.select(Set(names.split(separator: "|").map { model.folder.isEmpty ? String($0) : model.folder + "/" + $0 }))
+                }
             }
             if let move = defaults.string(forKey: "StowMove") {
                 let direction: BrowserModel.Direction = switch move {

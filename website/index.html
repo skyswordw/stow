@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Stow — Archives, opened with care</title>
-<meta name="description" content="Stow is a native macOS archive tool. See what’s inside, know it’s safe, take the next step — and pack files that open on anyone’s computer.">
+<meta name="description" content="Stow is a native macOS archive tool. See what’s inside, take the next step — and pack files that open on anyone’s computer.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
@@ -205,12 +205,12 @@ section { padding: clamp(80px, 12vw, 148px) 0; }
 .points li strong { color: var(--ink); font-weight: 600; }
 .points svg { margin-top: 3px; color: var(--accent); }
 
-/* Checkup card */
-.checkup {
+/* Archive notices card */
+.notice-card {
   background: var(--surface); border-radius: var(--r-panel); padding: 28px;
   box-shadow: var(--shadow-2), 0 0 0 1px var(--line);
 }
-.checkup-head { display: flex; align-items: center; gap: 14px; }
+.notice-head { display: flex; align-items: center; gap: 14px; }
 .badge-zip {
   position: relative; width: 40px; height: 48px; border-radius: 9px; flex: none;
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
@@ -218,10 +218,8 @@ section { padding: clamp(80px, 12vw, 148px) 0; }
 }
 .badge-zip::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 11px 11px 0;
   border-color: transparent rgba(255,255,255,.4) transparent transparent; }
-.checkup-title { font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
-.checkup-sub { font-size: 13px; color: var(--ink-3); }
-.status-pill { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px;
-  background: color-mix(in srgb, var(--yellow) 14%, transparent); font-size: 12.5px; font-weight: 600; }
+.notice-title { font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
+.notice-sub { font-size: 13px; color: var(--ink-3); }
 .findings { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 4px; }
 .finding { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 12px; border-radius: 12px; }
 .finding:nth-child(odd) { background: var(--bg-2); }
@@ -251,7 +249,7 @@ section { padding: clamp(80px, 12vw, 148px) 0; }
 .seg .thumb { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px;
   background: var(--surface); box-shadow: var(--shadow-1), 0 0 0 1px var(--line); transition: transform 300ms var(--ease-out); }
 .seg[data-at="1"] .thumb { transform: translateX(100%); }
-.tour-stage { position: relative; aspect-ratio: 1600 / 1164; margin: 24px -3% 0; }
+.tour-stage { position: relative; aspect-ratio: 1824 / 1370; margin: 24px -3% 0; }
 .tour-frame { position: absolute; inset: 0; margin: 0; opacity: 0; transition: opacity 500ms var(--ease-in-out); }
 .tour-frame[data-on] { opacity: 1; }
 .tour-frame img { width: 100%; height: 100%; object-fit: contain; }
@@ -304,7 +302,6 @@ section { padding: clamp(80px, 12vw, 148px) 0; }
   display: grid; gap: clamp(24px, 3vw, 36px); max-width: 960px; margin-inline: auto;
 }
 .sentence { font-family: var(--font-display); font-size: clamp(26px, 3.6vw, 44px); line-height: 1.45; letter-spacing: -.022em; text-wrap: pretty; }
-.sentence .count { font-weight: 700; }
 .token {
   position: relative; display: inline-block; padding: 0 .28em; margin: 0 .02em;
   border: 0; border-radius: .25em; cursor: pointer;
@@ -508,7 +505,6 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   <symbol id="i-check" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="currentColor"/><path d="M6 10.3l2.6 2.6L14.2 7.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-info" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="currentColor"/><path d="M10 9v5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="6.2" r="1.2" fill="#fff"/></symbol>
   <symbol id="i-warn" viewBox="0 0 20 20"><path d="M8.6 2.6a1.6 1.6 0 0 1 2.8 0l7.2 12.6A1.6 1.6 0 0 1 17.2 17.6H2.8a1.6 1.6 0 0 1-1.4-2.4z" fill="currentColor"/><path d="M10 7.2v4.4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14.3" r="1.15" fill="#fff"/></symbol>
-  <symbol id="i-shield" viewBox="0 0 20 20"><path d="M10 1.5l7 2.6v5.2c0 4.3-2.9 7.7-7 9.2-4.1-1.5-7-4.9-7-9.2V4.1z" fill="currentColor"/><path d="M10 3.6v13.2c3-1.4 5-4.1 5-7.5V5.5z" fill="#fff" opacity=".35"/></symbol>
   <symbol id="i-tick" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-dash" viewBox="0 0 16 16"><path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <!-- The app icon (Design/AppIcon.svg, same as favicon.svg) -->
@@ -538,7 +534,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   <div class="wrap">
     <span class="eyebrow">Made for Mac. Designed with Liquid Glass.</span>
     <h1>Archives, opened <em>with care.</em></h1>
-    <p class="lede">See what’s inside, know it’s safe, and take the next step — without extracting a thing. Packing for someone else? Stow makes sure it opens on their computer too.</p>
+    <p class="lede">See what’s inside and take the next step — without extracting a thing. Packing for someone else? Stow makes sure it opens on their computer too.</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="{{REPO_URL}}/releases/latest">Download for Mac</a>
       <a class="btn btn-ghost" href="{{REPO_URL}}">Read the source</a>
@@ -548,7 +544,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   <div class="hero-shot">
     <picture>
       <source srcset="assets/grid-dark.webp" media="(prefers-color-scheme: dark)">
-      <img src="assets/grid-light.webp" width="2000" height="1214" fetchpriority="high" alt="Stow showing the Photos folder of an archive: a sidebar with the archive card and Checkup status, image thumbnails, two selected photos, and a floating capsule offering Quick Look and Extract.">
+      <img src="assets/grid-light.webp" width="2224" height="1438" fetchpriority="high" alt="Stow showing the Photos folder of Harbor Rebrand Handoff.zip: five photo thumbnails, two of them selected, Selection Info on the right, and Extract at the bottom.">
     </picture>
   </div>
 </section>
@@ -568,14 +564,14 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
         <p>Browse, search and preview everything — even archives inside archives — before anything touches your disk.</p>
       </div>
       <div class="question">
-        <div class="q-icon"><svg width="18" height="18"><use href="#i-shield"/></svg></div>
-        <h3>Is it safe?</h3>
-        <p>Every archive gets a Checkup: paths that try to escape, unsigned apps, files that expand suspiciously.</p>
+        <div class="q-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M1.8 10S5 4.2 10 4.2 18.2 10 18.2 10 15 15.8 10 15.8 1.8 10 1.8 10z"/><circle cx="10" cy="10" r="2.6"/></svg></div>
+        <h3>Anything to watch for?</h3>
+        <p>Stow reads names, paths and apps as an archive opens, and speaks up only when something needs a look.</p>
       </div>
       <div class="question">
         <div class="q-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h11M11 5l5 5-5 5"/></svg></div>
         <h3>What’s next?</h3>
-        <p>Fonts offer to install. Apps offer to move to Applications. The right step is already on screen.</p>
+        <p>Fonts offer to install. Apps offer to install too. The right step is already on screen.</p>
       </div>
       <div class="question">
         <div class="q-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="14" height="10" rx="2"/><path d="M7 17h6" stroke-linecap="round"/></svg></div>
@@ -598,7 +594,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       <div class="tour-tabs">
         <div class="seg" role="tablist" aria-label="Walkthrough" data-at="0">
           <span class="thumb" aria-hidden="true"></span>
-          <button type="button" role="tab" id="tab-checkup" aria-controls="tour-checkup" aria-selected="true">Checkup</button>
+          <button type="button" role="tab" id="tab-install" aria-controls="tour-install" aria-selected="true">Install an App</button>
           <button type="button" role="tab" id="tab-pack" aria-controls="tour-pack" aria-selected="false" tabindex="-1">Pack</button>
         </div>
         <button type="button" class="tour-play" aria-pressed="false" aria-label="Play walkthrough">
@@ -606,18 +602,18 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
           <svg class="i-pause" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2.5" y="1.5" width="2.5" height="9" rx=".8" fill="currentColor"/><rect x="7" y="1.5" width="2.5" height="9" rx=".8" fill="currentColor"/></svg>
         </button>
       </div>
-    <div class="tour-panel" role="tabpanel" id="tour-checkup" aria-labelledby="tab-checkup">
+    <div class="tour-panel" role="tabpanel" id="tour-install" aria-labelledby="tab-install">
       <div class="tour-stage">
-        <figure class="tour-frame" data-on><picture><source srcset="assets/tour/checkup-1-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tour/checkup-1-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The archive just opened at its Prototype folder, nothing selected: Harbor Prototype.app and Install Helper.pkg, with the inspector listing the Checkup, starting with “Harbor Prototype.app isn’t notarized”."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-2-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The Prototype folder with Harbor Prototype.app selected. The inspector offers Install App, and the archive card says “Checkup: 1 thing to know”."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-3-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="A sheet: “Harbor Prototype” isn’t notarized by Apple, with Install Anyway and Cancel."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-4-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="A sheet asking to replace the installed Harbor Prototype version 1.2 with version 1.3 from the archive, with Cancel, Keep Both and Replace."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/checkup-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/checkup-5-light.webp" width="1600" height="1146" loading="lazy" decoding="async" alt="The Prototype folder with Harbor Prototype.app selected and a status capsule saying “Installed in Applications”."></picture></figure>
+        <figure class="tour-frame" data-on><picture><source srcset="assets/tour/install-1-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tour/install-1-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="Harbor Prototype 1.3.zip just opened, nothing selected: Harbor Prototype.app and Install Helper.pkg, a notice above them reading “Harbor Prototype.app isn’t notarized — 1 more”, and Archive Info on the right."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/install-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/install-2-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="Harbor Prototype.app selected. File Info shows the app, and Install App is at the bottom."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/install-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/install-3-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="A sheet: “Harbor Prototype” isn’t notarized by Apple. macOS may block it when you open it. Install Anyway, or Cancel."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/install-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/install-4-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="A sheet asking to replace the installed Harbor Prototype version 1.2 with version 1.3 from the archive, with Cancel, Keep Both and Replace."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/install-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/install-5-light.webp" width="1824" height="1370" loading="lazy" decoding="async" alt="Harbor Prototype.app selected and a capsule at the bottom saying Installed in Applications."></picture></figure>
       </div>
       <div class="tour-foot">
-        <ol class="tour-steps" aria-label="Checkup steps">
-          <li><button type="button"><span class="bar"><i></i></span><b>Open</b><span>Checkup runs the moment an archive opens. Its findings sit beside the files: the app inside isn’t notarized.</span></button></li>
-          <li><button type="button"><span class="bar"><i></i></span><b>Find the app</b><span>Select it and the next step is ready: Install App, with the Checkup one click away.</span></button></li>
+        <ol class="tour-steps" aria-label="Install steps">
+          <li><button type="button"><span class="bar"><i></i></span><b>Open</b><span>A build arrives as a ZIP. A notice above the files says the app inside isn’t notarized.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Find the app</b><span>Select it and the next step is ready: Install App.</span></button></li>
           <li><button type="button"><span class="bar"><i></i></span><b>Install with care</b><span>The app inside isn’t notarized. Stow says what macOS will do, and you decide.</span></button></li>
           <li><button type="button"><span class="bar"><i></i></span><b>Already installed?</b><span>Replace the old version or keep both. The old one moves to the Trash.</span></button></li>
           <li><button type="button"><span class="bar"><i></i></span><b>Done</b><span>In Applications, and the archive is just as it was.</span></button></li>
@@ -627,19 +623,19 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     </div>
     <div class="tour-panel" role="tabpanel" id="tour-pack" aria-labelledby="tab-pack" hidden>
       <div class="tour-stage">
-        <figure class="tour-frame" data-on><picture><source data-srcset="assets/tour/pack-1-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-1-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The pack sheet: “Pack “Harbor Handoff” as a ZIP for Windows PCs, without a password, as one file”, reporting 3 names adjusted and 3 Mac-only files left out."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-2-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The same pack sentence, now for Macs, with its report."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-3-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The pack sheet for Linux and servers, with More Options open: Balanced compression, and Verify ticked to test every file once it’s packed."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-4-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="A capsule at the bottom of the window showing Harbor Handoff.zip being packed."></picture></figure>
-        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-5-light.webp" width="1600" height="1164" loading="lazy" decoding="async" alt="The capsule saying Harbor Handoff.zip was packed and tested."></picture></figure>
+        <figure class="tour-frame" data-on><picture><source data-srcset="assets/tour/pack-1-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-1-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The pack sheet: “Pack “Harbor Handoff” as a ZIP for Windows PCs, without a password, as one file”, reporting 3 names adjusted and 2 Mac-only files left out, about 3.1 MB."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-2-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-2-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The same pack sentence, now for Macs: all names work there, and Finder tags, extended attributes, permissions and links stay intact."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-3-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-3-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The pack sheet for Linux and servers: all names work there, 2 Mac-only files left out, and permissions and symlinks kept."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-4-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-4-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="A capsule at the bottom of the window showing Harbor Handoff.zip being packed."></picture></figure>
+        <figure class="tour-frame"><picture><source data-srcset="assets/tour/pack-5-dark.webp" media="(prefers-color-scheme: dark)"><img data-src="assets/tour/pack-5-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="A capsule at the bottom of the window: Packed “Harbor Handoff.zip”, contents verified."></picture></figure>
       </div>
       <div class="tour-foot">
         <ol class="tour-steps" aria-label="Pack steps">
           <li><button type="button"><span class="bar"><i></i></span><b>Say who it’s for</b><span>Pack “Harbor Handoff” as a ZIP for Windows PCs. Names Windows rejects get fixed; Mac-only files stay out.</span></button></li>
           <li><button type="button"><span class="bar"><i></i></span><b>Change a word</b><span>Pick Macs instead, and the report below follows.</span></button></li>
-          <li><button type="button"><span class="bar"><i></i></span><b>Linux &amp; servers</b><span>Permissions and symlinks stay. Under More Options, Verify is on.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Linux &amp; servers</b><span>Permissions and symlinks stay, and Mac-only files stay out.</span></button></li>
           <li><button type="button"><span class="bar"><i></i></span><b>Pack</b><span>Progress stays in a small capsule, out of the way.</span></button></li>
-          <li><button type="button"><span class="bar"><i></i></span><b>Tested</b><span>Packed, and every file tested before you send it.</span></button></li>
+          <li><button type="button"><span class="bar"><i></i></span><b>Verified</b><span>Packed, and its contents checked before you send it.</span></button></li>
         </ol>
         <p class="tour-caption"></p>
       </div>
@@ -648,33 +644,30 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   </div>
 </section>
 
-<!-- ───────── Checkup ───────── -->
+<!-- ───────── Archive notices ───────── -->
 <section style="padding-top:0">
   <div class="wrap split">
     <div class="reveal">
-      <span class="eyebrow">Checkup</span>
-      <h2>A checkup before anything touches your disk.</h2>
-      <p class="lede" style="margin-top:18px">Stow inspects every archive the moment it opens and tells you what it found, in plain words. Problems are handled for you — and explained, so you’re never surprised.</p>
+      <span class="eyebrow">Notices</span>
+      <h2>Quiet, until something needs a look.</h2>
+      <p class="lede" style="margin-top:18px">As an archive opens, Stow reads its names, paths and apps. Most archives need nothing said. When one does, a notice sits above the files and says, in plain words, what it found and what Stow will do about it. It doesn’t scan for malware; macOS still checks an app the first time it opens.</p>
       <ul class="points">
-        <li><svg width="18" height="18"><use href="#i-shield"/></svg><span><strong>Paths stay inside.</strong> Entries that try to write outside the folder are kept in it.</span></li>
-        <li><svg width="18" height="18"><use href="#i-shield"/></svg><span><strong>Nothing half-written.</strong> Work happens in a private staging area; a cancelled job leaves no mess.</span></li>
-        <li><svg width="18" height="18"><use href="#i-shield"/></svg><span><strong>Originals untouched.</strong> Browsing and previewing never change the archive.</span></li>
+        <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Paths stay inside.</strong> Entries that try to write outside the folder are kept in it.</span></li>
+        <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Nothing half-written.</strong> Work happens in a private staging area; a cancelled job leaves no mess.</span></li>
+        <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Originals untouched.</strong> Browsing and previewing never change the archive.</span></li>
       </ul>
     </div>
-    <div class="checkup reveal" style="--i:1" role="group" aria-label="Example Checkup report">
-      <div class="checkup-head">
+    <div class="notice-card reveal" style="--i:1" role="group" aria-label="Example archive notices">
+      <div class="notice-head">
         <div class="badge-zip">ZIP</div>
         <div>
-          <div class="checkup-title">Harbor Rebrand Handoff.zip</div>
-          <div class="checkup-sub num">28 files · 189 MB · 16% smaller packed</div>
+          <div class="notice-title">Harbor Prototype 1.3.zip</div>
+          <div class="notice-sub num">ZIP archive · 2 files</div>
         </div>
-        <span class="status-pill"><svg width="14" height="14" style="color:var(--yellow)"><use href="#i-warn"/></svg>1 thing to know</span>
       </div>
       <ul class="findings">
         <li class="finding"><svg width="18" height="18" style="color:var(--yellow)"><use href="#i-warn"/></svg><div><b>Harbor Prototype.app isn’t notarized</b><span>macOS will ask before opening it. Only run it if you trust whoever sent this.</span></div></li>
-        <li class="finding"><svg width="18" height="18" style="color:var(--blue)"><use href="#i-shield"/></svg><div><b>1 path tried to leave the folder</b><span>“../../.zshrc” will be kept inside the destination folder instead.</span></div></li>
-        <li class="finding"><svg width="18" height="18" style="color:var(--ink-3)"><use href="#i-info"/></svg><div><b>14 macOS helper files</b><span>Extracting skips “.DS_Store” and “._” files unless you select one.</span></div></li>
-        <li class="finding"><svg width="18" height="18" style="color:var(--green)"><use href="#i-check"/></svg><div><b>Names and sizes look normal</b><span>Nothing expands unusually and no names collide.</span></div></li>
+        <li class="finding"><svg width="18" height="18" style="color:var(--blue)"><use href="#i-info"/></svg><div><b>1 path tried to leave the folder</b><span>“../../.zshrc” will be kept inside the destination folder instead.</span></div></li>
       </ul>
     </div>
   </div>
@@ -691,7 +684,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       </div>
       <ul class="points reveal" style="--i:1">
         <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Fonts</strong> → Install, straight from the archive.</span></li>
-        <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Apps</strong> → Install App, with the Checkup’s verdict alongside.</span></li>
+        <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Apps</strong> → Install App, and Stow says first if it isn’t notarized.</span></li>
         <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Installers</strong> → Open Installer, without unpacking first.</span></li>
         <li><svg width="18" height="18"><use href="#i-check"/></svg><span><strong>Archives inside archives</strong> → Open Inside, like a folder.</span></li>
       </ul>
@@ -699,7 +692,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     <div class="shot steps-shot reveal">
       <picture>
         <source srcset="assets/steps-dark.webp" media="(prefers-color-scheme: dark)">
-        <img src="assets/steps-light.webp" width="1800" height="1093" loading="lazy" decoding="async" alt="Three font files selected in Stow, each shown as a type specimen. The floating capsule offers Install 3 Fonts, Quick Look and Extract.">
+        <img src="assets/steps-light.webp" width="2024" height="1318" loading="lazy" decoding="async" alt="The Fonts folder in Stow: three font files selected, each shown as a type specimen, with Install 3 Fonts at the bottom.">
       </picture>
     </div>
   </div>
@@ -721,7 +714,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       </ul>
     </div>
     <div class="shot steps-shot reveal">
-      <picture><source srcset="assets/editing-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/editing-light.webp" width="1800" height="1093" loading="lazy" decoding="async" alt="Stow editing the Photos folder of an archive: Contact Sheet.pdf and Field Notes.txt marked New, Harbor Lighthouse.jpg marked Renamed, and a bar at the bottom reading “3 unsaved changes” with Revert and Save."></picture>
+      <picture><source srcset="assets/editing-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/editing-light.webp" width="2024" height="1318" loading="lazy" decoding="async" alt="Stow editing the Photos folder of an archive: Contact Sheet.pdf and Field Notes.txt marked New, Harbor Lighthouse.jpg marked Renamed, Save in the title bar, and a bar at the bottom reading “3 unsaved changes” with Revert."></picture>
     </div>
   </div>
 </section>
@@ -754,19 +747,19 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
     <div class="gallery">
       <article class="card reveal" style="--i:0">
         <div class="copy"><h3>Glance</h3><p>A small window that opens right by the pointer. See what’s inside, extract, and get back to work.</p></div>
-        <div class="pic pic-glance"><picture><source srcset="assets/glance-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/glance-light.webp" width="900" height="1008" loading="lazy" decoding="async" alt="Glance: a compact window listing the Photos folder, two photos selected, with Quick Look and Extract."></picture></div>
+        <div class="pic pic-glance"><picture><source srcset="assets/glance-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/glance-light.webp" width="1104" height="1224" loading="lazy" decoding="async" alt="Glance: a compact window listing the Photos folder, two photos selected, with Extract at the bottom."></picture></div>
       </article>
       <article class="card reveal" style="--i:1">
         <div class="copy"><h3>The Tray</h3><p>A shelf for files from anywhere, one click away in the menu bar. Gather them, then pack them or drag them out together.</p></div>
-        <div class="pic pic-tray"><picture><source srcset="assets/tray-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tray-light.webp" width="692" height="985" loading="lazy" decoding="async" alt="The Tray panel holding six items, two selected, with a Pack button."></picture></div>
+        <div class="pic pic-tray"><picture><source srcset="assets/tray-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/tray-light.webp" width="696" height="976" loading="lazy" decoding="async" alt="The Tray panel holding six items, two of them selected, with Pack Selected."></picture></div>
       </article>
       <article class="card reveal" style="--i:0">
         <div class="copy"><h3>Open Recent</h3><p>The welcome window keeps your recent archives, with where they are and when you last opened them.</p></div>
-        <div class="pic pic-recents"><picture><source srcset="assets/recents-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/recents-light.webp" width="1200" height="873" loading="lazy" decoding="async" alt="The welcome window: a drop area above a list of recent archives, each with its folder and when it was opened."></picture></div>
+        <div class="pic pic-recents"><picture><source srcset="assets/recents-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/recents-light.webp" width="1504" height="1488" loading="lazy" decoding="async" alt="The welcome window: a drop area with Open Archive and Try the Sample above a list of recent archives, each with its folder and when it was opened."></picture></div>
       </article>
       <article class="card reveal" style="--i:1">
-        <div class="copy"><h3>Quick Look</h3><p>Press Space on an archive in Finder to see its contents and its Checkup, without opening Stow.</p></div>
-        <div class="pic pic-quicklook"><picture><source srcset="assets/quicklook-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/quicklook-light.webp" width="1100" height="903" loading="lazy" decoding="async" alt="A Quick Look preview of a ZIP: its size, a Checkup line saying an app isn’t notarized, and the folder tree with file sizes."></picture></div>
+        <div class="copy"><h3>Quick Look</h3><p>Press Space on an archive in Finder to see its size and contents without opening Stow.</p></div>
+        <div class="pic pic-quicklook"><picture><source srcset="assets/quicklook-dark.webp" media="(prefers-color-scheme: dark)"><img src="assets/quicklook-light.webp" width="1504" height="1248" loading="lazy" decoding="async" alt="A Quick Look preview of Harbor Rebrand Handoff.zip: 28 files in 11 folders, 3.6 MB, how much smaller it is packed, and the folder tree with file sizes."></picture></div>
       </article>
     </div>
   </div>
@@ -785,11 +778,11 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
         <p>Rest the pointer on a file to preview it. Once one is open, its neighbours open instantly — so scanning a list feels effortless.</p>
         <div class="hover-demo art" id="hover-demo">
           <ul class="file-list" role="list">
-            <li class="file-row" data-pal="dawn" data-name="Lighthouse.jpg" data-meta="Image · 3.9 MB" tabindex="0"><i class="mini pal-dawn"></i>Lighthouse.jpg<span class="sz">3.9 MB</span></li>
-            <li class="file-row" data-pal="sea" data-name="Pier at Dawn.jpg" data-meta="Image · 4.2 MB" tabindex="0"><i class="mini pal-sea"></i>Pier at Dawn.jpg<span class="sz">4.2 MB</span></li>
-            <li class="file-row" data-pal="night" data-name="Harbor at Night.jpg" data-meta="Image · 3.1 MB" tabindex="0"><i class="mini pal-night"></i>Harbor at Night.jpg<span class="sz">3.1 MB</span></li>
-            <li class="file-row" data-pal="doc" data-name="Brand Guidelines.pdf" data-meta="Document · 8.4 MB" tabindex="0"><i class="mini pal-doc"></i>Brand Guidelines.pdf<span class="sz">8.4 MB</span></li>
-            <li class="file-row" data-pal="rope" data-name="Rope Detail.jpg" data-meta="Image · 2.7 MB" tabindex="0"><i class="mini pal-rope"></i>Rope Detail.jpg<span class="sz">2.7 MB</span></li>
+            <li class="file-row" data-pal="dawn" data-name="Lighthouse.jpg" data-meta="JPEG image · 230 KB" tabindex="0"><i class="mini pal-dawn"></i>Lighthouse.jpg<span class="sz">230 KB</span></li>
+            <li class="file-row" data-pal="sea" data-name="Pier at Dawn.jpg" data-meta="JPEG image · 224 KB" tabindex="0"><i class="mini pal-sea"></i>Pier at Dawn.jpg<span class="sz">224 KB</span></li>
+            <li class="file-row" data-pal="night" data-name="Harbor at Night.jpg" data-meta="JPEG image · 233 KB" tabindex="0"><i class="mini pal-night"></i>Harbor at Night.jpg<span class="sz">233 KB</span></li>
+            <li class="file-row" data-pal="doc" data-name="Brand Guidelines.pdf" data-meta="PDF document · 599 KB" tabindex="0"><i class="mini pal-doc"></i>Brand Guidelines.pdf<span class="sz">599 KB</span></li>
+            <li class="file-row" data-pal="rope" data-name="Rope Detail.jpg" data-meta="JPEG image · 265 KB" tabindex="0"><i class="mini pal-rope"></i>Rope Detail.jpg<span class="sz">265 KB</span></li>
           </ul>
           <div class="peek" id="peek" aria-hidden="true"><div class="pic"></div><div class="cap"></div></div>
         </div>
@@ -966,11 +959,18 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
   /* ───────── Pack sentence (same rules as the app's Compatibility.swift) ───────── */
+  // The "Harbor Handoff" folder the Pack walkthrough packs: the sample's files at their real sizes, the
+  // Finder files a real folder picks up, and three names Windows rejects (scripts/website-shots.sh).
   const files = [
-    ['Q3 Report: Final.pdf', 2400000], ['Cafe\u0301 Menu.pdf', 880000], ['Photos/Pier at Dawn.jpg', 4210000],
-    ['Photos/Lighthouse.jpg', 3870000], ['Photos/.DS_Store', 6148], ['Photos/._Lighthouse.jpg', 4096],
-    ['Notes/aux.txt', 1200], ['Notes/To do.', 900], ['Budget.numbers', 412000], ['.DS_Store', 8196],
-    ['Slides/Kickoff.key', 18900000], ['Slides/Icon\r', 0],
+    ['README.md', 1551], ['.DS_Store', 6148], ['Photos/Lighthouse.jpg', 230328], ['Photos/Pier at Dawn.jpg', 224331],
+    ['Photos/Rope Detail.jpg', 264701], ['Photos/Old Jetty.heic', 237940], ['Photos/Harbor at Night.jpg', 233173],
+    ['Photos/.DS_Store', 6148],
+    ['Specs/Brand Guidelines.pdf', 599021], ['Specs/Motion Notes.txt', 1315], ['Specs/Color Tokens.json', 1911],
+    ['Specs/Store Copy: Round 2.txt', 38], ['Specs/Open Questions?.txt', 35], ['Specs/To do.', 46],
+    ['Logo/Harbor Mark.svg', 741], ['Logo/Harbor Mark@2x.png', 17548], ['Logo/Harbor Wordmark.svg', 5223],
+    ['Screens/Home.png', 178628], ['Screens/Checkout.png', 53049], ['Screens/Settings.png', 60670],
+    ['Screens/Onboarding 1.png', 313630], ['Screens/Onboarding 2.png', 370241], ['Screens/Onboarding 3.png', 259398],
+    ['Screens/Dark/Home.png', 178388], ['Screens/Dark/Checkout.png', 54259],
   ];
   const ratio = n => /\.(jpe?g|png|heic)$/i.test(n) ? .97 : /\.(pdf|key|numbers)$/i.test(n) ? .86 : /\.(txt|md)$/i.test(n) ? .28 : .7;
   const audiences = {
@@ -1009,8 +1009,10 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
       notes.push(['warn', 'File Explorer may not open it', 'Windows’ built-in ZIP support can’t always read AES-encrypted ZIPs. Suggest 7-Zip to the recipient.']);
     if (state.audience === 'windows' && state.format === '7Z')
       notes.push(['info', 'Recent Windows 11 opens 7Z', 'Older versions need 7-Zip. Choose ZIP if you’re not sure.']);
-    if (state.audience === 'mac') notes.push(['check', 'Keeps everything a Mac cares about', 'Finder tags, extended attributes and permissions stay intact.']);
-    if (state.audience === 'linux') notes.push(['check', 'Keeps permissions and symlinks', 'Executable bits and links survive, so scripts still run.']);
+    if (state.audience === 'mac') notes.push(state.format === 'ZIP'
+      ? ['check', 'Keeps everything a Mac cares about', 'Finder tags, extended attributes, permissions and links stay intact.']
+      : ['info', 'Keeps permissions and links', 'Finder tags and other extended attributes only travel in a ZIP.']);
+    if (state.audience === 'linux') notes.push(['check', 'Keeps permissions and symlinks', 'Executable bits and links survive, so scripts still run after extracting.']);
     if (state.password) notes.push(['check', state.format === '7Z' ? 'Contents and file names are encrypted' : 'Contents are encrypted with AES-256',
       state.format === '7Z' ? 'Without the password, nobody can see what’s inside.' : 'File names stay visible. Choose 7Z to hide them too.']);
     return { included, excluded, renames, size, parts, notes };
@@ -1030,7 +1032,7 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   function renderSentence(changedKey) {
     const r = report(), t = tokenDefs();
     const tok = k => `<button class="token${k === changedKey ? ' swap' : ''}" data-key="${k}" aria-haspopup="menu" aria-expanded="false"${t[k].disabled ? ' aria-disabled="true" title="This format can’t be password-protected"' : ''}><span class="t">${t[k].value}</span></button>`;
-    sentenceEl.innerHTML = `Pack <span class="count num">${r.included.length} items</span> as a ${tok('format')} for ${tok('audience')}, ${tok('password')}, ${tok('split')}.`;
+    sentenceEl.innerHTML = `Pack “Harbor Handoff” as a ${tok('format')} for ${tok('audience')}, ${tok('password')}, ${tok('split')}.`;
     if (changedKey) requestAnimationFrame(() => requestAnimationFrame(() =>
       sentenceEl.querySelector('.swap')?.classList.remove('swap')));
     renderReport(r);
@@ -1040,14 +1042,25 @@ footer { border-top: 1px solid var(--line); padding: 40px 0 56px; font-size: 13.
   const row = (kind, title, detail, extra = '') => `<div class="report-row"><svg width="18" height="18" style="color:${icon[kind][1]}"><use href="#${icon[kind][0]}"/></svg><div><b>${title}</b><span>${detail}</span>${extra}</div></div>`;
   const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/\r/g, '␍');
 
+  // As in the app (#153): a split archive leads with the parts that come out.
+  const ext = { ZIP: 'zip', '7Z': '7z', 'TAR.XZ': 'tar.xz', 'TAR.GZ': 'tar.gz' };
+  function partsRow(r) {
+    if (state.split === 'none') return '';
+    const first = `Harbor Handoff.${ext[state.format]}.001`;
+    if (r.parts === 1) return row('info', 'Probably fits in one part',
+      `Saved as ${first}, which opens in an app that joins split archives, such as 7-Zip. Choose “as one file” for a plain ${state.format}.`);
+    return row('info', `Comes out in about ${r.parts} parts`,
+      `${first} – .${String(r.parts).padStart(3, '0')}, each at most ${splits[state.split].replace(/^in | parts$/g, '')}. Opening it needs every part in one folder, and an app that joins split archives, such as 7-Zip.`);
+  }
+
   function renderReport(r) {
-    let html = r.renames.length
-      ? row('info', `${r.renames.length} ${r.renames.length === 1 ? 'name' : 'names'} will be adjusted`, 'Characters the other system rejects are replaced. Your originals stay as they are.',
+    let html = partsRow(r) + (r.renames.length
+      ? row('info', `${r.renames.length} ${r.renames.length === 1 ? 'name' : 'names'} will be adjusted`, 'Characters Windows doesn’t allow are replaced. Your originals stay as they are.',
           `<div class="report-changes">${r.renames.map(([f, t]) => `<div><s>${esc(f)}</s> → ${esc(t)}</div>`).join('')}</div>`)
-      : row('check', 'All names work there', 'No characters or names that the other system rejects.');
-    if (r.excluded.length) html += row('info', `${r.excluded.length} Mac-only files left out`, '“.DS_Store”, “._” and other Finder files mean nothing elsewhere.');
+      : row('check', 'All names work there', 'No characters or names that the other system rejects.'));
+    if (r.excluded.length) html += row('info', `${r.excluded.length} Mac-only files left out`, '“.DS_Store”, “._” and other Finder files mean nothing on other systems.');
     for (const n of r.notes) html += row(...n);
-    html += `<div class="report-foot"><span class="num">≈ ${fmtBytes(r.size)}${r.parts > 1 ? ` in ${r.parts} parts` : ''}</span><span class="btn btn-primary btn-sm" aria-hidden="true">Pack</span></div>`;
+    html += `<div class="report-foot"><span class="num">About ${fmtBytes(r.size)}${r.parts > 1 ? ` in ${r.parts} parts` : ''}</span><span class="btn btn-primary btn-sm" aria-hidden="true">Pack…</span></div>`;
     reportEl.innerHTML = html;
   }
 
