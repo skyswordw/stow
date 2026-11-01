@@ -7,7 +7,7 @@ import Security
 nonisolated enum UpdatePolicy {
     /// The appcast attached to the latest *published* GitHub release (drafts and pre-releases are
     /// never "latest"). Mirrors `SUFeedURL` in project.yml.
-    static let feedURL = "https://github.com/skyswordw/stow/releases/latest/download/appcast.xml"
+    static let feedURL = "https://github.com/Beastry/stow/releases/latest/download/appcast.xml"
 
     enum Unavailable: Equatable, Sendable {
         /// Sparkle hasn't been started yet (before launch finishes).

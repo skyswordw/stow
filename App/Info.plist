@@ -190,7 +190,7 @@
 	<key>SUEnableSystemProfiling</key>
 	<false/>
 	<key>SUFeedURL</key>
-	<string>https://github.com/skyswordw/stow/releases/latest/download/appcast.xml</string>
+	<string>https://github.com/Beastry/stow/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>w/8KK7rFz8EqDr/3GTf/oncwRrzfnsh1Jucno8bdKMo=</string>
 	<key>UTImportedTypeDeclarations</key>

@@ -40,7 +40,7 @@ struct UpdateTests {
         #expect(url.scheme == "https")
         #expect(url.host() == "github.com")
         // `latest` never resolves to a draft or a pre-release, so nothing reaches people unpublished.
-        #expect(url.path() == "/skyswordw/stow/releases/latest/download/appcast.xml")
+        #expect(url.path() == "/Beastry/stow/releases/latest/download/appcast.xml")
     }
 
     @Test func onlySignedReleaseBuildsCheck() {
@@ -61,7 +61,7 @@ struct UpdateTests {
 
     @Test func incompleteConfigurationNeverChecks() {
         var info = Self.validInfo
-        info["SUFeedURL"] = "http://github.com/skyswordw/stow/releases/latest/download/appcast.xml"
+        info["SUFeedURL"] = "http://github.com/Beastry/stow/releases/latest/download/appcast.xml"
         #expect(reason(info: info) == .notConfigured)
         info = Self.validInfo
         info["SUPublicEDKey"] = Data(repeating: 1, count: 16).base64EncodedString()

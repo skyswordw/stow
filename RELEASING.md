@@ -17,7 +17,7 @@ is what triggers the Homebrew cask workflow (`.github/workflows/homebrew-cask.ym
 
 ## GitHub secrets
 
-Set on `skyswordw/stow` → Settings → Secrets and variables → Actions. Values never go in the repo,
+Set on `Beastry/stow` → Settings → Secrets and variables → Actions. Values never go in the repo,
 in an issue, or in chat.
 
 **Signing — already provisioned:**
@@ -75,11 +75,11 @@ key); if you rotate it before then, keep an offline backup of the new one.
 3. Upload, then delete the file:
 
    ```sh
-   base64 -i /tmp/stow-devid.p12 | gh secret set DEVELOPER_ID_P12_BASE64 -R skyswordw/stow
-   gh secret set DEVELOPER_ID_P12_PASSWORD -R skyswordw/stow        # prompts; paste the password
-   gh secret set DEVELOPER_ID_IDENTITY -R skyswordw/stow -b 'Developer ID Application: Xincao Xu (YNQ2233752)'
-   gh secret set APPLE_TEAM_ID -R skyswordw/stow -b YNQ2233752
-   openssl rand -hex 24 | gh secret set KEYCHAIN_PASSWORD -R skyswordw/stow
+   base64 -i /tmp/stow-devid.p12 | gh secret set DEVELOPER_ID_P12_BASE64 -R Beastry/stow
+   gh secret set DEVELOPER_ID_P12_PASSWORD -R Beastry/stow        # prompts; paste the password
+   gh secret set DEVELOPER_ID_IDENTITY -R Beastry/stow -b 'Developer ID Application: Xincao Xu (YNQ2233752)'
+   gh secret set APPLE_TEAM_ID -R Beastry/stow -b YNQ2233752
+   openssl rand -hex 24 | gh secret set KEYCHAIN_PASSWORD -R Beastry/stow
    rm -P /tmp/stow-devid.p12
    ```
 
@@ -94,13 +94,13 @@ key); if you rotate it before then, keep an offline backup of the new one.
 4. Upload, then delete the file:
 
    ```sh
-   gh secret set ASC_API_KEY_ID -R skyswordw/stow -b '<KEYID>'
-   gh secret set ASC_API_ISSUER_ID -R skyswordw/stow -b '<issuer uuid>'
-   base64 -i ~/Downloads/AuthKey_<KEYID>.p8 | gh secret set ASC_API_KEY_P8_BASE64 -R skyswordw/stow
+   gh secret set ASC_API_KEY_ID -R Beastry/stow -b '<KEYID>'
+   gh secret set ASC_API_ISSUER_ID -R Beastry/stow -b '<issuer uuid>'
+   base64 -i ~/Downloads/AuthKey_<KEYID>.p8 | gh secret set ASC_API_KEY_P8_BASE64 -R Beastry/stow
    rm -P ~/Downloads/AuthKey_<KEYID>.p8
    ```
 
-Check with `gh secret list -R skyswordw/stow` (names only; values can't be read back).
+Check with `gh secret list -R Beastry/stow` (names only; values can't be read back).
 
 ## Making a release build
 
@@ -118,12 +118,17 @@ Check with `gh secret list -R skyswordw/stow` (names only; values can't be read 
 
 ### Sparkle updates
 
-- **Feed:** `SUFeedURL` = `https://github.com/skyswordw/stow/releases/latest/download/appcast.xml`.
+- **Feed:** `SUFeedURL` = `https://github.com/Beastry/stow/releases/latest/download/appcast.xml`.
   GitHub resolves `latest` to the newest *published*, non-pre-release release, so a draft (or a
   pre-release) is never offered to anyone, and publishing the draft is the one switch that ships
   both the download and the update. No Pages deploy or commit per release; each release carries a
   one-item appcast, which is all Sparkle needs (no delta updates). Don't mark a release as
   pre-release if it should update people, and don't delete `appcast.xml` from the latest release.
+- **Repository transfer compatibility:** versions released before the Beastry migration request
+  the feed and assets under `skyswordw/stow`. Preserve GitHub's repository redirects and verify
+  both feed URLs and the older appcasts' DMG links after infrastructure changes. Never recreate
+  a repository or fork at `skyswordw/stow`, which would remove those redirects. Keep the existing
+  Sparkle key pair and Apple signing identity for this repository move.
 - **Build numbers:** Sparkle compares `CFBundleVersion`. The workflow and `package.sh` default it to
   the commit count, which only grows on `main`; `generate-appcast.sh` fails if it isn't above the
   published appcast's. Re-running a release for the same commit gives the same number: fine for

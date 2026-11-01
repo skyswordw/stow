@@ -4,10 +4,10 @@ cask "stow" do
   version "@VERSION@"
   sha256 "@SHA256@"
 
-  url "https://github.com/skyswordw/stow/releases/download/v#{version}/Stow-#{version}.dmg"
+  url "https://github.com/@REPOSITORY@/releases/download/v#{version}/Stow-#{version}.dmg"
   name "Stow"
   desc "Archive utility to browse, preview, extract and pack 30+ formats"
-  homepage "https://skyswordw.github.io/stow/"
+  homepage "@HOMEPAGE@"
 
   livecheck do
     url :url

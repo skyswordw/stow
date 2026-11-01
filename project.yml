@@ -84,7 +84,7 @@ targets:
         # EdDSA key; the private half is only the SPARKLE_ED_PRIVATE_KEY Actions secret.
         # Sandboxed: the installer launcher service (+ the mach-lookup exceptions in Stow.entitlements)
         # installs outside the sandbox, and the downloader service keeps Stow itself off the network.
-        SUFeedURL: https://github.com/skyswordw/stow/releases/latest/download/appcast.xml
+        SUFeedURL: https://github.com/Beastry/stow/releases/latest/download/appcast.xml
         SUPublicEDKey: "w/8KK7rFz8EqDr/3GTf/oncwRrzfnsh1Jucno8bdKMo="
         SUEnableInstallerLauncherService: true
         SUEnableDownloaderService: true
