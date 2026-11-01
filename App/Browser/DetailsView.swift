@@ -114,8 +114,7 @@ private extension View {
 /// square outline. So below the title bar the column takes the window's background, as the files
 /// do, its edge views go, and the panel is what shows: inset by the same distance as the floating
 /// capsules, its top level with the path's, and its radius the window's corner radius less that
-/// inset. In dark appearances the title bar keeps the column's glass, which matches the title bar
-/// over the files there.
+/// inset. The title bar above it is the window's background too, as it is over the files.
 private struct DetailsPanelSurface: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
@@ -141,11 +140,11 @@ private struct DetailsPanelSurface: ViewModifier {
             .padding(.top, FloatingGlass.topInset)
             .padding(.bottom, Radius.windowInset)
             .background {
-                // Under the title bar too in light appearances, where the title bar over the files
-                // is the window's background; the column's glass there read as a grey block. In dark
-                // ones the title bar over the files is lighter, and the glass matches it better.
+                // Under the title bar too: the title bar over the files is the window's background
+                // in both appearances, so the column's glass there read as a separate block that
+                // ended where the panel starts.
                 Rectangle().fill(.windowBackground)
-                    .ignoresSafeArea(edges: dark ? [.horizontal, .bottom] : .all)
+                    .ignoresSafeArea()
                     .background { InspectorSeams() }
                     .accessibilityHidden(true)
             }
