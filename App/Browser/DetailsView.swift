@@ -248,7 +248,7 @@ private struct SignatureSection: View {
             SectionLabel(String(localized: "Developer Verification"))
             if let verdict = model.signatures[entry.path] {
                 // Who made it first, then what was verified about them, then the evidence.
-                PropertyList([PropertyRow(String(localized: "Developer"), Self.developer(verdict))])
+                PropertyList([PropertyRow(String(localized: "Developer"), verdict.developerName)])
                 ArchiveFindingRows(findings: [verdict.finding])
             } else if model.checkingSignature == entry.path {
                 HStack(spacing: Space.s) {
@@ -265,14 +265,6 @@ private struct SignatureSection: View {
         }
     }
 
-    /// The developer as the signature identifies them; nobody when it doesn't.
-    static func developer(_ verdict: CodeSignature.Verdict) -> String {
-        switch verdict {
-        case .apple, .appStore: String(localized: "Apple")
-        case .notarized(let signer), .notNotarized(let signer): signer ?? String(localized: "Registered developer")
-        case .adHoc, .unsigned, .broken, .untrusted: String(localized: "Not identified")
-        }
-    }
 }
 
 private struct MultiDetail: View {
