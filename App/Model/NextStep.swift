@@ -30,7 +30,8 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
 
     var symbol: String {
         switch self {
-        case .installFonts: "textformat"
+        // "A" in English, 字 (as in 字体) in Chinese. Not `textformat`: in Chinese it draws 格式, "format".
+        case .installFonts: "character"
         case .moveToApplications: "square.and.arrow.down.on.square"
         case .openInstaller: "shippingbox"
         case .copyTo: "folder.badge.plus"

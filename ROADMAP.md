@@ -91,7 +91,7 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 
 | Item | Notes |
 | --- | --- |
-| Next Steps: list of alternative actions, customise which show, restore suggestions | done (#20): a More menu (⋯) on the capsule lists every other step that applies; Settings › Next Steps shows or hides each step (or Next Steps itself) and restores the defaults |
+| Actions (formerly Next Steps): list of alternative actions, customise which show, restore suggestions | done (#20, renamed in #161): a More menu (⋯) beside the stack lists every other action that applies; Settings › Actions shows or hides each one (or Actions itself) and restores the defaults |
 | Checkup: warn when the extension doesn't match the real format (ZIP with prepended data, SFX) | done (#16): Checkup names the real format, self-extracting stubs, and data before or after the archive |
 | iCloud placeholders: wait for download, cancel | built (#18), pending a real iCloud check: opening a placeholder asks for the download, shows its progress and opens when it's here; Cancel or Escape stops waiting |
 | Open Recent menu with clear history | done (#83): Welcome and File › Open Recent share real security-scoped bookmark history and Clear; missing/trashed files are hidden, not forgotten. Sample names only in `-StowScene recents` via `recents.preview(...)` for screenshots |
@@ -111,7 +111,7 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 | Welcome window | Real Open Recent is done (#83), with a responsive layout and a smaller empty-state drop target; further spacing and title-bar polish is optional. Screenshot sample recents remain in DemoScene only. |
 | Motion audit | Run the `review-animations` skill over every transition; enforce DESIGN.md (no animation on keyboard actions, exits faster than entrances, springs only where touched). |
 | Consistency | One progress capsule style for packing, extracting, installing and batch; one prompt style for conflicts, signatures and passwords. |
-| Accessibility | done (#29): composed VoiceOver labels (grid, list, columns, Glance, Tray, nested search results, Next Steps summary), headers for the rotor, reading order content → Details → archive controls → Actions, keyboard paths (Tray rows, onboarding, Quick Look); no animation for keyboard actions, solid surfaces under Reduce Transparency, stronger outlines and metadata under Increase Contrast. Manual VoiceOver checklist in #66 / #38 |
+| Accessibility | done (#29): composed VoiceOver labels (grid, list, columns, Glance, Tray, nested search results, Actions), headers for the rotor, reading order content → Details → archive controls → Actions, keyboard paths (Tray rows, onboarding, Quick Look); no animation for keyboard actions, solid surfaces under Reduce Transparency, stronger outlines and metadata under Increase Contrast. Manual VoiceOver checklist in #66 / #38 |
 | Empty and error states | Every failure says what happened and what to do, in plain words, with one action. |
 | Website | `scripts/website-shots.sh` retakes every screenshot and walkthrough frame in light and dark. Browsing shots open Try the Sample's own ZIP through the engine; the Checkup walkthrough shows a separate app build ("Harbor Prototype 1.3.zip") because the sample holds no app. A real product video of Pack and Checkup remains open (#31). |
 
@@ -137,7 +137,7 @@ Remaining feature and delivery gaps:
 - Homebrew tap publication.
 
 Editing, Glance (including colourful controls), Tray, Settings, onboarding, Simplified Chinese,
-Next Steps customisation, iCloud download handling, Open Recent, nested search, promised-file drops,
+Actions customisation, iCloud download handling, Open Recent, nested search, promised-file drops,
 DMG creation and the app icon are implemented. Items marked 🧪 in [PARITY.md](PARITY.md) still need
 verification; they are not unimplemented features. Clean-Mac Gatekeeper, live Sparkle updates and
 other manual checks remain below. Harbor sample files and Try the Sample wiring are on main (#70). Website shots and hover-demo thumbs use those assets. All website shots and walkthrough frames were retaken with `scripts/website-shots.sh` on the current UI (#69); the browsing shots come from the bundled sample ZIP, so they match Try the Sample. Handing the sample to the #31 video remains open on #69 (it needs the signed build, #32).

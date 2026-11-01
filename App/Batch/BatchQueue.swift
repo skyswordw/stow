@@ -35,6 +35,46 @@ final class BatchQueue {
     var isActive: Bool { jobs.contains { !$0.isFinished } }
     var finishedCount: Int { jobs.filter(\.isFinished).count }
 
+    /// Terminal outcomes are distinct: stopping a job never counts as successful extraction.
+    struct Summary {
+        var completed = 0
+        var stopped = 0
+        var failed = 0
+        var pending = 0
+        var progress = 0.0
+
+        init(_ jobs: [Job]) {
+            for job in jobs {
+                switch job.phase {
+                case .done: completed += 1; progress += 1
+                case .cancelled: stopped += 1; progress += 1
+                case .failed: failed += 1; progress += 1
+                case .waiting: pending += 1
+                case .running(let fraction): pending += 1; progress += fraction
+                }
+            }
+            progress /= Double(max(jobs.count, 1))
+        }
+
+        var title: String {
+            let finished = completed + stopped + failed
+            if pending > 0 { return String(localized: "\(finished) of \(finished + pending) archives finished") }
+            if stopped == 0, failed == 0 {
+                return completed == 1 ? String(localized: "1 archive done") : String(localized: "\(completed) archives done")
+            }
+            return String(localized: "Completed: \(completed) · Stopped: \(stopped) · Failed: \(failed)")
+        }
+
+        var glyph: ActivityGlyph.State {
+            if pending > 0 { return .running(progress) }
+            if failed > 0 { return .failed }
+            if stopped > 0 { return .stopped }
+            return .done
+        }
+    }
+
+    var summary: Summary { Summary(jobs) }
+
     func enqueue(_ urls: [URL], into destination: URL) {
         for url in urls where url.startAccessingSecurityScopedResource() { scoped.append(url) }
         jobs += urls.map { Job(url: $0, destination: destination) }
@@ -46,6 +86,8 @@ final class BatchQueue {
         worker = Task { [weak self] in
             await self?.drain()
             self?.worker = nil
+            // A retry or another drop can arrive while the aftercare prompt is open.
+            if self?.jobs.contains(where: { $0.phase == .waiting }) == true { self?.startWorker() }
         }
     }
 
@@ -117,15 +159,13 @@ final class BatchQueue {
             if await run(next, policy) { extracted.append(next.url) }
         }
         let count = extracted.count
+        // A new enqueue during aftercare owns its own grants until its worker finishes.
+        let completedScopes = scoped
+        scoped.removeAll()
         _ = await ArchiveAftercare.apply(Preferences.current.afterExtractAll, key: Preferences.Key.afterExtractAll,
                                          to: extracted, action: count == 1 ? String(localized: "It was extracted.") : String(localized: "All \(count) were extracted."))
-        for url in scoped { url.stopAccessingSecurityScopedResource() }
-        scoped.removeAll()
-        // Leave the results up for a moment, then tidy away if nothing failed.
-        try? await Task.sleep(for: .seconds(6))
-        if !isActive, !jobs.contains(where: { if case .failed = $0.phase { true } else { false } }) {
-            withAnimation(Motion.current(Motion.exit)) { clearFinished() }
-        }
+        for url in completedScopes { url.stopAccessingSecurityScopedResource() }
+        // Results remain available until Clear, including stopped jobs and offscreen rows.
     }
 
     /// True when the archive was extracted.

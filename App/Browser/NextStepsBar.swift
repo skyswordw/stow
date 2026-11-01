@@ -42,6 +42,7 @@ struct NextStepsBar: View {
             if let target = model.archiveTarget,
                let front = NextStepsSettings(hidden: NextStepsSettings.decode(hidden)).archiveLayout(installable: target).front {
                 ActionStack(front: front, behind: [], selection: model.selection, scope: target.name,
+                            unavailable: model.actionsUnavailableReason,
                             isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
                             glass: glass) { step in
                     model.run(step, on: [target])
@@ -56,6 +57,7 @@ struct NextStepsBar: View {
                 if let front = layout.front {
                     ActionStack(front: front, behind: layout.behind, selection: model.selection,
                                 scope: entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items"),
+                                unavailable: model.actionsUnavailableReason,
                                 isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
                                 glass: glass) { step in
                         if step == .quickLook { model.toggleQuickLook() } else { model.run(step) }
@@ -82,6 +84,9 @@ private struct ActionStack: View {
     /// What the actions apply to ("notes.txt", "3 items"), for their help tags: the buttons don't
     /// repeat it, Details shows it, and the tag answers "on what?" right where the pointer is.
     let scope: String
+    /// Why the actions can't run yet (the archive is still being listed); they show disabled and
+    /// their help tags say so, instead of taking a click that does nothing.
+    var unavailable: String?
     /// Fanned out: by the pointer resting on it or a click on its edges. The model holds it so the
     /// window's Esc can fold it first.
     @Binding var isOpen: Bool
@@ -114,7 +119,8 @@ private struct ActionStack: View {
                         .accessibilityLabel(step.title)
                         .padding(.bottom, Self.gap)
                         .transition(rise(from: index))
-                        .help(String(localized: "\(step.title): \(scope)"))
+                        .help(unavailable ?? String(localized: "\(step.title): \(scope)"))
+                        .disabled(unavailable != nil)
                 }
             } else if edges > 0 {
                 edgeStrip
@@ -156,12 +162,16 @@ private struct ActionStack: View {
             ForEach([front] + behind) { step in
                 StackLabel(step: step).hidden()
             }
+            // …up to a limit: a long name ("Copy to “…”") is shortened in the middle rather than
+            // pushing the stack into Extract All or under Details.
+            .frame(maxWidth: StackButtonStyle.maxWidth)
             Button(front.title, systemImage: front.symbol) { fold(); run(front) }
                 .buttonStyle(StackButtonStyle(prominent: true))
                 // ⌘E as in File › Extract; the others keep their menu-bar keys.
                 .keyboardShortcut(front == .extract ? front.menuShortcut : nil)
                 .accessibilityLabel(front.title)
-                .help(String(localized: "\(front.title): \(scope)"))
+                .help(unavailable ?? String(localized: "\(front.title): \(scope)"))
+                .disabled(unavailable != nil)
                 .glassEffectID("summary", in: glass)
         }
     }
@@ -289,6 +299,8 @@ private struct ActionStack: View {
 /// filled with the accent; the others light up under the pointer.
 private struct StackButtonStyle: ButtonStyle {
     static let height: CGFloat = ActionButtonStyle.height + 2 * ActionButtonStyle.inset
+    /// The widest a stacked button gets, glass included; longer labels shorten in the middle.
+    static let maxWidth: CGFloat = 280
     let prominent: Bool
     /// Lit as if under the pointer, for buttons the stack tracks itself.
     var highlighted = false
@@ -314,11 +326,16 @@ private struct StackLabel<L: View>: View {
             .labelStyle(.titleAndIcon)
             .font(.body.weight(prominent ? .semibold : .medium))
             .lineLimit(1)
-            .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            .truncationMode(.middle)
+            .foregroundStyle(!isEnabled ? AnyShapeStyle(.secondary) : prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
             .padding(.horizontal, Space.l)
             .frame(minWidth: 116, maxWidth: .infinity, minHeight: ActionButtonStyle.height)
             .background {
-                if prominent {
+                // Disabled gives up the accent rather than fading: the glass container draws its
+                // glass itself, so an opacity here wouldn't reach it.
+                if !isEnabled {
+                    Capsule().fill(.primary.opacity(prominent ? 0.07 : 0))
+                } else if prominent {
                     Capsule()
                         .fill(Color.accentColor)
                         .overlay {
@@ -330,15 +347,14 @@ private struct StackLabel<L: View>: View {
             }
             .overlay {
                 // Increase Contrast outlines the primary, so it reads by shape as well as by colour.
-                if prominent, ContrastStyle.resolve(contrast).increased {
+                if prominent, isEnabled, ContrastStyle.resolve(contrast).increased {
                     Capsule().strokeBorder(.primary.opacity(0.45))
                 }
             }
             .padding(ActionButtonStyle.inset)
             .accessibleGlass(in: .capsule)
             .contentShape(.capsule)
-            .onHover { isHovering = $0 }
-            .opacity(isEnabled ? 1 : 0.45)
+            .onHover { isHovering = $0 && isEnabled }
     }
 
     private var isLit: Bool { isHovering || highlighted }
@@ -452,23 +468,46 @@ private struct NestedResultAction: View {
             .accessibilityLabel(String(localized: "Show in “\(hit.container.name)”"))
             .help(String(localized: "Show in “\(hit.container.name)”"))
             .fixedSize()
+            .frame(maxWidth: StackButtonStyle.maxWidth)
             .glassEffectID("summary", in: glass)
         } else {
-            HStack(spacing: 6) {
-                Text("\(model.selection.count) items")
-                    .fontWeight(.medium)
-                    .liveNumber()
-                Text("inside other archives — select one to show it")
+            // The whole sentence while there's room; in a narrow window only what to do (Details
+            // already counts the selection).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) {
+                    Text("\(model.selection.count) items")
+                        .fontWeight(.medium)
+                        .liveNumber()
+                    Text("inside other archives — select one to show it")
+                        .foregroundStyle(.secondary)
+                }
+                .fixedSize()
+                Text("Select one result to show it")
                     .foregroundStyle(.secondary)
+                    .fixedSize()
             }
                 .font(.callout)
                 .lineLimit(1)
-                .fixedSize()
                 .accessibilityElement(children: .combine)
                 .frame(minHeight: StackButtonStyle.height)
                 .padding(.horizontal, Space.l)
                 .accessibleGlass(in: .capsule)
                 .glassEffectID("summary", in: glass)
         }
+    }
+}
+
+extension BrowserModel {
+    /// Why Actions and Extract All can't run right now, for their disabled state and help tags; nil
+    /// when they can. (`run` and `extractAll` already do nothing while the archive is listed.)
+    var actionsUnavailableReason: String? {
+        isListing ? String(localized: "Available once the whole archive is listed") : nil
+    }
+
+    /// Extract All waits for a running step: starting it would stop that step part-way.
+    var extractAllUnavailableReason: String? {
+        if let reason = actionsUnavailableReason { return reason }
+        if case .running = activity?.phase { return String(localized: "Available when the current step finishes") }
+        return nil
     }
 }

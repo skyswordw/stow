@@ -225,6 +225,10 @@ nonisolated struct CheckupFinding: Identifiable, Hashable, Sendable {
     let severity: Severity
     let title: String
     let detail: String
+
+    /// Listing-time planned protections and post-extraction reports both remain discoverable.
+    /// The finding's own words establish timing; severity alone does not mean work is complete.
+    var needsAttention: Bool { severity == .caution || severity == .handled }
 }
 
 /// Where a real archive lives, and how its entries are named inside it.
@@ -330,13 +334,14 @@ nonisolated struct Archive: Identifiable, Sendable {
     /// The same archive with names read another way (entries, Checkup and source replaced).
     init(_ other: Archive, files: [ArchiveEntry], helpers: [ArchiveEntry], source: ArchiveSource) {
         self.init(name: other.name, format: other.format, isEncrypted: other.isEncrypted,
-                  files: files, helpers: helpers, checkup: other.checkup, containerPackedSize: other.packedSize)
+                  files: files, helpers: helpers, checkup: other.checkup, containerPackedSize: other.index.containerPackedSize)
         self.source = source
     }
 
     var files: [ArchiveEntry] { index.files }
     var totalSize: Int64 { index.totalSize }
     var packedSize: Int64? { index.packedSize }
+    var packedSizeIncludesContainer: Bool { index.containerPackedSize != nil }
     var hasHelpers: Bool { !index.helpers.isEmpty }
 
     var hasCautions: Bool { checkup.contains { $0.severity == .caution } }
@@ -376,6 +381,7 @@ nonisolated final class ArchiveIndex: Sendable {
     let files: [ArchiveEntry]
     let totalSize: Int64
     let packedSize: Int64?
+    let containerPackedSize: Int64?
     private let byPath: [String: ArchiveEntry]
     private let unsorted: [String: [ArchiveEntry]]
     private let sorted = Mutex<[String: [ArchiveEntry]]>([:])
@@ -384,6 +390,7 @@ nonisolated final class ArchiveIndex: Sendable {
     init(visible: [ArchiveEntry], helpers: [ArchiveEntry], containerPackedSize: Int64? = nil) {
         self.visible = visible
         self.helpers = helpers
+        self.containerPackedSize = containerPackedSize
         files = visible.filter { !$0.isFolder }
         totalSize = files.reduce(0) { $0 + $1.size }
         packedSize = containerPackedSize ?? files.reduce(Optional<Int64>(0)) { total, file in

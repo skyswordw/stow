@@ -27,13 +27,15 @@ enum NextStepsDemo {
 
     /// The window and everything Stow shows above it — the open menu — as one image.
     static func captureWithMenu(name: String) -> URL? {
-        guard let window = mainWindow else { return nil }
+        // A window the window server hasn't numbered yet (-1) has nothing to capture; converting
+        // that number to UInt32 used to stop the scene with a fatal error.
+        guard let window = mainWindow, let number = UInt32(exactly: window.windowNumber) else { return nil }
         typealias CreateImage = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
         guard let handle = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", RTLD_LAZY),
               let symbol = dlsym(handle, "CGWindowListCreateImage") else { return nil }
         let create = unsafeBitCast(symbol, to: CreateImage.self)
         let aboveWindow: UInt32 = 1 << 1, includingWindow: UInt32 = 1 << 3, bestResolution: UInt32 = 1 << 3
-        guard let image = create(.null, aboveWindow | includingWindow, UInt32(window.windowNumber), bestResolution)?
+        guard let image = create(.null, aboveWindow | includingWindow, number, bestResolution)?
             .takeRetainedValue(),
               let data = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else { return nil }
         let url = FileManager.default.temporaryDirectory.appending(path: "\(name).png")

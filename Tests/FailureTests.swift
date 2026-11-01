@@ -5,6 +5,18 @@ import Testing
 @Suite("Failures in plain words")
 @MainActor
 struct FailureTests {
+    @Test func missingPartsKeepTheirCauseInCompactRows() {
+        let failure = Failure(EngineError(.missingVolume, "Missing Backup.7z.002"), .extract, name: "Backup.7z.001")
+        #expect(failure.kind == .missingParts)
+        #expect(failure.brief == "Missing archive parts — keep all parts together")
+        #expect(failure.action == .showInFinder)
+        #expect(failure.code == ErrorCode(.extract, .missingVolume))
+        #expect(failure.report.contains("Backup.7z.002"))
+        let damaged = Failure(EngineError(.failed, "CRC Failed : a.txt"), .extract, name: "Backup.zip")
+        #expect(damaged.kind == .damaged)
+        #expect(damaged.brief == "Damaged — download it again")
+    }
+
     @Test func runningAppRefusalWinsOverArchiveDamageHeuristics() {
         // A bundle name can contain words the engine uses for damaged data.
         let failure = Failure(Installer.RunningApp(name: "Data Error"), .install, name: "Data Error")

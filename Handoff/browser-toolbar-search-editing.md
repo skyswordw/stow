@@ -5,6 +5,18 @@ Native comparison and next-iteration brief, 2026-10-27. Tasks:
 [#216 — Editing discovery](https://github.com/skyswordw/stow/issues/216).
 Both refine Browser #160 under visual-review umbrella #104.
 
+## Current status — 2026-10-31
+
+PR #222 shipped Search and Delete/Save in the upper toolbar. DESIGN.md now describes the
+implemented composition. Escape clears the system search field and returns focus in one step,
+an explicit behavior change from the original two-step proposal. Current-main native checks
+and independent saved-archive validation are recorded in the
+[functional verification](open-issue-verification-2026-10-31.md).
+
+The sections below preserve the 2026-10-27 comparison and original brief as historical evidence;
+their statements that the controls are unimplemented are superseded. They are not a second
+design direction or a request to reimplement the delivered toolbar.
+
 ## User request and status
 
 The user observed that Stow still places Search beside the address/breadcrumbs and suggested

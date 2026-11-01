@@ -251,6 +251,46 @@ struct PackingTests {
         #expect(try Data(contentsOf: back.appending(path: "Project/noise.bin")) == Data(noise))
     }
 
+    /// #38: encryption, splitting and verification must work together through the app's XPC
+    /// creation path, including reopening the published parts. scripts/stress-encrypted-split.sh
+    /// repeats this check for the historical SIGTERM without slowing every CI run.
+    @Test func encryptedSplitVerifiedArchiveRoundTrips() async throws {
+        let tree = try SourceTree()
+        defer { tree.cleanUp() }
+        var random = SplitMix64(seed: 38)
+        let bytes = Data((0..<350_000).map { _ in UInt8.random(in: 0...255, using: &random) })
+        let source = tree.project.appending(path: "payload.bin")
+        try bytes.write(to: source)
+        let out = tree.folder.url.appending(path: "Out", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: false)
+        let password = "packing-regression-fixture"
+        let (result, _) = try await pack(tree, audience: .windows, format: .sevenZip,
+                                         password: password, volumeSize: 100_000, verify: true,
+                                         into: out)
+        #expect(result.report.verified)
+        try #require(result.placed.count > 2)
+        let first = try #require(result.placed.first)
+        #expect(first.lastPathComponent == "Project.7z.001")
+        for part in result.placed.dropLast() {
+            #expect(try part.resourceValues(forKeys: [.fileSizeKey]).fileSize == 100_000)
+        }
+        await expectEngineFailure(.passwordRequired) { _ = try await ArchiveEngine.shared.list(first) }
+        await expectEngineFailure(.wrongPassword) {
+            try await ArchiveEngine.shared.verify(first, password: "wrong")
+        }
+        let listing = try await ArchiveEngine.shared.list(first, password: password)
+        #expect(listing.entries.contains { $0.path == "Project/payload.bin" && $0.isEncrypted })
+        let extracted = try await ArchiveEngine.shared.extract(first, paths: [], password: password) { _ in }
+        defer { ArchiveEngine.shared.discard(extracted) }
+        let received = tree.folder.url.appending(path: "received", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: received, withIntermediateDirectories: false)
+        try await ArchiveEngine.shared.receive(extracted, into: received)
+        #expect(try Data(contentsOf: received.appending(path: "Project/payload.bin")) == bytes)
+        #expect(try Data(contentsOf: source) == bytes)
+        #expect(Set(try FileManager.default.contentsOfDirectory(atPath: out.path))
+                == Set(result.placed.map(\.lastPathComponent)))
+    }
+
     @Test func windowsGetsSafeNamesAndNoMacFiles() async throws {
         let tree = try SourceTree()
         defer { tree.cleanUp() }

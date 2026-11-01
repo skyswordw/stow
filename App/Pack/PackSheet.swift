@@ -183,10 +183,13 @@ struct PackSheet: View {
     private var splitEditor: some View {
         let estimate = report.estimatedSize
         // Starts from the size in use, so 700 MB can become 650 MB without retyping the unit.
+        let name = archiveName, format = options.format
         return SplitSizeEditor(initial: options.split) { size in
             let parts = size.parts(for: estimate)
-            return parts > 1 ? String(localized: "About \(parts) parts for these items.")
-                             : String(localized: "These items probably fit in one part.")
+            // The second line the editor keeps for its status names what comes out.
+            let names = Compatibility.partNames(archiveName: name, format: format, parts: parts)
+            return (parts > 1 ? String(localized: "About \(parts) parts for these items.")
+                              : String(localized: "These items probably fit in one part.")) + "\n" + names
         } apply: { size in
             options.split = size
         }
@@ -211,7 +214,9 @@ struct PackSheet: View {
     private func middle(_ report: PackReport) -> some View {
         VStack(alignment: .leading, spacing: Space.xl) {
             if options.usesPassword { passwordField }
-            ReportView(report: report, audience: options.audience, overrides: $overrides, showDetails: $showDetails)
+            ReportView(report: report, audience: options.audience,
+                       partsNote: Compatibility.partsNote(for: options, parts: report.parts, archiveName: archiveName),
+                       overrides: $overrides, showDetails: $showDetails)
             moreOptions(report)
                 .id(Self.moreOptionsID)
         }
@@ -318,17 +323,17 @@ struct PackSheet: View {
     /// choices go without saying, and only the ones changed from it are named.
     private var optionsSummary: String {
         var parts = [compressionSummary]
-        if options.verify { parts.append(String(localized: "Tested after packing")) }
+        if options.verify { parts.append(String(localized: "Will verify archive contents")) }
         if options.format == .dmg { parts.append(options.diskImageFilesystem.title) }
         if changesHelperFiles {
             parts.append(options.dropsMacHelperFiles
-                ? String(localized: "No Mac support files")
-                : String(localized: "Keeping Mac support files"))
+                ? String(localized: "Finder support files omitted")
+                : String(localized: "Finder support files included"))
         }
         if changesMacMetadata {
             parts.append(options.effectiveKeepsMacMetadata
-                ? String(localized: "Storing Mac metadata")
-                : String(localized: "No Mac metadata"))
+                ? String(localized: "Finder tags and attributes kept")
+                : String(localized: "Finder tags and attributes omitted"))
         }
         if options.format == .sevenZip, options.usesPassword, !options.encryptFilenames {
             parts.append(String(localized: "File names visible"))
@@ -389,17 +394,15 @@ struct PackSheet: View {
         return String(localized: "\(options.level.title) compression")
     }
 
-    /// Part names come from `ArchiveCreation`: "Project.zip.001", "Project.zip.002", …
+    /// How many parts, beside the menu that sets their size. Their names and what opening them
+    /// takes are in the report, which says what the whole sentence will do.
     private func splitCaption(_ report: PackReport) -> String? {
         guard options.format.supportsSplit else {
             return String(localized: "A \(options.format.displayName) is always one file")
         }
         guard options.split != .none else { return nil }
-        let base = archiveName + "." + options.format.fileExtension
-        guard report.parts > 1 else {
-            return String(localized: "Probably fits in one part, \(base + ".001").")
-        }
-        return String(localized: "About \(report.parts) parts, \(base + ".001") to \(String(format: ".%03d", report.parts)). Opening it needs all of them.")
+        return report.parts > 1 ? String(localized: "About \(report.parts) parts for these items.")
+                                : String(localized: "These items probably fit in one part.")
     }
 
     private var passwordCaption: String {
@@ -452,7 +455,8 @@ struct PackSheet: View {
                     if let text = splitCaption(report) { caption(text) }
                 }
                 optionRow("Verify") {
-                    Toggle("Test every file once it’s packed", isOn: $options.verify)
+                    Toggle("Verify archive contents after packing", isOn: $options.verify)
+                    caption(String(localized: "Reads back the new archive to check its contents. Takes extra time; does not scan for malware."))
                 }
 
                 if options.format == .dmg {
@@ -542,7 +546,7 @@ struct PackSheet: View {
                     Button {
                         options.resetToPurposeDefaults()
                     } label: {
-                        Label("Reset", systemImage: "arrow.uturn.backward")
+                        Label("Reset These Options", systemImage: "arrow.uturn.backward")
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.tint)
@@ -639,10 +643,12 @@ struct PackSheet: View {
 
     private func footer(_ report: PackReport) -> some View {
         HStack {
-            Text("≈ \(report.estimatedSize.bytes)\(report.parts > 1 ? String(localized: " in \(report.parts) parts") : "")")
+            // Said as an estimate, in words: the size depends on how well these files compress.
+            Text(estimateText(report))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .liveNumber()
+                .help(String(localized: "An estimate from how well files like these usually compress."))
             Spacer()
             Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
@@ -653,6 +659,12 @@ struct PackSheet: View {
                 .controlSize(.large)
                 .disabled(isChoosing || report.included.isEmpty || (options.usesPassword && (password.isEmpty || !passwordChecked)))
         }
+    }
+
+    private func estimateText(_ report: PackReport) -> String {
+        let size = report.estimatedSize.bytes
+        return report.parts > 1 ? String(localized: "About \(size) in \(report.parts) parts")
+                                : String(localized: "About \(size)")
     }
 
     // MARK: Actions
@@ -870,11 +882,16 @@ private struct ReportView: View {
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let report: PackReport
     let audience: Audience
+    /// What a split archive comes out as; it leads, before what changes on the way.
+    let partsNote: PackReport.Note?
     @Binding var overrides: [String: String]
     @Binding var showDetails: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
+            if let partsNote {
+                row(partsNote.tone, partsNote.title, partsNote.detail, symbol: "square.stack.3d.up.fill")
+            }
             if report.renames.isEmpty {
                 row(.fine, String(localized: "All names work there"), String(localized: "No characters or names that the other system rejects."))
             } else {
@@ -887,7 +904,15 @@ private struct ReportView: View {
             if !report.excluded.isEmpty {
                 row(.info,
                     String(localized: "\(report.excluded.count) Mac-only files left out"),
-                    String(localized: "“.DS_Store”, “._” and other Finder files mean nothing on other systems."))
+                    audience.dropsMacHelperFiles
+                        ? String(localized: "“.DS_Store”, “._” and other Finder files mean nothing on other systems.")
+                        : String(localized: "Turned off in More Options. An archive for Macs usually keeps “.DS_Store” and other Finder files."))
+            }
+            if audience.dropsMacHelperFiles, report.includedMacHelperFiles > 0 {
+                // More Options kept what this purpose would leave out: say what the recipient will see.
+                row(.info,
+                    String(localized: "\(report.includedMacHelperFiles) Mac-only files included"),
+                    String(localized: "Turned on in More Options. Other systems show “.DS_Store” and “._” files as extra files."))
             }
             if !report.leftOutLinks.isEmpty {
                 row(.info,
@@ -945,10 +970,11 @@ private struct ReportView: View {
                 set: { overrides[rename.path] = $0.isEmpty ? nil : $0 })
     }
 
-    private func row(_ tone: PackReport.Tone, _ title: String, _ detail: String) -> some View {
+    /// `symbol` replaces the tone's own for a row that says what comes out rather than what changes.
+    private func row(_ tone: PackReport.Tone, _ title: String, _ detail: String, symbol: String? = nil) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Space.s) {
-            Image(systemName: tone.symbol)
-                .foregroundStyle(tone.color)
+            Image(systemName: symbol ?? tone.symbol)
+                .foregroundStyle(symbol == nil ? AnyShapeStyle(tone.color) : AnyShapeStyle(.secondary))
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.callout.weight(.medium))

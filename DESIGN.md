@@ -39,7 +39,14 @@ And when packing: **"Will it work on their computer?"**
 | Drop shelf | **Tray** | Floating panel that collects files from anywhere |
 | Purpose presets | **"For…" destinations** | Windows PCs · Macs · Linux & servers · Web upload |
 | Compression dialog | **Pack sentence** | Sentence-builder with tappable tokens |
-| Safety report | **Checkup** | Shield button in the title bar; findings in Archive Info |
+| Archive findings | **Archive Info** | Background checks remain; relevant notices appear with the files, ordinary findings are disclosed in archive information. Checkup remains an internal name. |
+
+**Clarity update, confirmed 2026-10-31 (#229/#230):** remove the permanent Checkup button
+and prominent normal-status report. Keep archive checks and concrete notices, without implying
+malware scanning or general safety. Archive Info remains reachable from the title menu during
+selection; Details labels its archive/file/folder/selection scope. This supersedes the historical
+always-visible shield guidance. See the [functional implementation handoff](Handoff/clarity-functional-implementation.md).
+The central Search/trailing-controls proposal remains a separate visual task in #231.
 
 **Current direction after the user's PR #177 review, 2026-10-24:** the full Browser remains
 the default; Glance is optional. The full Browser has a file workspace and **fixed, visible
@@ -55,10 +62,9 @@ expanded action-stack crops are the preferred interaction reference to investiga
 a single enclosing capsule nor fidelity to Codex's earlier mockups is required. See the
 [current direction and evidence](Handoff/browser-design-direction-reset.md).
 
-Existing main builds still say “Next Steps”;
-[issue #161](https://github.com/skyswordw/stow/issues/161) tracks the public-copy and presentation
-transition. “快捷操作” is a proposed Simplified Chinese localization, pending copy review.
-Internal types and stored preference keys may retain their existing names. Preserve explicit
+The app, Settings, the More menu, File › Actions and the website say **Actions** (Simplified
+Chinese **快捷操作**); [issue #161](https://github.com/skyswordw/stow/issues/161) tracked the
+transition. Internal `NextStep*` types and stored preference keys keep their existing names. Preserve explicit
 user preferences where compatible with these newer product decisions. The
 [earlier product design review](Handoff/product-design-review-2026-10-24.md) retains historical
 evidence; its optional-pane composition and mockups are superseded.
@@ -68,7 +74,7 @@ evidence; its optional-pane composition and mockups are superseded.
 **Toolbar Search and editing (#215/#216, 2026-10-30).** Search is the system toolbar search
 field, trailing in the title bar: a field while the window has room, a magnifying-glass button
 when it doesn't, expanded by a click or ⌘F. The navigation row keeps its whole width for the path.
-Delete and Save sit in their own capsule between the view modes and Checkup from the moment an
+Delete and Save sit in their own capsule after the view modes from the moment an
 archive opens, disabled when there's nothing to delete or save, so editing is found before the
 first edit. Save is the one Save in the full window: with changes pending it becomes a prominent
 **Save** pill (accent, with its name); the bottom bar keeps the change count, "Nothing changes on
@@ -80,7 +86,7 @@ ArcZip observations behind this.
 
 | Region | Holds |
 | --- | --- |
-| Title bar | Archive name/menu and subtitle, view modes, **Delete · Save**, **Checkup** and encrypted-archive controls, then **Search**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and Checkup stay |
+| Title bar | Archive name/menu and subtitle, view modes, **Delete · Save**, encrypted-archive controls, then **Search**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and password access stay |
 | Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width and a deep path can use the whole row |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
 | Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
@@ -110,9 +116,20 @@ then Install App.
 One prominent action at a time: Extract All carries the accent while Actions is down; once
 Actions is up, for a selection or an archive's app, the stack's front does and Extract All stays
 put, unaccented. Archive facts live in one place, Archive Info, reached from Details with nothing
-selected, the Checkup button and the title menu. Everything floating shares one family: glass
+selected and the title menu. Everything floating shares one family: glass
 capsules, buttons concentric inside them (button radius + inset = capsule radius), 36–38 pt tall.
 Details is a solid reading surface with the same light rim, brighter along its top edge.
+
+**Actions' states, all in the same place.** Ready is the stack. A step that has started but measured
+nothing yet (a password, the engine starting) shows its capsule with a turning ring and no
+percentage; then the ring fills with the percentage beside it, and Stop. Done says where things
+went, with Show in Finder; a failure grows into a card with what happened, its one action, Copy
+Details and Dismiss. Stopping leaves nothing behind and the stack comes straight back. While a step
+runs, Extract All waits, dimmed, its help tag saying why; while the archive is still being listed,
+Actions and Extract All are dimmed the same way. A dimmed stack button gives up the accent rather
+than fading. In a narrow window the words give way first: stacked labels shorten in the middle
+(280 pt at most), a failure card puts Copy Details under its action, and several results inside
+other archives say only "Select one result to show it".
 
 ## Glance layout (#159)
 
@@ -176,9 +193,9 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
 
 - **Accent — Amber** `#D97B2B` (light) / `#F0954A` (dark). Warm, like kraft paper and parcel tape;
   stands apart from the sea of blue utilities. Used sparingly: primary button, selection tint,
-  the drop target, and the Checkup badge when everything is fine is *green*, not amber.
+  and the drop target. No permanent all-clear badge is shown for archive metadata checks.
 - Everything else is system semantic color (`.primary`, `.secondary`, `.separator`, materials).
-- Status: safe = system green, caution = system yellow, blocked = system red. Always paired with an
+- Status: completed = system green, caution = system yellow, blocked = system red. Always paired with an
   icon and words — never color alone.
 
 ## Type
@@ -213,6 +230,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Actions content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
 | Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
+| A step has started but measured nothing yet | A quarter arc turns in the progress ring; it stands still under Reduce Motion | 1 turn/s, linear |
 | Actions shown/hidden or its stack opened/closed by a key (arrows, ⌘A, Esc) | **None** | — |
 | Actions stack fans out (pointer rests 140 ms on it, or its edges clicked) | Spring: each action rises from behind the front button, scale 0.9 → 1 + opacity; folds back with an ease-out 450 ms after the pointer leaves (ArcZip lingers 0.5–1 s; it also opens at once, which flashes on every pass, so Stow waits 140 ms). Choosing an action or a new selection folds it at once, unanimated. Fade only under Reduce Motion | `response 0.32, damping 1.0` in, 180 ms out |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
@@ -237,12 +255,17 @@ Reduced Transparency: glass falls back to solid window background (the system do
 
 - **Compact archive identity** in the Browser's title/navigation region. Detailed file counts,
   packed → unpacked sizes and compression facts have one home in Archive Info. Keep encryption
-  and Checkup directly discoverable. Full Browser Details stays visible; Glance provides the
+  and relevant archive notices directly discoverable. Full Browser Details stays visible; Glance provides the
   optional compact experience. The exact home of Archive Info remains Claude Code's decision.
-- **Checkup** lists findings in plain words: "2 files would extract outside the folder — they'll be
-  kept inside", "1 app inside is not signed".
-- **Pack sentence** shows a live compatibility report underneath: names that will be adjusted for
-  Windows, Mac-only files left out, the estimated size. **More Options** is a full-strength heading
+- **Archive findings** describe the specific scope and consequence. Their text distinguishes a
+  listing-time protection planned for extraction from a completed extraction audit. Ordinary
+  notes are available in Archive Info; normal state does not promote a separate Checkup feature.
+- **Pack sentence** shows a live report underneath of what it will do. When the archive is split it
+  leads with what comes out: about how many parts, their numbered names ("Harbor.zip.001 – .003"),
+  each part's limit, and that opening it needs every part and an app that joins them. Then what
+  changes on the way: names adjusted for Windows, Mac-only files left out (or kept, when More Options
+  kept them). The footer says the size as an estimate in words ("About 27.3 MB in 3 parts"), beside
+  Cancel and Pack, where it stays in view however far the middle scrolls. **More Options** is a full-strength heading
   that lists its current settings while closed (up to two lines; a choice changed from the purpose
   is named, the usual ones go without saying). Inside, hairlines divide a few groups: what comes
   out (compression, parts, verify), a disk image's layout, what the password covers, what a Mac
@@ -251,7 +274,7 @@ Reduced Transparency: glass falls back to solid window background (the system do
   something differs. Choices a format can't offer say why in plain words instead of only in a
   tooltip; a choice that can't apply at all (Encrypt file names without a password) isn't shown.
   **Custom…** opens one part-size editor in a popover from whatever was clicked, with the part
-  count for these items. When the screen is short, only the middle of the sheet scrolls (its
+  count and part names for these items as people type. When the screen is short, only the middle of the sheet scrolls (its
   cut-off edge fades) and the name, Cancel and Pack stay put.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
   It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't
