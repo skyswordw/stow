@@ -8,7 +8,7 @@ enum ActivityPhase: Equatable {
 /// The floating glass capsule every long job reports in — packing, extracting, installing — with
 /// its one trailing control: Stop while it runs, Show in Finder when done, the failure's own next
 /// step (and Dismiss) when it fails. Sits inside the caller's `GlassEffectContainer` so the
-/// capsule morphs with whatever shares `glass` (Next Steps' selection summary).
+/// capsule morphs with whatever shares `glass` (the front button of Actions).
 struct ActivityCapsule: View {
     let phase: ActivityPhase
     /// "Packing “Handoff.zip”", "Extracting 12 items" while running; "Extracted to Downloads" when done.
@@ -85,10 +85,13 @@ struct ActivityLabel: View {
                     .truncationMode(.middle)
                     .frame(maxWidth: 320)
                     .fixedSize(horizontal: true, vertical: false)
-                Text(progress, format: .percent.precision(.fractionLength(0)))
-                    .foregroundStyle(.secondary)
-                    .liveNumber()
-                    .frame(minWidth: 36, alignment: .trailing)
+                // Preparing (nothing measured yet): the ring turns and no "0%" claims a start.
+                if progress > 0 {
+                    Text(progress, format: .percent.precision(.fractionLength(0)))
+                        .foregroundStyle(.secondary)
+                        .liveNumber()
+                        .frame(minWidth: 36, alignment: .trailing)
+                }
             case .done:
                 Text(title)
                     .fontWeight(.medium)
@@ -113,14 +116,11 @@ struct ActivityLabel: View {
                     }
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: Space.m) {
-                        // Inside the glass, so it can't take a glass style of its own.
-                        if let action = failure.action, let perform {
-                            Button(action.title) { perform(action) }
-                                .buttonStyle(.bordered)
-                                .controlSize(.regular)
-                        }
-                        CopyErrorDetails(report: ErrorReport.Copyable(failure))
+                    // Side by side while there's room; in a narrow window Copy Details goes under
+                    // the action rather than squeezing either one's words.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: Space.m) { failureControls(failure) }
+                        VStack(alignment: .leading, spacing: Space.s) { failureControls(failure) }
                     }
                 }
                 .frame(maxWidth: 340, alignment: .leading)
@@ -153,6 +153,19 @@ struct ActivityLabel: View {
                 Button("Dismiss", action: dismiss)
             }
         }
+    }
+
+    @ViewBuilder
+    private func failureControls(_ failure: Failure) -> some View {
+        // Inside the glass, so it can't take a glass style of its own.
+        if let action = failure.action, let perform {
+            Button(action.title) { perform(action) }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .fixedSize()
+        }
+        CopyErrorDetails(report: ErrorReport.Copyable(failure))
+            .fixedSize()
     }
 
     private var spokenLabel: String {
@@ -215,20 +228,38 @@ struct ActivityGlyph: View {
     }
 }
 
+/// How far a step has got. Before anything is measured (choosing where to put things, asking for a
+/// password, starting the engine) a short arc turns instead, so preparing doesn't read as stuck at
+/// 0%; under Reduce Motion it stays still.
 struct ProgressRing: View {
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let progress: Double
 
     var body: some View {
         ZStack {
             Circle().stroke(ContrastStyle.resolve(contrast).increased ? AnyShapeStyle(.secondary) : AnyShapeStyle(.quaternary), lineWidth: 2.5)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(.tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+            if progress > 0 {
+                arc(to: progress, turned: -90)
+            } else if reduceMotion {
+                arc(to: 0.25, turned: -90)
+            } else {
+                TimelineView(.animation) { context in
+                    // One turn a second.
+                    let turn = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1)
+                    arc(to: 0.25, turned: -90 + 360 * turn)
+                }
+            }
         }
         .frame(width: 15, height: 15)
         // Spoken by ActivityLabel's accessibilityValue; a nested labeled ring re-entered AX on macOS 27.
         .accessibilityHidden(true)
+    }
+
+    private func arc(to end: Double, turned degrees: Double) -> some View {
+        Circle()
+            .trim(from: 0, to: end)
+            .stroke(.tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+            .rotationEffect(.degrees(degrees))
     }
 }

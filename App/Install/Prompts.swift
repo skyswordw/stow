@@ -38,7 +38,7 @@ enum Prompts {
                             choices: [cancel, .init(title: String(localized: "Keep Both")),
                                       .init(title: String(localized: "Replace"), role: .primary)])
         case .replaceFonts(let names):
-            prompt = Prompt(symbol: "textformat",
+            prompt = Prompt(symbol: "character",
                             title: names.count == 1 ? String(localized: "“\(names[0])” is already installed.")
                                 : String(localized: "\(names.count) of these fonts are already installed."),
                             message: String(localized: "Replacing moves the installed copies to the Trash. Skip installs only the new ones."),
