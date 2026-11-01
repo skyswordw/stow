@@ -112,6 +112,26 @@ struct BrowserChromeTests {
         #expect(saving.searchWidth >= TitleBarLayout.fieldMinimum)
     }
 
+    /// Opening and closing Search move its width over a few frames; ⌘F and Reduce Motion don't (#242).
+    @Test func searchWidthMovesOnlyForAPointerAndWithoutReduceMotion() {
+        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: false, reduceMotion: false) == SearchWidthMotion.opening)
+        #expect(SearchWidthMotion.duration(opening: false, byKeyboard: false, reduceMotion: false) == SearchWidthMotion.closing)
+        // Closing is quicker than opening, as everything leaving is (DESIGN.md › Motion).
+        #expect(SearchWidthMotion.closing < SearchWidthMotion.opening)
+        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: true, reduceMotion: false) == nil)
+        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: false, reduceMotion: true) == nil)
+        #expect(SearchWidthMotion.duration(opening: false, byKeyboard: false, reduceMotion: true) == nil)
+
+        // The curve starts and ends where it should, never runs backwards and never overshoots.
+        #expect(SearchWidthMotion.progress(0) == 0 && SearchWidthMotion.progress(1) == 1)
+        #expect(SearchWidthMotion.progress(-1) == 0 && SearchWidthMotion.progress(2) == 1)
+        let steps = stride(from: 0.0, through: 1.0, by: 0.05).map(SearchWidthMotion.progress)
+        #expect(zip(steps, steps.dropFirst()).allSatisfy { $0 <= $1 })
+        #expect(steps.allSatisfy { $0 >= 0 && $0 <= 1 })
+        // Ease-out: most of the way there by halfway.
+        #expect(SearchWidthMotion.progress(0.5) > 0.8)
+    }
+
     @Test func passwordAccessKeepsItsNameWhileThereIsRoom() {
         #expect(TitleBarLayout(windowWidth: 1100, isSearchOpen: false, isEncrypted: true).unlockShowsTitle)
         #expect(!TitleBarLayout(windowWidth: 730, isSearchOpen: true, isEncrypted: true).unlockShowsTitle)

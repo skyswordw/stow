@@ -232,22 +232,27 @@ struct ToolbarSearchField: View {
     @Binding var isFocused: Bool
     /// Bumped by ⌘F and the collapsed button: put the keyboard in the field, even if it has it.
     let focusRequest: Int
-    /// From `TitleBarLayout`: the toolbar sizes items at their ideal width, so the field is told
-    /// how wide to be rather than left to shrink. Below `TitleBarLayout.fieldMinimum` it's the
-    /// closed magnifying glass.
+    /// From `TitleBarLayout`, stepped by `SearchWidthMotion` while Search opens or closes: the
+    /// toolbar sizes items at their ideal width, so the field is told how wide to be rather than
+    /// left to shrink.
     let width: CGFloat
-    /// Widens a collapsed Search and puts the keyboard in it.
+    /// Open: the field shows, growing to `width`. Closed, once it has shrunk back, the button.
+    let isOpen: Bool
+    /// Opens Search and puts the keyboard in it.
     let activate: () -> Void
 
     var body: some View {
-        if width < TitleBarLayout.fieldMinimum {
+        if isOpen || width > TitleBarLayout.buttonWidth + 0.5 {
+            Field(query: $query, prompt: prompt, isFocused: $isFocused, focusRequest: focusRequest)
+                // While it grows from the button's width, the field is revealed from its leading
+                // magnifying glass, which stays where the button's was.
+                .frame(width: max(width, TitleBarLayout.buttonWidth), alignment: .leading)
+                .clipped()
+        } else {
             Button("Search", systemImage: "magnifyingglass", action: activate)
                 .labelStyle(.iconOnly)
                 .help("Search (⌘F)")
                 .accessibilityLabel(String(localized: "Search"))
-        } else {
-            Field(query: $query, prompt: prompt, isFocused: $isFocused, focusRequest: focusRequest)
-                .frame(width: width)
         }
     }
 
@@ -270,8 +275,11 @@ struct ToolbarSearchField: View {
                     .foregroundStyle(.primary)
                     .focused($hasKeyboard)
                     // Esc clears and lets go in one step, as the system field did. A plain text
-                    // field's editor would take Esc as "complete", so it's caught first.
+                    // field's editor would take Esc as "complete", so it's caught first. Not while
+                    // an input method is composing (Pinyin, Kana…): that Esc is the input method's,
+                    // and letting go here would commit the half-typed text into the query (#242).
                     .onKeyPress(.escape) {
+                        if anchor.isComposing() { return .ignored }
                         query = ""
                         hasKeyboard = false
                         isFocused = false
@@ -334,6 +342,13 @@ private struct FieldAnchor: NSViewRepresentable {
         if (window.firstResponder as? NSText)?.delegate !== field { window.makeFirstResponder(field) }
     }
 
+    /// An input method has unfinished text in this item's field (marked text).
+    @MainActor func isComposing() -> Bool {
+        guard let field = ownField(), let editor = field.window?.firstResponder as? NSTextView,
+              editor.delegate === field else { return false }
+        return editor.hasMarkedText()
+    }
+
     /// Lets go of the keyboard if this item's field has it; the files then take it back.
     @MainActor func releaseField() {
         guard let field = ownField(), let window = field.window,
@@ -359,6 +374,27 @@ private struct FieldAnchor: NSViewRepresentable {
             if let field = editableField(in: subview) { return field }
         }
         return nil
+    }
+}
+
+/// How Search's width moves between the button and the open field (#242). The toolbar sizes its
+/// items once per update and doesn't follow SwiftUI's animations (the capsule jumped in one frame),
+/// so the Browser steps the width itself along this curve. A key press (⌘F) or Reduce Motion
+/// changes it at once (DESIGN.md › Motion), as does anything other than opening or closing.
+nonisolated enum SearchWidthMotion {
+    static let opening: Double = 0.26
+    static let closing: Double = 0.18
+
+    /// How long the change takes, or nil to make it at once.
+    static func duration(opening: Bool, byKeyboard: Bool, reduceMotion: Bool) -> Double? {
+        if byKeyboard || reduceMotion { return nil }
+        return opening ? Self.opening : Self.closing
+    }
+
+    /// Ease-out: quick to answer the click, settling without overshoot, like `Motion.appear`.
+    static func progress(_ fraction: Double) -> Double {
+        let t = min(max(fraction, 0), 1)
+        return 1 - (1 - t) * (1 - t) * (1 - t)
     }
 }
 

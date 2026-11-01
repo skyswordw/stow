@@ -81,9 +81,13 @@ plain path-row and bottom-path studies.
   order: **Search → view modes → Delete · Save**. Search is a magnifying-glass button; a click or
   ⌘F opens it into a field that grows **leftward**, toward the name, so the view and editing
   controls never move. It stays open while it has the keyboard or a query and closes when it
-  lets go empty. It's the Browser's own field (the system toolbar field always settles last, at
-  the window's end) with the system field's contracts: one query, Esc clears it and returns the
-  keyboard to the files in one step, CJK input composes in it. `TitleBarLayout` gives it room
+  lets go empty. Opening by click grows the capsule over 0.26 s (closing 0.18 s), ease-out with no
+  overshoot, stepped frame by frame because the toolbar doesn't follow SwiftUI animations; ⌘F, Esc
+  and Reduce Motion change it at once (`SearchWidthMotion`). It's the Browser's own field (the
+  system toolbar field always settles last, at the window's end) with the system field's
+  contracts: one query, Esc clears it and returns the keyboard to the files in one step. CJK input
+  composes in it without filtering on half-typed pinyin, and while an input method is composing,
+  Esc is the input method's (it cancels the composition; Search stays open). `TitleBarLayout` gives it room
   from free space first, then from the name (which truncates in the middle), never from the path.
 - **Save is a floppy disk** (the `SaveDisk` custom symbol), named "Save Changes" with ⌘S in its
   help; the earlier arrow-into-tray Save read like extraction. Disabled when there's nothing to save.

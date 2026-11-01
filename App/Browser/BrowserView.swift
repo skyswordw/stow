@@ -27,6 +27,10 @@ struct BrowserView: View {
     /// Search opened by its button or ⌘F; it closes again when it lets go of the keyboard empty.
     @State private var isSearchExpanded = false
     @State private var searchFocusRequest = 0
+    /// Search's width as drawn: `titleBar.searchWidth`, stepped there while Search opens or closes.
+    @State private var shownSearchWidth = TitleBarLayout.buttonWidth
+    @State private var searchWasOpen = false
+    @State private var searchWidthMove: Task<Void, Never>?
 
     var body: some View {
         // Keep the navigation inset attached to one stable container as the file view changes.
@@ -84,6 +88,7 @@ struct BrowserView: View {
             // ⌘F (Edit › Find…) puts the keyboard in the search field.
             .onChange(of: model.searchFocusRequest) { activateSearch() }
             .onChange(of: isSearchFocused) { _, focused in if !focused { isSearchExpanded = false } }
+            .onChange(of: titleBar.searchWidth, initial: true) { _, target in followSearchWidth(target) }
             .onKeyPress(.escape) {
                 if model.renamingPath != nil {
                     model.renamingPath = nil
@@ -116,9 +121,36 @@ struct BrowserView: View {
             }
     }
 
+    private var isSearchOpen: Bool { isSearchExpanded || isSearchFocused || !model.query.isEmpty }
+
     private var titleBar: TitleBarLayout {
-        TitleBarLayout(windowWidth: windowWidth, isSearchOpen: isSearchExpanded || isSearchFocused || !model.query.isEmpty,
+        TitleBarLayout(windowWidth: windowWidth, isSearchOpen: isSearchOpen,
                        isEncrypted: model.archive.isEncrypted, saveShowsTitle: model.editSession.canSave)
+    }
+
+    /// Opening or closing Search moves its width over a few frames (`SearchWidthMotion`); a window
+    /// resize, ⌘F or Reduce Motion sets it at once.
+    private func followSearchWidth(_ target: CGFloat) {
+        let open = isSearchOpen
+        let toggled = open != searchWasOpen
+        searchWasOpen = open
+        searchWidthMove?.cancel()
+        searchWidthMove = nil
+        guard toggled, let duration = SearchWidthMotion.duration(opening: open, byKeyboard: Motion.byKeyboard,
+                                                                reduceMotion: reduceMotion) else {
+            shownSearchWidth = target
+            return
+        }
+        let start = shownSearchWidth
+        searchWidthMove = Task { @MainActor in
+            let began = ContinuousClock.now
+            while !Task.isCancelled {
+                let fraction = (ContinuousClock.now - began) / .seconds(duration)
+                shownSearchWidth = start + (target - start) * SearchWidthMotion.progress(fraction)
+                if fraction >= 1 { break }
+                try? await Task.sleep(for: .milliseconds(8))
+            }
+        }
     }
 
     /// Opens Search, then gives it the keyboard once the field exists.
@@ -268,8 +300,8 @@ struct BrowserView: View {
         // First of the trailing group, so it has the title bar's free room to open into.
         ToolbarItem {
             ToolbarSearchField(query: $model.query, prompt: searchPrompt, isFocused: $isSearchFocused,
-                               focusRequest: searchFocusRequest, width: titleBar.searchWidth,
-                               activate: activateSearch)
+                               focusRequest: searchFocusRequest, width: shownSearchWidth,
+                               isOpen: isSearchOpen, activate: activateSearch)
         }
         .overflowPriority(keepsVisible: true)
 
