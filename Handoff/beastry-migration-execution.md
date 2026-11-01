@@ -110,8 +110,8 @@ Production signing, notarization, and appcast verification are tracked in the
 [artifact-only Release validation](https://github.com/Beastry/stow/actions/runs/41292538244),
 using version 0.1.3 with draft-release=false on 656f543. This is a validation build,
 not an authorized publication: it must not create a release or version tag. The
-[post-transfer main CI](https://github.com/Beastry/stow/actions/runs/41292524845)
-also validates the destination repository environment.
+[main CI workflow](https://github.com/Beastry/stow/actions/workflows/ci.yml?query=branch%3Amain)
+validates the destination environment; documentation-only pushes supersede earlier main runs.
 
 Preserve the original skyswordw/stow redirect namespace indefinitely. The current
 published versions remain v0.1.0, v0.1.1 and v0.1.2; no existing release asset was
