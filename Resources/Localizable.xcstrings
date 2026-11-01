@@ -221,26 +221,6 @@
         }
       }
     },
-    "Probably fits in one part, %@.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "大概只有一个分卷：%@。"
-          }
-        }
-      }
-    },
-    "About %lld parts, %@ to %@. Opening it needs all of them.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "约 %1$lld 个分卷，%2$@ 到 %3$@。打开时需要全部分卷。"
-          }
-        }
-      }
-    },
     "%@ can’t be password-protected. Choose ZIP or 7Z to add one.": {
       "localizations": {
         "zh-Hans": {
@@ -9663,16 +9643,6 @@
         }
       }
     },
-    "≈ %@%@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "≈ %1$@%2$@"
-          }
-        }
-      }
-    },
     "A rename target already exists or is inside its source.": {
       "localizations": {
         "zh-Hans": {
@@ -11452,6 +11422,130 @@
           "stringUnit": {
             "state": "translated",
             "value": "窗口材质"
+          }
+        }
+      }
+    },
+    "%@, each at most %@. Opening it needs every part in one folder, and an app that joins split archives, such as 7-Zip.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@，每个分卷最大 %2$@。打开时需要把所有分卷放在同一文件夹中，并使用能合并分卷的应用，例如 7-Zip。"
+          }
+        }
+      }
+    },
+    "About %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约 %@"
+          }
+        }
+      }
+    },
+    "About %@ in %lld parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约 %1$@，共 %2$lld 个分卷"
+          }
+        }
+      }
+    },
+    "An estimate from how well files like these usually compress.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根据此类文件通常的压缩效果估算。"
+          }
+        }
+      }
+    },
+    "Comes out in about %lld parts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将生成约 %lld 个分卷"
+          }
+        }
+      }
+    },
+    "Probably fits in one part": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大概只需一个分卷"
+          }
+        }
+      }
+    },
+    "Saved as %@, which opens in an app that joins split archives, such as 7-Zip. Choose “as one file” for a plain %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将存为 %1$@，需要用能合并分卷的应用打开，例如 7-Zip。选择“存为单个文件”可得到普通的 %2$@。"
+          }
+        }
+      }
+    },
+    "Turned off in More Options. An archive for Macs usually keeps “.DS_Store” and other Finder files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在“更多选项”中关闭。给 Mac 用的压缩包通常会保留“.DS_Store”等访达文件。"
+          }
+        }
+      }
+    },
+    "Turned on in More Options. Other systems show “.DS_Store” and “._” files as extra files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在“更多选项”中开启。其他系统会把“.DS_Store”和“._”文件显示为多余的文件。"
+          }
+        }
+      }
+    },
+    "%lld Mac-only files included": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Mac-only file included"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Mac-only files included"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "包含 %lld 个 Mac 专用文件"
+                }
+              }
+            }
           }
         }
       }
