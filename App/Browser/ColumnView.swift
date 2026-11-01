@@ -5,7 +5,7 @@ import SwiftUI
 /// selected file at the end. A selected folder opens as the next column.
 struct ContentColumns: View {
     @Bindable var model: BrowserModel
-    var isSearchFocused: FocusState<Bool>.Binding
+    var isSearchFocused: Binding<Bool>
     @FocusState private var isFocused: Bool
 
     static let columnWidth: CGFloat = 240

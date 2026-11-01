@@ -82,4 +82,30 @@ struct BrowserChromeTests {
         let updated = Archive(container, files: [file], helpers: [], source: ArchiveSource(url: URL(filePath: "/tmp/clarity-test.zip"), storedPaths: [:]))
         #expect(updated.packedSizeIncludesContainer && updated.packedSize == 90)
     }
+
+    /// The title bar over the files shares its width between the archive's name and Search (#231).
+    @Test func searchNarrowsThenCollapsesBeforeTheTitleGivesWay() {
+        let wide = TitleBarLayout(filesWidth: 730, isSearchActive: false)
+        #expect(wide.searchWidth == TitleBarLayout.fieldMaximum || wide.searchWidth > TitleBarLayout.fieldMinimum)
+        #expect(wide.titleMaxWidth >= TitleBarLayout.titleMinimum)
+
+        let medium = TitleBarLayout(filesWidth: 570, isSearchActive: false)
+        #expect(medium.searchWidth >= TitleBarLayout.fieldMinimum)
+        #expect(medium.searchWidth < wide.searchWidth)
+
+        // Too narrow for a field and a readable name: Search becomes a button…
+        let narrow = TitleBarLayout(filesWidth: 480, isSearchActive: false)
+        #expect(narrow.searchWidth < TitleBarLayout.fieldMinimum)
+        #expect(narrow.titleMaxWidth >= TitleBarLayout.titleMinimum)
+        // …and while it's in use it gets its field back and the name gives way instead.
+        let searching = TitleBarLayout(filesWidth: 480, isSearchActive: true)
+        #expect(searching.searchWidth == TitleBarLayout.fieldMinimum)
+        #expect(searching.titleMaxWidth < narrow.titleMaxWidth)
+    }
+
+    @Test func passwordAccessKeepsItsNameWhileThereIsRoom() {
+        #expect(TitleBarLayout(filesWidth: 730, isSearchActive: false, isEncrypted: true).unlockShowsTitle)
+        #expect(!TitleBarLayout(filesWidth: 480, isSearchActive: false, isEncrypted: true).unlockShowsTitle)
+        #expect(!TitleBarLayout(filesWidth: 730, isSearchActive: false).unlockShowsTitle)
+    }
 }

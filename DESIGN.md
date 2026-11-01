@@ -46,7 +46,7 @@ and prominent normal-status report. Keep archive checks and concrete notices, wi
 malware scanning or general safety. Archive Info remains reachable from the title menu during
 selection; Details labels its archive/file/folder/selection scope. This supersedes the historical
 always-visible shield guidance. See the [functional implementation handoff](Handoff/clarity-functional-implementation.md).
-The central Search/trailing-controls proposal remains a separate visual task in #231.
+The title bar's composition (Search in the middle, view and editing controls at the trailing end) is #231, described under Browser layout.
 
 **Current direction after the user's PR #177 review, 2026-10-24:** the full Browser remains
 the default; Glance is optional. The full Browser has a file workspace and **fixed, visible
@@ -71,9 +71,22 @@ evidence; its optional-pane composition and mockups are superseded.
 
 ## Browser layout (#160, #161)
 
-**Toolbar Search and editing (#215/#216, 2026-10-30).** Search is the system toolbar search
-field, trailing in the title bar: a field while the window has room, a magnifying-glass button
-when it doesn't, expanded by a click or ⌘F. The navigation row keeps its whole width for the path.
+**Title bar composition (#231, 2026-10-31).** The title bar follows the window's two parts. Over
+the files: the archive's name and menu on the leading side, its password control right after the
+name when it's encrypted (as Glance puts its lock after the name), and **Search in the middle**, so
+it reads as searching the files and not Details. Over Details, at the trailing end: the view modes,
+then **Delete · Save**. The system's toolbar search field always settles at the window's trailing
+end, over Details, so Search is the Browser's own field in the toolbar's capsule, with the system
+field's contracts kept: one query, ⌘F and a click reach it, Esc clears it and returns the keyboard
+to the files in one step. The files' half of the title bar is shared between the name and Search
+(`TitleBarLayout`): Search narrows from 300 pt to 150 pt, then becomes a magnifying-glass button,
+and the name truncates in the middle. While Search is in use in a narrow window it keeps its field
+and the name gives way instead. "Enter Password…" becomes the lock alone when room runs out.
+
+**Toolbar Search and editing (#215/#216, 2026-10-30).** Search moved from the navigation row to
+the title bar (where it sits is now #231's, above): a field while the window has room, a
+magnifying-glass button when it doesn't, expanded by a click or ⌘F. The navigation row keeps its
+whole width for the path.
 Delete and Save sit in their own capsule after the view modes from the moment an
 archive opens, disabled when there's nothing to delete or save, so editing is found before the
 first edit. Save is the one Save in the full window: with changes pending it becomes a prominent
@@ -86,7 +99,7 @@ ArcZip observations behind this.
 
 | Region | Holds |
 | --- | --- |
-| Title bar | Archive name/menu and subtitle, view modes, **Delete · Save**, encrypted-archive controls, then **Search**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and password access stay |
+| Title bar | Over the files: archive name/menu and subtitle, the password control when encrypted, then **Search** in the middle. Over Details: view modes, then **Delete · Save**. Narrow windows give up the view modes first (the View menu has them, ⌘1–3) and collapse Search to a button; editing and password access stay |
 | Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width and a deep path can use the whole row |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
 | Details (always there, right) | An inset panel, not a strip of the window: a content-sized preview, the name and kind, then properties as label ↔ value rows with hairlines (Size, Compressed size with the saving underneath, Modified, **Location** as the real path: “Showcase.zip › Showcase › Docs”). **Archive Info** when nothing is selected. No toggle, no close button, no action buttons |
