@@ -200,7 +200,7 @@ private struct ActionStack: View {
     private var edgesView: some View {
         ZStack(alignment: .top) {
             ForEach((0..<edges).reversed(), id: \.self) { depth in
-                StackEdge(depth: depth)
+                StackEdge(depth: depth, dimmed: unavailable != nil)
                     .scaleEffect(1 - 0.07 * CGFloat(depth + 1), anchor: .top)
                     .offset(y: -CGFloat(depth + 1) * 4.5)
             }
@@ -370,6 +370,9 @@ extension StackLabel where L == Label<Text, Image> {
 /// can't sit on glass — but a material with the same hairline rim, so it reads as the same family.
 private struct StackEdge: View {
     let depth: Int
+    /// The stack can't run yet: the edges give up the accent with the front button. They sit under
+    /// its glass, so a tinted edge would wash the dimmed button in the accent.
+    var dimmed = false
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
@@ -377,7 +380,8 @@ private struct StackEdge: View {
         Capsule()
             .fill(reduceTransparency ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor)) : AnyShapeStyle(.regularMaterial))
             .overlay {
-                Capsule().fill(Color.accentColor.opacity(depth == 0 ? 0.28 : 0.16))
+                Capsule().fill(dimmed ? AnyShapeStyle(.primary.opacity(0.06))
+                               : AnyShapeStyle(Color.accentColor.opacity(depth == 0 ? 0.28 : 0.16)))
             }
             .overlay {
                 Capsule().strokeBorder(ContrastStyle.resolve(contrast).increased ? AnyShapeStyle(.primary.opacity(0.45))
@@ -467,8 +471,10 @@ private struct NestedResultAction: View {
             .buttonStyle(StackButtonStyle(prominent: true))
             .accessibilityLabel(String(localized: "Show in “\(hit.container.name)”"))
             .help(String(localized: "Show in “\(hit.container.name)”"))
-            .fixedSize()
+            // Capped first, then sized to fit: a long archive name shortens in the middle at the
+            // stack's limit instead of running under Details (capped after, it overflowed).
             .frame(maxWidth: StackButtonStyle.maxWidth)
+            .fixedSize()
             .glassEffectID("summary", in: glass)
         } else {
             // The whole sentence while there's room; in a narrow window only what to do (Details
