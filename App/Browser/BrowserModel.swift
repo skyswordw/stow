@@ -83,6 +83,9 @@ final class BrowserModel {
     private(set) var searchFocusRequest = 0
     /// Whether Actions' stack is fanned out. Esc folds it before it clears the selection.
     var isActionStackOpen = false
+    /// Whether the stack's frame holds the fanned-out actions: from opening until they've sunk
+    /// back, a moment after it folds. The Browser keeps the room below the files meanwhile.
+    var isActionStackGrown = false
     var showHelperItems = false { didSet { if showHelperItems != oldValue { refresh(); runSearch() } } }
     var isChoosingEncoding = false
     /// A hover preview to show without a pointer (design review: `-StowHover`).

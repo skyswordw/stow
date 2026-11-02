@@ -44,6 +44,7 @@ struct NextStepsBar: View {
                 ActionStack(front: front, behind: [], selection: model.selection, scope: target.name,
                             unavailable: model.actionsUnavailableReason,
                             isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
+                            isGrown: Binding { model.isActionStackGrown } set: { model.isActionStackGrown = $0 },
                             glass: glass) { step in
                     model.run(step, on: [target])
                 }
@@ -59,6 +60,7 @@ struct NextStepsBar: View {
                                 scope: entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items"),
                                 unavailable: model.actionsUnavailableReason,
                                 isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
+                                isGrown: Binding { model.isActionStackGrown } set: { model.isActionStackGrown = $0 },
                                 glass: glass) { step in
                         if step == .quickLook { model.toggleQuickLook() } else { model.run(step) }
                     }
@@ -90,6 +92,10 @@ private struct ActionStack: View {
     /// Fanned out: by the pointer resting on it or a click on its edges. The model holds it so the
     /// window's Esc can fold it first.
     @Binding var isOpen: Bool
+    /// `isOpen` for the stack's frame, which changes at once rather than with the motion. The
+    /// buttons' places don't depend on it; an animated frame laid them all out lower for a moment,
+    /// so the others started below the front button instead of behind it.
+    @Binding var isGrown: Bool
     let glass: Namespace.ID
     let run: (NextStep) -> Void
 
@@ -101,6 +107,7 @@ private struct ActionStack: View {
     /// The fanned-out action under the pointer. SwiftUI's hover doesn't reach buttons that appear
     /// inside the stack as it grows, so the stack lights them from where the pointer is.
     @State private var pointedChoice: NextStep?
+    @State private var shrinkTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Two edges show at most; the rest are as easy to reach from More.
@@ -108,29 +115,38 @@ private struct ActionStack: View {
     private static let gap: CGFloat = Space.s
     /// The edges show 4–9 pt above the front button; the strip that opens the stack is a little taller.
     private static let edgeStrip: CGFloat = 14
+    /// A fanned-out action and the gap under it.
+    private static let row = StackButtonStyle.height + gap
+
+    /// The front button, with the edge strip or the fanned-out actions above it.
+    private var height: CGFloat {
+        StackButtonStyle.height + (isGrown ? CGFloat(behind.count) * Self.row : edges > 0 ? Self.edgeStrip : 0)
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if isOpen {
-                // The other actions, nearest the front button at the bottom.
-                ForEach(Array(behind.enumerated()).reversed(), id: \.element) { index, step in
-                    Button(step.title, systemImage: step.symbol) { fold(); run(step) }
-                        .buttonStyle(StackButtonStyle(prominent: false, highlighted: pointedChoice == step))
-                        .accessibilityLabel(step.title)
-                        .padding(.bottom, Self.gap)
-                        .transition(rise(from: index))
-                        .help(unavailable ?? String(localized: "\(step.title): \(scope)"))
-                        .disabled(unavailable != nil)
-                }
-            } else if edges > 0 {
+        // Laid out from the bottom, where the front button stays. Each of the others has a fixed
+        // place above it, open or not, so the stack growing upward never carries them: they rise
+        // from exactly behind the front button. The places take no room while it's folded — the
+        // stack's frame is only as tall as what shows (`height`).
+        ZStack(alignment: .bottom) {
+            // The others' glass in a container of its own, drawn as one layer under the front
+            // button. In the bar's container, their glass grew out of the front button's as they
+            // appeared and was drawn over it, labels and all, whatever the views' order.
+            GlassEffectContainer(spacing: 0) { others }
+            if !isOpen, edges > 0 {
                 edgeStrip
+                    .offset(y: -StackButtonStyle.height)
             }
             frontButton
                 .background(alignment: .top) {
-                    if !isOpen { edgesView.transition(.opacity) }
+                    // Faded in place rather than removed, so the edges stay under the front
+                    // button while the others rise out of it.
+                    edgesView.opacity(isOpen ? 0 : 1)
                 }
                 .onContinuousHover(perform: arrival)
+                .zIndex(1)
         }
+        .frame(height: height, alignment: .bottom)
         .fixedSize()
         // The pointer arrives over the front button or the edges (`arrival`). Once it's here,
         // leaving is decided by where it really is against the stack's whole frame, gaps included:
@@ -144,15 +160,42 @@ private struct ActionStack: View {
             return .handled
         }
         .onChange(of: selection) { fold() }
+        .onChange(of: isOpen, initial: true) { resize() }
         .onDisappear {
             pointerTask?.cancel()
             watchTask?.cancel()
+            shrinkTask?.cancel()
             isOpen = false
+            isGrown = false
         }
         .task {
             guard NextStepsDemo.opensStack else { return }
             try? await Task.sleep(for: .milliseconds(600))
             setOpen(true)
+        }
+    }
+
+    /// The other actions, each in its place above the front button, nearest it at the bottom; the
+    /// last place is the front button's own.
+    private var others: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(behind.enumerated()).reversed(), id: \.element) { index, step in
+                ZStack {
+                    if isOpen {
+                        Button(step.title, systemImage: step.symbol) { fold(); run(step) }
+                            .buttonStyle(StackButtonStyle(prominent: false, highlighted: pointedChoice == step))
+                            .accessibilityLabel(step.title)
+                            .transition(rise(from: index))
+                            .help(unavailable ?? String(localized: "\(step.title): \(scope)"))
+                            .disabled(unavailable != nil)
+                    }
+                }
+                .frame(height: StackButtonStyle.height)
+                .padding(.bottom, Self.gap)
+                // Each under the one nearer the front button.
+                .zIndex(-Double(index + 1))
+            }
+            Color.clear.frame(height: StackButtonStyle.height)
         }
     }
 
@@ -209,12 +252,12 @@ private struct ActionStack: View {
     }
 
     /// Up from behind the front button (`index` steps away), with the system's fade under Reduce Motion.
+    /// Each starts a little smaller and centred on the front button, so its label is hidden under
+    /// the front button's accent until it clears the top edge, and sinks back the same way.
     private func rise(from index: Int) -> AnyTransition {
         guard !reduceMotion else { return .opacity }
-        let distance = CGFloat(index + 1) * (StackButtonStyle.height + Self.gap)
-        return .asymmetric(
-            insertion: .offset(y: distance).combined(with: .scale(scale: 0.9, anchor: .top)).combined(with: .opacity),
-            removal: .offset(y: distance * 0.6).combined(with: .opacity))
+        let distance = CGFloat(index + 1) * Self.row
+        return .offset(y: distance).combined(with: .scale(scale: 0.9)).combined(with: .opacity)
     }
 
     /// Where the pointer is in the window, from the window's own idea of it (top-left origin, like
@@ -233,10 +276,9 @@ private struct ActionStack: View {
     /// The fanned-out action at a point: rows of button + gap from the top, the front button last.
     private func choice(at point: CGPoint?) -> NextStep? {
         guard isOpen, let point, frameInWindow.contains(point) else { return nil }
-        let row = StackButtonStyle.height + Self.gap
         let y = point.y - frameInWindow.minY
-        let index = Int(y / row)
-        guard y.truncatingRemainder(dividingBy: row) < StackButtonStyle.height, index < behind.count else { return nil }
+        let index = Int(y / Self.row)
+        guard y.truncatingRemainder(dividingBy: Self.row) < StackButtonStyle.height, index < behind.count else { return nil }
         return behind.reversed()[index]
     }
 
@@ -284,6 +326,20 @@ private struct ActionStack: View {
     private func setOpen(_ open: Bool) {
         guard open != isOpen, !behind.isEmpty || !open else { return }
         withAnimation(Motion.presence(open, reduceMotion: reduceMotion)) { isOpen = open }
+    }
+
+    /// Grows the frame as the stack opens, and shrinks it once the others have sunk back: a change
+    /// made without motion would cut their exit short.
+    private func resize() {
+        shrinkTask?.cancel()
+        let open = isOpen
+        shrinkTask = Task {
+            if !open { try? await Task.sleep(for: .milliseconds(300)) }
+            guard !Task.isCancelled else { return }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { isGrown = open }
+        }
     }
 
     /// Closes at once, without motion: an action was chosen or the selection moved on.
