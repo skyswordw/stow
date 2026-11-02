@@ -22,7 +22,8 @@ import SwiftUI
 /// settings (`-StowSettingsPane packing` selects a pane in the real Settings window; any `SettingsPane`
 /// raw value: general, extraction, installing, packing, nextSteps, glance, previews, passwords, fileTypes,
 /// integration, advanced, licenses; `-StowLongLists YES` fills Passwords and Integration with made-up
-/// entries, in memory only),
+/// entries, in memory only; `-StowActionsExample app` picks the Actions preview's sample: photos, app,
+/// fonts, installer, archive, nothingInAppArchive),
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
 /// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
 /// install-running (an app part-way into Applications), install-done (installed), install-app-open (refused: the installed copy is open, INS-181).

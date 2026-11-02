@@ -79,21 +79,15 @@ struct IntegrationView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(folders.displayedGrants, id: \.self) { folder in
-                        LabeledContent {
-                            Button("Remove") { folders.removeDisplayedGrant(folder) }
-                        } label: {
-                            Label(folder.path(percentEncoded: false), systemImage: "folder")
-                                .lineLimit(1)
-                                .truncationMode(.head)
+                        FolderGrantRow(folder: folder) {
+                            Button("Forget") { folders.removeDisplayedGrant(folder) }
                         }
                     }
                 }
             } header: {
                 Text("Folders Stow may access").accessibilityAddTraits(.isHeader)
             } footer: {
-                Text("Folder access includes files and subfolders. Remove forgets Stow’s saved authorization; macOS may keep access until Stow quits. Some protected locations may still be unavailable.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text("Access includes the folder’s files and subfolders. Forget removes Stow’s saved authorization; macOS may keep access until Stow quits. Some protected locations may still be unavailable.")
             }
         }
         .formStyle(.grouped)
@@ -108,6 +102,58 @@ struct IntegrationView: View {
         case .done: "checkmark.circle"
         case .failed: "xmark.circle"
         case .todo: "arrow.right.circle"
+        }
+    }
+}
+
+/// A folder Stow may write in, the same in Finder & Permissions and Installing: the folder's name
+/// over its path, and what can be done about it on the trailing edge.
+struct FolderGrantRow<Trailing: View>: View {
+    let name: String
+    let path: String
+    @ViewBuilder let trailing: Trailing
+
+    init(name: String, folder: URL, @ViewBuilder trailing: () -> Trailing) {
+        self.name = name
+        self.path = Self.displayPath(folder)
+        self.trailing = trailing()
+    }
+
+    init(folder: URL, @ViewBuilder trailing: () -> Trailing) {
+        let path = folder.path(percentEncoded: false)
+        self.init(name: FileManager.default.displayName(atPath: path), folder: folder, trailing: trailing)
+    }
+
+    /// The path with the real home folder as "~" (the sandbox's own home isn't it), no trailing slash.
+    static func displayPath(_ folder: URL) -> String {
+        var path = folder.path(percentEncoded: false)
+        if path.count > 1, path.hasSuffix("/") { path.removeLast() }
+        let home = FolderAccess.home.path(percentEncoded: false).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let homePath = "/" + home
+        if path == homePath { return "~" }
+        if path.hasPrefix(homePath + "/") { return "~" + path.dropFirst(homePath.count) }
+        return path
+    }
+
+    var body: some View {
+        LabeledContent {
+            trailing
+        } label: {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name)
+                        .lineLimit(1)
+                    Text(path)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                }
+            } icon: {
+                Image(systemName: "folder")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
         }
     }
 }

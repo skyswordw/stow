@@ -67,8 +67,11 @@ struct InstallOptionsView: View {
             Section {
                 Toggle("Skip macOS’s first-open check for installed apps", isOn: $removeQuarantine)
             } footer: {
-                Text("macOS marks apps that came from the internet so Gatekeeper can check them the first time they open. Removing the mark skips that check — only turn this on if you trust everything you install. Unsigned or unnotarized apps still get a warning from Stow first.")
-                    .foregroundStyle(.secondary)
+                // What the check is, then whether to turn it off: two short paragraphs, not one long one.
+                VStack(alignment: .leading, spacing: Space.s) {
+                    Text("macOS marks apps that came from the internet so Gatekeeper can check them the first time they open. Turning this on removes the mark, so that check is skipped.")
+                    Text("Only turn this on if you trust everything you install. Unsigned or unnotarized apps still get a warning from Stow first.")
+                }
             }
             Section {
                 grantRow(String(localized: "Applications"), granted: $applicationsGranted, folder: FolderAccess.applications)
@@ -76,15 +79,14 @@ struct InstallOptionsView: View {
             } header: {
                 Text("Folders Stow may install into").accessibilityAddTraits(.isHeader)
             } footer: {
-                Text("Stow asks for access before installing in a folder. Remembered access includes files and subfolders. Forget removes Stow’s saved authorization; macOS may keep access until Stow quits.")
-                    .foregroundStyle(.secondary)
+                Text("Stow asks the first time it installs into each folder. Access includes the folder’s files and subfolders. Forget removes Stow’s saved authorization; macOS may keep access until Stow quits.")
             }
         }
         .formStyle(.grouped)
     }
 
     private func grantRow(_ title: String, granted: Binding<Bool>, folder: URL) -> some View {
-        LabeledContent(title) {
+        FolderGrantRow(name: title, folder: folder) {
             if granted.wrappedValue {
                 Button("Forget") {
                     FolderAccess.forget(folder)
