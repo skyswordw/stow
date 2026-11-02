@@ -390,3 +390,16 @@ Search coverage in #136 now discloses omitted inner archives and Locate avoids o
 unlocking them. Review the retained inspector / Next Steps selection after Locate followed by
 a zero-result query. These are interaction briefs, not visual approval or evidence that Claude
 has started the review. #119 remains the separate visual/motion PR.
+
+## Non-modal source bookmark notice — #253
+
+A successful archive open whose folder bookmark cannot be saved now carries a dismissible
+notice in Browser and Glance. It never uses the open-failure sheet or appears on Welcome.
+Browsing and commands remain available; dismissing only removes the notice. Copy Details and
+GEN-180 remain reachable. Each standardized source-folder path warns once per app session,
+only after an archive opens successfully; failed or cancelled opens do not consume the warning.
+The existing English and Simplified Chinese copy is retained.
+
+Codex owns this state, diagnostic and test implementation. The view uses existing native
+text and buttons as a functional baseline. Claude Code retains final visual/motion ownership;
+no design acceptance is claimed. Preserve the non-modal behavior and compact Glance usability.

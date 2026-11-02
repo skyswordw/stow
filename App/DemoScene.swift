@@ -351,7 +351,7 @@ enum DemoScene {
         case "source-access-unsaved":
             // Opened after the picker, but the folder's grant couldn't be saved.
             app.openArchive(named: SampleArchive.make().name)
-            app.openFailure = AppState.OpenFailure(failure: AppState.unsavedSourceAccess(CocoaError(.fileWriteUnknown)))
+            app.browser?.sourceAccessNotice = AppState.unsavedSourceAccess(CocoaError(.fileWriteUnknown))
         case "finder-failed":
             // Extract Here from Finder that failed: the same sheet, on whatever window Stow has.
             Task {

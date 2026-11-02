@@ -118,7 +118,7 @@ jobs:
           ALLOWED_SKIPS: "0"
           # Includes password-card modality, close cancellation and stale-preview progress regressions.
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "646"
+          MIN_TESTS: "648"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

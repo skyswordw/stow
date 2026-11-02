@@ -168,6 +168,73 @@ struct SourceReadAccessTests {
         #expect(stops == 1)
     }
 
+    @Test func unsavedAccessIsNonmodalAndWarnsOncePerFolderPerSession() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let app = AppState()
+        app.sourceReadAccess = unsavableFolderAccess()
+        let first = folder.url.appending(path: "first.zip")
+        let second = folder.url.appending(path: "second.zip")
+        let otherFolder = folder.url.appending(path: "Other", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: otherFolder, withIntermediateDirectories: true)
+        let other = otherFolder.appending(path: "third.zip")
+        for archive in [first, second, other] {
+            try ZipFixture(entries: [.file("hello.txt", "usable")]).write(to: archive)
+        }
+        let original = try Data(contentsOf: first)
+        #expect(app.browser == nil && app.openFailure == nil)
+        app.open(first)
+        try await waitUntilFinished(app)
+        let browser = try #require(app.browser)
+        let notice = try #require(browser.sourceAccessNotice)
+        #expect(notice.code.description == "GEN-180")
+        #expect(!notice.diagnostic.isEmpty && app.openFailure == nil)
+        #expect(browser.archive.files.contains(where: { $0.name == "hello.txt" }))
+        browser.sourceAccessNotice = nil
+        #expect(app.browser === browser && app.openFailure == nil)
+        #expect(try Data(contentsOf: first) == original)
+        app.closeArchive()
+        try await waitUntil { app.browser == nil }
+        for archive in [first, second] {
+            app.open(archive)
+            try await waitUntilFinished(app)
+            #expect(app.browser != nil && app.browser?.sourceAccessNotice == nil && app.openFailure == nil)
+        }
+        app.open(other)
+        try await waitUntilFinished(app)
+        #expect(app.browser?.sourceAccessNotice != nil && app.openFailure == nil)
+        app.closeArchive()
+        try await waitUntil { app.browser == nil }
+        #expect(app.openFailure == nil)
+    }
+
+    @Test func failedOpenDoesNotConsumeTheFolderNotice() async throws {
+        let folder = try TemporaryFolder()
+        defer { folder.cleanUp() }
+        let archive = folder.url.appending(path: "retry.zip")
+        try Data("not an archive".utf8).write(to: archive)
+        let app = AppState()
+        app.sourceReadAccess = unsavableFolderAccess()
+        app.open(archive)
+        try await waitUntilFinished(app)
+        #expect(app.browser == nil && app.openFailure != nil)
+        try ZipFixture(entries: [.file("hello.txt", "recovered")]).write(to: archive)
+        app.open(archive)
+        try await waitUntilFinished(app)
+        #expect(app.openFailure == nil && app.browser?.sourceAccessNotice != nil)
+        app.closeArchive()
+    }
+
+    /// Each open receives a usable folder grant, but persisting it fails.
+    private func unsavableFolderAccess() -> SourceReadAccess {
+        var reads = 0
+        return SourceReadAccess(probe: { url in
+            reads += 1
+            return reads.isMultiple(of: 2) ? OtherAppFiles.readError(url) : EPERM
+        }, choose: { $0.deletingLastPathComponent() }, start: { _ in true }, stop: { _ in },
+        remember: { _ in throw CocoaError(.fileWriteUnknown) }, restore: {})
+    }
+
     @Test func supersededOpenCannotReplaceTheNewBrowserOrShowAnError() async throws {
         let folder = try TemporaryFolder()
         defer { folder.cleanUp() }
