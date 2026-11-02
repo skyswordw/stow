@@ -21,6 +21,8 @@ struct PackSheet: View {
     @State private var overrides: [String: String] = [:]
     @State private var showDetails = false
     @State private var showMore = false
+    /// Where More Options' title starts after the disclosure triangle; the closed summary lines up with it.
+    @State private var titleInset: CGFloat = 0
     @State private var middleHeight: CGFloat?
     @State private var overflow = ScrollEdges()
     /// Where the middle is scrolled to; opening More Options moves it.
@@ -318,31 +320,69 @@ struct PackSheet: View {
         return String(localized: "\(options.level.detail) Remembered for \(options.audience.phrase).")
     }
 
-    /// What More Options is set to, so a closed section still says what it holds. The sentence
-    /// already shows the password and parts, so they aren't repeated here; a purpose's usual
-    /// choices go without saying, and only the ones changed from it are named.
-    private var optionsSummary: String {
-        var parts = [compressionSummary]
-        if options.verify { parts.append(String(localized: "Will verify archive contents")) }
-        if options.format == .dmg { parts.append(options.diskImageFilesystem.title) }
+    /// One fact in More Options' closed heading. `planned` is something that will happen after
+    /// packing (checking the archive): a dotted check, so it never reads as the filled check of a
+    /// pack that was verified. `changed` is something Reset would undo, marked as in the open rows.
+    private struct SummaryItem: Identifiable {
+        enum Mark { case none, planned, changed }
+        let text: String
+        var mark = Mark.none
+        var id: String { text }
+    }
+
+    /// What More Options is set to, so a closed section still says what it holds. Compression
+    /// always; a planned check while it's on; then every choice that differs from the purpose,
+    /// last and marked, so the heading reads "usual, usual, changed, changed — Reset". The
+    /// password goes without saying (the sentence has it); the part size is named only when it's
+    /// one Reset would change.
+    private var summaryItems: [SummaryItem] {
+        let defaults = purposeDefaults
+        var usual = [SummaryItem(text: compressionSummary)]
+        var changed: [SummaryItem] = []
+        func add(_ text: String, changed isChanged: Bool, otherwise mark: SummaryItem.Mark = .none) {
+            if isChanged { changed.append(.init(text: text, mark: .changed)) } else { usual.append(.init(text: text, mark: mark)) }
+        }
+        if options.verify {
+            add(String(localized: "Will verify archive contents"), changed: options.verify != defaults.verify, otherwise: .planned)
+        } else if defaults.verify {
+            add(String(localized: "Won’t verify archive contents"), changed: true)
+        }
+        if options.format == .dmg {
+            add(options.diskImageFilesystem.title, changed: options.diskImageFilesystem != defaults.diskImageFilesystem)
+        }
+        if options.split != defaults.split { add(options.split.phrase.sentenceCased, changed: true) }
+        if options.format == .dmg {
+            if options.diskImageApplicationsLink != defaults.diskImageApplicationsLink {
+                add(options.diskImageApplicationsLink ? String(localized: "Applications shortcut")
+                                                      : String(localized: "No Applications shortcut"), changed: true)
+            }
+            if options.diskImageFinderChrome != defaults.diskImageFinderChrome {
+                add(options.diskImageFinderChrome ? String(localized: "Finder window layout")
+                                                  : String(localized: "No Finder window layout"), changed: true)
+            }
+        }
         if changesHelperFiles {
-            parts.append(options.dropsMacHelperFiles
+            add(options.dropsMacHelperFiles
                 ? String(localized: "Finder support files omitted")
-                : String(localized: "Finder support files included"))
+                : String(localized: "Finder support files included"), changed: true)
         }
         if changesMacMetadata {
-            parts.append(options.effectiveKeepsMacMetadata
+            add(options.effectiveKeepsMacMetadata
                 ? String(localized: "Finder tags and attributes kept")
-                : String(localized: "Finder tags and attributes omitted"))
+                : String(localized: "Finder tags and attributes omitted"), changed: true)
         }
         if options.format == .sevenZip, options.usesPassword, !options.encryptFilenames {
-            parts.append(String(localized: "File names visible"))
+            add(String(localized: "File names visible"), changed: true)
         }
         if let threads = options.threads {
-            parts.append(threads == 1 ? String(localized: "1 CPU core") : String(localized: "\(threads) CPU cores"))
+            add(threads == 1 ? String(localized: "1 CPU core") : String(localized: "\(threads) CPU cores"), changed: true)
         }
-        // Each item keeps its words together, so a second line never starts at "CPU cores".
-        return parts.map { $0.replacingOccurrences(of: " ", with: "\u{00A0}") }.joined(separator: " · ")
+        return usual + changed
+    }
+
+    /// The same facts as one line, for the accessibility label.
+    private var optionsSummary: String {
+        summaryItems.map(\.text).joined(separator: " · ")
     }
 
     // MARK: Changed from the purpose
@@ -424,6 +464,24 @@ struct PackSheet: View {
     /// password); a choice that only exists with one format (DMG layout, ZIP metadata, 7Z name
     /// encryption with a password) appears only with it.
     private func moreOptions(_ report: PackReport) -> some View {
+        // Closed, the facts sit under the title, lined up with it, so the disclosure triangle stays
+        // on the title's line however many lines the facts take.
+        VStack(alignment: .leading, spacing: Space.xs) {
+            moreOptionsGroup(report)
+            if !showMore {
+                summary
+                    .padding(.leading, titleInset)
+                    .contentShape(.rect)
+                    .onTapGesture {
+                        withAnimation(Motion.presence(true, reduceMotion: reduceMotion)) { showMore = true }
+                    }
+            }
+        }
+        .font(.callout)
+        .coordinateSpace(.named(Self.moreOptionsID))
+    }
+
+    private func moreOptionsGroup(_ report: PackReport) -> some View {
         DisclosureGroup(isExpanded: $showMore) {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.m, verticalSpacing: Space.l) {
                 optionRow("Compression") {
@@ -520,49 +578,89 @@ struct PackSheet: View {
                     .fixedSize()
                     caption(String(localized: "A limit is a request; some formats may still use fewer cores."))
                 }
+
+                // Open, Reset sits under the rows it puts back, with its reach in words rather than
+                // only in a tooltip: these choices, this archive; compression and Settings stay.
+                if isCustomized {
+                    groupDivider
+                    GridRow {
+                        Color.clear.frame(width: 0, height: 0)
+                        VStack(alignment: .leading, spacing: Space.xs) {
+                            resetButton
+                            caption(String(localized: "Puts back the usual choices for \(options.audience.phrase), for this archive only. Compression stays as you set it, and Settings don’t change."))
+                        }
+                    }
+                    .transition(.opacity)
+                }
             }
             .padding(.top, Space.m)
             .padding(.leading, Space.xs)
         } label: {
             // Full-strength title, and the current settings beside it while closed: the section is
             // easy to find and says whether it's worth opening. The whole line opens it.
-            HStack(alignment: .firstTextBaseline, spacing: Space.s) {
-                Text("More Options")
-                    .fontWeight(.medium)
-                if !showMore {
-                    // Two lines at most: a changed choice is what's worth reading, and it comes last.
-                    Text(optionsSummary)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                        .truncationMode(.tail)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel(String(localized: "Set to \(optionsSummary)"))
-                }
-                Spacer(minLength: Space.m)
-                // Only while something differs: a Reset that's always there says nothing. Short and
-                // in the sentence's amber, like the other words here that change things; the summary
-                // beside it keeps the room.
-                if isCustomized {
-                    Button {
-                        options.resetToPurposeDefaults()
-                    } label: {
-                        Label("Reset These Options", systemImage: "arrow.uturn.backward")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.tint)
-                    .fixedSize()
-                    .help(String(localized: "Go back to the usual choices for \(options.audience.phrase)"))
-                    .accessibilityLabel(String(localized: "Reset More Options"))
-                    .accessibilityHint(String(localized: "Go back to the usual choices for \(options.audience.phrase)"))
-                    .transition(.opacity)
-                }
-            }
-            .contentShape(.rect)
+            Text("More Options")
+                .fontWeight(.medium)
+                .onGeometryChange(for: CGFloat.self, of: { $0.frame(in: .named(Self.moreOptionsID)).minX }) { titleInset = $0 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
             .onTapGesture {
                 withAnimation(Motion.presence(!showMore, reduceMotion: reduceMotion)) { showMore.toggle() }
             }
         }
         .font(.callout)
+    }
+
+    /// The closed heading's facts, wrapping whole (never cut off: the changed ones come last and
+    /// are the ones worth reading), with Reset straight after the changed ones it undoes.
+    private var summary: some View {
+        let items = summaryItems
+        let label = String(localized: "Set to \(optionsSummary)")
+        return FlowLayout(spacing: Space.s, lineSpacing: Space.xs) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                summaryItem(item, isLast: index == items.count - 1)
+                    // One spoken line for the facts, as before; Reset stays its own button.
+                    .accessibilityHidden(index > 0)
+                    .modifier(SpokenAs(label: index == 0 ? label : nil))
+            }
+            // Only while something differs: a Reset that's always there says nothing.
+            if isCustomized { resetButton }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func summaryItem(_ item: SummaryItem, isLast: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            switch item.mark {
+            case .none: EmptyView()
+            case .planned:
+                // Hollow: it hasn't happened yet. The finished pack shows the filled check.
+                Image(systemName: "checkmark.circle.dotted")
+                    .foregroundStyle(.secondary)
+            case .changed:
+                Image(systemName: "pencil.circle.fill")
+                    .foregroundStyle(.tint)
+            }
+            // Each fact keeps its words together, so a line never starts at "CPU cores".
+            Text(verbatim: item.text.replacingOccurrences(of: " ", with: "\u{00A0}") + (isLast ? "" : " ·"))
+                .foregroundStyle(.secondary)
+        }
+        .fixedSize()
+    }
+
+    /// Short and in the sentence's amber, like the other words here that change things.
+    private var resetButton: some View {
+        Button {
+            options.resetToPurposeDefaults()
+        } label: {
+            Label("Reset These Options", systemImage: "arrow.uturn.backward")
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.tint)
+        .fixedSize()
+        .help(String(localized: "Go back to the usual choices for \(options.audience.phrase)"))
+        .accessibilityLabel(String(localized: "Reset More Options"))
+        .accessibilityHint(String(localized: "Go back to the usual choices for \(options.audience.phrase)"))
+        .transition(.opacity)
     }
 
     /// Between groups: a hairline across both columns, inside the grid's own spacing.
@@ -802,6 +900,22 @@ private struct ScrollEdges: Equatable {
     }
 }
 
+/// Speaks a view as one static text with `label`; does nothing without one.
+private struct SpokenAs: ViewModifier {
+    let label: String?
+
+    func body(content: Content) -> some View {
+        if let label {
+            content
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(label)
+                .accessibilityAddTraits(.isStaticText)
+        } else {
+            content
+        }
+    }
+}
+
 private extension String {
     /// `Audience` and `SplitSize` phrases sit inside the sentence; a menu item or label starts upper-case.
     var sentenceCased: String { prefix(1).uppercased() + dropFirst() }
@@ -887,19 +1001,31 @@ private struct ReportView: View {
     @Binding var overrides: [String: String]
     @Binding var showDetails: Bool
 
+    /// Read top-down by what someone might act on: what may not open, what comes out, what changes
+    /// on the way (renamed, left out, added), then what's simply true of the format. "All names
+    /// work there" is good news worth a line, but never above a change: it goes last.
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
+            ForEach(report.notes.filter { $0.tone == .caution }, id: \.title) { note in
+                row(note.tone, note.title, note.detail)
+            }
             if let partsNote {
                 row(partsNote.tone, partsNote.title, partsNote.detail, symbol: "square.stack.3d.up.fill")
             }
-            if report.renames.isEmpty {
-                row(.fine, String(localized: "All names work there"), String(localized: "No characters or names that the other system rejects."))
-            } else {
-                row(.info,
-                    String(localized: "\(report.renames.count) names will be adjusted"),
-                    audience.normalizesNames
-                        ? String(localized: "Characters Windows doesn’t allow are replaced. Your originals stay as they are.")
-                        : String(localized: "Names that would clash are numbered. Your originals stay as they are."))
+            if !report.renames.isEmpty {
+                // The names to review sit with the line that counts them.
+                VStack(alignment: .leading, spacing: Space.s) {
+                    row(.info,
+                        String(localized: "\(report.renames.count) names will be adjusted"),
+                        audience.normalizesNames
+                            ? String(localized: "Characters Windows doesn’t allow are replaced. Your originals stay as they are.")
+                            : String(localized: "Names that would clash are numbered. Your originals stay as they are."))
+                    DisclosureGroup("Review names", isExpanded: $showDetails) {
+                        renameList
+                    }
+                    .font(.callout)
+                    .padding(.leading, 26)
+                }
             }
             if !report.excluded.isEmpty {
                 row(.info,
@@ -919,16 +1045,11 @@ private struct ReportView: View {
                     String(localized: "\(report.leftOutLinks.count) links left out"),
                     String(localized: "\(audience.phrase.prefix(1).uppercased() + audience.phrase.dropFirst()) can’t recreate symbolic links. Choose Macs or Linux to keep them."))
             }
-            ForEach(report.notes, id: \.title) { note in
+            ForEach(report.notes.filter { $0.tone != .caution }, id: \.title) { note in
                 row(note.tone, note.title, note.detail)
             }
-
-            if !report.renames.isEmpty {
-                DisclosureGroup("Review names", isExpanded: $showDetails) {
-                    renameList
-                }
-                .font(.callout)
-                .padding(.leading, 26)
+            if report.renames.isEmpty {
+                row(.fine, String(localized: "All names work there"), String(localized: "No characters or names that the other system rejects."))
             }
         }
         .padding(Space.l)
