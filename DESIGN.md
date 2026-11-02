@@ -154,7 +154,7 @@ then Install App.
 
 One prominent action at a time: Extract All carries the accent while Actions is down; once
 Actions is up, for a selection or an archive's app, the stack's front does and Extract All stays
-put, unaccented. Archive facts live in one place, Archive Info, reached from Details with nothing
+put, unaccented (in Glance, a selection's stack takes its place; see Glance layout). Archive facts live in one place, Archive Info, reached from Details with nothing
 selected and the title menu. Everything floating shares one family: glass
 capsules, buttons concentric inside them (button radius + inset = capsule radius), all 38 pt tall.
 Details is a solid reading surface with the same light rim, brighter along its top edge.
@@ -183,7 +183,7 @@ the window and the folder in a bar under it, with Stow's own pieces.
 | Navigation, floating under the header | The Browser's capsule: Back · Forward · Up │ the path from the archive down, running the window's width (no Search beside it); a deep path folds its middle folders into a ⋯ menu and keeps where you are in view (#242) |
 | Files | Name and size, straight on the window's one surface: Liquid Glass with a wash of the window colour for legibility, or classic frosted (Settings › Glance); solid under Reduce Transparency. No card, no frame. The badge and the rows' icons share the 16 pt margin |
 | Window controls, floating bottom leading | **Close** · **Pin on Top** · **Open in Full Window** in one glass capsule of icon buttons, like the navigation capsule's. Pinned: the pin fills in the accent with a ring round it |
-| Archive controls, floating after them | **Extract All**. When the row has no room for its words (400 pt with Actions showing), it keeps its icon alone. While changes are pending or saving it drops the accent, so the bar's Save, right under it, is the one prominent action |
+| Archive controls, floating after them | **Extract All**, one extraction button at a time: while a selection shows its Actions, Extract All steps aside (sinking as the stack rises) and comes back as the selection clears, because beside the stack it had room only for its icon, which is Extract's icon, and read as a second Extract. User's choice, 2026-11-02, over ArcZip Mini's way (both buttons, Extract All in words): it holds at any width and for any stack, without widening Glance. When the row still has no room for its words (beside a progress capsule), it keeps its icon alone. While changes are pending or saving it drops the accent, so the bar's Save, right under it, is the one prominent action |
 | Actions, floating bottom trailing | The full window's stack and rules: one prominent action at a time, Install App alone for an archive that's one app |
 | Under the files | The full window's unsaved-changes and changed-on-disk bars |
 
@@ -192,8 +192,8 @@ capsule, with the traffic lights' colours: red Close, yellow Pin on Top and gree
 Window, their symbols always showing, dark as the traffic lights' are (white wouldn't read on
 yellow). Nothing moves or changes size when the setting changes. Pinned adds a darker ring round
 the pin's button. Not ArcZip's separate circles (user's call, 2026-10-27): the capsule keeps the
-window's controls one group, and at 400 pt a compact Extract All would otherwise read as a fourth
-window control.
+window's controls one group, and a compact Extract All would otherwise read as a fourth window
+control.
 
 The password is still asked for in the system sheet the full window uses; an in-window card like
 ArcZip's is a possible follow-up only if every password behaviour stays the same.
