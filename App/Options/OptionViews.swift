@@ -86,7 +86,7 @@ struct InstallOptionsView: View {
     }
 
     private func grantRow(_ title: String, granted: Binding<Bool>, folder: URL) -> some View {
-        FolderGrantRow(name: title, folder: folder) {
+        SavedItemRow(name: title, folder: folder) {
             if granted.wrappedValue {
                 Button("Forget") {
                     FolderAccess.forget(folder)

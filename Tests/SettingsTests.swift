@@ -356,9 +356,17 @@ struct SettingsTests {
     /// Folder rows show the real home as "~" (never the account name) and drop the trailing slash.
     @Test @MainActor func folderRowPaths() {
         let home = FolderAccess.home
-        #expect(FolderGrantRow<EmptyView>.displayPath(home.appending(path: "Library/Fonts", directoryHint: .isDirectory)) == "~/Library/Fonts")
-        #expect(FolderGrantRow<EmptyView>.displayPath(home) == "~")
-        #expect(FolderGrantRow<EmptyView>.displayPath(URL(filePath: "/Applications", directoryHint: .isDirectory)) == "/Applications")
-        #expect(FolderGrantRow<EmptyView>.displayPath(URL(filePath: "/Volumes/Shared/Brand Kit/", directoryHint: .isDirectory)) == "/Volumes/Shared/Brand Kit")
+        #expect(SavedItemRow<EmptyView>.displayPath(home.appending(path: "Library/Fonts", directoryHint: .isDirectory)) == "~/Library/Fonts")
+        #expect(SavedItemRow<EmptyView>.displayPath(home) == "~")
+        #expect(SavedItemRow<EmptyView>.displayPath(URL(filePath: "/Applications", directoryHint: .isDirectory)) == "/Applications")
+        #expect(SavedItemRow<EmptyView>.displayPath(URL(filePath: "/Volumes/Shared/Brand Kit/", directoryHint: .isDirectory)) == "/Volumes/Shared/Brand Kit")
+    }
+
+    /// Saved-password rows show the archive's folder under its name, not the name a second time.
+    @Test @MainActor func savedPasswordRowPaths() {
+        let archive = FolderAccess.home.appending(path: "Downloads/Brand Kit.zip").path(percentEncoded: false)
+        let row = SavedItemRow(name: "Brand Kit.zip", file: archive, symbol: "lock.doc") { EmptyView() }
+        #expect(row.path == "~/Downloads")
+        #expect(SavedItemRow(name: "Old.zip", file: "", symbol: "lock.doc") { EmptyView() }.path.isEmpty)
     }
 }
