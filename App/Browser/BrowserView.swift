@@ -84,6 +84,9 @@ struct BrowserView: View {
             .navigationTitle(model.title)
             .navigationSubtitle(model.subtitle)
             .toolbar(removing: .title)
+            // The title bar is the window's background, as the floating path and capsules assume
+            // (#242). macOS 27.2 started drawing a bar with a hairline under it by default.
+            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             .toolbar { toolbar }
             // ⌘F (Edit › Find…) puts the keyboard in the search field.
             .onChange(of: model.searchFocusRequest) { activateSearch() }
