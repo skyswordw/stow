@@ -169,8 +169,11 @@ struct ArchiveNotices: View {
             // Dark mode needs less: yellow over a dark surface turns olive quickly.
             .background(severity.color.opacity(colorScheme == .dark ? 0.09 : 0.1), in: shape)
             .overlay {
-                shape.strokeBorder(severity.color.opacity(ContrastStyle.resolve(contrast).increased ? 0.8
-                                                          : colorScheme == .dark ? 0.18 : 0.28))
+                // Increase Contrast: the border every surface takes then. A yellow edge, however
+                // strong, stays faint against the card's own yellow tint in light mode (#104).
+                shape.strokeBorder(ContrastStyle.resolve(contrast).increased
+                                   ? AnyShapeStyle(.primary.opacity(ContrastStyle(increased: true).borderOpacity))
+                                   : AnyShapeStyle(severity.color.opacity(colorScheme == .dark ? 0.18 : 0.28)))
                     .allowsHitTesting(false)
             }
             .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: isExpanded)

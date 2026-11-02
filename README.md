@@ -64,6 +64,11 @@ Scenes: `editing`, `readonly`, `welcome`, `grid`, `list`, `fonts`, `search`, `ac
 `open -StowOpen <path> -StowRun extractAll|install|fonts|installer` runs a real step
 (`-StowInstallFolder`/`-StowExtractFolder` point it at scratch folders); with a locked screen,
 `-StowSnapshotMode view` draws the view tree instead of the composited window.
+Display preferences can't be turned on by a launch argument, so any scene takes debug-only overrides:
+`-StowReduceTransparency YES` (Stow's solid fallbacks for glass) and `-StowIncreaseContrast YES` (Stow's
+own borders and colours). Neither reaches system controls or the accent's high-contrast variant: an app
+can't take the system's high-contrast appearance itself. Reduce Motion has no override; check it in
+code and with the system setting. `-StowArchiveInfoOpen YES` opens Archive Info from the title menu.
 
 Test fixtures are rebuilt with `scripts/make-fixtures.sh` (disk images) and
 `scripts/make-browse-fixtures.sh [--big]` (browsing, 100k entries).
