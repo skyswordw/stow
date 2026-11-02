@@ -908,6 +908,7 @@ struct TrayView: View {
     let tray: TrayController
     @Environment(AppState.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
     @AppStorage(SettingsKeys.trayBorder) private var borderName = TrayBorder.accent.rawValue
     @State private var isTargeted = false
     @FocusState private var focusedRow: UUID?
@@ -938,8 +939,9 @@ struct TrayView: View {
         } isTargeted: { isTargeted = $0; tray.touch() }
         .accessibleGlass(in: RoundedRectangle(cornerRadius: Self.radius))
         .overlay {
+            // Increase Contrast draws the chosen colour at full strength.
             RoundedRectangle(cornerRadius: Self.radius)
-                .strokeBorder(border.color.opacity(0.45), lineWidth: 1)
+                .strokeBorder(border.color.opacity(ContrastStyle.resolve(contrast).increased ? 1 : 0.45), lineWidth: 1)
         }
         .background {
             RoundedRectangle(cornerRadius: Self.radius)

@@ -211,7 +211,7 @@ struct GlanceSettingsView: View {
                 Text("Appearance")
             } footer: {
                 // The choice is kept either way; the system setting only wins while it's on.
-                if reduceTransparency {
+                if DisplayPreferences.reducesTransparency(reduceTransparency) {
                     Text("Reduce Transparency is on, so Glance uses a solid window whichever material you choose.")
                 } else {
                     Text("Liquid Glass is the default. Classic frosted uses a traditional material. Reduce Transparency always uses a solid window.")
@@ -246,21 +246,12 @@ struct PasswordSettingsView: View {
                         Text("No saved passwords yet")
                             .foregroundStyle(.secondary)
                     } else {
+                        // Listed like folder permissions (#162): the archive's name over its folder.
                         ForEach(entries) { entry in
-                            LabeledContent {
+                            SavedItemRow(name: entry.displayName, file: entry.identity.path, symbol: "lock.doc") {
                                 Button("Forget", role: .destructive) {
                                     ArchivePasswordVault.forget(entry)
                                     reload()
-                                }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(entry.displayName)
-                                    if !entry.identity.path.isEmpty {
-                                        Text(entry.identity.path)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(2)
-                                    }
                                 }
                             }
                         }

@@ -177,6 +177,13 @@ floating family, and no Details or Search. It's **borderless**, as ArcZip's Mini
 choice, 2026-10-27): no title bar and no traffic lights. The archive is named in a header inside
 the window and the folder in a bar under it, with Stow's own pieces.
 
+**Selection scope when switching from Columns (#160):** Columns can select a folder in
+one column while showing its contents in the next. Glance shows that folder's parent list
+with the folder selected, so selection actions always refer to a visible row. Returning to
+Columns opens the currently selected folder's contents again; selections and navigation made
+in Glance take precedence. These presentation transfers add no Back/Forward history entries
+and retain the archive level and Browser view preference.
+
 | Region | Holds |
 | --- | --- |
 | Header (no title bar) | The archive's format badge (32 pt), its name semibold with “ZIP archive · 17 files” under it, wherever you are inside it; when encrypted, a 20 pt lock badge right after the name: accent-filled while locked, a spinner while a password is checked, a quiet open lock once one has worked. Dragging the header moves the window; the window keeps its title for the Window menu |
@@ -228,14 +235,19 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
   sentence (what's in front, what's behind it).
 - **Installing** and **Finder & Permissions** show folder access the same way (#162): a folder
   symbol, the folder's name over its path (home as `~`), **Forget** on the trailing edge, and the
-  same footer sentences about subfolders and what Forget does. The first-open-check toggle's footer
+  same footer sentences about subfolders and what Forget does. **Passwords** lists saved passwords
+  in the same row: a locked-document symbol, the archive's name over the folder it's in (the name
+  isn't repeated in the path), **Forget** on the trailing edge. The first-open-check toggle's footer
   is two short paragraphs: what the check is, then when to turn it on.
 - **Glance** holds what General used to: opening from Finder in Glance (off: the full Browser is
   the default), the window material and colourful controls. While Reduce Transparency is on, the
   footer says Glance is solid whatever is chosen; the choice itself is kept.
 - **General** shows the language in use and folds the macOS how-to into a disclosure.
 - File Types drops its own heading in Settings (the title bar names the page); its standalone
-  scene keeps it.
+  scene keeps it. Its introduction lines up with the form's headers and footers, and its buttons
+  with the edges of the list's cards.
+- In Simplified Chinese the page is **访达与权限**, macOS's own name for Finder, like every other
+  Finder string on that page and in Welcome.
 
 ## Color
 
@@ -300,7 +312,18 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Button press | System controls handle it | — |
 
 Reduced Motion: springs become 150 ms opacity fades (exits 100 ms); nothing translates or scales.
-Reduced Transparency: glass falls back to solid window background (the system does this for us).
+Glass that morphs from one shape into another (Actions' front button into its progress capsule)
+cross-fades instead, the lock's symbol swap cross-fades, Search opens at once and the preparing
+ring stands still.
+Reduced Transparency: Stow's glass and materials fall back to the solid window background with a
+hairline edge (`accessibleGlass`); Glance is solid whatever material Settings chose. System glass
+buttons do this themselves.
+Increase Contrast: the floating capsules, Details, notices and the Tray take a visible border, the
+accent pill is outlined, metadata steps up from tertiary to secondary, and in light mode the accent
+deepens to `#A8551C`, so white words on it reach 5.3 : 1 (4.5 : 1 needed; the usual amber gives 3.1).
+Design snapshots force Stow's side of the last two with `-StowReduceTransparency YES` and
+`-StowIncreaseContrast YES` (#104); system controls and the accent's high-contrast variant only change
+with the system setting, as does Reduce Motion.
 
 ## Signature details
 

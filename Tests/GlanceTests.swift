@@ -98,6 +98,146 @@ struct GlanceTests {
         #expect(!browser.canGoUp)
     }
 
+    @Test func columnParentSelectionIsVisibleInGlanceAndSurvivesTheRoundTrip() throws {
+        let harness = Harness(), browser = columnBrowser()
+        harness.app.browser = browser
+        browser.navigate(to: "A")
+        browser.navigate(to: "A/B")
+        browser.columnSelect(try #require(browser.archive.entry(at: "A/B/c.txt")))
+        browser.move(.left)
+        let before = Place(browser)
+        #expect(before.folder == "A/B" && before.selection == ["A/B"])
+        #expect(!browser.visibleEntries.contains { $0.id == "A/B" })
+
+        harness.app.glance.collapse(near: .zero, animated: false)
+        #expect(browser.folder == "A")
+        #expect(browser.selection == ["A/B"])
+        #expect(browser.visibleEntries.contains { $0.id == "A/B" })
+        #expect(browser.cursor == "A/B" && browser.scrollTarget == "A/B")
+        #expect(browser.viewMode == .columns)
+        #expect(Place(browser).history == before.history && browser.historyIndex == before.historyIndex)
+        // Selection extraction still targets the visible folder, not its children or the archive.
+        #expect(browser.selectedEntries.map(\.id) == ["A/B"])
+        browser.run(.extract)
+        #expect(browser.activity?.itemCount == 1)
+        browser.cancelActivity()
+
+        harness.app.glance.expand()
+        #expect(Place(browser) == before)
+        #expect(browser.cursor == "A/B" && browser.viewMode == .columns)
+    }
+
+    @Test func selectedRootAndEmptyFoldersAreVisibleInGlance() throws {
+        let harness = Harness(), browser = columnBrowser()
+        harness.app.browser = browser
+        for path in ["A", "Empty"] {
+            browser.columnSelect(try #require(browser.archive.entry(at: path)))
+            let before = Place(browser)
+            harness.app.glance.collapse(near: .zero, animated: false)
+            #expect(browser.folder.isEmpty)
+            #expect(browser.selection == [path])
+            #expect(browser.visibleEntries.contains { $0.id == path })
+            harness.app.glance.expand()
+            #expect(Place(browser) == before)
+        }
+    }
+
+    @Test func changingSelectionInGlanceDoesNotRestoreTheOldColumnFolder() throws {
+        let harness = Harness(), browser = columnBrowser()
+        harness.app.browser = browser
+        browser.columnSelect(try #require(browser.archive.entry(at: "A/B")))
+        harness.app.glance.collapse(near: .zero, animated: false)
+        browser.select(["A/other.txt"])
+        let changed = Place(browser)
+        harness.app.glance.expand()
+        #expect(Place(browser) == changed)
+        #expect(browser.folder == "A" && browser.selection == ["A/other.txt"])
+
+        // Opening the folder explicitly in Glance clears its selection and keeps its contents.
+        harness.app.glance.collapse(near: .zero, animated: false)
+        browser.open(try #require(browser.archive.entry(at: "A/B")))
+        let opened = Place(browser)
+        harness.app.glance.expand()
+        #expect(Place(browser) == opened)
+        #expect(browser.folder == "A/B" && browser.selection.isEmpty)
+    }
+
+    @Test func aDifferentFolderSelectedInGlanceOpensInColumns() throws {
+        let harness = Harness(), browser = columnBrowser()
+        harness.app.browser = browser
+        browser.columnSelect(try #require(browser.archive.entry(at: "A")))
+        harness.app.glance.collapse(near: .zero, animated: false)
+        browser.select(["Empty"])
+        harness.app.glance.expand()
+        #expect(browser.folder == "Empty" && browser.selection == ["Empty"])
+    }
+
+    @Test func columnTransferKeepsSearchAndMultipleSelections() throws {
+        let harness = Harness(), browser = columnBrowser()
+        harness.app.browser = browser
+        browser.columnSelect(try #require(browser.archive.entry(at: "A")))
+        browser.query = "A"
+        let searching = Place(browser)
+        harness.app.glance.collapse(near: .zero, animated: false)
+        harness.app.glance.expand()
+        #expect(browser.query == "A" && Place(browser) == searching)
+
+        browser.navigate(to: "", selecting: ["A", "Empty"])
+        let multiple = Place(browser)
+        harness.app.glance.collapse(near: .zero, animated: false)
+        #expect(browser.selection.isSubset(of: Set(browser.visibleEntries.map(\.id))))
+        harness.app.glance.expand()
+        #expect(Place(browser) == multiple)
+    }
+
+    @Test func columnTransferStaysInsideTheSameNestedArchive() throws {
+        let harness = Harness(), browser = columnBrowser()
+        harness.app.browser = browser
+        let inner = BrowserModel.Level(archive: columnBrowser().archive, entryPath: "Inner.zip")
+        inner.password = "test-password"
+        browser.navigate(to: "A/B", levels: [browser.level, inner])
+        browser.columnSelect(try #require(browser.archive.entry(at: "A/B")))
+        let before = Place(browser), ids = browser.levels.map(\.id)
+        harness.app.glance.collapse(near: .zero, animated: false)
+        #expect(browser.folder == "A" && browser.selection == ["A/B"])
+        #expect(browser.levels.map(\.id) == ids && browser.level === inner)
+        #expect(browser.visibleEntries.contains { $0.id == "A/B" })
+        harness.app.glance.expand()
+        #expect(Place(browser) == before && browser.levels.map(\.id) == ids)
+        #expect(inner.password == "test-password")
+    }
+
+    @Test func editsInGlanceDoNotResurrectTheOldColumnSelection() throws {
+        let harness = Harness()
+        let browser = BrowserModel(archive: Archive(listing: ArchiveListing(type: "zip", entries: [
+            ListedEntry(path: "A/B/c.txt", isFolder: false, size: 1),
+            ListedEntry(path: "A/other.txt", isFolder: false, size: 1)
+        ]), url: URL(filePath: "/tmp/ColumnTransfer-\(UUID().uuidString).zip")))
+        browser.viewMode = .columns
+        harness.app.browser = browser
+        browser.columnSelect(try #require(browser.archive.entry(at: "A/B")))
+        harness.app.glance.collapse(near: .zero, animated: false)
+        browser.editSession.rename("A/B", to: "Renamed")
+        #expect(browser.selection == ["A/Renamed"])
+        harness.app.glance.expand()
+        #expect(browser.folder == "A/Renamed" && browser.selection == ["A/Renamed"])
+
+        harness.app.glance.collapse(near: .zero, animated: false)
+        browser.editSession.delete(["A/Renamed"])
+        harness.app.glance.expand()
+        #expect(browser.folder == "A" && browser.selection.isEmpty)
+        #expect(browser.editSession.isEdited)
+    }
+
+    private func columnBrowser() -> BrowserModel {
+        let files = ["A/B/c.txt", "A/B/d.txt", "A/other.txt", "root.txt", "Empty"].map {
+            ArchiveEntry(path: $0, isFolder: $0 == "Empty", size: 1, packedSize: 1, modified: .now)
+        }
+        let model = BrowserModel(archive: Archive(name: "Columns.zip", format: .zip, files: files))
+        model.viewMode = .columns
+        return model
+    }
+
     /// Glance's title bar names the archive and what it is, wherever you are inside it (#159); the
     /// path over the files says where that is, from the archive down (#157).
     @Test func glanceKeepsArchiveIdentityApartFromThePath() throws {

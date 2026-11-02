@@ -172,7 +172,7 @@ private struct ActionStack: View {
                 .accessibilityLabel(front.title)
                 .help(unavailable ?? String(localized: "\(front.title): \(scope)"))
                 .disabled(unavailable != nil)
-                .glassEffectID("summary", in: glass)
+                .glassMorph("summary", in: glass)
         }
     }
 
@@ -378,7 +378,8 @@ private struct StackEdge: View {
 
     var body: some View {
         Capsule()
-            .fill(reduceTransparency ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor)) : AnyShapeStyle(.regularMaterial))
+            .fill(DisplayPreferences.reducesTransparency(reduceTransparency) ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor))
+                  : AnyShapeStyle(.regularMaterial))
             .overlay {
                 Capsule().fill(dimmed ? AnyShapeStyle(.primary.opacity(0.06))
                                : AnyShapeStyle(Color.accentColor.opacity(depth == 0 ? 0.28 : 0.16)))
@@ -475,7 +476,7 @@ private struct NestedResultAction: View {
             // stack's limit instead of running under Details (capped after, it overflowed).
             .frame(maxWidth: StackButtonStyle.maxWidth)
             .fixedSize()
-            .glassEffectID("summary", in: glass)
+            .glassMorph("summary", in: glass)
         } else {
             // The whole sentence while there's room; in a narrow window only what to do (Details
             // already counts the selection).
@@ -498,7 +499,7 @@ private struct NestedResultAction: View {
                 .frame(minHeight: StackButtonStyle.height)
                 .padding(.horizontal, Space.l)
                 .accessibleGlass(in: .capsule)
-                .glassEffectID("summary", in: glass)
+                .glassMorph("summary", in: glass)
         }
     }
 }

@@ -277,8 +277,7 @@ struct BrowserView: View {
         ToolbarItem(placement: .navigation) {
             ArchiveTitleMenu(title: model.title, subtitle: model.subtitle, maxWidth: titleBar.titleMaxWidth) { titleMenu }
                 .popover(isPresented: $showsArchiveInfo, arrowEdge: .bottom) {
-                    ScrollView { ArchiveInfoView(model: model).padding(Space.l) }
-                        .frame(width: 320, height: 420)
+                    ArchiveInfoPopover(model: model)
                 }
                 .task {
                     guard ArchiveInfoView.opensForDemo else { return }
@@ -351,5 +350,24 @@ struct WindowReader: NSViewRepresentable {
             super.viewDidMoveToWindow()
             if let window { onWindow(window) }
         }
+    }
+}
+
+/// Archive Info from the title menu: as tall as what it says, up to 420 pt, then it scrolls.
+/// (A fixed 420 pt left half the popover empty for an ordinary archive.)
+private struct ArchiveInfoPopover: View {
+    let model: BrowserModel
+    static let maxHeight: CGFloat = 420
+    /// Measured from the content; the cap until the first measurement.
+    @State private var contentHeight: CGFloat = Self.maxHeight
+
+    var body: some View {
+        ScrollView {
+            ArchiveInfoView(model: model)
+                .padding(Space.l)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(width: 320, height: min(contentHeight, Self.maxHeight))
     }
 }

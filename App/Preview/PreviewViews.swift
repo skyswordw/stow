@@ -193,7 +193,7 @@ struct RichPreviewView: View {
                         .monospacedDigit()
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
-                        .background(.black.opacity(reduceTransparency || UserDefaults.standard.bool(forKey: "StowReduceTransparency") ? 1 : 0.55), in: .capsule)
+                        .background(.black.opacity(DisplayPreferences.reducesTransparency(reduceTransparency) ? 1 : 0.55), in: .capsule)
                         .foregroundStyle(.white)
                         .padding(6)
                 }

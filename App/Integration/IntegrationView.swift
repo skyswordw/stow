@@ -79,7 +79,7 @@ struct IntegrationView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(folders.displayedGrants, id: \.self) { folder in
-                        FolderGrantRow(folder: folder) {
+                        SavedItemRow(folder: folder) {
                             Button("Forget") { folders.removeDisplayedGrant(folder) }
                         }
                     }
@@ -106,11 +106,13 @@ struct IntegrationView: View {
     }
 }
 
-/// A folder Stow may write in, the same in Finder & Permissions and Installing: the folder's name
-/// over its path, and what can be done about it on the trailing edge.
-struct FolderGrantRow<Trailing: View>: View {
+/// Something Stow keeps for later, listed the same way in Finder & Permissions, Installing and
+/// Passwords: a symbol, the item's name over where it is, and what can be done about it on the
+/// trailing edge.
+struct SavedItemRow<Trailing: View>: View {
     let name: String
     let path: String
+    var symbol = "folder"
     @ViewBuilder let trailing: Trailing
 
     init(name: String, folder: URL, @ViewBuilder trailing: () -> Trailing) {
@@ -122,6 +124,14 @@ struct FolderGrantRow<Trailing: View>: View {
     init(folder: URL, @ViewBuilder trailing: () -> Trailing) {
         let path = folder.path(percentEncoded: false)
         self.init(name: FileManager.default.displayName(atPath: path), folder: folder, trailing: trailing)
+    }
+
+    /// A file by its name over the folder that holds it (the name isn't repeated in the path).
+    init(name: String, file path: String, symbol: String, @ViewBuilder trailing: () -> Trailing) {
+        self.name = name
+        self.path = path.isEmpty ? "" : Self.displayPath(URL(filePath: path).deletingLastPathComponent())
+        self.symbol = symbol
+        self.trailing = trailing()
     }
 
     /// The path with the real home folder as "~" (the sandbox's own home isn't it), no trailing slash.
@@ -143,14 +153,17 @@ struct FolderGrantRow<Trailing: View>: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(name)
                         .lineLimit(1)
-                    Text(path)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.head)
+                        .truncationMode(.middle)
+                    if !path.isEmpty {
+                        Text(path)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                    }
                 }
             } icon: {
-                Image(systemName: "folder")
+                Image(systemName: symbol)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
             }

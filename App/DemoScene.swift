@@ -44,7 +44,7 @@ import SwiftUI
 /// (`-StowInstallFolder <path>` installs into a scratch folder instead of /Applications).
 /// glance (the compact window over the sample archive; `-StowGlanceEdge top|bottom|left|right|topLeft|…`
 /// puts the pointer on that edge of the screen first, `-glance.pinned '<true/>'` pins it,
-/// `-StowReduceTransparency YES` shows the solid fallback). With -StowSnapshot it also writes
+/// `-StowReduceTransparency YES` shows the solid fallback; it and `-StowIncreaseContrast YES` work on any scene). With -StowSnapshot it also writes
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
 /// glance-editing and glance-editing-saving: the editing scene's changes in Glance, nothing selected.
 /// glance-opening: Glance from Finder while the archive is still opening (Close stops it).
@@ -62,6 +62,7 @@ import SwiftUI
 /// `-StowViewMode grid|list|columns` switches the view; `-StowScrollToEnd YES` scrolls to the last item.
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
+/// `-StowArchiveInfoOpen YES` opens Archive Info from the title menu in any Browser scene.
 /// `-StowLogLayout YES` also prints who has the keyboard and which toolbar items are showing.
 enum DemoScene {
     /// `-StowBatchExpanded YES`: the batch panel starts with every result listed.
@@ -74,6 +75,8 @@ enum DemoScene {
         if scene == "a11y-solid" { defaults.register(defaults: ["StowReduceTransparency": true]) }
         // Any scene: the archive notice card above the files starts open.
         if defaults.bool(forKey: "StowNoticesOpen") { ArchiveNotices.expandsForDemo = true }
+        // Any Browser scene: Archive Info's popover opens by itself (with `details-more`, expanded).
+        if defaults.bool(forKey: "StowArchiveInfoOpen") { ArchiveInfoView.opensForDemo = true }
         switch defaults.string(forKey: "StowAppearance") {
         case "light": NSApp.appearance = NSAppearance(named: .aqua)
         case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
