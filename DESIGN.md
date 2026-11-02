@@ -177,6 +177,13 @@ floating family, and no Details or Search. It's **borderless**, as ArcZip's Mini
 choice, 2026-10-27): no title bar and no traffic lights. The archive is named in a header inside
 the window and the folder in a bar under it, with Stow's own pieces.
 
+**Selection scope when switching from Columns (#160):** Columns can select a folder in
+one column while showing its contents in the next. Glance shows that folder's parent list
+with the folder selected, so selection actions always refer to a visible row. Returning to
+Columns opens the currently selected folder's contents again; selections and navigation made
+in Glance take precedence. These presentation transfers add no Back/Forward history entries
+and retain the archive level and Browser view preference.
+
 | Region | Holds |
 | --- | --- |
 | Header (no title bar) | The archive's format badge (32 pt), its name semibold with “ZIP archive · 17 files” under it, wherever you are inside it; when encrypted, a 20 pt lock badge right after the name: accent-filled while locked, a spinner while a password is checked, a quiet open lock once one has worked. Dragging the header moves the window; the window keeps its title for the Window menu |

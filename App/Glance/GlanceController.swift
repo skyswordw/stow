@@ -146,7 +146,15 @@ final class GlanceController: NSObject, NSWindowDelegate {
 
     /// Full window → Glance, near the pointer. Clicking animates; the keyboard shortcut doesn't.
     func collapse(near pointer: CGPoint = NSEvent.mouseLocation, animated: Bool = !GlanceController.isKeyboardEvent) {
-        guard model != nil else { return }
+        guard let model else { return }
+        // Columns shows a selected folder in the preceding column while `folder` names its
+        // contents. Glance has one list: show that folder in its parent so the highlighted row
+        // and selection actions still refer to the same item (#160). This is a presentation
+        // transfer, not a history step; preserve the selection and the Browser's view preference.
+        if let selected = selectedColumnFolder, selected.path == model.folder {
+            model.folder = selected.parent
+            model.select([selected.id], scroll: true)
+        }
         // Transfer ownership before the full window emits willCloseNotification.
         isShown = true
         closeMainWindow()
@@ -157,11 +165,24 @@ final class GlanceController: NSObject, NSWindowDelegate {
     /// window zoom (DESIGN.md › Motion); a click keeps the system's usual opening.
     func expand(byKeyboard: Bool = Motion.byKeyboard) {
         guard isShown else { return }
+        // A folder selected in Glance belongs in its parent column, with its contents to the
+        // right. Resolve the current selection, never a saved one: browsing, edits or archive
+        // changes in Glance must not resurrect the folder from before the transfer.
+        if let model, let selected = selectedColumnFolder, selected.parent == model.folder {
+            model.columnSelect(selected)
+        }
         close()
         mainWindowAnimation = byKeyboard ? .none : .default
         // A full window SwiftUI kept around is ordered in again; a new one gets it in `prepareMainWindow`.
         for window in Self.mainWindows { window.animationBehavior = mainWindowAnimation }
         (openMainWindow ?? app?.showMainWindow)?()
+    }
+
+    private var selectedColumnFolder: ArchiveEntry? {
+        guard let model, model.viewMode == .columns, !model.isSearching,
+              model.selection.count == 1, let id = model.selection.first,
+              let entry = model.archive.entry(at: id), entry.isNavigable else { return nil }
+        return entry
     }
 
     /// How the next full window comes up; `expand` sets it, and it's back to the default once one has.
