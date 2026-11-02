@@ -46,7 +46,7 @@ Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 
 | ArcZip | Stow | Notes / how Stow goes further |
 | --- | --- | --- |
 | 30+ formats: zip zipx 7z rar cbr tar tgz tbz tbz2 txz gz bz2 xz lzma lz dmg iso cab cpio arj lha lzh xar rpm msi pkg jar apk spk exe(SFX) swf .001 | ✅ via 7zz; 34 types registered (Shared/ArchiveTypes.swift), disk images & installers as Alternate | ➕ add zstd/.tar.zst, .deb, .cbz/.cb7, .epub/.docx “Show Package Contents” |
-| Icon, list, **column** views | ✅ icons, list, columns (⌘1 ⌘2 ⌘3) | Column view has a preview column with the file's real content |
+| Icon, list, **column** views | ✅ icons, list, columns (⌘1 ⌘2 ⌘3) | Column view shows folders only; a selected file previews in Details beside it (#160) |
 | Folder navigation, back/forward history, Up One Level, path bar | ✅ | ⌘[ ⌘] ⌘↑ ⌘↓; going back selects where you came from; the path bar spans nested archives |
 | Marquee selection, arrow-key navigation, Shift-extend, scroll-into-view | ✅ | Grid: arrows by row/column, ⇧ extends, ⌘/⇧ click, marquee (⇧/⌘ adds), type-to-select, Return opens, Space Quick Look. No animation on keyboard moves |
 | Archive search by name **or path**, background full-file index with progress | ✅ | Terms match anywhere in the path (“docs/ handoff”), case/accent/width-insensitive, name matches first. Index builds in the background in chunks; the search field reads “Indexing… 12,000 of 40,000” and results grow while you keep browsing. ✅ search across nested archives: one level in, read once into the preview cache, matches listed as “Inner.7z/path”, Show opens the inner archive with the match selected; password-protected inner archives are skipped |
