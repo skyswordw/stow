@@ -92,6 +92,8 @@ final class BrowserModel {
     var demoHover: ArchiveEntry.ID?
     private(set) var visibleEntries: [ArchiveEntry] = []
     private(set) var activity: Activity?
+    /// Non-blocking bookmark warning belonging only to this opened archive.
+    var sourceAccessNotice: Failure?
     /// Code signature verdicts for app entries, by path (from an install or the inspector's check).
     private(set) var signatures: [String: CodeSignature.Verdict] = [:]
     private(set) var checkingSignature: String?

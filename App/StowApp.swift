@@ -32,6 +32,8 @@ final class AppState {
     /// The open archive's security scope (Open panel URLs need it claimed; dropped URLs don't).
     private var scopedURL: URL?
     private var sourceGrant: SourceReadAccess.Grant?
+    /// Successful opens warn once per source folder for this app session.
+    private var warnedSourceFolders: Set<String> = []
     var sourceReadAccess = SourceReadAccess()
 
     /// Brings back the main window (it may have been closed while Stow kept running).
@@ -119,8 +121,9 @@ final class AppState {
                     browser = makeBrowser(archive)
                 }
                 browser?.verifyDiskImage()
-                if let error = recovered?.persistenceError {
-                    openFailure = OpenFailure(failure: Self.unsavedSourceAccess(error))
+                if let recovered, let error = recovered.persistenceError, let browser,
+                   warnedSourceFolders.insert(recovered.url.standardizedFileURL.path).inserted {
+                    browser.sourceAccessNotice = Self.unsavedSourceAccess(error)
                 }
             } catch {
                 let denied = error as? SourceReadAccess.Denied

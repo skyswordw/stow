@@ -192,6 +192,7 @@ struct BrowserView: View {
     @ViewBuilder
     private var banners: some View {
         VStack(alignment: .leading, spacing: Space.s) {
+            SourceAccessNotice(model: model)
             ArchiveNotices(findings: model.archive.checkup)
             if !model.legacyNames.isEmpty { LegacyNamesBanner(model: model) }
             if let summary = model.searchCoverageSummary {
