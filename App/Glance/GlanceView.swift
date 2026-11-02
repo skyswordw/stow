@@ -179,7 +179,8 @@ struct GlanceView: View {
         let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
         // Items of this archive selected, with Actions on: their Extract is the one. (Results
         // inside other archives only offer to go there, so Extract All stays.)
-        let selectionExtracts = showsNextSteps && !model.selectedEntries.isEmpty
+        // (Stops at the first one: ⌘A in a big archive shouldn't sort it all again here.)
+        let selectionExtracts = showsNextSteps && model.selection.contains { model.archive.entry(at: $0) != nil }
         // Edits pending or being saved: the bar under the files holds the accent.
         let savesEdits = model.editSession.isEdited || model.editSession.isSaving
         let extractsProminently = !showsActions && !savesEdits
