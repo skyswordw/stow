@@ -49,6 +49,12 @@ struct PasswordSheet: View {
                 .disabled(password.isEmpty)
         }
         .onAppear { isFocused = true }
+        // Glance's in-window card joins the window's focus a moment after it appears (a sheet is
+        // its own key window at once), so the field asks for the keyboard again then.
+        .task {
+            try? await Task.sleep(for: .milliseconds(60))
+            isFocused = true
+        }
     }
 
     private var explanation: String {
