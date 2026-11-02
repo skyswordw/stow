@@ -105,7 +105,7 @@ private struct AssociationRow: View {
                     Label("Stow", systemImage: "checkmark.circle.fill")
                         .labelStyle(.titleAndIcon)
                         .font(.callout)
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(.accentText)
                 } else if let app = row.app {
                     HStack(spacing: Space.xs) {
                         Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))

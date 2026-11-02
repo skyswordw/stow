@@ -108,6 +108,85 @@ struct ContrastStyle: Equatable {
     }
 }
 
+/// The accent as words and symbols. In dark mode the accent is deep enough for white words on an
+/// accent fill (#104), which leaves it too dim for words on a dark panel; this raises its lightness,
+/// keeping hue and saturation, until it reads at 4.5 : 1 against one (7 : 1 under Increase
+/// Contrast). An accent that already reads, such as a Mac's own blue, is left as it is. Fills,
+/// rings and selection keep `.tint`.
+struct AccentText: ShapeStyle {
+    nonisolated func resolve(in environment: EnvironmentValues) -> Color {
+        guard environment.colorScheme == .dark else { return .accentColor }
+        let accent = Color.accentColor.resolve(in: environment)
+        // `ContrastStyle.resolve` is main-actor; a shape style resolves off it, so read the same two.
+        let increased = environment.colorSchemeContrast == .increased
+            || UserDefaults.standard.bool(forKey: "StowIncreaseContrast")
+        let target: Double = increased ? 7 : 4.5
+        let lifted = Self.lifted(RGB(red: Double(accent.red), green: Double(accent.green), blue: Double(accent.blue)),
+                                 toContrast: target)
+        return Color(.sRGB, red: lifted.red, green: lifted.green, blue: lifted.blue, opacity: Double(accent.opacity))
+    }
+
+    nonisolated struct RGB: Equatable, Sendable {
+        var red, green, blue: Double
+    }
+
+    /// The darkest panel accent words sit on: Details or a glass capsule over a dark window.
+    nonisolated static let darkPanel = RGB(red: 0x2C / 255, green: 0x2C / 255, blue: 0x2C / 255)
+
+    /// WCAG relative luminance of a gamma-encoded sRGB colour.
+    nonisolated static func luminance(_ c: RGB) -> Double {
+        func linear(_ v: Double) -> Double { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+        return 0.2126 * linear(c.red) + 0.7152 * linear(c.green) + 0.0722 * linear(c.blue)
+    }
+
+    nonisolated static func contrast(_ a: RGB, _ b: RGB) -> Double {
+        let (la, lb) = (luminance(a), luminance(b))
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+    }
+
+    nonisolated static func lifted(_ color: RGB, toContrast target: Double, against panel: RGB = darkPanel) -> RGB {
+        var (hue, saturation, lightness) = hsl(color)
+        var result = color
+        while contrast(result, panel) < target, lightness < 1 {
+            lightness = min(1, lightness + 0.005)
+            result = rgb(hue: hue, saturation: saturation, lightness: lightness)
+        }
+        return result
+    }
+
+    nonisolated private static func hsl(_ c: RGB) -> (Double, Double, Double) {
+        let (r, g, b) = (min(max(c.red, 0), 1), min(max(c.green, 0), 1), min(max(c.blue, 0), 1))
+        let (high, low) = (max(r, g, b), min(r, g, b))
+        let lightness = (high + low) / 2
+        guard high > low else { return (0, 0, lightness) }
+        let delta = high - low
+        let saturation = delta / (1 - abs(2 * lightness - 1))
+        var hue = high == r ? (g - b) / delta : high == g ? (b - r) / delta + 2 : (r - g) / delta + 4
+        hue = (hue * 60).truncatingRemainder(dividingBy: 360)
+        return (hue < 0 ? hue + 360 : hue, saturation, lightness)
+    }
+
+    nonisolated private static func rgb(hue: Double, saturation: Double, lightness: Double) -> RGB {
+        let chroma = (1 - abs(2 * lightness - 1)) * saturation
+        let x = chroma * (1 - abs((hue / 60).truncatingRemainder(dividingBy: 2) - 1))
+        let m = lightness - chroma / 2
+        let (r, g, b): (Double, Double, Double) = switch hue {
+        case ..<60: (chroma, x, 0)
+        case ..<120: (x, chroma, 0)
+        case ..<180: (0, chroma, x)
+        case ..<240: (0, x, chroma)
+        case ..<300: (x, 0, chroma)
+        default: (chroma, 0, x)
+        }
+        return RGB(red: r + m, green: g + m, blue: b + m)
+    }
+}
+
+extension ShapeStyle where Self == AccentText {
+    /// The accent for words and symbols; see `AccentText`.
+    static var accentText: AccentText { AccentText() }
+}
+
 /// Glass is chrome; under Reduce Transparency its shape remains, filled with opaque window color.
 /// The solid fill matches the content behind it in light mode, so it keeps a hairline edge, like
 /// the system's own glass buttons do under Reduce Transparency.

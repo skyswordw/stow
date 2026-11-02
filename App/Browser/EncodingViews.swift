@@ -10,7 +10,7 @@ struct LegacyNamesBanner: View {
             ?? NameEncoding.bestGuess(for: model.legacyNames).map { String(localized: "\($0.title), automatically") } ?? String(localized: "automatically")
         HStack(spacing: Space.s) {
             Image(systemName: "character.book.closed").accessibilityHidden(true)
-                .foregroundStyle(.tint)
+                .foregroundStyle(.accentText)
             Text("Some names were stored in an older encoding. Reading them as \(reading).")
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -65,7 +65,7 @@ struct EncodingSheet: View {
                                 if option.id == suggested?.id {
                                     Text("Suggested")
                                         .font(.caption)
-                                        .foregroundStyle(.tint)
+                                        .foregroundStyle(.accentText)
                                 }
                             }
                             .tag(option.id)

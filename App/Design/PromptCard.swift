@@ -23,7 +23,7 @@ struct PromptCard<Content: View, Buttons: View>: View {
                 Image(systemName: symbol)
                     .font(.title)
                     .symbolRenderingMode(tint == nil ? .hierarchical : .monochrome)
-                    .foregroundStyle(tint.map(AnyShapeStyle.init) ?? AnyShapeStyle(.tint))
+                    .foregroundStyle(tint.map(AnyShapeStyle.init) ?? AnyShapeStyle(.accentText))
                     .frame(width: 32)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Space.xs) {

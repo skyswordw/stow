@@ -425,7 +425,7 @@ private struct ActionButtonBody: View {
     var body: some View {
         configuration.label
             .font(.body.weight(prominent ? .semibold : .regular))
-            .foregroundStyle(prominent ? AnyShapeStyle(.white) : isOn ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+            .foregroundStyle(prominent ? AnyShapeStyle(.white) : isOn ? AnyShapeStyle(.accentText) : AnyShapeStyle(.primary))
             .padding(.horizontal, iconOnly ? 0 : Space.m)
             .frame(minWidth: height, minHeight: height)
             .background { background }
@@ -435,7 +435,7 @@ private struct ActionButtonBody: View {
                     Capsule().strokeBorder(.primary.opacity(0.45))
                 }
                 if isOn {
-                    Capsule().strokeBorder(.tint, lineWidth: 1.5)
+                    Capsule().strokeBorder(.accentText, lineWidth: 1.5)
                 }
             }
             .contentShape(.capsule)

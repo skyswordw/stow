@@ -16,7 +16,7 @@ struct OnboardingView: View {
                     HStack(alignment: .top, spacing: Space.m) {
                         Image(systemName: step.systemImage)
                             .font(.title2)
-                            .foregroundStyle(.tint)
+                            .foregroundStyle(.accentText)
                             .frame(width: 28)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: Space.xs) {

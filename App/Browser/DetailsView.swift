@@ -304,7 +304,7 @@ private struct ItemIdentity: View {
                 if let state {
                     Text(verbatim: "·").foregroundStyle(.secondary).accessibilityHidden(true)
                     Text(state)
-                        .foregroundStyle(state == String(localized: "New") ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(state == String(localized: "New") ? AnyShapeStyle(.accentText) : AnyShapeStyle(.secondary))
                 }
             }
             .accessibilityElement(children: .combine)
@@ -469,7 +469,7 @@ struct PropertyList: View {
         if let detail = row.detail {
             Text(detail)
                 .font(.caption)
-                .foregroundStyle(row.tone == .pending ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                .foregroundStyle(row.tone == .pending ? AnyShapeStyle(.accentText) : AnyShapeStyle(.secondary))
                 .monospacedDigit()
         }
     }
