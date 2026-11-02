@@ -303,7 +303,9 @@ struct ContentList: View {
                     .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
                 }
                 // The name takes whatever room the others leave; their maximums keep it that way.
-                .width(min: 220, ideal: 320)
+                // The minimums together (with the cells' spacing) fit the files' narrowest width,
+                // `BrowserView.minFilesWidth`, so no column is cut off in the smallest window.
+                .width(min: 150, ideal: 320)
 
                 TableColumn(String(localized: "Size")) { entry in
                     Text(entry.size.bytes)
@@ -316,7 +318,7 @@ struct ContentList: View {
                 TableColumn(String(localized: "Kind")) { entry in
                     Text(entry.kindDescription).foregroundStyle(.secondary).lineLimit(1)
                 }
-                .width(min: 80, ideal: 150, max: 220)
+                .width(min: 70, ideal: 150, max: 220)
 
                 TableColumn(String(localized: "Modified")) { entry in
                     Text(entry.modified, format: .dateTime.day().month(.abbreviated).year())

@@ -29,6 +29,9 @@ struct ContentColumns: View {
                 .frame(maxHeight: .infinity)
             }
             .scrollIndicators(.automatic)
+            // Columns that open inside a folder (switching from List or Grid, or a new window)
+            // start at the newest column, not the root.
+            .defaultScrollAnchor(.trailing, for: .initialOffset)
             .onChange(of: parents.count + (previewedFile == nil ? 0 : 1000)) {
                 // Keep the newest column in view; keyboard-speed, so no animation.
                 scroller.scrollTo(previewedFile == nil ? parents.last : "preview", anchor: .trailing)
