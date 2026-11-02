@@ -116,9 +116,9 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           ALLOWED_SKIPS: "0"
-          # Includes Glance cancellation, source-panel ownership and encrypted split verification.
+          # Includes the seven Columns-to-Glance selection-scope regressions for #160.
           # Raise it when test methods are added; a lower total means suites went missing.
-          MIN_TESTS: "606"
+          MIN_TESTS: "635"
         run: scripts/ci-assert-tests.sh build/Stow.xcresult
 
       - name: Every string has a Simplified Chinese translation

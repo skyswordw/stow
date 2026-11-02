@@ -13,6 +13,23 @@ Claude Code retains visual and motion ownership.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Columns-to-Glance selection scope — #160
+
+Claude Code's acceptance report on #160 identified a functional mismatch: after Left in
+Columns, the current folder itself is selected in the preceding column. Glance then showed
+its contents while Extract acted on the invisible folder. This report is independent of
+#254's visual changes; the broader Browser acceptance issue remains open.
+
+Codex's correction preserves the selected object and reveals its row in Glance's parent
+list. Returning to Columns opens the currently selected folder, without restoring an old
+selection over navigation, edits or search performed in Glance. Ordinary file selections,
+multiple selections, search results, nested archive levels and Back/Forward history are
+preserved. No Browser view preference changes and no archive operation runs during transfer.
+
+This is a functional scope correction, not a new visual composition or motion direction.
+Claude Code retains visual/motion ownership. Dedicated VoiceOver validation remains deferred
+under #93; this change does not close the residual native QA work tracked in #38.
+
 ## Extract All menu access — #248, #249
 
 The user confirmed #248's one-extraction-button rule for Glance. File › Extract All
