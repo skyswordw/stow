@@ -202,8 +202,37 @@ the pin's button. Not ArcZip's separate circles (user's call, 2026-10-27): the c
 window's controls one group, and a compact Extract All would otherwise read as a fourth window
 control.
 
-The password is still asked for in the system sheet the full window uses; an in-window card like
-ArcZip's is a possible follow-up only if every password behaviour stays the same.
+Glance asks for a password with a card in the window, as ArcZip's Mini does, over everything else
+dimmed; see Encrypted archives.
+
+## Encrypted archives (#104)
+
+One lock, the same in every place it shows, and it never moves when its state changes:
+
+| State | Title bar (full window) | Glance header | Archive Info | A locked file's preview (Details) |
+| --- | --- | --- | --- | --- |
+| Locked | The lock glyph in the accent, on the title bar's plain glass button: findable, but not a second filled accent beside Extract All | 20 pt badge filled with the accent, white lock | Accent lock, “Encrypted”, **Enter Password…** in the accent | The file's icon with an accent lock badge, the reason, **Enter Password…** |
+| Checking | A small spinner in the lock's place; clicking it cancels | Spinner in the badge; clicking cancels | Spinner, “Unlocking…”, **Cancel** | The button keeps its size, shows the spinner and “Unlocking…”; clicking it cancels |
+| A password has worked | The open lock, quiet (secondary) | Quiet open lock on a faint circle | “Password available”, no action (a ZIP can still have files with another password) | The preview itself |
+
+**Asking.** The full window asks in the system sheet (`PasswordSheet`, 460 pt). Glance is narrower
+than that sheet (440 pt, 400 at the least) and has no title bar for a sheet to drop from, so it asks
+with the same card *in* the window: centred, the window colour with a hairline rim and a soft
+shadow, everything behind it dimmed (black 20 %, 36 % in dark) and taking no clicks. The card fills
+the window less a 12 pt margin, at most 420 pt, and puts its footnote on its own line, under the
+words, above Cancel · Unlock. Same words, field, Show password, keys (Return unlocks, Esc cancels)
+and answers as the sheet. A rejected password says so right under the field. While a password is
+checked the card is gone and the lock spins: the checking belongs to the lock. If it's wrong the
+card comes back where it was, only fading in, so asking again doesn't look like a new start.
+
+**Preparing a preview.** An encrypted file's Quick Look waits until it's read, so the window can
+ask for the password first. For anything that takes a while, a small glass capsule (32 pt) floats
+over the top of the files, under the path: *Preparing “Report.pdf” for Quick Look* (or *Preparing 3
+files…*) with Actions' ring, turning until the engine measures something, then filling with the
+percentage beside it, and **×** to stop (so does Esc, as before). It waits 0.4 s before showing, and
+the wait starts again after a password is typed, so a quick read never flashes it; it stays hidden
+while the password is asked for. It isn't a step: it takes nothing from Actions' place, and Extract
+All stays ready.
 
 ## Settings layout (#162)
 
@@ -306,6 +335,8 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |
 | Tray panel show/hide | Same edge in, same edge out: scale 0.96 → 1 from the menu bar + opacity (`Motion.presence`) | `appear` in, `exit` out; **none** for ⌥⌘T and Esc |
 | Files dragged in another app (#180) | Nothing comes out at the start. The menu-bar icon becomes `tray.and.arrow.down`; without an icon, a 44 pt piece of Tray glass with that symbol fades up where the Tray comes out (scale 0.9 → 1). The Tray comes out **at once** when the drag reaches 160 pt in front of its home (under the icon as wide as the Tray, at the screen's edge as tall as it, or over where it was put), stays for the rest of the drag, and goes back 0.8 s after the drag ends if nothing was dropped. ArcZip's Box: no reveal at drag start; opens at once ~150–165 pt under its icon, about its own width; stays while dragging; gone within ~3 s of a drag with no drop | hint `appear` in, `exit` out; fade only under Reduce Motion |
+| Password card in Glance appears / goes | A click: scale 0.96 → 1 + opacity, dimming fades in; it eases out. Asked again after a wrong password: fade only. **None** when a key (Return, Esc, Space) caused it | `appear` in, `exit` out |
+| Preparing-a-preview capsule appears / goes (after 0.4 s) | Ease-out fade with a 4 pt drop and scale 0.96 → 1 from its top; fades out. Its ring as Actions' | `status` in, `exit` out |
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text (the chevron stays put) | 180 ms |
@@ -318,8 +349,8 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 
 Reduced Motion: springs become 150 ms opacity fades (exits 100 ms); nothing translates or scales.
 Glass that morphs from one shape into another (Actions' front button into its progress capsule)
-cross-fades instead, the lock's symbol swap cross-fades, Search opens at once and the preparing
-ring stands still.
+cross-fades instead, the lock's symbol swap cross-fades, Search opens at once, the password card
+and the preparing-a-preview capsule only fade, and the preparing ring stands still.
 Reduced Transparency: Stow's glass and materials fall back to the solid window background with a
 hairline edge (`accessibleGlass`); Glance is solid whatever material Settings chose. System glass
 buttons do this themselves.

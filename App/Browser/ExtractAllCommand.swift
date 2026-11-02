@@ -10,7 +10,7 @@ final class ExtractAllCommand {
     @ObservationIgnored private let currentWindow: () -> NSWindow?
 
     var isEnabled: Bool {
-        target != nil && target?.extractAllUnavailableReason == nil
+        target != nil && target?.passwords.isAsking == false && target?.extractAllUnavailableReason == nil
     }
 
     init(currentWindow: @escaping () -> NSWindow? = { NSApp.keyWindow }) {
@@ -38,7 +38,8 @@ final class ExtractAllCommand {
         guard let window, window.sheetParent == nil, window.attachedSheet == nil,
               NSApp.modalWindow == nil,
               let delegate = window.delegate as? EditingWindowDelegate,
-              let model = delegate.model, model.editingWindow === window else { return nil }
+              let model = delegate.model, model.editingWindow === window,
+              !model.passwords.isAsking else { return nil }
         return model
     }
 

@@ -929,7 +929,7 @@ final class BrowserModel {
     func toggleQuickLook() {
         if quickLook.isActive {
             quickLook.close()
-        } else if !selection.isEmpty {
+        } else if !selection.isEmpty, !passwords.isAsking {
             quickLook.show()
         }
     }
@@ -1049,7 +1049,7 @@ final class BrowserModel {
 
     /// Runs a Next Step on the selection (or on `entries`); Extract with nothing selected extracts all.
     func run(_ step: NextStep, on entries: [ArchiveEntry]? = nil) {
-        guard !isListing else { return }
+        guard !isListing, !passwords.isAsking else { return }
         // Only results inside other archives are selected: nothing here to act on, and not "everything".
         if entries == nil, selectedEntries.isEmpty, !selection.isEmpty { return }
         let items = entries ?? (selectedEntries.isEmpty ? archive.files : selectedEntries)
@@ -1080,7 +1080,7 @@ final class BrowserModel {
     }
 
     func extractAll() {
-        guard !isListing else { return }
+        guard !isListing, !passwords.isAsking else { return }
         lastRun = { [weak self] in self?.extractAll() }
         if archive.source != nil {
             extract(nil)

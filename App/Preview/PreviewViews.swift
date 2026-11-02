@@ -204,11 +204,12 @@ struct RichPreviewView: View {
             VStack(spacing: Space.s) {
                 NativeIcon(type: entry.contentType).frame(width: 72, height: 72)
                     .overlay(alignment: .bottomTrailing) {
-                        // The same lock as the toolbar and archive card, so the three read as one thing.
+                        // The same lock as the title bar and Archive Info, in the accent while
+                        // locked, so they read as one thing.
                         if isLocked {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.accentText)
                                 .frame(width: 22, height: 22)
                                 .background(.regularMaterial, in: .circle)
                                 .overlay { Circle().strokeBorder(.primary.opacity(contrastStyle.faintBorderOpacity)) }
@@ -223,11 +224,12 @@ struct RichPreviewView: View {
                         .multilineTextAlignment(.center)
                 }
                 if isLocked {
-                    // A spinner in place while this file's password is checked. Both titles and the
-                    // glyph stay in the layout (hidden), so the button keeps one size in both states.
+                    // A spinner in place while this file's password is checked; clicking it then
+                    // cancels, as the title bar's lock and Archive Info's line do (#104). Both titles
+                    // and the glyph stay in the layout (hidden), so the button keeps one size.
                     let title = model.isUnlocking ? String(localized: "Unlocking…") : String(localized: "Enter Password…")
                     Button {
-                        model.unlockArchive(for: entry)
+                        if model.isUnlocking { model.cancelUnlocking() } else { model.unlockArchive(for: entry) }
                     } label: {
                         Label {
                             ZStack {
@@ -247,7 +249,9 @@ struct RichPreviewView: View {
                         }
                     }
                     .accessibilityLabel(title)
-                    .disabled(model.isUnlocking)
+                    .accessibilityHint(model.isUnlocking ? String(localized: "Cancel Unlocking") : "")
+                    .help(model.isUnlocking ? String(localized: "Unlocking — click to cancel")
+                          : String(localized: "Enter the archive’s password to preview or extract files"))
                     .padding(.top, Space.xs)
                 }
             }

@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Testing
 @testable import Stow
 
@@ -6,6 +7,73 @@ import Testing
 @MainActor
 struct PasswordPromptTests {
     let prompt = PasswordPrompt()
+
+    @Test func pendingPasswordBlocksStaleCommandsAndArchiveUndo() async throws {
+        let app = AppState()
+        app.openArchive(named: "Commands.zip")
+        let model = try #require(app.browser)
+        model.select([try #require(model.archive.files.first).id])
+        let window = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        let delegate = EditingWindowDelegate()
+        delegate.attach(window, model: model)
+        let command = ExtractAllCommand(currentWindow: { window })
+        defer { window.delegate = nil; window.orderOut(nil); model.cancelActivity() }
+        #expect(command.isEnabled)
+        let task = Task { await app.passwords.ask(.init(archiveName: "Commands.zip", purpose: .unlock, isRetry: false)) }
+        let question = try await nextQuestion(from: app.passwords)
+        #expect(!command.isEnabled)
+        command.perform(in: window)
+        model.run(.extract)
+        model.extractAll()
+        model.toggleQuickLook()
+        var dispatched = false
+        app.passwords.performCommand { dispatched = true }
+        #expect(!dispatched && model.activity == nil && !model.quickLook.isActive)
+        #expect(EditingUndoCommandsModel().archiveManager(in: window) == nil)
+        #expect(EditingUndoCommandsModel().manager(in: window) == nil)
+        app.passwords.answer(nil, to: question.id)
+        #expect(await task.value == nil)
+        app.passwords.performCommand { dispatched = true }
+        #expect(dispatched && command.isEnabled)
+    }
+
+    @Test func hidingGlanceCancelsOnlyItsCurrentQuestion() async throws {
+        let app = AppState()
+        app.openArchive(named: "Close.zip")
+        app.glance.presentsWindow = false
+        app.glance.closeMainWindow = {}
+        app.glance.collapse(near: .zero, animated: false)
+        let task = Task { await app.passwords.ask(.init(archiveName: "Close.zip", purpose: .unlock, isRetry: false)) }
+        let first = try await nextQuestion(from: app.passwords)
+        app.glance.close()
+        #expect(app.passwords.question == nil)
+        #expect(await task.value == nil)
+        let next = Task { await app.passwords.ask(.init(archiveName: "Browser.zip", purpose: .unlock, isRetry: false)) }
+        let second = try await nextQuestion(from: app.passwords)
+        // A retained hidden Glance, or its outgoing card, cannot cancel the Browser's new question.
+        app.glance.close()
+        app.passwords.answer("late", to: first.id)
+        #expect(app.passwords.question?.id == second.id)
+        app.passwords.answer(nil, to: second.id)
+        #expect(await next.value == nil)
+    }
+
+    @Test func oldPreviewReportersCannotAdvanceAReplacementRequest() async throws {
+        let preparation = QuickLookPreparation()
+        let idleReporter = preparation.reporter(file: 0, of: 1)
+        preparation.begin(name: "old", count: 1)
+        let oldReporter = preparation.reporter(file: 0, of: 1)
+        preparation.end()
+        preparation.begin(name: "new", count: 1)
+        idleReporter(1)
+        oldReporter(1)
+        preparation.reporter(file: 0, of: 1)(0.2)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(preparation.request?.name == "new" && preparation.progress == 0.2)
+        preparation.advance(to: .nan)
+        preparation.advance(to: .infinity)
+        #expect(preparation.progress == 0.2)
+    }
 
     @Test func asksUntilThePasswordWorksAndReturnsIt() async throws {
         let task = Task {
@@ -310,6 +378,39 @@ struct EncryptedArchiveTests {
         prompt.answer("swordfish", to: question.id) // a late sheet response is ignored
         #expect(model.level.password == nil)
         #expect(model.previews.cache.cachedFile(for: entry, in: model.archive) == nil)
+    }
+
+    /// The window says an encrypted preview is being prepared while the panel waits (#104), and
+    /// stops saying so the moment the request is closed.
+    @Test func preparingAnEncryptedPreviewIsShownUntilClosed() async throws {
+        defer { folder.cleanUp() }
+        let url = try makeArchive("preview-preparing.zip", ["-mem=AES256"])
+        let model = BrowserModel(archive: Archive(listing: try await ArchiveEngine.shared.list(url), url: url))
+        let prompt = PasswordPrompt()
+        model.passwords = PasswordHook(prompt: prompt)
+        let entry = try #require(model.archive.entry(at: "Docs/secret.txt"))
+        model.select([entry.id])
+        model.quickLook.show()
+        _ = try await nextQuestion(from: prompt)
+        let request = try #require(model.quickLook.preparation.request)
+        #expect(request.name == "secret.txt" && request.count == 1)
+        #expect(model.quickLook.preparation.progress == 0)
+        model.quickLook.close()
+        #expect(model.quickLook.preparation.request == nil)
+    }
+
+    @Test func preparationProgressOnlyMovesForward() {
+        let preparation = QuickLookPreparation()
+        preparation.advance(to: 0.5)
+        #expect(preparation.progress == 0) // nothing to advance before a request
+        preparation.begin(name: "big.mov", count: 2)
+        preparation.advance(to: 0.4)
+        preparation.advance(to: 0.3)
+        #expect(preparation.progress == 0.4)
+        preparation.advance(to: 7)
+        #expect(preparation.progress == 1)
+        preparation.end()
+        #expect(preparation.request == nil && preparation.progress == 0)
     }
 
     @Test func manualUnlockDoesNotVerifyAgainstAPlaintextEntry() async throws {

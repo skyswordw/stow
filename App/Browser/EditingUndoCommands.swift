@@ -62,7 +62,8 @@ final class EditingUndoCommandsModel {
     func archiveManager(in window: NSWindow?) -> UndoManager? {
         guard let window, window.attachedSheet == nil, NSApp.modalWindow == nil,
               let delegate = window.delegate as? EditingWindowDelegate,
-              let model = delegate.model, model.editingWindow === window else { return nil }
+              let model = delegate.model, model.editingWindow === window,
+              !model.passwords.isAsking else { return nil }
         // Field editors own typing undo, even when empty. Never fall back to archive history
         // just because the user has exhausted the text field's own undo stack.
         if let text = window.firstResponder as? NSTextView, text.isEditable { return nil }
@@ -70,6 +71,11 @@ final class EditingUndoCommandsModel {
     }
 
     func manager(in window: NSWindow?) -> UndoManager? {
+        if (window?.delegate as? EditingWindowDelegate)?.model?.passwords.isAsking == true {
+            // Typing undo remains available in the password field; never fall back to archive undo.
+            guard let editor = window?.firstResponder as? NSTextView, editor.isEditable else { return nil }
+            return editor.undoManager
+        }
         if let manager = archiveManager(in: window) { return manager }
         let native = NSApp.modalWindow ?? window?.attachedSheet ?? window
         return native?.firstResponder?.undoManager ?? native?.undoManager

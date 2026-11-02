@@ -14,6 +14,9 @@ struct PromptCard<Content: View, Buttons: View>: View {
     var footnote: String?
     /// A failure's code and the text "Copy Details" puts on the clipboard.
     var report: ErrorReport.Copyable?
+    /// 460 pt as a sheet; nil fills what it's offered (Glance's in-window card, at most 420 pt),
+    /// with the footnote on its own line above the buttons so neither squeezes the other.
+    var width: CGFloat? = 460
     @ViewBuilder var content: Content
     @ViewBuilder var buttons: Buttons
 
@@ -38,23 +41,34 @@ struct PromptCard<Content: View, Buttons: View>: View {
                 }
             }
             content
-            HStack(spacing: Space.s) {
-                if let report {
-                    CopyErrorDetails(report: report)
+            if width == nil, let footnote, report == nil {
+                VStack(alignment: .leading, spacing: Space.m) {
+                    // Under the words and the field, past the symbol's column.
+                    footnoteText(footnote)
+                        .padding(.leading, 32 + Space.m)
+                    HStack(spacing: Space.s) {
+                        Spacer(minLength: 0)
+                        buttons
+                    }
+                    .controlSize(.large)
                 }
-                if let footnote {
-                    Text(footnote)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            } else {
+                HStack(spacing: Space.s) {
+                    if let report {
+                        CopyErrorDetails(report: report)
+                    }
+                    if let footnote {
+                        footnoteText(footnote)
+                    }
+                    Spacer(minLength: 0)
+                    buttons
                 }
-                Spacer(minLength: 0)
-                buttons
+                .controlSize(.large)
             }
-            .controlSize(.large)
         }
-        .padding(Space.xl)
-        .frame(width: 460)
+        .padding(width == nil ? Space.l + Space.xs : Space.xl)
+        .frame(width: width)
+        .frame(maxWidth: width == nil ? 420 : nil)
         .overlay {
             RoundedRectangle(cornerRadius: Radius.panel)
                 .strokeBorder(.primary.opacity(ContrastStyle.resolve(contrast).increased ? 0.45 : 0))
@@ -63,6 +77,13 @@ struct PromptCard<Content: View, Buttons: View>: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
+    }
+
+    private func footnoteText(_ footnote: String) -> some View {
+        Text(footnote)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
