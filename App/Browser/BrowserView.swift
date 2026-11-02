@@ -60,7 +60,7 @@ struct BrowserView: View {
                     // While Actions is fanned out it rises over the files; the room below them stays
                     // the row's, so the list doesn't jump under the pointer.
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                        if !model.isActionStackOpen { floatingHeight = height }
+                        if !model.isActionStackOpen, !model.isActionStackGrown { floatingHeight = height }
                     }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
