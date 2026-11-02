@@ -134,7 +134,7 @@ struct ArchiveActions: View {
     let prominent: Bool
     var switchTo: WindowSwitch?
     /// Extract All as its icon alone, for a row without room for its words (Glance at its smallest
-    /// with Actions showing). Its name stays its accessibility label and help.
+    /// beside a progress capsule). Its name stays its accessibility label and help.
     var compact = false
 
     /// Where the leading button takes the archive.

@@ -164,27 +164,43 @@ struct GlanceView: View {
 
     /// The window's controls on the leading side, then the archive's Extract All, and Actions on
     /// the trailing side, with one prominent action at a time: Extract All carries the accent until
-    /// Actions shows, for a selection or to install an archive that's one app, or until there are
-    /// changes to save, when the bar's Save (or Save a Copy…) is the one. When the row runs out of
-    /// room, Extract All keeps its icon and drops its words.
+    /// Actions shows, to install an archive that's one app, or until there are changes to save,
+    /// when the bar's Save (or Save a Copy…) is the one.
+    ///
+    /// One extraction button at a time: while a selection shows its Actions, whose Extract is the
+    /// selection's, Extract All steps aside and comes back as the selection clears. Glance has no
+    /// room for "Extract All" in words beside the stack, and its icon alone is Extract's icon, so
+    /// the bar read as two Extract buttons. When the row still runs out of room (beside a progress
+    /// capsule), Extract All keeps its icon and drops its words.
     @ViewBuilder
     private var floatingControls: some View {
         let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
             .archiveLayout(installable: model.archiveTarget).front != nil
         let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
+        // Items of this archive selected, with Actions on: their Extract is the one. (Results
+        // inside other archives only offer to go there, so Extract All stays.)
+        let selectionExtracts = showsNextSteps && !model.selectedEntries.isEmpty
         // Edits pending or being saved: the bar under the files holds the accent.
         let savesEdits = model.editSession.isEdited || model.editSession.isSaving
         let extractsProminently = !showsActions && !savesEdits
         HStack(alignment: .bottom, spacing: Space.s) {
             GlanceWindowControls(glance: glance)
                 .accessibilitySortPriority(0.6)
-            ViewThatFits(in: .horizontal) {
-                ArchiveActions(model: model, prominent: extractsProminently)
-                ArchiveActions(model: model, prominent: extractsProminently, compact: true)
+            ZStack {
+                if !selectionExtracts {
+                    ViewThatFits(in: .horizontal) {
+                        ArchiveActions(model: model, prominent: extractsProminently)
+                        ArchiveActions(model: model, prominent: extractsProminently, compact: true)
+                    }
+                    // The accent fades across as a status change; a ⌘S or Delete key press just swaps it.
+                    .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion),
+                               value: savesEdits)
+                    // Sinks as the selection's stack rises at the other end, and rises again as it goes.
+                    .transition(.rise(reduceMotion: reduceMotion))
+                }
             }
-            // The accent fades across as a status change; a ⌘S or Delete key press just swaps it.
-            .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion),
-                       value: savesEdits)
+            // Arrow keys, ⌘A and Esc swap them without motion, as they do the stack.
+            .animation(Motion.presence(!selectionExtracts, reduceMotion: reduceMotion), value: selectionExtracts)
             .accessibilitySortPriority(0.5)
             Spacer(minLength: 0)
             ZStack {
