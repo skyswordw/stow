@@ -25,7 +25,9 @@ import SwiftUI
 /// entries, in memory only; `-StowActionsExample app` picks the Actions preview's sample: photos, app,
 /// fonts, installer, archive, nothingInAppArchive),
 /// password (the sheet after a rejected password; `-StowPasswordPurpose unlock|open|extract`, `-StowPasswordRetry NO`),
-/// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene), extract-options, install-options, batch, conflict, signature-warning, replace-app,
+/// encrypted (the sample marked encrypted; `-StowLock checking|available`, or `-StowEncrypted YES` on any scene;
+/// `-StowPreparing <name>` [`-StowPreparingProgress 0.42`] shows a preview being read for Quick Look,
+/// `-StowAsk YES` [`-StowPasswordRetry YES`] asks for its password), extract-options, install-options, batch, conflict, signature-warning, replace-app,
 /// install-running (an app part-way into Applications), install-done (installed), install-app-open (refused: the installed copy is open, INS-181).
 /// The install walkthrough (checkup, signature-warning, replace-app, install-*, activity) uses "Harbor Prototype 1.3.zip",
 /// an app build, because Try the Sample's ZIP holds no app; `checkup -StowSelect "Harbor Prototype.app"` selects it.
@@ -607,6 +609,18 @@ enum DemoScene {
         case "checking": app.browser?.showUnlockingForDemo()
         case "available": app.browser?.level.password = "demo"
         default: break
+        }
+        // `-StowAsk YES`: the open archive's password question (Glance's in-window card, the full
+        // window's sheet); `-StowPasswordRetry YES` as after a wrong one.
+        if defaults.bool(forKey: "StowAsk"), let name = app.browser?.archive.name {
+            let retry = defaults.bool(forKey: "StowPasswordRetry")
+            Task { _ = await app.passwords.ask(.init(archiveName: name, purpose: .unlock, isRetry: retry)) }
+        }
+        // `-StowPreparing <name>`: an encrypted file being read for Quick Look (#104);
+        // `-StowPreparingProgress 0.42` once measured, `-StowPreparingCount 3` for several.
+        if let name = defaults.string(forKey: "StowPreparing"), let preparation = app.browser?.quickLook.preparation {
+            preparation.begin(name: name, count: max(defaults.integer(forKey: "StowPreparingCount"), 1))
+            preparation.advance(to: defaults.double(forKey: "StowPreparingProgress"))
         }
 
         // `-StowViewMode grid|list|columns` and `-StowScrollToEnd YES`: check what floats over the last row.

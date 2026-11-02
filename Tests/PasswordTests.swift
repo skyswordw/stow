@@ -312,6 +312,39 @@ struct EncryptedArchiveTests {
         #expect(model.previews.cache.cachedFile(for: entry, in: model.archive) == nil)
     }
 
+    /// The window says an encrypted preview is being prepared while the panel waits (#104), and
+    /// stops saying so the moment the request is closed.
+    @Test func preparingAnEncryptedPreviewIsShownUntilClosed() async throws {
+        defer { folder.cleanUp() }
+        let url = try makeArchive("preview-preparing.zip", ["-mem=AES256"])
+        let model = BrowserModel(archive: Archive(listing: try await ArchiveEngine.shared.list(url), url: url))
+        let prompt = PasswordPrompt()
+        model.passwords = PasswordHook(prompt: prompt)
+        let entry = try #require(model.archive.entry(at: "Docs/secret.txt"))
+        model.select([entry.id])
+        model.quickLook.show()
+        _ = try await nextQuestion(from: prompt)
+        let request = try #require(model.quickLook.preparation.request)
+        #expect(request.name == "secret.txt" && request.count == 1)
+        #expect(model.quickLook.preparation.progress == 0)
+        model.quickLook.close()
+        #expect(model.quickLook.preparation.request == nil)
+    }
+
+    @Test func preparationProgressOnlyMovesForward() {
+        let preparation = QuickLookPreparation()
+        preparation.advance(to: 0.5)
+        #expect(preparation.progress == 0) // nothing to advance before a request
+        preparation.begin(name: "big.mov", count: 2)
+        preparation.advance(to: 0.4)
+        preparation.advance(to: 0.3)
+        #expect(preparation.progress == 0.4)
+        preparation.advance(to: 7)
+        #expect(preparation.progress == 1)
+        preparation.end()
+        #expect(preparation.request == nil && preparation.progress == 0)
+    }
+
     @Test func manualUnlockDoesNotVerifyAgainstAPlaintextEntry() async throws {
         defer { folder.cleanUp() }
         let url = try makeArchive("mixed.zip", ["-mem=ZipCrypto"])

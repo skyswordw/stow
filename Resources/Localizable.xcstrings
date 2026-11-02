@@ -12789,6 +12789,36 @@
           }
         }
       }
+    },
+    "Preparing “%@” for Quick Look": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在为快速查看准备“%@”"
+          }
+        }
+      }
+    },
+    "Preparing %lld files for Quick Look": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在为快速查看准备 %lld 个文件"
+          }
+        }
+      }
+    },
+    "Stop preparing the preview (Esc)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止准备预览（Esc）"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

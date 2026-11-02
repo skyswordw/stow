@@ -38,7 +38,7 @@ struct GlanceRoot: View {
         .onChange(of: app.browser == nil) { _, closed in
             if closed, glance.pendingName == nil { glance.close() }
         }
-        .passwordSheet(app.passwords)
+        .inWindowPasswordCard(app.passwords)
         .cloudDownloadSheet(app, isActive: glance.isShown)
         // The same failure card as the full window; that window is closed while Glance shows.
         .sheet(item: Binding(get: { glance.isShown ? app.openFailure : nil }, set: { app.openFailure = $0 })) { open in
@@ -137,6 +137,8 @@ struct GlanceView: View {
     /// bottom, and the full window's unsaved-changes and changed-on-disk bars under them.
     private var files: some View {
         content
+            // An encrypted preview being read before Quick Look can show it.
+            .overlay(alignment: .top) { QuickLookPreparingCapsule(model: model, passwords: app.passwords) }
             .safeAreaInset(edge: .top, spacing: 0) {
                 // Glance has no Search, so the path has the window's width.
                 NavigationCapsule(model: model, fillsWidth: true)

@@ -50,7 +50,11 @@ struct ArchiveUnlockControl: View {
                     Label {
                         Text("Unlock Archive…")
                     } icon: {
+                        // In the accent while locked, as Glance's badge is filled with it: the one lock
+                        // reads the same in the title bar, Glance, Details and a file's preview (#104).
+                        // A tinted glyph, not a filled button, so it doesn't compete with Extract All.
                         Image(systemName: "lock.fill")
+                            .foregroundStyle(badge ? AnyShapeStyle(.white) : AnyShapeStyle(.tint))
                     }
                     .labelStyle(labelStyle)
                 }
@@ -198,7 +202,9 @@ struct ArchiveLockRow: View {
                     Image(systemName: state == .locked ? "lock.fill" : "lock.open.fill")
                         // Replace scales the symbol out and in; a cross-fade under Reduce Motion.
                         .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
-                        .foregroundStyle(.secondary)
+                        // The accent while locked, like the title bar's lock and Glance's badge;
+                        // quiet once a password has worked.
+                        .foregroundStyle(state == .locked ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                 }
             }
             .frame(width: 14)

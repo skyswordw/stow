@@ -16,6 +16,8 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
     private var loads: Task<Void, Never>?
     private var pinned: [URL] = []
     private var presentationRequested = false
+    /// What the window shows while encrypted files are read before the panel can appear (#104).
+    let preparation = QuickLookPreparation()
 
     nonisolated final class Item: NSObject, QLPreviewItem, @unchecked Sendable {
         let entry: ArchiveEntry
@@ -63,6 +65,8 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         if needsPasswordRead, isVisible { panel?.orderOut(nil) }
         presentationRequested = true
         if needsPasswordRead {
+            let pending = items.filter(\.isPending)
+            preparation.begin(name: pending.first?.entry.name ?? "", count: pending.count)
             loadPendingItems(presentAfterLoading: true)
         } else {
             presentPanel()
@@ -76,12 +80,14 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
             panel.dataSource = self
             panel.delegate = self
         }
+        preparation.end()
         panel.makeKeyAndOrderFront(nil)
         panel.reloadData()
         presentationRequested = true
     }
 
     func close() {
+        preparation.end()
         presentationRequested = false
         loads?.cancel()
         loads = nil
@@ -98,6 +104,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
     func reload(startLoading: Bool = true) {
         guard let model else { return }
         loads?.cancel()
+        preparation.end()
         pinned.forEach { model.previews.cache.unpin($0) }
         pinned = []
         let order = Dictionary(model.visibleEntries.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -125,11 +132,13 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         guard !wanted.isEmpty else { return }
         loads = Task { [weak self, weak model] in
             // The one being looked at first, then the rest.
-            for item in wanted {
+            for (index, item) in wanted.enumerated() {
                 guard let model, !Task.isCancelled else { return }
                 let url: URL
+                // Only the window's preparing capsule shows it; with the panel up, its page does.
+                let progress = presentAfterLoading ? self?.preparation.reporter(file: index, of: wanted.count) : nil
                 do throws(EngineError) {
-                    url = try await model.previewFile(for: item.entry, in: archive)
+                    url = try await model.previewFile(for: item.entry, in: archive, onProgress: progress)
                 } catch {
                     guard !Task.isCancelled, let self else { return }
                     item.url = Self.statusPage(for: item.entry, status: Self.message(for: error))
@@ -230,6 +239,7 @@ final class QuickLookController: NSResponder, QLPreviewPanelDataSource, QLPrevie
         let panel = PanelBox(panel: panel)
         MainActor.assumeIsolated {
             presentationRequested = false
+            preparation.end()
             loads?.cancel()
             if let model { pinned.forEach { model.previews.cache.unpin($0) } }
             pinned = []
@@ -290,4 +300,44 @@ private struct PanelBox: @unchecked Sendable {
 
 private struct ItemBox: @unchecked Sendable {
     let item: QuickLookController.Item?
+}
+
+/// An encrypted preview being read before the Quick Look panel can show it (#104). The panel stays
+/// hidden until then so the window can ask for the password; for a big file that read takes a
+/// while, and the window says so (`QuickLookPreparingCapsule`) rather than seeming to ignore Space.
+@Observable
+final class QuickLookPreparation {
+    struct Request: Equatable {
+        let id = UUID()
+        /// The first file being read; `count` says how many in all.
+        let name: String
+        let count: Int
+    }
+
+    private(set) var request: Request?
+    /// 0 until the engine measures something, then how far the files have got.
+    private(set) var progress: Double = 0
+
+    func begin(name: String, count: Int) {
+        request = Request(name: name, count: count)
+        progress = 0
+    }
+
+    func advance(to fraction: Double) {
+        guard request != nil else { return }
+        progress = min(max(fraction, progress), 1)
+    }
+
+    /// Reports the engine's progress through file `index` of `count` as the whole read's.
+    func reporter(file index: Int, of count: Int) -> @Sendable (Double) -> Void {
+        { [weak self] fraction in
+            Task { @MainActor in self?.advance(to: (Double(index) + fraction) / Double(max(count, 1))) }
+        }
+    }
+
+    func end() {
+        guard request != nil else { return }
+        request = nil
+        progress = 0
+    }
 }

@@ -35,6 +35,8 @@ struct BrowserView: View {
     var body: some View {
         // Keep the navigation inset attached to one stable container as the file view changes.
         ZStack { content }
+            // An encrypted preview being read before Quick Look can show it.
+            .overlay(alignment: .top) { QuickLookPreparingCapsule(model: model, passwords: app.passwords) }
             .accessibilityElement(children: .contain)
             .accessibilitySortPriority(2)
             .archiveDrop(model: model, folder: model.folder)
