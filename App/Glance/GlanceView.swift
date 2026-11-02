@@ -167,8 +167,9 @@ struct GlanceView: View {
     /// Actions shows, to install an archive that's one app, or until there are changes to save,
     /// when the bar's Save (or Save a Copy…) is the one.
     ///
-    /// One extraction button at a time: while a selection shows its Actions, whose Extract is the
-    /// selection's, Extract All steps aside and comes back as the selection clears. Glance has no
+    /// One extraction button at a time: while a selection's Actions offer its Extract, Extract All
+    /// steps aside and comes back as the selection clears (File › Extract All, ⇧⌘E, reaches it
+    /// meanwhile). Glance has no
     /// room for "Extract All" in words beside the stack, and its icon alone is Extract's icon, so
     /// the bar read as two Extract buttons. When the row still runs out of room (beside a progress
     /// capsule), Extract All keeps its icon and drops its words.
@@ -177,10 +178,8 @@ struct GlanceView: View {
         let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
             .archiveLayout(installable: model.archiveTarget).front != nil
         let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
-        // Items of this archive selected, with Actions on: their Extract is the one. (Results
-        // inside other archives only offer to go there, so Extract All stays.)
-        // (Stops at the first one: ⌘A in a big archive shouldn't sort it all again here.)
-        let selectionExtracts = showsNextSteps && model.selection.contains { model.archive.entry(at: $0) != nil }
+        let selectionExtracts = GlanceLayout.selectionExtracts(
+            model, settings: NextStepsSettings(isShown: showsNextSteps, hidden: NextStepsSettings.decode(hiddenSteps)))
         // Edits pending or being saved: the bar under the files holds the accent.
         let savesEdits = model.editSession.isEdited || model.editSession.isSaving
         let extractsProminently = !showsActions && !savesEdits
@@ -226,6 +225,16 @@ enum GlanceLayout {
     static let inset = Space.s + Space.xs
     /// The header's leading and trailing margin; the badge lines up with the rows' icons.
     static let margin = Space.l
+
+    /// Whether the selection's Actions offer an Extract of their own, so Extract All steps aside
+    /// (#248): Actions on, Extract not hidden in Settings › Actions (hidden, it waits in ⋯ and the
+    /// bar would have no extraction button at all), and items of this archive selected (results
+    /// inside other archives only offer to go there). Stops at the first selected item: ⌘A in a
+    /// big archive shouldn't sort the selection again here.
+    static func selectionExtracts(_ model: BrowserModel, settings: NextStepsSettings) -> Bool {
+        settings.isShown && settings.shows(.extract)
+            && model.selection.contains { model.archive.entry(at: $0) != nil }
+    }
 }
 
 /// The archive Glance shows: its format badge, its name and what it is, wherever you are inside
