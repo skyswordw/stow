@@ -217,7 +217,7 @@ struct ArchiveLockRow: View {
                 // Last resort, narrower than any sidebar allows: one truncating line.
                 Text(state == .locked ? action(state) ?? title(state) : title(state))
                     .font(.caption.weight(state == .locked ? .semibold : .medium))
-                    .foregroundStyle(state == .locked ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                    .foregroundStyle(state == .locked ? AnyShapeStyle(.accentText) : AnyShapeStyle(.primary))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -250,7 +250,7 @@ struct ArchiveLockRow: View {
     private func actionText(_ action: String) -> some View {
         Text(action)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.tint)
+            .foregroundStyle(.accentText)
             .accessibilityHidden(true)
     }
 

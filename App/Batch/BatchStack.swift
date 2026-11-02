@@ -173,7 +173,7 @@ struct BatchStack: View {
                           systemImage: "chevron.down")
                         .labelStyle(DisclosureLabelStyle(isExpanded: showsAllResults))
                 }
-                .foregroundStyle(.tint)
+                .foregroundStyle(.accentText)
                 .accessibilityLabel(showsAllResults ? String(localized: "Show Fewer Results")
                                     : String(localized: "Show All \(queue.jobs.count) Results"))
             }

@@ -279,7 +279,7 @@ struct Breadcrumbs: View {
 
     private func icon(_ segment: BrowserModel.PathSegment) -> some View {
         Image(systemName: segment.isArchive ? "archivebox.fill" : "folder.fill")
-            .foregroundStyle(segment.isArchive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+            .foregroundStyle(segment.isArchive ? AnyShapeStyle(.accentText) : AnyShapeStyle(.secondary))
     }
 
     private func help(_ segment: BrowserModel.PathSegment) -> String {
