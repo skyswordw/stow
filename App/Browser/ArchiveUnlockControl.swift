@@ -54,7 +54,7 @@ struct ArchiveUnlockControl: View {
                         // reads the same in the title bar, Glance, Details and a file's preview (#104).
                         // A tinted glyph, not a filled button, so it doesn't compete with Extract All.
                         Image(systemName: "lock.fill")
-                            .foregroundStyle(badge ? AnyShapeStyle(.white) : AnyShapeStyle(.tint))
+                            .foregroundStyle(badge ? AnyShapeStyle(.white) : AnyShapeStyle(.accentText))
                     }
                     .labelStyle(labelStyle)
                 }
@@ -204,7 +204,7 @@ struct ArchiveLockRow: View {
                         .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
                         // The accent while locked, like the title bar's lock and Glance's badge;
                         // quiet once a password has worked.
-                        .foregroundStyle(state == .locked ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(state == .locked ? AnyShapeStyle(.accentText) : AnyShapeStyle(.secondary))
                 }
             }
             .frame(width: 14)

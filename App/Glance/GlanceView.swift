@@ -38,7 +38,7 @@ struct GlanceRoot: View {
         .onChange(of: app.browser == nil) { _, closed in
             if closed, glance.pendingName == nil { glance.close() }
         }
-        .inWindowPasswordCard(app.passwords)
+        .inWindowPasswordCard(app.passwords, isActive: glance.isShown)
         .cloudDownloadSheet(app, isActive: glance.isShown)
         // The same failure card as the full window; that window is closed while Glance shows.
         .sheet(item: Binding(get: { glance.isShown ? app.openFailure : nil }, set: { app.openFailure = $0 })) { open in
@@ -501,14 +501,17 @@ struct GlanceCommands: Commands {
         CommandGroup(after: .windowArrangement) {
             Divider()
             if glance.isShown {
-                Button("Open in Full Window") { glance.expand() }
+                Button("Open in Full Window") { app.passwords.performCommand { glance.expand() } }
+                    .disabled(app.passwords.question != nil)
                     .keyboardShortcut("g", modifiers: [.command, .option])
             } else {
-                Button("Switch to Glance") { glance.collapse() }
+                Button("Switch to Glance") { app.passwords.performCommand { glance.collapse() } }
+                    .disabled(app.passwords.question != nil)
                     .keyboardShortcut("g", modifiers: [.command, .option])
                     .disabled(app.browser == nil)
             }
-            Toggle("Keep Glance on Top", isOn: Binding(get: { glance.isPinned }, set: { glance.isPinned = $0 }))
+            Toggle("Keep Glance on Top", isOn: Binding(get: { glance.isPinned }, set: { value in app.passwords.performCommand { glance.isPinned = value } }))
+                .disabled(app.passwords.question != nil)
         }
     }
 }

@@ -53,6 +53,7 @@ struct PasswordSheet: View {
         // its own key window at once), so the field asks for the keyboard again then.
         .task {
             try? await Task.sleep(for: .milliseconds(60))
+            guard !Task.isCancelled else { return }
             isFocused = true
         }
     }
@@ -94,8 +95,8 @@ extension View {
     /// (440 pt, 400 at the least) and a borderless window has no title bar for it to drop from.
     /// It answers exactly as the sheet does: Return submits, Escape or Cancel cancels, and the
     /// window behind takes no clicks until it's answered.
-    func inWindowPasswordCard(_ prompt: PasswordPrompt) -> some View {
-        modifier(InWindowPasswordCard(prompt: prompt))
+    func inWindowPasswordCard(_ prompt: PasswordPrompt, isActive: Bool = true) -> some View {
+        modifier(InWindowPasswordCard(prompt: prompt, isActive: isActive))
     }
 
     /// Presents `prompt`'s questions as a sheet. Closing it any other way cancels the question.
@@ -112,12 +113,13 @@ extension View {
 
 private struct InWindowPasswordCard: ViewModifier {
     let prompt: PasswordPrompt
+    let isActive: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
-        let question = prompt.question
+        let question = isActive ? prompt.question : nil
         content
             // As under a sheet: nothing behind it takes a click, the keyboard or VoiceOver's cursor.
             .disabled(question != nil)

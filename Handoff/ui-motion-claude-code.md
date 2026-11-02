@@ -13,6 +13,22 @@ Claude Code retains visual and motion ownership.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Password-card and Actions command contracts — #261, #161
+
+Glance's password card blocks archive menu commands as well as controls behind it. Menu
+handlers recheck the current question when dispatched; Extract All and selected extraction
+also reject direct dispatch while it is pending. Password-field typing undo remains local
+to the field. Close remains available and cancels Glance's current question before hiding
+the retained window. A hidden Glance cannot present or cancel the full Browser's question.
+
+Quick Look progress callbacks belong to the request that created them; cancelled or replaced
+requests cannot advance a newer preview. Actions menu ordering observes the same stored
+suggestion preferences as the on-screen stack, so changing Settings takes effect immediately.
+
+Codex owns these functional safeguards and regression tests. Claude Code retains the password
+card, lock, progress capsule and Actions visual/motion treatment. Dedicated VoiceOver remains
+deferred under #93; native display-preference and release-matrix checks remain under #38.
+
 ## Columns-to-Glance selection scope — #160
 
 Claude Code's acceptance report on #160 identified a functional mismatch: after Left in

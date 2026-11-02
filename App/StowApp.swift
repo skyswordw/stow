@@ -515,7 +515,7 @@ struct AppRoot: ViewModifier {
                     if case .success(let urls) = result, !urls.isEmpty { app.extractArchives(urls) }
                 }
             }
-            .passwordSheet(app.passwords, isActive: isHost)
+            .passwordSheet(app.passwords, isActive: isHost && !app.glance.isShown)
             .fileImporter(isPresented: isHost ? $app.isChoosingArchive : .constant(false),
                           allowedContentTypes: [.archive, .diskImage, .data]) { result in
                 if case .success(let url) = result { app.open(url) }
@@ -617,18 +617,25 @@ struct StowCommands: Commands {
                 .disabled(!AppUpdater.shared.isAvailable)
         }
         CommandGroup(replacing: .newItem) {
-            Button("New Archive…") { app.chooseFilesToPack() }
+            Button("New Archive…") { app.passwords.performCommand { app.chooseFilesToPack() } }
+                .disabled(app.passwords.question != nil)
                 .keyboardShortcut("n")
-            Button("Open Archive…") { app.isChoosingArchive = true }
+            Button("Open Archive…") { app.passwords.performCommand { app.isChoosingArchive = true } }
+                .disabled(app.passwords.question != nil)
                 .keyboardShortcut("o")
             // Read here, in the Commands body: a nested view's reads don't refresh the menu.
-            OpenRecentMenu(entries: app.recents.visible, open: { app.openRecent($0) }, clear: { app.recents.clear() })
-            Button("Extract Archives…") { app.isChoosingBatch = true }
+            OpenRecentMenu(entries: app.recents.visible, open: { entry in app.passwords.performCommand { app.openRecent(entry) } },
+                           clear: { app.passwords.performCommand { app.recents.clear() } })
+                .disabled(app.passwords.question != nil)
+            Button("Extract Archives…") { app.passwords.performCommand { app.isChoosingBatch = true } }
+                .disabled(app.passwords.question != nil)
                 .keyboardShortcut("e", modifiers: [.command, .option])
-            Button("Open Sample Archive") { app.openSample() }
+            Button("Open Sample Archive") { app.passwords.performCommand { app.openSample() } }
+                .disabled(app.passwords.question != nil)
                 .keyboardShortcut("o", modifiers: [.command, .shift])
             Divider()
-            Button("Close Archive") { app.closeArchive() }
+            Button("Close Archive") { app.passwords.performCommand { app.closeArchive() } }
+                .disabled(app.passwords.question != nil)
                 .keyboardShortcut("w", modifiers: [.command, .shift])
                 .disabled(app.browser == nil)
         }

@@ -324,14 +324,18 @@ final class QuickLookPreparation {
     }
 
     func advance(to fraction: Double) {
-        guard request != nil else { return }
+        guard request != nil, fraction.isFinite else { return }
         progress = min(max(fraction, progress), 1)
     }
 
     /// Reports the engine's progress through file `index` of `count` as the whole read's.
     func reporter(file index: Int, of count: Int) -> @Sendable (Double) -> Void {
-        { [weak self] fraction in
-            Task { @MainActor in self?.advance(to: (Double(index) + fraction) / Double(max(count, 1))) }
+        let id = request?.id
+        return { [weak self] fraction in
+            Task { @MainActor in
+                guard let self, let id, self.request?.id == id else { return }
+                self.advance(to: (Double(index) + fraction) / Double(max(count, 1)))
+            }
         }
     }
 

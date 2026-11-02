@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Testing
 @testable import Stow
 
@@ -6,6 +7,73 @@ import Testing
 @MainActor
 struct PasswordPromptTests {
     let prompt = PasswordPrompt()
+
+    @Test func pendingPasswordBlocksStaleCommandsAndArchiveUndo() async throws {
+        let app = AppState()
+        app.openArchive(named: "Commands.zip")
+        let model = try #require(app.browser)
+        model.select([try #require(model.archive.files.first).id])
+        let window = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        let delegate = EditingWindowDelegate()
+        delegate.attach(window, model: model)
+        let command = ExtractAllCommand(currentWindow: { window })
+        defer { window.delegate = nil; window.orderOut(nil); model.cancelActivity() }
+        #expect(command.isEnabled)
+        let task = Task { await app.passwords.ask(.init(archiveName: "Commands.zip", purpose: .unlock, isRetry: false)) }
+        let question = try await nextQuestion(from: app.passwords)
+        #expect(!command.isEnabled)
+        command.perform(in: window)
+        model.run(.extract)
+        model.extractAll()
+        model.toggleQuickLook()
+        var dispatched = false
+        app.passwords.performCommand { dispatched = true }
+        #expect(!dispatched && model.activity == nil && !model.quickLook.isActive)
+        #expect(EditingUndoCommandsModel().archiveManager(in: window) == nil)
+        #expect(EditingUndoCommandsModel().manager(in: window) == nil)
+        app.passwords.answer(nil, to: question.id)
+        #expect(await task.value == nil)
+        app.passwords.performCommand { dispatched = true }
+        #expect(dispatched && command.isEnabled)
+    }
+
+    @Test func hidingGlanceCancelsOnlyItsCurrentQuestion() async throws {
+        let app = AppState()
+        app.openArchive(named: "Close.zip")
+        app.glance.presentsWindow = false
+        app.glance.closeMainWindow = {}
+        app.glance.collapse(near: .zero, animated: false)
+        let task = Task { await app.passwords.ask(.init(archiveName: "Close.zip", purpose: .unlock, isRetry: false)) }
+        let first = try await nextQuestion(from: app.passwords)
+        app.glance.close()
+        #expect(app.passwords.question == nil)
+        #expect(await task.value == nil)
+        let next = Task { await app.passwords.ask(.init(archiveName: "Browser.zip", purpose: .unlock, isRetry: false)) }
+        let second = try await nextQuestion(from: app.passwords)
+        // A retained hidden Glance, or its outgoing card, cannot cancel the Browser's new question.
+        app.glance.close()
+        app.passwords.answer("late", to: first.id)
+        #expect(app.passwords.question?.id == second.id)
+        app.passwords.answer(nil, to: second.id)
+        #expect(await next.value == nil)
+    }
+
+    @Test func oldPreviewReportersCannotAdvanceAReplacementRequest() async throws {
+        let preparation = QuickLookPreparation()
+        let idleReporter = preparation.reporter(file: 0, of: 1)
+        preparation.begin(name: "old", count: 1)
+        let oldReporter = preparation.reporter(file: 0, of: 1)
+        preparation.end()
+        preparation.begin(name: "new", count: 1)
+        idleReporter(1)
+        oldReporter(1)
+        preparation.reporter(file: 0, of: 1)(0.2)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(preparation.request?.name == "new" && preparation.progress == 0.2)
+        preparation.advance(to: .nan)
+        preparation.advance(to: .infinity)
+        #expect(preparation.progress == 0.2)
+    }
 
     @Test func asksUntilThePasswordWorksAndReturnsIt() async throws {
         let task = Task {

@@ -22,6 +22,13 @@ final class PasswordPrompt {
     private(set) var question: Question?
     private var continuation: CheckedContinuation<String?, Never>?
 
+    /// Menu items can outlive the state used to build them. Recheck at dispatch, including for
+    /// Glance's in-window prompt, which has no native attachedSheet to block archive commands.
+    func performCommand(_ action: () -> Void) {
+        guard question == nil else { return }
+        action()
+    }
+
     /// Shows `question` and waits for the answer; nil means cancelled. Cancelling the calling task
     /// dismisses the question.
     func ask(_ question: Question) async -> String? {

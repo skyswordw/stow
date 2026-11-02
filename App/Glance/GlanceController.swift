@@ -255,6 +255,11 @@ final class GlanceController: NSObject, NSWindowDelegate {
     /// Hides Glance without ending the archive session, including a transfer back to Browser.
     func close() {
         guard isShown else { return }
+        // orderOut retains the hosted view, so its onDisappear is not a close notification.
+        // Only the visible Glance owns this question; a hidden Glance must not cancel a sheet.
+        if let prompt = app?.passwords, let question = prompt.question {
+            prompt.answer(nil, to: question.id)
+        }
         isShown = false
         pendingName = nil
         if model?.quickLook.isActive == true { model?.quickLook.close() }
@@ -274,8 +279,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         // The close button or ⌘W.
-        isShown = false
-        pendingName = nil
+        close()
     }
 
     private func makeWindow() -> NSWindow {

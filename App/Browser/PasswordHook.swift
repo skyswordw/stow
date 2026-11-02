@@ -10,6 +10,8 @@ struct PasswordHook {
     /// Asks for `archiveName`'s password; `isRetry` when the last one was rejected. Nil: cancelled.
     var ask: (_ archiveName: String, _ purpose: Purpose, _ isRetry: Bool) async -> String?
     let isWired: Bool
+    private var pendingQuestion: () -> Bool = { false }
+    var isAsking: Bool { pendingQuestion() }
 
     init(ask: @escaping (_ archiveName: String, _ isRetry: Bool) async -> String?) {
         self.ask = { name, _, retry in await ask(name, retry) }
@@ -18,6 +20,7 @@ struct PasswordHook {
 
     /// Asks through the app's password sheet, worded for what the password is for.
     init(prompt: PasswordPrompt) {
+        pendingQuestion = { prompt.question != nil }
         ask = { name, purpose, retry in
             await prompt.ask(.init(archiveName: name, purpose: purpose, isRetry: retry))
         }

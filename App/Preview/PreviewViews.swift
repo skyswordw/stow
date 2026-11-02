@@ -209,7 +209,7 @@ struct RichPreviewView: View {
                         if isLocked {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(.tint)
+                                .foregroundStyle(.accentText)
                                 .frame(width: 22, height: 22)
                                 .background(.regularMaterial, in: .circle)
                                 .overlay { Circle().strokeBorder(.primary.opacity(contrastStyle.faintBorderOpacity)) }
