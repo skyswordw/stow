@@ -1,8 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// Finder's column view: one column per folder on the way to the current one, and a preview of a
-/// selected file at the end. A selected folder opens as the next column.
+/// Finder's column view: one column per folder on the way to the current one. A selected folder
+/// opens as the next column. A selected file previews in Details, which is always beside the files,
+/// so the columns don't repeat it in a column of their own (#160).
 struct ContentColumns: View {
     @Bindable var model: BrowserModel
     var isSearchFocused: Binding<Bool>
@@ -20,18 +21,16 @@ struct ContentColumns: View {
                             .frame(width: Self.columnWidth)
                         Divider()
                     }
-                    if let file = previewedFile {
-                        PreviewColumn(entry: file, model: model)
-                            .frame(width: 300)
-                            .id("preview")
-                    }
                 }
                 .frame(maxHeight: .infinity)
             }
             .scrollIndicators(.automatic)
-            .onChange(of: parents.count + (previewedFile == nil ? 0 : 1000)) {
+            // Columns that open inside a folder (switching from List or Grid, or a new window)
+            // start at the newest column, not the root.
+            .defaultScrollAnchor(.trailing, for: .initialOffset)
+            .onChange(of: parents.count) {
                 // Keep the newest column in view; keyboard-speed, so no animation.
-                scroller.scrollTo(previewedFile == nil ? parents.last : "preview", anchor: .trailing)
+                scroller.scrollTo(parents.last, anchor: .trailing)
             }
         }
         .focusable()
@@ -53,12 +52,6 @@ struct ContentColumns: View {
             parents.append(path)
         }
         return parents
-    }
-
-    private var previewedFile: ArchiveEntry? {
-        guard model.selection.count == 1, let id = model.selection.first,
-              let entry = model.archive.entry(at: id), !entry.isNavigable, entry.parent == model.folder else { return nil }
-        return entry
     }
 }
 
@@ -162,32 +155,6 @@ private struct Row: View {
                                    isRenaming: model.renamingPath == entry.path) {
             model.select([entry.id])
             model.open(entry)
-        }
-    }
-}
-
-/// The last column for a selected file: its real content and the facts about it.
-private struct PreviewColumn: View {
-    let entry: ArchiveEntry
-    let model: BrowserModel
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Space.m) {
-                RichPreviewView(entry: entry, model: model)
-                    .frame(height: 220)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.name).font(.headline).textSelection(.enabled).accessibilityAddTraits(.isHeader)
-                    Text("\(entry.kindDescription) · \(entry.size.bytes)")
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
-                MetadataGrid(rows: [
-                    (String(localized: "Modified"), entry.modified.formatted(date: .abbreviated, time: .shortened)),
-                    (String(localized: "Packed"), entry.packedSize.map { $0.bytes } ?? String(localized: "Unavailable")),
-                ])
-            }
-            .padding(Space.l)
         }
     }
 }
