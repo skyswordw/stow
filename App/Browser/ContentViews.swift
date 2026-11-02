@@ -266,6 +266,23 @@ extension View {
 // MARK: - List
 
 struct ContentList: View {
+    /// Room for the widest date in Modified: "Sep 28, 2026" in English, "2026年12月28日" in
+    /// Chinese, so the column never shortens a date it has the room to show.
+    static let modifiedWidth: CGFloat = {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        let calendar = Calendar(identifier: .gregorian)
+        let widest = (1...12).compactMap { month in
+            calendar.date(from: DateComponents(year: 2026, month: month, day: 28))
+        }
+        .map { date in
+            (date.formatted(.dateTime.day().month(.abbreviated).year()) as NSString)
+                .size(withAttributes: [.font: font]).width
+        }
+        .max() ?? 84
+        // The cell's own padding on both sides.
+        return min(130, max(90, ceil(widest) + 10))
+    }()
+
     @Bindable var model: BrowserModel
     var isSearchFocused: Binding<Bool>
     @State private var hover = HoverPreviewModel()
@@ -305,7 +322,7 @@ struct ContentList: View {
                 // The name takes whatever room the others leave; their maximums keep it that way.
                 // The minimums together (with the cells' spacing) fit the files' narrowest width,
                 // `BrowserView.minFilesWidth`, so no column is cut off in the smallest window.
-                .width(min: 150, ideal: 320)
+                .width(min: 130, ideal: 320)
 
                 TableColumn(String(localized: "Size")) { entry in
                     Text(entry.size.bytes)
@@ -318,14 +335,14 @@ struct ContentList: View {
                 TableColumn(String(localized: "Kind")) { entry in
                     Text(entry.kindDescription).foregroundStyle(.secondary).lineLimit(1)
                 }
-                .width(min: 70, ideal: 150, max: 220)
+                .width(min: 64, ideal: 150, max: 220)
 
                 TableColumn(String(localized: "Modified")) { entry in
                     Text(entry.modified, format: .dateTime.day().month(.abbreviated).year())
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
-                .width(min: 90, ideal: 110, max: 140)
+                .width(min: Self.modifiedWidth, ideal: max(110, Self.modifiedWidth), max: 140)
             }
             .contextMenu(forSelectionType: ArchiveEntry.ID.self) { ids in
                 if let id = ids.first, let entry = model.archive.entry(at: id) {
