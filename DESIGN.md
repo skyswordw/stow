@@ -280,9 +280,14 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
 
 ## Color
 
-- **Accent — Amber** `#D97B2B` (light) / `#F0954A` (dark). Warm, like kraft paper and parcel tape;
+- **Accent — Amber** `#D97B2B` (light) / `#B85E1C` (dark). Warm, like kraft paper and parcel tape;
   stands apart from the sea of blue utilities. Used sparingly: primary button, selection tint,
   and the drop target. No permanent all-clear badge is shown for archive metadata checks.
+  Dark mode's amber is deep so that white words on an accent fill reach 4.5 : 1 (the earlier
+  `#F0954A` gave 2.3). Accent **words and symbols** use `.accentText`, which lifts the accent's
+  lightness in dark mode until it reads at 4.5 : 1 on a dark panel (amber becomes about
+  `#DF772B`); fills, rings and selection use `.tint`. macOS uses Stow's amber only when the system
+  accent is Multicolor; otherwise both follow the person's own accent.
 - Everything else is system semantic color (`.primary`, `.secondary`, `.separator`, materials).
 - Status: completed = system green, caution = system yellow, blocked = system red. Always paired with an
   icon and words — never color alone.
@@ -350,8 +355,9 @@ Reduced Transparency: Stow's glass and materials fall back to the solid window b
 hairline edge (`accessibleGlass`); Glance is solid whatever material Settings chose. System glass
 buttons do this themselves.
 Increase Contrast: the floating capsules, Details, notices and the Tray take a visible border, the
-accent pill is outlined, metadata steps up from tertiary to secondary, and in light mode the accent
-deepens to `#A8551C`, so white words on it reach 5.3 : 1 (4.5 : 1 needed; the usual amber gives 3.1).
+accent pill is outlined, metadata steps up from tertiary to secondary, and the accent deepens to
+`#A8551C` in light and dark, so white words on it reach 5.3 : 1 (4.5 : 1 needed; the usual light
+amber gives 3.1). Accent words in dark mode lift to 7 : 1.
 Design snapshots force Stow's side of the last two with `-StowReduceTransparency YES` and
 `-StowIncreaseContrast YES` (#104); system controls and the accent's high-contrast variant only change
 with the system setting, as does Reduce Motion.

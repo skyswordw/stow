@@ -10424,7 +10424,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "添加指向 /Applications 的链接，方便在 Finder 里拖放安装。"
+            "value": "添加指向 /Applications 的链接，方便在访达里拖放安装。"
           }
         }
       }
@@ -10464,7 +10464,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "别人可在 Finder 里把 App 拖到上面。Stow 浏览时会隐藏该快捷方式，并提供安装到 /Applications。"
+            "value": "别人可在访达里把 App 拖到上面。Stow 浏览时会隐藏该快捷方式，并提供安装到 /Applications。"
           }
         }
       }
@@ -10474,7 +10474,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开磁盘时 Finder 会询问密码。密码不会出现在命令行参数里。"
+            "value": "打开磁盘时访达会询问密码。密码不会出现在命令行参数里。"
           }
         }
       }
@@ -10714,7 +10714,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存 Finder 标签和扩展属性"
+            "value": "保存访达标签和扩展属性"
           }
         }
       }
@@ -10995,7 +10995,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "包含 .DS_Store 等 Finder 文件"
+            "value": "包含 .DS_Store 等访达文件"
           }
         }
       }
@@ -11075,7 +11075,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此压缩包不含 Finder 标签和其他扩展属性。"
+            "value": "此压缩包不含访达标签和其他扩展属性。"
           }
         }
       }
@@ -11085,7 +11085,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "包含 Finder 标签和扩展属性"
+            "value": "包含访达标签和扩展属性"
           }
         }
       }
@@ -11969,7 +11969,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "不包含 Finder 辅助文件"
+            "value": "不包含访达辅助文件"
           }
         }
       }
@@ -11979,7 +11979,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "包含 Finder 辅助文件"
+            "value": "包含访达辅助文件"
           }
         }
       }
@@ -11989,7 +11989,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保留 Finder 标签和扩展属性"
+            "value": "保留访达标签和扩展属性"
           }
         }
       }
@@ -11999,7 +11999,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "不保留 Finder 标签和扩展属性"
+            "value": "不保留访达标签和扩展属性"
           }
         }
       }

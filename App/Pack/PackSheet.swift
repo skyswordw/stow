@@ -638,7 +638,7 @@ struct PackSheet: View {
                     .foregroundStyle(.secondary)
             case .changed:
                 Image(systemName: "pencil.circle.fill")
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(.accentText)
             }
             // Each fact keeps its words together, so a line never starts at "CPU cores".
             Text(verbatim: item.text.replacingOccurrences(of: " ", with: "\u{00A0}") + (isLast ? "" : " ·"))
@@ -655,7 +655,7 @@ struct PackSheet: View {
             Label("Reset These Options", systemImage: "arrow.uturn.backward")
         }
         .buttonStyle(.borderless)
-        .foregroundStyle(.tint)
+        .foregroundStyle(.accentText)
         .fixedSize()
         .help(String(localized: "Go back to the usual choices for \(options.audience.phrase)"))
         .accessibilityLabel(String(localized: "Reset More Options"))
@@ -674,7 +674,7 @@ struct PackSheet: View {
             Text("Changed from the usual choice for \(options.audience.phrase).")
                 .foregroundStyle(.secondary)
         } icon: {
-            Image(systemName: "pencil.circle.fill").foregroundStyle(.tint).accessibilityHidden(true)
+            Image(systemName: "pencil.circle.fill").foregroundStyle(.accentText).accessibilityHidden(true)
         }
         .font(.caption)
         .fixedSize(horizontal: false, vertical: true)
@@ -963,7 +963,7 @@ private struct Token<Items: View>: View {
                     .opacity(contrastStyle.increased ? 1 : 0.6)
                     .accessibilityHidden(true)
             }
-            .foregroundStyle(.tint)
+            .foregroundStyle(.accentText)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)

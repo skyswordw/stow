@@ -37,7 +37,7 @@ struct EditingTag: View {
     }
 
     static func style(for state: String) -> AnyShapeStyle {
-        state == String(localized: "New") ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary)
+        state == String(localized: "New") ? AnyShapeStyle(.accentText) : AnyShapeStyle(.secondary)
     }
 }
 
