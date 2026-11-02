@@ -13,6 +13,18 @@ Claude Code retains visual and motion ownership.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Extract All menu access — #248, #249
+
+The user confirmed #248's one-extraction-button rule for Glance. File › Extract All
+(⇧⌘E), next to File › Extract (⌘E), provides archive-wide extraction without clearing
+the selection. It uses the same operation and loading/running-step restrictions as the
+Extract All button. It targets the key Browser or Glance window, including while editing
+text there; Settings, Tray, other windows and modal sheets cannot extract a background archive.
+
+Codex owns the command routing, availability and tests. Claude Code retains review of the
+menu title and placement; no visual approval is claimed. The Glance bottom bar and its
+motion remain as implemented in #248. Dedicated VoiceOver validation remains deferred (#93).
+
 ## Browser floating-path direction — #242 (2026-10-31)
 
 The user selected the floating-path Browser: path capsule over the files, Glance · Extract All

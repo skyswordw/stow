@@ -5,6 +5,7 @@ struct BrowseCommands: Commands {
     let app: AppState
     private let routing = EditingUndoCommandsModel.shared
     private let closing = WindowCloseCommand.shared
+    private let extracting = ExtractAllCommand.shared
 
     var body: some Commands {
         let browser = app.browser
@@ -39,6 +40,9 @@ struct BrowseCommands: Commands {
             Button("Extract") { browser?.run(.extract) }
                 .keyboardShortcut("e")
                 .disabled(browser?.selection.isEmpty != false || browser?.activity != nil)
+            Button("Extract All") { extracting.perform(in: NSApp.keyWindow) }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(!extracting.isEnabled)
             // Every action for the selection, the stack's front one first: the way to all of them
             // from the keyboard (⌃F2, or Help's search) without macOS's keyboard navigation turned on.
             // With nothing selected, installing an archive that's one app — on that app, never on

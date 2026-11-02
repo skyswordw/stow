@@ -42,6 +42,11 @@ extensions (ad-hoc signatures change every build, and several worktrees may hold
 
 `Stow.xcodeproj` is generated — edit `project.yml`, not the project.
 
+In Browser and Glance, File › Extract (⌘E) extracts the selection. File › Extract All
+(⇧⌘E) extracts the whole archive without clearing the selection, even when Glance's
+selection Actions hide the Extract All button. Extract All waits until listing or a
+running step finishes and is unavailable when another window or a sheet is active.
+
 ## Design review screenshots
 
 ```bash
