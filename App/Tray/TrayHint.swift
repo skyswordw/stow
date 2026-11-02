@@ -78,6 +78,7 @@ private final class TrayHintState {
 private struct TrayHintView: View {
     let state: TrayHintState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Radius.card)
@@ -86,7 +87,7 @@ private struct TrayHintView: View {
             .foregroundStyle(state.border.color)
             .frame(width: TrayHint.size, height: TrayHint.size)
             .accessibleGlass(in: shape)
-            .overlay { shape.strokeBorder(state.border.color.opacity(0.45), lineWidth: 1) }
+            .overlay { shape.strokeBorder(state.border.color.opacity(ContrastStyle.resolve(contrast).increased ? 1 : 0.45), lineWidth: 1) }
             .background {
                 shape.fill(.black.opacity(0.001))
                     .shadow(color: .black.opacity(0.2), radius: 8, y: 3)

@@ -211,7 +211,7 @@ struct GlanceSettingsView: View {
                 Text("Appearance")
             } footer: {
                 // The choice is kept either way; the system setting only wins while it's on.
-                if reduceTransparency {
+                if DisplayPreferences.reducesTransparency(reduceTransparency) {
                     Text("Reduce Transparency is on, so Glance uses a solid window whichever material you choose.")
                 } else {
                     Text("Liquid Glass is the default. Classic frosted uses a traditional material. Reduce Transparency always uses a solid window.")

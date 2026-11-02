@@ -33,7 +33,7 @@ struct ActivityCapsule: View {
                 .padding(.trailing, isFailure ? Space.m : Space.l)
                 .padding(.vertical, isFailure ? Space.m : 9)
                 .accessibleGlass(in: isFailure ? AnyShape(.rect(cornerRadius: Radius.panel + 4)) : AnyShape(.capsule))
-                .glassEffectID("summary", in: glass)
+                .glassMorph("summary", in: glass)
             switch phase {
             case .running:
                 if let stop {
@@ -42,14 +42,14 @@ struct ActivityCapsule: View {
                         .labelStyle(.iconOnly)
                         .help(stopHelp)
                         .buttonStyle(.glass)
-                        .glassEffectID("stop", in: glass)
+                        .glassMorph("stop", in: glass)
                 }
             case .done:
                 if let showInFinder {
                     Button("Show in Finder", systemImage: "folder", action: showInFinder)
                         .accessibilityLabel(String(localized: "Show in Finder"))
                         .buttonStyle(.glass)
-                        .glassEffectID("finder", in: glass)
+                        .glassMorph("finder", in: glass)
                 }
             case .failed:
                 // Dismiss sits inside the failure card (see `ActivityLabel`).

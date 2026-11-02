@@ -196,7 +196,8 @@ struct ArchiveLockRow: View {
                     ProgressView().controlSize(.mini)
                 } else {
                     Image(systemName: state == .locked ? "lock.fill" : "lock.open.fill")
-                        .contentTransition(.symbolEffect(.replace))
+                        // Replace scales the symbol out and in; a cross-fade under Reduce Motion.
+                        .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
                         .foregroundStyle(.secondary)
                 }
             }

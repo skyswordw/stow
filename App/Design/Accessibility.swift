@@ -65,6 +65,37 @@ extension View {
     }
 }
 
+/// The system's display preferences as Stow draws them. A launch argument can't turn on the
+/// system's own settings, so design snapshots force them with debug-only overrides
+/// (`-StowReduceTransparency YES`, `-StowIncreaseContrast YES`); every reader goes through here
+/// (or `ContrastStyle.resolve`) so a snapshot shows what the setting shows (#104).
+enum DisplayPreferences {
+    static func reducesTransparency(_ system: Bool) -> Bool {
+        system || UserDefaults.standard.bool(forKey: "StowReduceTransparency")
+    }
+}
+
+/// Glass that morphs between shapes sharing a `GlassEffectContainer` (Actions' front button into
+/// its progress capsule, Stop and Show in Finder splitting off it). A morph stretches and moves
+/// the glass, so under Reduce Motion the shapes cross-fade instead (DESIGN.md › Motion).
+private struct GlassMorph: ViewModifier {
+    let id: String
+    let namespace: Namespace.ID
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .glassEffectID(id, in: namespace)
+            .glassEffectTransition(reduceMotion ? .materialize : .matchedGeometry)
+    }
+}
+
+extension View {
+    func glassMorph(_ id: String, in namespace: Namespace.ID) -> some View {
+        modifier(GlassMorph(id: id, namespace: namespace))
+    }
+}
+
 struct ContrastStyle: Equatable {
     let increased: Bool
     var borderOpacity: Double { increased ? 0.45 : 0.1 }
@@ -88,7 +119,7 @@ private struct AccessibleGlass<S: Shape>: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func body(content: Content) -> some View {
-        if reduceTransparency || UserDefaults.standard.bool(forKey: "StowReduceTransparency") {
+        if DisplayPreferences.reducesTransparency(reduceTransparency) {
             content.background(Color(nsColor: .windowBackgroundColor), in: shape)
                 .overlay {
                     shape.stroke(ContrastStyle.resolve(contrast).increased ? AnyShapeStyle(.primary.opacity(0.45)) : AnyShapeStyle(.separator), lineWidth: 1)
@@ -111,7 +142,7 @@ private struct AccessibleBar: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func body(content: Content) -> some View {
-        content.background(reduceTransparency || UserDefaults.standard.bool(forKey: "StowReduceTransparency")
+        content.background(DisplayPreferences.reducesTransparency(reduceTransparency)
                            ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor)) : AnyShapeStyle(.bar))
     }
 }

@@ -307,7 +307,18 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Button press | System controls handle it | — |
 
 Reduced Motion: springs become 150 ms opacity fades (exits 100 ms); nothing translates or scales.
-Reduced Transparency: glass falls back to solid window background (the system does this for us).
+Glass that morphs from one shape into another (Actions' front button into its progress capsule)
+cross-fades instead, the lock's symbol swap cross-fades, Search opens at once and the preparing
+ring stands still.
+Reduced Transparency: Stow's glass and materials fall back to the solid window background with a
+hairline edge (`accessibleGlass`); Glance is solid whatever material Settings chose. System glass
+buttons do this themselves.
+Increase Contrast: the floating capsules, Details, notices and the Tray take a visible border, the
+accent pill is outlined, metadata steps up from tertiary to secondary, and in light mode the accent
+deepens to `#A8551C`, so white words on it reach 5.3 : 1 (4.5 : 1 needed; the usual amber gives 3.1).
+Design snapshots force Stow's side of the last two with `-StowReduceTransparency YES` and
+`-StowIncreaseContrast YES` (#104); system controls and the accent's high-contrast variant only change
+with the system setting, as does Reduce Motion.
 
 ## Signature details
 
