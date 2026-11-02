@@ -57,7 +57,7 @@ struct QuickLookPreparingCapsule: View {
                 .truncationMode(.middle)
                 .frame(maxWidth: 360)
                 .fixedSize(horizontal: true, vertical: false)
-                .accessibilityValue(progress > 0 ? Text(progress, format: .percent.precision(.fractionLength(0))) : Text(""))
+                .accessibilityValue(progress > 0 ? progress.formatted(.percent.precision(.fractionLength(0))) : String())
             // Nothing measured yet: the ring turns and no "0%" claims a start.
             if progress > 0 {
                 Text(progress, format: .percent.precision(.fractionLength(0)))
