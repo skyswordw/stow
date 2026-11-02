@@ -21,7 +21,8 @@ struct AssociationsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(Space.l)
+            .padding(.vertical, Space.l)
+            .padding(.horizontal, FormInset.text)
 
             Form {
                 ForEach(ArchiveType.Group.allCases, id: \.self) { group in
@@ -40,11 +41,11 @@ struct AssociationsView: View {
                 Label("Confirm in the macOS dialog: \(waiting)", systemImage: "hand.raised")
                     .font(.callout)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Space.l)
+                    .padding(.horizontal, FormInset.text)
                     .padding(.top, Space.s)
             } else if let report = model.report {
                 ReportLine(report: report)
-                    .padding(.horizontal, Space.l)
+                    .padding(.horizontal, FormInset.edge)
                     .padding(.top, Space.s)
             }
 
@@ -58,7 +59,8 @@ struct AssociationsView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(model.selection.isEmpty || model.isWorking)
             }
-            .padding(Space.l)
+            .padding(.vertical, Space.l)
+            .padding(.horizontal, FormInset.edge)
         }
         .frame(minWidth: 520, minHeight: 520)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -73,6 +75,13 @@ struct AssociationsView: View {
             if isOn { model.selection.insert(id) } else { model.selection.remove(id) }
         }
     }
+}
+
+/// Where a grouped `Form` puts its cards' edges and its headers' and footers' text (macOS 26), so the
+/// words above the list and the buttons under it line up with the list (#162).
+private enum FormInset {
+    static let edge: CGFloat = 20
+    static let text: CGFloat = 30
 }
 
 private struct AssociationRow: View {

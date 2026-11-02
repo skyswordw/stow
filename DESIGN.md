@@ -235,14 +235,19 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
   sentence (what's in front, what's behind it).
 - **Installing** and **Finder & Permissions** show folder access the same way (#162): a folder
   symbol, the folder's name over its path (home as `~`), **Forget** on the trailing edge, and the
-  same footer sentences about subfolders and what Forget does. The first-open-check toggle's footer
+  same footer sentences about subfolders and what Forget does. **Passwords** lists saved passwords
+  in the same row: a locked-document symbol, the archive's name over the folder it's in (the name
+  isn't repeated in the path), **Forget** on the trailing edge. The first-open-check toggle's footer
   is two short paragraphs: what the check is, then when to turn it on.
 - **Glance** holds what General used to: opening from Finder in Glance (off: the full Browser is
   the default), the window material and colourful controls. While Reduce Transparency is on, the
   footer says Glance is solid whatever is chosen; the choice itself is kept.
 - **General** shows the language in use and folds the macOS how-to into a disclosure.
 - File Types drops its own heading in Settings (the title bar names the page); its standalone
-  scene keeps it.
+  scene keeps it. Its introduction lines up with the form's headers and footers, and its buttons
+  with the edges of the list's cards.
+- In Simplified Chinese the page is **访达与权限**, macOS's own name for Finder, like every other
+  Finder string on that page and in Welcome.
 
 ## Color
 

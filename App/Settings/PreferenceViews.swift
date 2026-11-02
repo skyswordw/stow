@@ -246,21 +246,12 @@ struct PasswordSettingsView: View {
                         Text("No saved passwords yet")
                             .foregroundStyle(.secondary)
                     } else {
+                        // Listed like folder permissions (#162): the archive's name over its folder.
                         ForEach(entries) { entry in
-                            LabeledContent {
+                            SavedItemRow(name: entry.displayName, file: entry.identity.path, symbol: "lock.doc") {
                                 Button("Forget", role: .destructive) {
                                     ArchivePasswordVault.forget(entry)
                                     reload()
-                                }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(entry.displayName)
-                                    if !entry.identity.path.isEmpty {
-                                        Text(entry.identity.path)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(2)
-                                    }
                                 }
                             }
                         }
