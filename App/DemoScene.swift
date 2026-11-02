@@ -75,7 +75,7 @@ enum DemoScene {
         if scene == "a11y-solid" { defaults.register(defaults: ["StowReduceTransparency": true]) }
         // Any scene: the archive notice card above the files starts open.
         if defaults.bool(forKey: "StowNoticesOpen") { ArchiveNotices.expandsForDemo = true }
-        // Any scene: Archive Info opens from the title menu (`-StowArchiveInfoOpen YES`).
+        // Any Browser scene: Archive Info's popover opens by itself (with `details-more`, expanded).
         if defaults.bool(forKey: "StowArchiveInfoOpen") { ArchiveInfoView.opensForDemo = true }
         switch defaults.string(forKey: "StowAppearance") {
         case "light": NSApp.appearance = NSAppearance(named: .aqua)
