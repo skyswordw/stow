@@ -12689,6 +12689,46 @@
           }
         }
       }
+    },
+    "Won’t verify archive contents": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不验证包内内容"
+          }
+        }
+      }
+    },
+    "No Applications shortcut": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无应用程序快捷方式"
+          }
+        }
+      }
+    },
+    "No Finder window layout": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无访达窗口布局"
+          }
+        }
+      }
+    },
+    "Puts back the usual choices for %@, for this archive only. Compression stays as you set it, and Settings don’t change.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅对这个压缩包恢复为%@的常用选择。压缩级别保持你的设置，“设置”也不会更改。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
