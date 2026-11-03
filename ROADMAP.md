@@ -164,7 +164,7 @@ other manual checks remain below. Harbor sample files and Try the Sample wiring 
 
 Automated tests cover the engine, packing, extraction, editing, placement/conflicts, signatures,
 hand-off tokens, associations logic, browsing, streaming listings, search, encodings, passwords,
-recents and settings. CI requires at least 655 reported tests after #266. The following tracks remaining
+recents and settings. CI requires at least 658 reported tests after the test-history isolation follow-up (#273). The following tracks remaining
 verification toward 1.0 (including automated coverage whose manual or longer-running counterpart
 is still open). Explicitly deferred work is not a merge or release blocker for the current milestone:
 
