@@ -108,7 +108,9 @@ with the top of the path. Details is the panel in the window's corner, so its ra
 window's (≈ 26 pt) less that inset: **18 pt**. Every floating capsule is 38 pt tall (radius 19,
 also ≈ window radius − inset) with 30 pt buttons concentric inside at a 4 pt inset. The system
 inspector's own edge (its glass, side shadow and hairline) is replaced by the window's background,
-so Details' rounded rim is its only outline: no square strip beside it, no doubled edge.
+so Details' rounded rim is its only outline: no square strip beside it, no doubled edge. It is the
+window's own background material, not a flat colour, so in dark mode it takes the same wallpaper
+tint as the files' side and the title bar reads as one surface from edge to edge.
 
 **Toolbar Search and editing (#215/#216, 2026-10-30).** Search moved from the navigation row to
 the title bar (where in the title bar is now #242's, above). The navigation row keeps its whole

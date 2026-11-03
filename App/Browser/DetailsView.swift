@@ -142,13 +142,29 @@ private struct DetailsPanelSurface: ViewModifier {
             .background {
                 // Under the title bar too: the title bar over the files is the window's background
                 // in both appearances, so the column's glass there read as a separate block that
-                // ended where the panel starts.
-                Rectangle().fill(.windowBackground)
+                // ended where the panel starts. The window's own material, not a flat colour: in
+                // dark mode macOS tints window backgrounds with the wallpaper, and a flat fill split
+                // the window into a tinted and an untinted half.
+                WindowBackdrop()
                     .ignoresSafeArea()
                     .background { InspectorSeams() }
                     .accessibilityHidden(true)
             }
     }
+}
+
+/// The window's background exactly as the window draws it behind the files, wallpaper tinting
+/// included. Reduce Transparency makes it solid on its own.
+private struct WindowBackdrop: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .windowBackground
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
 /// Hides the inspector column's own edge, the shadow and hairline AppKit draws beside it and
