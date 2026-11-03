@@ -466,31 +466,23 @@ private struct GlanceList: View {
     }
 }
 
-/// From Finder: Glance is up at once and says what it's reading. With no title bar, the window's
-/// controls are already where they'll stay, and the whole surface moves the window.
+/// From Finder: Glance is up at once, and says what it's reading if that takes a moment. With no
+/// title bar, the window's controls are already where they'll stay, and the whole surface moves the window.
 private struct OpeningView: View {
     let name: String
     let glance: GlanceController
 
     var body: some View {
-        VStack(spacing: Space.m) {
-            ProgressView().controlSize(.small)
-            Text("Opening “\(name)”…")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-        }
-        .padding(Space.xl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(.rect)
-        .gesture(WindowDragGesture())
-        .allowsWindowActivationEvents(true)
-        .overlay(alignment: .bottomLeading) {
-            GlanceWindowControls(glance: glance, isOpening: true)
-                .padding([.horizontal, .bottom], GlanceLayout.inset)
-        }
-        .ignoresSafeArea(.container, edges: .top)
+        ArchiveOpeningStatus(name: name)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(.rect)
+            .gesture(WindowDragGesture())
+            .allowsWindowActivationEvents(true)
+            .overlay(alignment: .bottomLeading) {
+                GlanceWindowControls(glance: glance, isOpening: true)
+                    .padding([.horizontal, .bottom], GlanceLayout.inset)
+            }
+            .ignoresSafeArea(.container, edges: .top)
     }
 }
 

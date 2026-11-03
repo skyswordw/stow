@@ -166,9 +166,10 @@ final class AppState {
     }
 
     /// Design-review scenes: the opening state with nothing being read.
-    func showOpeningForDemo() {
+    func showOpeningForDemo(name: String? = nil) {
         cancelOpening()
         isOpening = true
+        openingName = name
     }
 
     func cancelOpening() {
@@ -503,15 +504,9 @@ struct RootView: View {
                 BrowserView(model: browser)
                     .overlay(alignment: .bottom) { PackActivityAccessory() }
             } else {
-                VStack(spacing: Space.m) {
-                    if app.isOpening {
-                        ProgressView().controlSize(.small)
-                        Text("Opening “\(app.openingName ?? "")”…")
-                            .foregroundStyle(.secondary)
-                        Button("Cancel") { app.cancelCloudDownload(); app.cancelOpening() }
-                    }
+                BrowserOpeningView(name: app.openingName ?? "", isOpening: app.isOpening) {
+                    app.cancelCloudDownload(); app.cancelOpening()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .background {
@@ -526,6 +521,39 @@ struct RootView: View {
             app.mainWindowDidClose(.browser)
         }
         .modifier(AppRoot(host: .browser))
+    }
+}
+
+/// The Browser before its archive arrives (opened from Finder, Recent or a drop on the welcome),
+/// or behind the failure card when it can't be opened. It already has the Browser's title bar:
+/// the same toolbar height and hidden bar, so the window's controls don't move, and the archive's
+/// name where its title menu will be. The files, path and Details arrive together with the listing.
+private struct BrowserOpeningView: View {
+    let name: String
+    let isOpening: Bool
+    let cancel: () -> Void
+
+    private var kind: String {
+        ArchiveFormat.infer(fromName: name).map { String(localized: "\($0.displayName) archive") } ?? ""
+    }
+
+    var body: some View {
+        ZStack {
+            if isOpening { ArchiveOpeningStatus(name: name, cancel: cancel) }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle(name.isEmpty ? "Stow" : name)
+        .toolbar(removing: .title)
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                if !name.isEmpty {
+                    ArchiveTitleLabel(title: name, subtitle: kind, showsChevron: false)
+                        .accessibilityElement(children: .combine)
+                }
+            }
+            .sharedBackgroundVisibility(.hidden)
+        }
     }
 }
 
