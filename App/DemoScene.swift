@@ -685,6 +685,9 @@ enum DemoScene {
                         try? await Task.sleep(for: .milliseconds(200))
                     }
                     if !NSApp.isActive { FileHandle.standardError.write(Data("snapshot: Stow isn’t the active app\n".utf8)) }
+                    // The welcome window opens after launch (#266) and takes the keyboard; give it back
+                    // to the Tray, as it has when someone uses it, so Pack keeps its colour.
+                    if scene.hasPrefix("tray") { trayPanel?.makeKey() }
                     try? await Task.sleep(for: .milliseconds(300))
                 }
                 // Glance snapshots are named by the edge they opened at, so each edge keeps its own file.
