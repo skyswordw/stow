@@ -102,6 +102,8 @@ private struct ActionStack: View {
     @State private var pointerTask: Task<Void, Never>?
     @State private var watchTask: Task<Void, Never>?
     @State private var isPointedAt = false
+    /// Keyboard navigation is on the strip above the front button: the edges get the ring.
+    @FocusState private var stripHasFocus: Bool
     /// The stack's frame in the window, to check the pointer against.
     @State private var frameInWindow: CGRect = .zero
     /// The fanned-out action under the pointer. SwiftUI's hover doesn't reach buttons that appear
@@ -232,6 +234,10 @@ private struct ActionStack: View {
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        // The strip is invisible, so its own rectangle of a ring floated over nothing; the edges
+        // it opens draw the ring instead (`edgesView`).
+        .focused($stripHasFocus)
+        .focusEffectDisabled()
         .onContinuousHover(perform: arrival)
         .accessibilityLabel(String(localized: "Show All Actions"))
         .accessibilityHint(String(localized: "Shows the other actions for the selection above this one"))
@@ -246,6 +252,16 @@ private struct ActionStack: View {
                 StackEdge(depth: depth, dimmed: unavailable != nil)
                     .scaleEffect(1 - 0.07 * CGFloat(depth + 1), anchor: .top)
                     .offset(y: -CGFloat(depth + 1) * 4.5)
+            }
+            if stripHasFocus, edges > 0 {
+                // Round the backmost edge, so the part above the front button traces the stack's
+                // top; the front button covers the rest.
+                Capsule()
+                    .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 3)
+                    .padding(-3)
+                    .frame(height: StackButtonStyle.height)
+                    .scaleEffect(x: 1 - 0.07 * CGFloat(edges), y: 1, anchor: .top)
+                    .offset(y: -CGFloat(edges) * 4.5)
             }
         }
         .allowsHitTesting(false)

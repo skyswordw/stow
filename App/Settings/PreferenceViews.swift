@@ -31,6 +31,8 @@ struct GeneralSettingsView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                // Round the row: the disclosure's own ring sat over the chevron and cut through "How".
+                .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
             Section("Tray") {
                 Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)

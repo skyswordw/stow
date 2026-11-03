@@ -608,6 +608,8 @@ struct PackSheet: View {
             }
         }
         .font(.callout)
+        // The disclosure's own ring sat over the chevron and cut through "More".
+        .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     /// The closed heading's facts, wrapping whole (never cut off: the changed ones come last and
@@ -1024,6 +1026,7 @@ private struct ReportView: View {
                         renameList
                     }
                     .font(.callout)
+                    .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                     .padding(.leading, 26)
                 }
             }

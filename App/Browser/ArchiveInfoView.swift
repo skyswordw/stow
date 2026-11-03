@@ -71,6 +71,9 @@ struct ArchiveInfoView: View {
                     .font(.callout.weight(.medium))
                     .foregroundStyle(.secondary)
             }
+            // The disclosure's own ring cut through the label and past Details' edge; round the
+            // whole row instead, inside the panel.
+            .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: showsMore)
         }
     }
@@ -176,6 +179,8 @@ struct ArchiveNotices: View {
                                    : AnyShapeStyle(severity.color.opacity(colorScheme == .dark ? 0.18 : 0.28)))
                     .allowsHitTesting(false)
             }
+            // The disclosure's own ring hugged its chevron and glyph and crossed the card's corner.
+            .focusRing(in: shape)
             .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: isExpanded)
             .padding(.horizontal, placement == .browser ? Space.m : 0)
             .padding(.bottom, Space.s)

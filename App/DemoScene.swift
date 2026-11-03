@@ -67,6 +67,9 @@ import SwiftUI
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
 /// `-StowArchiveInfoOpen YES` opens Archive Info from the title menu in any Browser scene.
 /// `-StowLogLayout YES` also prints who has the keyboard and which toolbar items are showing.
+/// `-StowTabStops N` (with `-StowActivate YES`) presses Tab N times in the key window and captures
+/// it after each press as `<scene>-tab<i>`, printing what has the keyboard; `-StowTabBackward YES`
+/// presses Shift-Tab. Stops beyond text fields and lists need the system's Keyboard navigation setting.
 enum DemoScene {
     /// `-StowBatchExpanded YES`: the batch panel starts with every result listed.
     static var batchStartsExpanded: Bool { UserDefaults.standard.bool(forKey: "StowBatchExpanded") }
@@ -697,6 +700,12 @@ enum DemoScene {
                 }
                 // Glance snapshots are named by the edge they opened at, so each edge keeps its own file.
                 let label = scene == "glance" ? "glance-\(glanceEdge(defaults).rawValue)" : scene
+                let tabStops = defaults.integer(forKey: "StowTabStops")
+                if tabStops > 0 {
+                    await walkTabStops(tabStops, backward: defaults.bool(forKey: "StowTabBackward"), label: label)
+                    fflush(stdout)
+                    exit(0)
+                }
                 // The Tray's menu-bar icon lives in a status-bar window of its own; it isn't a scene.
                 let windows = NSApp.windows.filter { $0.isVisible && !$0.className.contains("StatusBar") }
                 for (index, window) in windows.enumerated() {
@@ -1056,6 +1065,45 @@ enum DemoScene {
         func forget(_ identity: ArchivePasswordIdentity) throws {}
         func wipe() throws {}
         func entries() -> [ArchivePasswordEntry] { saved }
+    }
+
+    /// Presses Tab (or Shift-Tab) in the key window `count` times, capturing the window after each
+    /// press and printing what has the keyboard, so focus rings can be reviewed stop by stop.
+    private static func walkTabStops(_ count: Int, backward: Bool, label: String) async {
+        print("keyboard navigation:", NSApp.isFullKeyboardAccessEnabled)
+        // `-StowTabWindow <part of its identifier>`: walk that window (the welcome window opens
+        // after launch and otherwise takes the keyboard).
+        if let wanted = UserDefaults.standard.string(forKey: "StowTabWindow") {
+            print("windows:", NSApp.windows.filter(\.isVisible).map { $0.identifier?.rawValue ?? "?" })
+            NSApp.windows.first { $0.isVisible && ($0.identifier?.rawValue.contains(wanted) ?? false) }?.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(for: .milliseconds(400))
+        }
+        for step in 1...count {
+            guard let window = NSApp.keyWindow else {
+                print("tab\(step): no key window"); return
+            }
+            let characters = backward ? "\u{19}" : "\t"
+            for type in [NSEvent.EventType.keyDown, .keyUp] {
+                if let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: backward ? [.shift] : [],
+                                                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                                                context: nil, characters: characters, charactersIgnoringModifiers: characters,
+                                                isARepeat: false, keyCode: 48) {
+                    NSApp.sendEvent(event)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(350))
+            let key = NSApp.keyWindow ?? window
+            var focus = String(describing: key.firstResponder.map { type(of: $0) })
+            if let element = NSApp.accessibilityApplicationFocusedUIElement() as? NSAccessibilityProtocol {
+                let frame = element.accessibilityFrame()
+                focus += " | \(element.accessibilityRole()?.rawValue ?? "?") \"\(element.accessibilityLabel() ?? "")\""
+                    + " @ \(Int(frame.minX - key.frame.minX)),\(Int(key.frame.maxY - frame.maxY)) \(Int(frame.width))×\(Int(frame.height))"
+            }
+            print("tab\(step): \(focus)")
+            let name = "\(label)-tab\(step)"
+            let url = if let parent = key.sheetParent { snapshot([key, parent], name: name) } else { snapshot(key, name: name) }
+            if let url { print(url.path) }
+        }
     }
 
     /// Captures the window as the window server composited it — glass, shadows and all.
