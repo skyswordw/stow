@@ -12819,6 +12819,46 @@
           }
         }
       }
+    },
+    "Last Used Window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次使用的窗口"
+          }
+        }
+      }
+    },
+    "Full Browser": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整浏览窗口"
+          }
+        }
+      }
+    },
+    "Open archives in": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开归档时使用"
+          }
+        }
+      }
+    },
+    "Last Used Window remembers whether you last chose Browser or Glance, including after quitting Stow. You can also always open in either window. Switch with ⌥⌘G.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“上次使用的窗口”会记住你最后选择的浏览器或速览模式，退出 Stow 后也会保留。你也可以固定使用其中一种窗口。按 ⌥⌘G 切换。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

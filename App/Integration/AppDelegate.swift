@@ -6,6 +6,7 @@ import OSLog
 final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var app: AppState? {
         didSet {
+            guard oldValue !== app else { return }
             app?.tray.applySettings()
             flush()
         }
@@ -14,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Arrived before the window (and its AppState) existed — e.g. Stow launched by a double-click
     /// or a Finder action.
     private var pending: [(AppState) -> Void] = []
+    private var receivedExternalRequest = false
     private lazy var services = ServicesProvider { [weak self] job in self?.enqueue(job) }
 
     private static let log = Logger(subsystem: "app.stow.Stow", category: "open")
@@ -30,6 +32,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Starts Sparkle only in Developer ID release builds (UpdatePolicy); a relaunch into an
         // update waits until nothing is running.
         AppUpdater.shared.start { [weak self] in self?.app?.isBusy ?? false }
+        let isDefault = (notification.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? NSNumber)?.boolValue ?? true
+        Task { @MainActor [weak self] in
+            guard let self, let app else { return }
+            DemoScene.apply(to: app)
+            if app.usesBrowserWindow || app.glance.isShown {
+                if !app.glance.isShown { app.showMainWindow() }
+            } else if isDefault && !receivedExternalRequest {
+                app.showMainWindow()
+            }
+            guard !OnboardingRouter.shared.didCheckAutomaticPresentation else { return }
+            OnboardingRouter.shared.didCheckAutomaticPresentation = true
+            if isDefault && !receivedExternalRequest && Onboarding.shouldShowAutomatically() {
+                OnboardingRouter.shared.open()
+            }
+        }
     }
 
     /// Stow keeps running without windows so Finder and Services actions don't wait for a launch.
@@ -61,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func application(_ application: NSApplication, open urls: [URL]) {
         if let sender = Self.sender() { Self.log.info("Open from \(sender, privacy: .public)") }
+        receivedExternalRequest = true
         enqueue { $0.receive(urls) }
     }
 

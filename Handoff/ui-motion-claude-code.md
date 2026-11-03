@@ -403,3 +403,25 @@ The existing English and Simplified Chinese copy is retained.
 Codex owns this state, diagnostic and test implementation. The view uses existing native
 text and buttons as a functional baseline. Claude Code retains final visual/motion ownership;
 no design acceptance is claimed. Preserve the non-modal behavior and compact Glance usability.
+
+## Direct document launch and remembered window — 2026-11-02
+
+Confirmed user feedback supersedes the earlier fixed-default opening direction: external
+archive opens should enter Browser's loading/content state directly, without first flashing
+Welcome. New/default installations remember the last explicitly selected Browser or Glance
+across close/reopen and app restarts. The preference also permits a fixed Browser or fixed
+Glance, and preserves explicitly saved legacy fixed-mode choices. Welcome remains appropriate
+when launching Stow without a document or explicitly closing an archive. Snapshot runs must
+not change the user's remembered choice.
+
+Codex owns launch routing, persistence, cancellation and the regression tests. The loading
+state and picker use existing native controls as functional treatment; Claude Code retains
+visual/motion ownership. No visual acceptance is claimed. Pending opens and open errors belong
+to Browser (or the chosen Glance); closing an obsolete Welcome must not cancel their work.
+
+Two actual 0.1.3 (592) crashes were symbolicated against matching release dSYMs. Browser's
+editing delegates could form a forwarding cycle during key-window changes at an extraction
+panel; replacement proxies now forward directly to the native delegate and stale proxies
+cannot reclaim the window. Finder requested its menu on an XPC queue and tripped
+MainActor.assumeIsolated; menu construction now synchronously enters main only when needed.
+These are ordinary window/menu stability defects, not completion of deferred #93.

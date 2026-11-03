@@ -411,3 +411,14 @@ with the system setting, as does Reduce Motion.
 - No toolbar full of icons. Primary action (Extract) is prominent; the rest live in Actions and menus.
 - No splash, no onboarding carousel.
 - No animated keyboard navigation, no bouncing on menus.
+
+
+### Archive opening preference — confirmed 2026-11-02
+
+File opens from Finder, Quick Look, Recent and Welcome's drop/open controls select the archive
+window before presentation. Browser shows its loading state directly; Welcome must not flash
+between an external open and Browser. Launching Stow without a file still shows Welcome.
+The default opening preference is **Last Used Window**, initially Browser, remembering explicit
+Browser/Glance switches across closes and relaunches. Fixed Browser and Glance remain options;
+explicit legacy fixed-mode settings are preserved. This supersedes fixed Browser-by-default
+wording for returning users. Visual expression remains Claude Code's responsibility.

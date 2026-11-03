@@ -9,7 +9,37 @@ nonisolated enum SettingsKeys {
     static let showPassword = "password.showByDefault"
     /// Opt-in Keychain vault for archive passwords (#76). Off by default.
     static let rememberPasswords = "password.rememberInKeychain"
-    static let openInGlance = "glance.openFromFinder"
+    static let openInGlance = "glance.openFromFinder" // Legacy fixed-mode preference.
+    static let archiveWindowMode = "browse.archiveWindowMode"
+    static let lastArchiveWindow = "browse.lastArchiveWindow"
+
+    enum ArchiveWindow: String, Sendable { case browser, glance }
+    enum ArchiveWindowMode: String, CaseIterable, Identifiable, Sendable {
+        case lastUsed, browser, glance
+        var id: Self { self }
+        var title: String {
+            switch self {
+            case .lastUsed: String(localized: "Last Used Window")
+            case .browser: String(localized: "Full Browser")
+            case .glance: String(localized: "Glance")
+            }
+        }
+    }
+
+    static func archiveWindowMode(in store: UserDefaults = .standard) -> ArchiveWindowMode {
+        if let raw = store.string(forKey: archiveWindowMode), let mode = ArchiveWindowMode(rawValue: raw) { return mode }
+        // Preserve an explicit old choice; new/default installs remember the last window.
+        if store.object(forKey: openInGlance) != nil { return store.bool(forKey: openInGlance) ? .glance : .browser }
+        return .lastUsed
+    }
+
+    static func archiveWindow(in store: UserDefaults = .standard) -> ArchiveWindow {
+        switch archiveWindowMode(in: store) {
+        case .browser: .browser
+        case .glance: .glance
+        case .lastUsed: store.string(forKey: lastArchiveWindow).flatMap(ArchiveWindow.init(rawValue:)) ?? .browser
+        }
+    }
     static let glancePinned = "glance.pinned"
     static let glanceColourfulControls = "glance.colourfulControls"
     /// Liquid Glass vs classic frosted Glance background (#158). Default preserves Liquid Glass.
@@ -78,6 +108,8 @@ nonisolated enum SettingsKeys {
         .init(key: showPassword, defaultValue: .bool(false)),
         .init(key: rememberPasswords, defaultValue: .bool(false)),
         .init(key: openInGlance, defaultValue: .bool(false)),
+        .init(key: archiveWindowMode, defaultValue: .string(ArchiveWindowMode.lastUsed.rawValue)),
+        .init(key: lastArchiveWindow, defaultValue: .string(ArchiveWindow.browser.rawValue)),
         .init(key: glancePinned, defaultValue: .bool(false)),
         .init(key: glanceColourfulControls, defaultValue: .bool(false)),
         .init(key: glanceMaterial, defaultValue: .string(GlanceMaterialPreference.liquidGlass.rawValue)),
@@ -115,7 +147,7 @@ nonisolated enum SettingsKeys {
         case .glance:
             // Pin on Top is set from Glance itself (and Window › Keep Glance on Top), not shown here,
             // but it is Glance's preference, so it resets with this page.
-            keys = [openInGlance, glancePinned, glanceColourfulControls, glanceMaterial]
+            keys = [openInGlance, archiveWindowMode, lastArchiveWindow, glancePinned, glanceColourfulControls, glanceMaterial]
         case .extraction:
             keys = [
                 Preferences.Key.extractAllFolder, Preferences.Key.afterExtractAll,
