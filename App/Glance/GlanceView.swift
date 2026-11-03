@@ -93,7 +93,7 @@ struct GlanceView: View {
     var body: some View {
         VStack(spacing: 0) {
             GlanceHeader(model: model)
-            SourceAccessNotice(model: model)
+            SourceAccessNotice(model: model, placement: .glance)
                 .padding(.horizontal, GlanceLayout.inset)
             ArchiveNotices(findings: model.archive.checkup, placement: .glance)
                 .padding(.horizontal, GlanceLayout.inset)
