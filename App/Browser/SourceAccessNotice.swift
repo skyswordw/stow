@@ -7,7 +7,7 @@ import SwiftUI
 struct SourceAccessNotice: View {
     @Bindable var model: BrowserModel
     var placement: ArchiveNotices.Placement = .browser
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 

@@ -12,7 +12,7 @@ import SwiftUI
 struct QuickLookPreparingCapsule: View {
     let model: BrowserModel
     let passwords: PasswordPrompt
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @State private var shown: UUID?
 
     private struct Wait: Equatable {

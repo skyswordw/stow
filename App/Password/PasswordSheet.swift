@@ -114,7 +114,7 @@ extension View {
 private struct InWindowPasswordCard: ViewModifier {
     let prompt: PasswordPrompt
     let isActive: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 

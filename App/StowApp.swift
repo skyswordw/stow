@@ -640,7 +640,7 @@ struct AppRoot: ViewModifier {
 /// The pack capsule while packing: under the welcome, or over the Browser above its Next Steps.
 struct PackActivityAccessory: View {
     @Environment(AppState.self) private var app
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     var body: some View {
         let nextSteps = app.browser.map { !$0.selection.isEmpty || $0.activity != nil } ?? false

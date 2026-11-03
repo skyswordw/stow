@@ -146,7 +146,7 @@ struct ArchiveOpeningStatus: View {
     /// The Browser offers Cancel (and Esc); Glance stops with its Close button instead.
     var cancel: (() -> Void)?
     @State private var isShown = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     static let delay = Duration.milliseconds(400)
 

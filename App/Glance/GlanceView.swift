@@ -4,7 +4,7 @@ import SwiftUI
 struct GlanceRoot: View {
     let glance: GlanceController
     @Environment(AppState.self) private var app
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @AppStorage(SettingsKeys.glanceMaterial) private var materialPreference = SettingsKeys.GlanceMaterialPreference.liquidGlass.rawValue
     @State private var settled = true
@@ -84,7 +84,7 @@ struct GlanceRoot: View {
 struct GlanceView: View {
     @Bindable var model: BrowserModel
     @Environment(AppState.self) private var app
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @State private var editingDelegate = EditingWindowDelegate()
     let glance: GlanceController
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true

@@ -83,7 +83,7 @@ struct ArchiveUnlockControl: View {
 private struct LockBadge: ViewModifier {
     let state: ArchiveLockState?
     let isBadge: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         if isBadge, let state {
@@ -157,7 +157,7 @@ struct AnyLabelStyle: LabelStyle {
 /// One line in every state, the icon in a fixed slot, so nothing below it jumps when the state changes.
 struct ArchiveLockRow: View {
     @Environment(\.colorSchemeContrast) private var contrast
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let model: BrowserModel
     @State private var isHovering = false

@@ -273,7 +273,7 @@ final class TrayController {
         startIdleTimer()
         if fromDrag { panel.orderFrontRegardless() } else { panel.makeKeyAndOrderFront(nil) }
         // Nothing moves when ⌥⌘T brought it out. Decided now, while the key press is current.
-        let animation = Motion.presence(true, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        let animation = Motion.presence(true, reduceMotion: DisplayPreferences.reducesMotionNow)
         guard let animation else {
             isPresented = true
             return
@@ -296,7 +296,7 @@ final class TrayController {
         collected = nil
         if QLPreviewPanel.sharedPreviewPanelExists(), QLPreviewPanel.shared().isVisible { QLPreviewPanel.shared().orderOut(nil) }
         // Esc and ⌥⌘T: gone at once. Otherwise `Motion.exit`, quicker than it came.
-        guard let animation = Motion.presence(false, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) else {
+        guard let animation = Motion.presence(false, reduceMotion: DisplayPreferences.reducesMotionNow) else {
             isPresented = false
             panel.orderOut(nil)
             return
@@ -907,7 +907,7 @@ final class TrayHostingView<Content: View>: NSHostingView<Content> {
 struct TrayView: View {
     let tray: TrayController
     @Environment(AppState.self) private var app
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
     @AppStorage(SettingsKeys.trayBorder) private var borderName = TrayBorder.accent.rawValue
     @State private var isTargeted = false

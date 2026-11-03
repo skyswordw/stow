@@ -9,7 +9,7 @@ struct ArchiveInfoView: View {
     /// Design review: More Archive Information starts open (`-StowScene details-more`).
     static var disclosesForDemo = false
     @State private var showsMore = ArchiveInfoView.disclosesForDemo
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     var body: some View {
         let archive = model.archive
@@ -72,6 +72,9 @@ struct ArchiveInfoView: View {
                     .foregroundStyle(.secondary)
             }
             .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: showsMore)
+            .onReceive(NotificationCenter.default.publisher(for: DemoBurst.request)) { note in
+                if note.object as? String == "archive-info" { showsMore.toggle() }
+            }
         }
     }
 
@@ -112,7 +115,7 @@ struct ArchiveNotices: View {
     /// Design review: the card starts open (`-StowScene details-notices-open`).
     static var expandsForDemo = false
     @State private var isExpanded = ArchiveNotices.expandsForDemo
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -177,6 +180,9 @@ struct ArchiveNotices: View {
                     .allowsHitTesting(false)
             }
             .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: isExpanded)
+            .onReceive(NotificationCenter.default.publisher(for: DemoBurst.request)) { note in
+                if note.object as? String == "notices" { isExpanded.toggle() }
+            }
             .padding(.horizontal, placement == .browser ? Space.m : 0)
             .padding(.bottom, Space.s)
         }

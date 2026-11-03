@@ -53,7 +53,7 @@ enum Motion {
     /// For changes made outside a view (models, controllers), which can't read the environment.
     static func current(_ animation: Animation) -> Animation? {
         guard !byKeyboard else { return nil }
-        return resolved(animation, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        return resolved(animation, reduceMotion: DisplayPreferences.reducesMotionNow)
     }
 
     /// Something showing or hiding: `appear` in, `exit` out, and nothing at all when a key press
@@ -135,7 +135,7 @@ extension PackReport.Tone {
 }
 
 private struct LiveNumber: ViewModifier {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.monospacedDigit()
