@@ -7,7 +7,7 @@ import SwiftUI
 struct SourceAccessNotice: View {
     @Bindable var model: BrowserModel
     var placement: ArchiveNotices.Placement = .browser
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -19,7 +19,8 @@ struct SourceAccessNotice: View {
                     .transition(.opacity)
             }
         }
-        .animation(Motion.resolved(Motion.exit, reduceMotion: reduceMotion), value: model.sourceAccessNotice == nil)
+        // Dismissed from the keyboard (Space on ×) it goes at once.
+        .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.exit, reduceMotion: reduceMotion), value: model.sourceAccessNotice == nil)
     }
 
     private func card(_ notice: Failure) -> some View {

@@ -9,7 +9,7 @@ import SwiftUI
 /// Show All lists every row in a short scrolling region; Clear Results sits apart at the bottom.
 struct BatchStack: View {
     let queue: BatchQueue
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     @State private var showsAllResults = DemoScene.batchStartsExpanded
     private let visibleRows = 4

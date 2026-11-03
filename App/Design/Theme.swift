@@ -53,7 +53,7 @@ enum Motion {
     /// For changes made outside a view (models, controllers), which can't read the environment.
     static func current(_ animation: Animation) -> Animation? {
         guard !byKeyboard else { return nil }
-        return resolved(animation, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        return resolved(animation, reduceMotion: DisplayPreferences.reducesMotionNow)
     }
 
     /// Something showing or hiding: `appear` in, `exit` out, and nothing at all when a key press
@@ -75,6 +75,17 @@ enum Motion {
         var transaction = Transaction()
         transaction.disablesAnimations = byKeyboard
         return transaction
+    }
+}
+
+extension Binding {
+    /// The same value, set without animation when a key press caused the change. A disclosure
+    /// animates its own expansion whatever `.animation` says, so Space on it would otherwise
+    /// reveal its rows over a few frames (DESIGN.md › Motion).
+    var keyboardAware: Binding<Value> {
+        Binding(get: { wrappedValue }, set: { value in
+            withTransaction(Motion.keyboardAware) { wrappedValue = value }
+        })
     }
 }
 
@@ -135,7 +146,7 @@ extension PackReport.Tone {
 }
 
 private struct LiveNumber: ViewModifier {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.monospacedDigit()

@@ -363,6 +363,9 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Pack password check rows (re-enter, mismatch) appear or go | Ease-out fade, never a spring; **none** when typed | 200 ms |
 | Pack part-size editor (Custom…) | The system popover, out of the control that was clicked: the sentence's last words, the Split archives menu, Settings › Packing. Nothing changes until Use | system |
 | More Options opened on a short screen | Once the section has opened, the middle scrolls its heading to the top so the opened rows are in view; **none** (a jump) when a key opened it or under Reduce Motion | `response 0.32, damping 1.0` |
+| Details' disclosures (More Archive Information) and the notices card open or close | Ease-out, never a spring; **none** when a key (Space) toggled it | `status` 200 ms |
+| The password control changes state (locked → checking → open) | Ease-out as a check finishes; the symbol swap cross-fades under Reduce Motion; **none** when Return started the check or Esc cancelled it | `status` 200 ms |
+| Folder access wasn't saved: the card comes and goes | Fade; **none** when dismissed from the keyboard | `exit` 180 ms |
 | Welcome and Browser windows replace each other (an archive opens or closes) | The system's own window opening and closing; **none** when a key press switched them | — |
 | View-mode switch, keyboard nav, search filtering | **No animation** | — |
 | Button press | System controls handle it | — |
@@ -378,9 +381,13 @@ Increase Contrast: the floating capsules, Details, notices and the Tray take a v
 accent pill is outlined, metadata steps up from tertiary to secondary, and the accent deepens to
 `#A8551C` in light and dark, so white words on it reach 5.3 : 1 (4.5 : 1 needed; the usual light
 amber gives 3.1). Accent words in dark mode lift to 7 : 1.
-Design snapshots force Stow's side of the last two with `-StowReduceTransparency YES` and
-`-StowIncreaseContrast YES` (#104); system controls and the accent's high-contrast variant only change
-with the system setting, as does Reduce Motion.
+Design snapshots force Stow's side of all three with `-StowReduceMotion YES`,
+`-StowReduceTransparency YES` and `-StowIncreaseContrast YES` (#104): views read Reduce Motion as
+`\.reducesMotion`, models and controllers as `DisplayPreferences.reducesMotionNow`, never the system
+value directly. What AppKit draws only follows the real setting: system controls, the accent's
+high-contrast variant, the system's window opening and closing (Glance → full window by click, Welcome ↔
+Browser). `-StowBurst <transition>` (`scripts/motion-bursts.sh`) records a
+transition frame by frame, by click and as after a key press, for review.
 
 ## Signature details
 

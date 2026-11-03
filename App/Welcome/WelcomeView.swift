@@ -33,7 +33,7 @@ struct WelcomeWindow: View {
 /// below it.
 struct WelcomeView: View {
     @Environment(AppState.self) private var app
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @State private var isTargeted = false
     /// A drag that only promises a file (Mail, Photos, chat apps); see `OtherAppFiles`.
     @State private var isPromiseTargeted = false

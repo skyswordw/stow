@@ -66,10 +66,15 @@ Scenes: `editing`, `readonly`, `welcome`, `grid`, `list`, `fonts`, `search`, `ac
 (`-StowInstallFolder`/`-StowExtractFolder` point it at scratch folders); with a locked screen,
 `-StowSnapshotMode view` draws the view tree instead of the composited window.
 Display preferences can't be turned on by a launch argument, so any scene takes debug-only overrides:
-`-StowReduceTransparency YES` (Stow's solid fallbacks for glass) and `-StowIncreaseContrast YES` (Stow's
-own borders and colours). Neither reaches system controls or the accent's high-contrast variant: an app
-can't take the system's high-contrast appearance itself. Reduce Motion has no override; check it in
-code and with the system setting.
+`-StowReduceTransparency YES` (Stow's solid fallbacks for glass), `-StowIncreaseContrast YES` (Stow's
+own borders and colours) and `-StowReduceMotion YES` (Stow's fades in place of movement). None reaches
+system controls, the accent's high-contrast variant or AppKit's own window animations: an app can't take
+the system's settings itself, so the real switches still need a pass by hand.
+
+Motion is reviewed in frame bursts: `-StowBurst <transition>` plays one transition, by click and as after a
+key press, and writes a contact sheet of frames at fixed offsets (`App/DemoBurst.swift` lists the
+transitions; `-StowBurstCrop x,y,w,h` crops, in points). `scripts/motion-bursts.sh <dir> [transition…]`
+captures each one light and dark, plain and with each override.
 
 Test fixtures are rebuilt with `scripts/make-fixtures.sh` (disk images) and
 `scripts/make-browse-fixtures.sh [--big]` (browsing, 100k entries).

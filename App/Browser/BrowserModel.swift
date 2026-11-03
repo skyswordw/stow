@@ -1285,6 +1285,11 @@ final class BrowserModel {
         isUnlocking = true
     }
 
+    /// Design review: back to locked, as when unlocking is cancelled (`-StowBurst lock`).
+    func endUnlockingForDemo() {
+        isUnlocking = false
+    }
+
     /// Design review: Details' Developer Verification with a verdict, for the sample's fictional app
     /// (`-StowScene details-app`).
     func showSignatureForDemo(_ verdict: CodeSignature.Verdict, for path: String) {
