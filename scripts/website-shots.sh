@@ -27,7 +27,8 @@ printf 'Which photo leads the launch post?\n' > "$handoff/Specs/Open Questions?.
 printf 'Book the photographer for the Oamaru reshoot.\n' > "$handoff/Specs/To do."
 
 # shoot <name> <scene> <window size> [-StowKey value …]; $pick picks the capture (window, panel,
-# combined = a window with its sheet, window1 / panel1 = the second window).
+# combined = a window with its sheet, window1 / panel1 = the second window). The welcome window
+# opens after a scene's own windows (#266), so the Tray and Quick Look are the first ones.
 shoot() {
   local name=$1 scene=$2 size=$3; shift 3
   [[ -n $only && $only != $name ]] && return
@@ -50,9 +51,9 @@ shoot steps open 900x547 -StowOpen $zip -StowFolder Fonts -StowView grid -StowSe
 shoot editing open 900x547 -StowOpen $zip -StowView grid -StowEdits '<true/>' -StowSnapshotDelay 6
 # Grid first, so the photos' thumbnails are loaded when Glance lists them.
 shoot glance open 1000x607 -StowOpen $zip $photos -StowView grid -StowGlance '<true/>' -StowSnapshotDelay 12
-pick=panel1 shoot tray tray ""
+pick=panel shoot tray tray ""
 shoot recents recents 600x436
-pick=window1 shoot quicklook quicklook 550x450 -StowOpen $zip -StowSnapshotDelay 4
+shoot quicklook quicklook 550x450 -StowOpen $zip -StowSnapshotDelay 4
 
 # Installing an app: the `checkup` scene is the archive just opened, with its notice above the files.
 shoot install-1 checkup 800x573
