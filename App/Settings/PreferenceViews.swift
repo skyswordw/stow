@@ -184,8 +184,8 @@ struct PreviewSettingsView: View {
     }
 }
 
-/// Settings › Glance (#162): whether Finder opens archives in Glance, and how its window looks.
-/// The keys and their defaults are the ones General held before.
+/// Settings › Glance (#162): which window archives open in (the last one used, the full Browser or
+/// Glance) and how Glance looks. The appearance keys and their defaults are the ones General held before.
 struct GlanceSettingsView: View {
     @AppStorage(SettingsKeys.archiveWindowMode) private var archiveWindowMode = SettingsKeys.archiveWindowMode().rawValue
     @AppStorage(SettingsKeys.glanceColourfulControls) private var colourfulControls = false
@@ -199,7 +199,7 @@ struct GlanceSettingsView: View {
                     ForEach(SettingsKeys.ArchiveWindowMode.allCases) { Text($0.title).tag($0.rawValue) }
                 }
             } footer: {
-                Text("Last Used Window remembers whether you last chose Browser or Glance, including after quitting Stow. You can also always open in either window. Switch with ⌥⌘G.")
+                Text("Last Used Window opens archives in the window you last switched to, the full Browser or Glance, even after you quit Stow. Window › Switch to Glance (⌥⌘G) moves an open archive between the two.")
             }
             Section {
                 Picker("Window material", selection: $material) {

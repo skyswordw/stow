@@ -50,6 +50,7 @@ import SwiftUI
 /// glance-<edge>-screen.png: where on the screen it opened, the pointer marked.
 /// glance-editing and glance-editing-saving: the editing scene's changes in Glance, nothing selected.
 /// glance-opening: Glance from Finder while the archive is still opening (Close stops it).
+/// browser-opening: the Browser while the archive is still opening (Cancel or closing stops it).
 /// Actions: next-steps (the capsule over two photos), next-steps-more (its More menu open, captured
 /// as next-steps-more-menu.png with `-StowActivate YES`), next-steps-settings (Settings › Actions),
 /// next-steps-listing (a selection while the archive is still listed: Actions dimmed).
@@ -226,8 +227,13 @@ enum DemoScene {
             let isRetry = defaults.object(forKey: "StowPasswordRetry") == nil || defaults.bool(forKey: "StowPasswordRetry")
             Task { _ = await app.passwords.ask(.init(archiveName: "Harbor Handoff.7z", purpose: purpose, isRetry: isRetry)) }
         case "open":
-            // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>
-            if let path = defaults.string(forKey: "StowOpen") { app.open(URL(filePath: path)) }
+            // A real archive through the engine: -StowScene open -StowOpen <path inside the sandbox>.
+            // `-StowOpenPreferred YES` routes it as Finder and Recent do, into the window the opening
+            // preference picks (`-browse.archiveWindowMode glance` chooses one without saving it).
+            if let path = defaults.string(forKey: "StowOpen") {
+                if defaults.bool(forKey: "StowOpenPreferred") { app.openPreferred(URL(filePath: path)) }
+                else { app.open(URL(filePath: path)) }
+            }
             if let step = defaults.string(forKey: "StowRun") {
                 Task {
                     while app.browser == nil { try? await Task.sleep(for: .milliseconds(100)) }
@@ -486,6 +492,10 @@ enum DemoScene {
             if let size = defaults.string(forKey: "StowWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
                 app.glance.show(near: pointer, size: CGSize(width: size[0], height: size[1]), animated: false)
             }
+        case "browser-opening":
+            // The Browser held in its opening state, as from Finder, Recent or a drop on the welcome.
+            app.showOpeningForDemo(name: "Harbor Rebrand Handoff.zip")
+            app.showMainWindow()
         case "glance-opening":
             // Held in its opening state: nothing is being read, so it never finishes.
             app.showOpeningForDemo()

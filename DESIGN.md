@@ -50,7 +50,8 @@ The title bar's composition is now #242's floating-path direction, under Browser
 centered-search proposal (#231, PR #241) is superseded.
 
 **Current direction after the user's PR #177 review, 2026-10-24:** the full Browser remains
-the default; Glance is optional. The full Browser has a file workspace and **fixed, visible
+the default; Glance is optional. (Since 2026-11-02 archives open in the window used last, which is
+the Browser until someone switches; see Browser layout › Opening an archive.) The full Browser has a file workspace and **fixed, visible
 Details**, with no Details collapse toggle. Remove the separate left folder-navigation pane
 from the proposed Browser composition; retain navigation through the files, breadcrumbs,
 history, parent navigation and search. This supersedes the earlier optional-left/optional-right
@@ -170,6 +171,18 @@ than fading. In a narrow window the words give way first: stacked labels shorten
 (280 pt at most), a failure card puts Copy Details under its action, and several results inside
 other archives say only "Select one result to show it".
 
+**Opening an archive (#265, user's choice 2026-11-02).** Finder, Quick Look, Recent and a drop on
+the welcome open an archive straight into its window, picked before anything shows: the window used
+last (the full Browser until someone switches to Glance, and still remembered after Stow quits), or
+always the Browser, or always Glance, as Settings › Glance says. The welcome never shows in between;
+launching Stow without an archive still shows it, and design snapshots never change the remembered
+window. The Browser comes up already in its own shape: its title bar's height with the bar hidden,
+the traffic lights where they'll stay, and the archive's name and kind ("ZIP archive") where its
+title menu will be. The files, the path and Details arrive with the listing, which only adds the
+chevron and the file count to the title. A read that takes longer than 0.4 s fades in a small spinner
+and *Opening “Harbor.zip”…* in the middle, with Cancel (Esc); Glance shows the same words above its
+window controls, and its Close stops it. A quick open shows neither.
+
 ## Glance layout (#159)
 
 Glance is the Browser made small: the same archive, folder, selection and history, the same
@@ -268,8 +281,10 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
   in the same row: a locked-document symbol, the archive's name over the folder it's in (the name
   isn't repeated in the path), **Forget** on the trailing edge. The first-open-check toggle's footer
   is two short paragraphs: what the check is, then when to turn it on.
-- **Glance** holds what General used to: opening from Finder in Glance (off: the full Browser is
-  the default), the window material and colourful controls. While Reduce Transparency is on, the
+- **Glance** starts with where archives open: **Open archives in** Last Used Window (the default),
+  Full Browser or Glance, its footer saying what Last Used Window remembers and that ⌥⌘G moves an
+  open archive between the two (see Browser layout › Opening an archive). Then, under Appearance,
+  the window material and colourful controls. While Reduce Transparency is on, the
   footer says Glance is solid whatever is chosen; the choice itself is kept.
 - **General** shows the language in use and folds the macOS how-to into a disclosure.
 - File Types drops its own heading in Settings (the title bar names the page); its standalone
@@ -337,6 +352,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Files dragged in another app (#180) | Nothing comes out at the start. The menu-bar icon becomes `tray.and.arrow.down`; without an icon, a 44 pt piece of Tray glass with that symbol fades up where the Tray comes out (scale 0.9 → 1). The Tray comes out **at once** when the drag reaches 160 pt in front of its home (under the icon as wide as the Tray, at the screen's edge as tall as it, or over where it was put), stays for the rest of the drag, and goes back 0.8 s after the drag ends if nothing was dropped. ArcZip's Box: no reveal at drag start; opens at once ~150–165 pt under its icon, about its own width; stays while dragging; gone within ~3 s of a drag with no drop | hint `appear` in, `exit` out; fade only under Reduce Motion |
 | Password card in Glance appears / goes | A click: scale 0.96 → 1 + opacity, dimming fades in; it eases out. Asked again after a wrong password: fade only. **None** when a key (Return, Esc, Space) caused it | `appear` in, `exit` out |
 | Preparing-a-preview capsule appears / goes (after 0.4 s) | Ease-out fade with a 4 pt drop and scale 0.96 → 1 from its top; fades out. Its ring as Actions' | `status` in, `exit` out |
+| An archive's opening status (Browser, Glance) | Waits 0.4 s, then fades in; nothing moves. The listing replaces it at once; the title bar is already in place | `status` in |
 | Glance opens (click, Finder) | Content springs out of the pointer, scale 0.96 → 1 + opacity; glass fades in | `response 0.32, damping 1.0` |
 | Glance via ⌥⌘G, Esc, Glance ↔ full window by keyboard | **None** | — |
 | Pack sentence token change | Blur-crossfade of the token text (the chevron stays put) | 180 ms |
@@ -401,8 +417,8 @@ with the system setting, as does Reduce Motion.
 - **Empty states** teach: the welcome window *is* a drop target and says what dropping does.
   It is a **window of its own**, fixed and compact (640 × 600) like most welcome windows: it can't
   be resized or zoomed. The drop zone sits on top, Recent below; with no history the drop zone is
-  the whole window. Opening an archive brings up the Browser window at its last size and place and
-  closes the welcome; the Close Archive command brings the welcome back. Closing the Browser window
+  the whole window. Opening an archive brings up the Browser window (or Glance, when that's the window
+  used last) at its last size and place and closes the welcome; the Close Archive command brings the welcome back. Closing the Browser window
   with the traffic light or ⌘W ends that archive session and leaves Stow running without a window;
   reopening Stow from the Dock shows Welcome. Only one of them is open at a time.
 
@@ -411,14 +427,3 @@ with the system setting, as does Reduce Motion.
 - No toolbar full of icons. Primary action (Extract) is prominent; the rest live in Actions and menus.
 - No splash, no onboarding carousel.
 - No animated keyboard navigation, no bouncing on menus.
-
-
-### Archive opening preference — confirmed 2026-11-02
-
-File opens from Finder, Quick Look, Recent and Welcome's drop/open controls select the archive
-window before presentation. Browser shows its loading state directly; Welcome must not flash
-between an external open and Browser. Launching Stow without a file still shows Welcome.
-The default opening preference is **Last Used Window**, initially Browser, remembering explicit
-Browser/Glance switches across closes and relaunches. Fixed Browser and Glance remain options;
-explicit legacy fixed-mode settings are preserved. This supersedes fixed Browser-by-default
-wording for returning users. Visual expression remains Claude Code's responsibility.

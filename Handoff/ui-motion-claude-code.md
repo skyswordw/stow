@@ -419,6 +419,13 @@ state and picker use existing native controls as functional treatment; Claude Co
 visual/motion ownership. No visual acceptance is claimed. Pending opens and open errors belong
 to Browser (or the chosen Glance); closing an obsolete Welcome must not cancel their work.
 
+Claude Code's visual/motion pass (2026-11-02) is recorded in DESIGN.md › Browser layout › Opening
+an archive and the motion table: the Browser's opening state takes the Browser's own title bar
+(same height, hidden bar, the archive's name in the title menu's place), the status waits 0.4 s
+before fading in (Browser and Glance), and Cancel also answers Esc. The Settings footer and the
+Simplified Chinese terms (压缩包, 完整浏览器窗口) were clarified. Routing, persistence and
+cancellation are unchanged.
+
 Two actual 0.1.3 (592) crashes were symbolicated against matching release dSYMs. Browser's
 editing delegates could form a forwarding cycle during key-window changes at an extraction
 panel; replacement proxies now forward directly to the native delegate and stale proxies

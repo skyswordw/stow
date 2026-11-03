@@ -12835,7 +12835,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "完整浏览窗口"
+            "value": "完整浏览器窗口"
           }
         }
       }
@@ -12845,17 +12845,17 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开归档时使用"
+            "value": "打开压缩包时使用"
           }
         }
       }
     },
-    "Last Used Window remembers whether you last chose Browser or Glance, including after quitting Stow. You can also always open in either window. Switch with ⌥⌘G.": {
+    "Last Used Window opens archives in the window you last switched to, the full Browser or Glance, even after you quit Stow. Window › Switch to Glance (⌥⌘G) moves an open archive between the two.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "“上次使用的窗口”会记住你最后选择的浏览器或速览模式，退出 Stow 后也会保留。你也可以固定使用其中一种窗口。按 ⌥⌘G 切换。"
+            "value": "“上次使用的窗口”会在你上次切换到的窗口中打开压缩包，即完整浏览器窗口或速览，退出 Stow 后也一样。“窗口 › 切换到速览”（⌥⌘G）可让已打开的压缩包在两者之间切换。"
           }
         }
       }

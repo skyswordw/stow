@@ -88,27 +88,9 @@ struct ArchiveTitleMenu<Items: View>: View {
         Menu {
             items
         } label: {
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: Space.xs) {
-                    Text(title)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: maxWidth, alignment: .leading)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(.primary.opacity(isHovering ? 0.06 : 0), in: .rect(cornerRadius: 6))
-            .contentShape(.rect)
+            ArchiveTitleLabel(title: title, subtitle: subtitle, maxWidth: maxWidth)
+                .background(.primary.opacity(isHovering ? 0.06 : 0), in: .rect(cornerRadius: 6))
+                .contentShape(.rect)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
@@ -119,6 +101,80 @@ struct ArchiveTitleMenu<Items: View>: View {
         .accessibilityLabel(title)
         .accessibilityValue(subtitle)
         .accessibilityHint(String(localized: "Archive Info, Show in Finder, Rename and Close"))
+    }
+}
+
+/// The archive's name over what it is, as the title bar shows it. While the archive is still
+/// opening there's nothing to put in its menu yet, so the name stands alone, without the chevron,
+/// in the same place: when the archive arrives only the chevron and the file count join it.
+struct ArchiveTitleLabel: View {
+    let title: String
+    let subtitle: String
+    var maxWidth: CGFloat = 360
+    var showsChevron = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: Space.xs) {
+                Text(title)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if showsChevron {
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+            }
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: maxWidth, alignment: .leading)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+    }
+}
+
+/// What an archive window shows while its archive is still being read (Browser and Glance): a small
+/// spinner and its name. It waits 0.4 s before fading in, as the preparing-a-preview capsule does,
+/// so an archive that opens at once never flashes it; the window's own chrome is already in place.
+struct ArchiveOpeningStatus: View {
+    let name: String
+    /// The Browser offers Cancel (and Esc); Glance stops with its Close button instead.
+    var cancel: (() -> Void)?
+    @State private var isShown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    static let delay = Duration.milliseconds(400)
+
+    var body: some View {
+        VStack(spacing: Space.m) {
+            ProgressView().controlSize(.small)
+            Text("Opening “\(name)”…")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .truncationMode(.middle)
+                .multilineTextAlignment(.center)
+            if let cancel {
+                Button("Cancel", action: cancel)
+                    .keyboardShortcut(.cancelAction)
+                    .padding(.top, Space.xs)
+            }
+        }
+        .padding(Space.xl)
+        .frame(maxWidth: 420)
+        .opacity(isShown ? 1 : 0)
+        // Esc cancels from the start; a click can't land on a Cancel nobody sees yet.
+        .allowsHitTesting(isShown)
+        .accessibilityHidden(!isShown)
+        .task {
+            try? await Task.sleep(for: Self.delay)
+            withAnimation(Motion.resolved(Motion.status, reduceMotion: reduceMotion)) { isShown = true }
+        }
     }
 }
 
