@@ -305,6 +305,8 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
   lightness in dark mode until it reads at 4.5 : 1 on a dark panel (amber becomes about
   `#DF772B`); fills, rings and selection use `.tint`. macOS uses Stow's amber only when the system
   accent is Multicolor; otherwise both follow the person's own accent.
+  The Quick Look extension has no asset catalog and always shows amber, so `ArchivePreview.amber`
+  writes the same values out (Increase Contrast included); `QuickLookAccentTests` keeps them equal.
 - Everything else is system semantic color (`.primary`, `.secondary`, `.separator`, materials).
 - Status: completed = system green, caution = system yellow, blocked = system red. Always paired with an
   icon and words — never color alone.

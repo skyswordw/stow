@@ -21,12 +21,24 @@ struct ArchivePreview: View {
         .frame(minWidth: 360, minHeight: 260)
     }
 
-    /// DESIGN.md › Color: amber, light #D97B2B / dark #F0954A.
+    /// DESIGN.md › Color: the app's AccentColor, written out because the extension has no asset
+    /// catalog. Amber is only ever a fill here (button, `FormatBadge`, bar), so white words on it need
+    /// 4.5 : 1: light #D97B2B, dark #B85E1C, Increase Contrast #A8551C in both.
     static let amber = Color(nsColor: NSColor(name: "StowAmber") { appearance in
-        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ? NSColor(red: 0xF0 / 255, green: 0x95 / 255, blue: 0x4A / 255, alpha: 1)
-            : NSColor(red: 0xD9 / 255, green: 0x7B / 255, blue: 0x2B / 255, alpha: 1)
+        amberColor(for: appearance.bestMatch(from: [
+            .aqua, .darkAqua, .accessibilityHighContrastAqua, .accessibilityHighContrastDarkAqua,
+        ]))
     })
+
+    static func amberColor(for appearance: NSAppearance.Name?) -> NSColor {
+        let hex: Int = switch appearance {
+        case .accessibilityHighContrastAqua?, .accessibilityHighContrastDarkAqua?: 0xA8551C
+        case .darkAqua?: 0xB85E1C
+        default: 0xD97B2B
+        }
+        return NSColor(srgbRed: CGFloat(hex >> 16 & 0xFF) / 255, green: CGFloat(hex >> 8 & 0xFF) / 255,
+                       blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+    }
 }
 
 private struct ListedPreview: View {
@@ -77,7 +89,7 @@ private struct PreviewHeader: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            PreviewBadge(format: format)
+            FormatBadge(format: format, fill: ArchivePreview.amber)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(name)
@@ -104,31 +116,6 @@ private struct PreviewHeader: View {
                     .controlSize(.large)
             }
         }
-    }
-}
-
-/// Same parcel-label badge as the browser's archive card.
-private struct PreviewBadge: View {
-    let format: ArchiveFormat
-
-    var body: some View {
-        Text(format.badge)
-            .font(.system(size: 10, weight: .bold, design: .rounded))
-            .tracking(0.4)
-            .foregroundStyle(.white)
-            .frame(width: 34, height: 40)
-            .background(ArchivePreview.amber.gradient, in: .rect(cornerRadius: 7))
-            .overlay(alignment: .topTrailing) {
-                Path { path in
-                    path.move(to: .zero)
-                    path.addLine(to: CGPoint(x: 9, y: 9))
-                    path.addLine(to: CGPoint(x: 9, y: 0))
-                    path.closeSubpath()
-                }
-                .fill(.white.opacity(0.35))
-                .frame(width: 9, height: 9)
-            }
-            .accessibilityLabel("\(format.displayName) archive")
     }
 }
 

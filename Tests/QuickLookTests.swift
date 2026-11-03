@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Testing
 @testable import Stow
 
@@ -146,5 +146,33 @@ struct RegisteredTypesTests {
             }
         }
         #expect(ArchiveTypes.type(forFileName: "logs.tar.xz")?.id == "org.tukaani.xz-archive")
+    }
+}
+
+/// Quick Look has no asset catalog, so it writes the accent out. It must stay the app's AccentColor,
+/// or its white button words fall below 4.5 : 1 in dark mode again.
+@Suite("Quick Look accent")
+struct QuickLookAccentTests {
+    private func srgb(_ color: NSColor, in name: NSAppearance.Name) throws -> [Int] {
+        let appearance = try #require(NSAppearance(named: name))
+        var rgb: [Int] = []
+        appearance.performAsCurrentDrawingAppearance {
+            if let c = color.usingColorSpace(.sRGB) {
+                rgb = [c.redComponent, c.greenComponent, c.blueComponent].map { Int(($0 * 255).rounded()) }
+            }
+        }
+        return rgb
+    }
+
+    @Test(arguments: [NSAppearance.Name.aqua, .darkAqua])
+    func matchesTheAppAccent(_ name: NSAppearance.Name) throws {
+        let app = try #require(NSColor(named: "AccentColor", bundle: .main))
+        #expect(try srgb(ArchivePreview.amberColor(for: name), in: name) == srgb(app, in: name))
+    }
+
+    @Test func increaseContrastDeepensInBothLooks() {
+        let deep = ArchivePreview.amberColor(for: .accessibilityHighContrastAqua)
+        #expect(ArchivePreview.amberColor(for: .accessibilityHighContrastDarkAqua) == deep)
+        #expect(deep.usingColorSpace(.sRGB)?.redComponent ?? 0 < ArchivePreview.amberColor(for: .darkAqua).redComponent)
     }
 }
