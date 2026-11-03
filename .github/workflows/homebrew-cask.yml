@@ -1,6 +1,7 @@
 # Homebrew cask (#36). Renders packaging/homebrew/stow.rb with the version and DMG checksum of a
-# release, audits it, installs and uninstalls it once, and uploads the cask as an artifact.
-# It never pushes to a tap or to homebrew/homebrew-cask: a person commits the rendered file.
+# release, audits it, installs and uninstalls it once, uploads the cask as an artifact, and — on
+# release:published / workflow_dispatch — commits Casks/stow.rb to Beastry/homebrew-tap when
+# HOMEBREW_TAP_TOKEN is set. Draft releases never run this workflow (only published).
 # On pull requests it checks the template with a stand-in DMG (style + offline audit only).
 name: Homebrew cask
 
@@ -101,7 +102,11 @@ jobs:
             cat build/homebrew/stow.rb 2>/dev/null || echo "(not rendered)"
             echo '```'
             echo
-            echo "Commit it to the tap by hand; this workflow never publishes."
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              echo "PR check only — no tap push."
+            else
+              echo "On success the next step commits \`Casks/stow.rb\` to [Beastry/homebrew-tap](https://github.com/Beastry/homebrew-tap) (\`brew install --cask Beastry/tap/stow\`)."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v6
@@ -110,3 +115,38 @@ jobs:
           name: homebrew-cask
           path: build/homebrew/stow.rb
           retention-days: 30
+
+      # GITHUB_TOKEN cannot write other repos; a fine-grained PAT scoped to Beastry/homebrew-tap
+      # (Contents: Read and write) is required. See RELEASING.md → Homebrew tap.
+      - name: Push cask to Beastry/homebrew-tap
+        if: ${{ github.event_name != 'pull_request' }}
+        id: push
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ steps.render.outputs.version }}
+          TAP_REPO: Beastry/homebrew-tap
+        run: |
+          set -euo pipefail
+          if [[ -z "${HOMEBREW_TAP_TOKEN:-}" ]]; then
+            echo "::error::HOMEBREW_TAP_TOKEN is not set on Beastry/stow. Create a fine-grained PAT with Contents: Read and write on Beastry/homebrew-tap only, then: gh secret set HOMEBREW_TAP_TOKEN -R Beastry/stow. See RELEASING.md."
+            exit 1
+          fi
+          tap_dir=$(mktemp -d)
+          trap 'rm -rf "$tap_dir"' EXIT
+          # x-access-token form; token never printed.
+          git clone --depth=1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${TAP_REPO}.git" "$tap_dir"
+          mkdir -p "$tap_dir/Casks"
+          cp build/homebrew/stow.rb "$tap_dir/Casks/stow.rb"
+          cd "$tap_dir"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/stow.rb
+          if git diff --cached --quiet; then
+            echo "Casks/stow.rb already matches version $VERSION — nothing to push."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "stow ${VERSION}"
+          git push origin HEAD:main
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "Pushed Casks/stow.rb (${VERSION}) to ${TAP_REPO}"

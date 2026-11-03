@@ -1,9 +1,10 @@
 # Releasing Stow
 
 How a signed, notarized `Stow-<version>.dmg` and its Sparkle `appcast.xml` are built (#32, #34,
-#35). Nothing here publishes anything:
-the **Release** workflow stops at a **draft** GitHub release, and a person publishes it. Publishing
-is what triggers the Homebrew cask workflow (`.github/workflows/homebrew-cask.yml`).
+#35). The **Release** workflow stops at a **draft** GitHub release; a person publishes it (the human
+gate). Publishing triggers the Homebrew cask workflow (`.github/workflows/homebrew-cask.yml`), which
+renders, audits, and installs the cask, then commits `Casks/stow.rb` to
+[Beastry/homebrew-tap](https://github.com/Beastry/homebrew-tap) when `HOMEBREW_TAP_TOKEN` is set.
 
 | Piece | What it does |
 | --- | --- |
@@ -102,6 +103,26 @@ key); if you rotate it before then, keep an offline backup of the new one.
 
 Check with `gh secret list -R Beastry/stow` (names only; values can't be read back).
 
+**Homebrew tap push — provision once:**
+
+`GITHUB_TOKEN` from the Stow workflow cannot write to another repository. The cask workflow needs a
+fine-grained personal access token scoped **only** to `Beastry/homebrew-tap`:
+
+| Secret | Content |
+| --- | --- |
+| `HOMEBREW_TAP_TOKEN` | Fine-grained PAT: Resource owner **Beastry**, repository access **Only select repositories** → `homebrew-tap`, permission **Contents: Read and write** (no other scopes). Expiration: 1 year or less; rotate before expiry. |
+
+Create the token at [GitHub → Settings → Developer settings → Fine-grained tokens](https://github.com/settings/personal-access-tokens), then:
+
+```sh
+gh secret set HOMEBREW_TAP_TOKEN -R Beastry/stow   # paste the token when prompted
+```
+
+Without the secret, a published release still builds and uploads the `homebrew-cask` artifact, but
+the tap-push step fails with a clear error (draft → publish stays the only ship switch).
+
+Install from the tap: `brew install --cask Beastry/tap/stow`.
+
 ## Making a release build
 
 1. Bump `MARKETING_VERSION` in `project.yml` in a PR (or pass the version to the workflow).
@@ -114,7 +135,9 @@ Check with `gh secret list -R Beastry/stow` (names only; values can't be read ba
    **draft** release `v<version>` with the DMG, `.sha256` and `appcast.xml`. A draft doesn't create
    the tag; publishing it does. The workflow refuses to touch a release that is already published.
 4. Download the DMG on a clean Mac, open it, drag Stow to Applications and launch: Gatekeeper must
-   not warn (ROADMAP tests #17). Then publish the draft by hand.
+   not warn (ROADMAP tests #17). Then publish the draft by hand. Publishing starts the **Homebrew
+   cask** workflow: it audits/installs the cask and (with `HOMEBREW_TAP_TOKEN`) pushes
+   `Casks/stow.rb` to `Beastry/homebrew-tap`. Drafts never trigger that push.
 
 ### Sparkle updates
 

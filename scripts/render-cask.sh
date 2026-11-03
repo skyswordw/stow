@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Renders packaging/homebrew/stow.rb for one release: fills in the version and the SHA-256 of the
-# release DMG. Never publishes anything — it writes a cask file for a person (or the tap workflow)
-# to commit.
+# release DMG. Writes the cask file only — the Homebrew cask workflow commits it to
+# Beastry/homebrew-tap after a published release.
 #
 #   scripts/render-cask.sh 1.0.0                     # downloads Stow-1.0.0.dmg from the v1.0.0 release
 #   scripts/render-cask.sh 1.0.0 --dmg build/Stow-1.0.0.dmg
