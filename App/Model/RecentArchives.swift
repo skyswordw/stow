@@ -41,6 +41,16 @@ final class RecentArchives {
         refresh()
     }
 
+    /// Test-host and design-scene archive opens must never read, overwrite or evict real history.
+    /// Explicitly injected stores remain available to persistence tests through the initializer.
+    static func forApplication(defaults: UserDefaults = .standard,
+                               environment: [String: String] = ProcessInfo.processInfo.environment,
+                               testCaseClassPresent: Bool = NSClassFromString("XCTestCase") != nil) -> RecentArchives {
+        let ephemeral = testCaseClassPresent || environment["XCTestConfigurationFilePath"] != nil
+            || defaults.string(forKey: "StowScene") != nil
+        return RecentArchives(defaults: ephemeral ? nil : defaults)
+    }
+
     /// What the welcome window and the menu show.
     var visible: [Entry] { entries.filter { !missing.contains($0.path) } }
 

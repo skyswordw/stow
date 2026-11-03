@@ -14,8 +14,8 @@ final class AppState {
     let system = SystemActions()
     let passwords = PasswordPrompt()
     let glance = GlanceController()
-    /// Demo scenes keep their own list so screenshots never show (or change) real history.
-    let recents = RecentArchives(defaults: UserDefaults.standard.string(forKey: "StowScene") == nil ? .standard : nil)
+    /// Tests and demo scenes keep their own history, leaving the user's stored list untouched.
+    let recents = RecentArchives.forApplication()
     var browser: BrowserModel?
     /// A native window close leaves Stow running without presenting a replacement window.
     private(set) var mainWindowDismissed = false

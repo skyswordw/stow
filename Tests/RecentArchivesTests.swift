@@ -28,6 +28,42 @@ struct RecentArchivesTests {
         }
     }
 
+    @Test(arguments: ["demo", "test-environment", "test-class"])
+    func applicationTestAndDemoHistoryNeverTouchesPersistentEntries(_ mode: String) throws {
+        let scratch = try Scratch()
+        let ordinary = RecentArchives(defaults: scratch.defaults)
+        ordinary.add(try scratch.file("user.zip"))
+        let before = scratch.defaults.data(forKey: RecentArchives.key)
+        if mode == "demo" { scratch.defaults.set("open", forKey: "StowScene") }
+        let history = RecentArchives.forApplication(defaults: scratch.defaults,
+            environment: mode == "test-environment" ? ["XCTestConfigurationFilePath": "/tmp/test.xctestconfiguration"] : [:],
+            testCaseClassPresent: mode == "test-class")
+        #expect(history.entries.isEmpty)
+        // Enough test opens to have evicted a real entry if the standard persistence path leaked.
+        for index in 0...RecentArchives.limit { history.add(try scratch.file("test-\(index).zip")) }
+        history.clear()
+        #expect(scratch.defaults.data(forKey: RecentArchives.key) == before)
+        #expect(RecentArchives(defaults: scratch.defaults).entries.map(\.name) == ["user.zip"])
+    }
+
+    @Test func ordinaryApplicationHistoryStillPersists() throws {
+        let scratch = try Scratch()
+        let history = RecentArchives.forApplication(defaults: scratch.defaults, environment: [:], testCaseClassPresent: false)
+        history.add(try scratch.file("ordinary.zip"))
+        let restored = RecentArchives.forApplication(defaults: scratch.defaults, environment: [:], testCaseClassPresent: false)
+        #expect(restored.entries.map(\.name) == ["ordinary.zip"])
+    }
+
+    @Test func appStateInTheTestHostDoesNotWriteTheUserHistory() throws {
+        let before = UserDefaults.standard.data(forKey: RecentArchives.key)
+        let app = AppState()
+        #expect(app.recents.entries.isEmpty)
+        app.recents.add(URL(filePath: "/tmp/Stow-test-history-\(UUID().uuidString).zip"))
+        #expect(app.recents.entries.count == 1)
+        app.recents.clear()
+        #expect(UserDefaults.standard.data(forKey: RecentArchives.key) == before)
+    }
+
     @Test func addsNewestFirst() throws {
         let scratch = try Scratch()
         let recents = RecentArchives(defaults: scratch.defaults)
