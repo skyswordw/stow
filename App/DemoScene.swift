@@ -66,6 +66,8 @@ import SwiftUI
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
 /// `-StowArchiveInfoOpen YES` opens Archive Info from the title menu in any Browser scene.
+/// `-StowBurst <transition>` captures a frame burst of one transition instead of a still; see `DemoBurst`.
+/// `-StowReduceMotion YES` stands in for the system's Reduce Motion, as the two above do for theirs.
 /// `-StowLogLayout YES` also prints who has the keyboard and which toolbar items are showing.
 /// `-StowTabStops N` (with `-StowActivate YES`) presses Tab N times in the key window and captures
 /// it after each press as `<scene>-tab<i>`, printing what has the keyboard; `-StowTabBackward YES`
@@ -681,6 +683,16 @@ enum DemoScene {
 
         if defaults.bool(forKey: "StowSnapshot") {
             Task {
+                // `-StowBurst <transition>`: a frame burst instead of a still (`DemoBurst`, #104).
+                if let transition = defaults.string(forKey: "StowBurst") {
+                    if transition != "opening" {
+                        let delay = defaults.double(forKey: "StowSnapshotDelay")
+                        try? await Task.sleep(for: .seconds(delay > 0 ? delay : 1.6))
+                    }
+                    if let url = await DemoBurst.run(transition, app: app, label: scene) { print(url.path) }
+                    fflush(stdout)
+                    exit(0)
+                }
                 let delay = defaults.double(forKey: "StowSnapshotDelay")
                 // `-StowActivate YES`: capture as the front app, so default buttons show their colour.
                 if defaults.bool(forKey: "StowActivate") { NSApp.activate() }

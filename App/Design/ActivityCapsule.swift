@@ -192,7 +192,7 @@ struct ActivityGlyph: View {
     enum State: Equatable { case waiting, running(Double), done, failed, stopped }
 
     let state: State
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     init(_ state: State) { self.state = state }
 
@@ -233,7 +233,7 @@ struct ActivityGlyph: View {
 /// 0%; under Reduce Motion it stays still.
 struct ProgressRing: View {
     @Environment(\.colorSchemeContrast) private var contrast
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     let progress: Double
 
     var body: some View {

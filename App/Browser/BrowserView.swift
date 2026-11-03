@@ -11,7 +11,7 @@ struct BrowserView: View {
     @Bindable var model: BrowserModel
     @State private var editingDelegate = EditingWindowDelegate()
     @Environment(AppState.self) private var app
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @AppStorage(SettingsKeys.nextStepsShown) private var showsNextSteps = true
     @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
     /// Whether Search has the keyboard. The field lives in the toolbar, which SwiftUI hosts apart

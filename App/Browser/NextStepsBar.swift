@@ -110,7 +110,7 @@ private struct ActionStack: View {
     /// inside the stack as it grows, so the stack lights them from where the pointer is.
     @State private var pointedChoice: NextStep?
     @State private var shrinkTask: Task<Void, Never>?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     /// Two edges show at most; the rest are as easy to reach from More.
     private var edges: Int { min(behind.count, 2) }
@@ -169,6 +169,14 @@ private struct ActionStack: View {
             shrinkTask?.cancel()
             isOpen = false
             isGrown = false
+        }
+        // Motion review (#104): `-StowBurst actions` opens and folds the stack as the pointer would.
+        .onReceive(NotificationCenter.default.publisher(for: DemoBurst.request)) { note in
+            switch note.object as? String {
+            case "stack-open": setOpen(true)
+            case "stack-close": setOpen(false)
+            default: break
+            }
         }
         .task {
             guard NextStepsDemo.opensStack else { return }

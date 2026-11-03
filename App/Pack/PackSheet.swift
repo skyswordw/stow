@@ -9,7 +9,7 @@ struct PackSheet: View {
     let request: PackRequest
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @State private var options = PackOptions()
     @State private var password = ""
     @State private var confirmation = ""
@@ -482,7 +482,7 @@ struct PackSheet: View {
     }
 
     private func moreOptionsGroup(_ report: PackReport) -> some View {
-        DisclosureGroup(isExpanded: $showMore) {
+        DisclosureGroup(isExpanded: $showMore.keyboardAware) {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.m, verticalSpacing: Space.l) {
                 optionRow("Compression") {
                     Picker("Compression", selection: levelBinding) {
@@ -933,7 +933,7 @@ private struct Token<Items: View>: View {
     var disabledHelp = ""
     @ViewBuilder let items: () -> Items
     @State private var isHovering = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     var body: some View {
         if isEnabled {

@@ -67,12 +67,28 @@ extension View {
 
 /// The system's display preferences as Stow draws them. A launch argument can't turn on the
 /// system's own settings, so design snapshots force them with debug-only overrides
-/// (`-StowReduceTransparency YES`, `-StowIncreaseContrast YES`); every reader goes through here
-/// (or `ContrastStyle.resolve`) so a snapshot shows what the setting shows (#104).
+/// (`-StowReduceTransparency YES`, `-StowIncreaseContrast YES`, `-StowReduceMotion YES`); every
+/// reader goes through here (or `ContrastStyle.resolve`, or `\.reducesMotion`) so a snapshot shows
+/// what the setting shows (#104).
 enum DisplayPreferences {
     static func reducesTransparency(_ system: Bool) -> Bool {
         system || UserDefaults.standard.bool(forKey: "StowReduceTransparency")
     }
+
+    nonisolated static func reducesMotion(_ system: Bool) -> Bool {
+        system || UserDefaults.standard.bool(forKey: "StowReduceMotion")
+    }
+
+    /// For models and controllers, which can't read the environment.
+    static var reducesMotionNow: Bool {
+        reducesMotion(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+    }
+}
+
+extension EnvironmentValues {
+    /// Reduce Motion as Stow honours it: the system setting, or the design-snapshot override.
+    /// Views read this rather than `accessibilityReduceMotion` (DESIGN.md › Motion).
+    var reducesMotion: Bool { DisplayPreferences.reducesMotion(accessibilityReduceMotion) }
 }
 
 /// Glass that morphs between shapes sharing a `GlassEffectContainer` (Actions' front button into
@@ -81,7 +97,7 @@ enum DisplayPreferences {
 private struct GlassMorph: ViewModifier {
     let id: String
     let namespace: Namespace.ID
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content

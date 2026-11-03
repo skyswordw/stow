@@ -23,7 +23,7 @@ final class TrayHint {
         guard !isOut else { return }
         isOut = true
         panel.orderFrontRegardless()
-        guard let animation = Motion.presence(true, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) else {
+        guard let animation = Motion.presence(true, reduceMotion: DisplayPreferences.reducesMotionNow) else {
             state.isShown = true
             return
         }
@@ -37,7 +37,7 @@ final class TrayHint {
     func dismiss() {
         guard let panel, isOut else { return }
         isOut = false
-        guard let animation = Motion.presence(false, reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) else {
+        guard let animation = Motion.presence(false, reduceMotion: DisplayPreferences.reducesMotionNow) else {
             state.isShown = false
             panel.orderOut(nil)
             return
@@ -77,7 +77,7 @@ private final class TrayHintState {
 /// The Tray in miniature: its glass, its border colour, and the tray taking something in.
 private struct TrayHintView: View {
     let state: TrayHintState
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reducesMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {

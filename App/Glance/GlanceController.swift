@@ -220,7 +220,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
         self.window = window
         window.level = isPinned ? .floating : .normal
         window.setFrame(frame, display: false)
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let reduceMotion = DisplayPreferences.reducesMotionNow
         if animated {
             appearance += 1
             window.alphaValue = 0
