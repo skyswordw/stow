@@ -166,17 +166,28 @@ struct BrowserFocusTests {
         }
 
         func typeIntoSearch(_ text: String, expecting query: String) async throws {
+            let editor = try #require(window.firstResponder as? NSTextView)
+            // Programmatic `model.query` updates can land before the field editor's string
+            // catches up (especially when grid swaps NoSearchResults → ContentGrid). Append
+            // only once the visible text matches, or typing builds on a stale string.
+            try await wait({ editor.string == self.model.query }, "search field shows \(model.query)")
+            editor.setSelectedRange(NSRange(location: editor.string.utf16.count, length: 0))
             let input = try #require(window.firstResponder as? NSTextInputClient)
             input.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
-            try await wait { self.model.query == query }
+            try await wait({ self.model.query == query }, "query becomes \(query)")
         }
 
-        func wait(_ condition: () -> Bool) async throws {
-            let deadline = ContinuousClock.now + .seconds(3)
+        func wait(_ condition: @escaping () -> Bool, _ label: String = "condition") async throws {
+            let deadline = ContinuousClock.now + .seconds(5)
             while !condition(), ContinuousClock.now < deadline {
                 try await settle()
             }
-            try #require(condition())
+            let responder = window.firstResponder.map { String(describing: type(of: $0)) } ?? "nil"
+            let editorText = (window.firstResponder as? NSTextView)?.string
+            try #require(
+                condition(),
+                "timed out waiting for \(label); query=\(model.query) results=\(model.visibleEntries.count) responder=\(responder) editor=\(editorText ?? "n/a")"
+            )
         }
 
         func close() {

@@ -392,6 +392,12 @@ with the system setting, as does Reduce Motion.
   disclosure that gives its consequence and then the others. Cautions use the system's multicolour
   warning triangle; planned or completed handling uses the blue half shield. Quick Look shows the same
   card's first finding with its consequence under it. A normal archive shows no card and no line.
+- **Folder access wasn't saved** (#253) is the quietest card of that family, above the findings
+  card in Browser and Glance: same shape, inset and callout size, but a neutral tint (no severity
+  colour, since nothing is wrong with the archive), a secondary `folder.badge.questionmark`, the
+  title with its one-sentence consequence always shown under it, and Copy Details with the code
+  under the words. A small × at the title's line dismisses it (it fades out), instead of a button
+  that would outweigh the findings card. It never takes focus or blocks the files.
 - **Pack sentence** shows a live report underneath of what it will do. When the archive is split it
   leads with what comes out: about how many parts, their numbered names ("Harbor.zip.001 – .003"),
   each part's limit, and that opening it needs every part and an app that joins them. A caution

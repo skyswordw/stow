@@ -404,6 +404,10 @@ Codex owns this state, diagnostic and test implementation. The view uses existin
 text and buttons as a functional baseline. Claude Code retains final visual/motion ownership;
 no design acceptance is claimed. Preserve the non-modal behavior and compact Glance usability.
 
+Claude Code's visual pass (2026-11-03) gives it the archive notices' card shape with a neutral
+tint and a small × for Dismiss; see DESIGN.md › Signature details. State, copy, Copy Details,
+GEN-180 and the once-per-folder rule are unchanged.
+
 ## Direct document launch and remembered window — 2026-11-02
 
 Confirmed user feedback supersedes the earlier fixed-default opening direction: external

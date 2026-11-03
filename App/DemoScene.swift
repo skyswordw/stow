@@ -358,6 +358,14 @@ enum DemoScene {
             // Opened after the picker, but the folder's grant couldn't be saved.
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.sourceAccessNotice = AppState.unsavedSourceAccess(CocoaError(.fileWriteUnknown))
+            // `-StowGlance YES`: the same notice in Glance.
+            if defaults.bool(forKey: "StowGlance") {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    let visible = (NSScreen.main ?? NSScreen.screens[0]).visibleFrame
+                    app.glance.collapse(near: CGPoint(x: visible.midX, y: visible.midY), animated: false)
+                }
+            }
         case "finder-failed":
             // Extract Here from Finder that failed: the same sheet, on whatever window Stow has.
             Task {
