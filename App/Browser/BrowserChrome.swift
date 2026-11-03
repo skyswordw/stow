@@ -367,83 +367,116 @@ struct ToolbarSearchField: View {
                 if hasKeyboard != wants { hasKeyboard = wants }
                 // While a native table holds the keyboard, SwiftUI's focus doesn't cross into the
                 // toolbar's hosting view; AppKit hands it over directly.
-                if wants { DispatchQueue.main.async { anchor.focusField() } } else { anchor.cancelPendingFocus() }
+                if wants { anchor.focusField() } else { anchor.cancelPendingFocus() }
             }
             .onChange(of: focusRequest) { takeKeyboard() }
         }
 
         private func takeKeyboard() {
             hasKeyboard = true
-            DispatchQueue.main.async { anchor.focusField() }
+            anchor.focusField()
         }
 
         @State private var anchor = FieldAnchor()
     }
 }
 
-/// Finds the toolbar item's text field from inside it, so it can be made first responder.
+/// Places `SearchFieldFocus`'s anchor beside the toolbar item's text field.
 private struct FieldAnchor: NSViewRepresentable {
-    private let box = Box()
+    let focus = SearchFieldFocus()
 
-    private final class Box {
-        weak var view: AnchorView?
-    }
+    func makeNSView(context: Context) -> NSView { focus.makeAnchor() }
+    func updateNSView(_ view: NSView, context: Context) {}
 
-    /// Finishes a focus request that arrived before the toolbar put the item in the window.
-    private final class AnchorView: NSView {
-        var pendingFocus: (@MainActor () -> Void)?
+    func focusField() { focus.request() }
+    func cancelPendingFocus() { focus.cancel() }
+    func isComposing() -> Bool { focus.isComposing() }
+    func releaseField() { focus.release() }
+}
+
+/// Hands the keyboard to Search's toolbar field through AppKit: while a native table holds it,
+/// SwiftUI's focus doesn't cross into the toolbar's hosting view. A request runs on the next turn
+/// of the main queue, so the field can exist first. When Search opens, the toolbar can build the
+/// field's view a moment before it puts it in the window (most often on a busy Mac), so a request
+/// that finds no window waits for the field to arrive rather than leave ⌘F with Search open and
+/// the keyboard nowhere. Letting go of Search cancels every request still queued or waiting, so a
+/// late one never takes the keyboard back.
+final class SearchFieldFocus {
+    /// Sits beside the field: finds it from inside the toolbar item and notices when it reaches a window.
+    final class Anchor: NSView {
+        fileprivate weak var focus: SearchFieldFocus?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            guard window != nil, let focus = pendingFocus else { return }
-            pendingFocus = nil
-            // The field moves in with the anchor; let AppKit finish installing it first.
-            DispatchQueue.main.async { focus() }
+            if window != nil { focus?.anchorDidMoveToWindow() }
         }
     }
 
-    func makeNSView(context: Context) -> NSView {
-        let view = AnchorView()
-        box.view = view
-        return view
+    private weak var anchor: Anchor?
+    /// Bumped by every request and every cancellation: a queued request runs only while it's the latest.
+    private var generation = 0
+    /// The latest request, when it found no window and is waiting for the field to reach one.
+    private var waiting: Int?
+
+    func makeAnchor() -> Anchor {
+        let anchor = Anchor()
+        anchor.focus = self
+        self.anchor = anchor
+        return anchor
     }
 
-    func updateNSView(_ view: NSView, context: Context) {}
-
-    @MainActor func focusField() {
-        guard let field = ownField(), let window = field.window else {
-            // When Search opens, the toolbar can build the field's view a moment before it puts
-            // it in the window, most often on a busy Mac: give it the keyboard once it's there,
-            // rather than leave ⌘F with Search open and the keyboard nowhere.
-            box.view?.pendingFocus = { focusField() }
-            return
-        }
-        box.view?.pendingFocus = nil
-        if (window.firstResponder as? NSText)?.delegate !== field { window.makeFirstResponder(field) }
+    /// Puts the keyboard in the field on the next turn, or once the field reaches a window.
+    func request() {
+        generation += 1
+        waiting = nil
+        let request = generation
+        DispatchQueue.main.async { self.perform(request) }
     }
 
-    /// Search let go of the keyboard before the field reached the window: don't take it later.
-    @MainActor func cancelPendingFocus() { box.view?.pendingFocus = nil }
+    /// Search let go: requests still queued or waiting for the window don't take the keyboard later.
+    func cancel() {
+        generation += 1
+        waiting = nil
+    }
 
     /// An input method has unfinished text in this item's field (marked text).
-    @MainActor func isComposing() -> Bool {
+    func isComposing() -> Bool {
         guard let field = ownField(), let editor = field.window?.firstResponder as? NSTextView,
               editor.delegate === field else { return false }
         return editor.hasMarkedText()
     }
 
     /// Lets go of the keyboard if this item's field has it; the files then take it back.
-    @MainActor func releaseField() {
+    func release() {
+        cancel()
         guard let field = ownField(), let window = field.window,
-              (window.firstResponder as? NSText)?.delegate === field else { cancelPendingFocus(); return }
+              (window.firstResponder as? NSText)?.delegate === field else { return }
         window.makeFirstResponder(nil)
     }
 
+    private func perform(_ request: Int) {
+        guard request == generation else { return }
+        guard let field = ownField(), let window = field.window else {
+            waiting = request
+            return
+        }
+        waiting = nil
+        if (window.firstResponder as? NSText)?.delegate !== field { window.makeFirstResponder(field) }
+    }
+
+    fileprivate func anchorDidMoveToWindow() {
+        guard let request = waiting else { return }
+        waiting = nil
+        // The field moves in with the anchor; let AppKit finish installing it first. Cancelling
+        // before then bumps `generation`, so this turn does nothing.
+        DispatchQueue.main.async { self.perform(request) }
+    }
+
     /// The item's own field: in the closest ancestor (the toolbar item's hosting view) that holds one.
-    @MainActor private func ownField() -> NSTextField? {
-        var ancestor = box.view?.superview
+    private func ownField() -> NSTextField? {
+        var ancestor = anchor?.superview
         // Never past the title bar, into the window's content (a rename field, say).
-        let frame = box.view?.window?.contentView?.superview
+        let frame = anchor?.window?.contentView?.superview
         while let current = ancestor, current !== frame {
             if let field = Self.editableField(in: current) { return field }
             ancestor = current.superview
