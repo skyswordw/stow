@@ -231,32 +231,3 @@ struct FindingGlyph: View {
         .accessibilityHidden(true)
     }
 }
-
-struct FormatBadge: View {
-    let format: ArchiveFormat
-    /// Archive Info's is 40 pt tall; Glance's header uses a smaller one. Everything scales with it.
-    var height: CGFloat = 40
-
-    var body: some View {
-        let scale = height / 40
-        Text(format.badge)
-            .font(.system(size: 10 * scale, weight: .bold, design: .rounded))
-            .tracking(0.4 * scale)
-            .foregroundStyle(.white)
-            .frame(width: 34 * scale, height: height)
-            .background(Color.accentColor.gradient, in: .rect(cornerRadius: 7 * scale))
-            .overlay(alignment: .topTrailing) {
-                // folded corner, like a parcel label
-                let fold = 9 * scale
-                Path { path in
-                    path.move(to: .zero)
-                    path.addLine(to: CGPoint(x: fold, y: fold))
-                    path.addLine(to: CGPoint(x: fold, y: 0))
-                    path.closeSubpath()
-                }
-                .fill(.white.opacity(0.35))
-                .frame(width: fold, height: fold)
-            }
-            .accessibilityLabel("\(format.displayName) archive")
-    }
-}

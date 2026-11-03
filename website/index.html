@@ -213,11 +213,13 @@ section { padding: clamp(80px, 12vw, 148px) 0; }
 .notice-head { display: flex; align-items: center; gap: 14px; }
 .badge-zip {
   position: relative; width: 40px; height: 48px; border-radius: 9px; flex: none;
+  /* folded corner: cut along the fold, with the flap (::after) inside, like the app's badge */
+  clip-path: path("M9 0H29L40 11V39A9 9 0 0 1 31 48H9A9 9 0 0 1 0 39V9A9 9 0 0 1 9 0Z");
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
   color: #fff; font: 700 11px/48px var(--font); text-align: center; letter-spacing: .04em;
 }
-.badge-zip::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 11px 11px 0;
-  border-color: transparent rgba(255,255,255,.4) transparent transparent; }
+.badge-zip::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 11px 0 0 11px;
+  border-color: transparent transparent transparent rgba(255,255,255,.4); }
 .notice-title { font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
 .notice-sub { font-size: 13px; color: var(--ink-3); }
 .findings { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 4px; }
