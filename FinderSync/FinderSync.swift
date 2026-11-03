@@ -5,7 +5,7 @@ import OSLog
 /// Stow's items in Finder's context menu. The extension never opens the files: it posts the
 /// selection under a one-time token into the App Group mailbox (pasteboard fallback for ad-hoc
 /// builds) and opens `stow://handoff/<token>` (see Handoff.swift).
-/// Finder calls in on the main thread, but FIFinderSync's methods aren't annotated.
+/// Finder can request a menu on its XPC queue; native menu construction explicitly hops to main.
 nonisolated final class FinderSync: FIFinderSync {
     private static let log = Logger(subsystem: "app.stow.Stow.FinderSync", category: "menu")
     private let defaults = UserDefaults.standard
@@ -33,17 +33,7 @@ nonisolated final class FinderSync: FIFinderSync {
         let actions = FinderMenu.actions(for: selection.map(\.path), settings: settings)
         guard !actions.isEmpty else { return nil }
         let selectors = actions.map(Self.selector(for:))
-        nonisolated(unsafe) var menu: NSMenu?
-        MainActor.assumeIsolated {
-            let built = NSMenu(title: "Stow")
-            for (action, selector) in zip(actions, selectors) {
-                let item = NSMenuItem(title: FinderMenu.title(for: action), action: selector, keyEquivalent: "")
-                item.image = NSImage(systemSymbolName: FinderMenu.symbol(for: action), accessibilityDescription: nil)
-                built.addItem(item)
-            }
-            menu = built
-        }
-        return menu
+        return FinderMenuPresentation.makeMenu(actions: actions, selectors: selectors)
     }
 
     private static func selector(for action: HandoffAction) -> Selector {

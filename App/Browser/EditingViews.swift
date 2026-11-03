@@ -414,7 +414,13 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
         }
         for level in model.levels { level.edits.undoManager = model.editingUndoManager }
         window.isDocumentEdited = model.levels.contains { $0.edits.isEdited }
-        if window.delegate !== self { original = window.delegate; window.delegate = self }
+        if window.delegate !== self {
+            // A rebuilt SwiftUI host may leave an older proxy on the same NSWindow. Forward
+            // directly to the native delegate, never to another editing proxy: replacing
+            // delegates can synchronously ask responds(to:) and otherwise close a cycle.
+            original = Self.nativeDelegate(window.delegate, excluding: self)
+            window.delegate = self
+        }
         EditingUndoCommandsModel.shared.refresh()
         ExtractAllCommand.shared.refresh()
     }
@@ -423,10 +429,23 @@ final class EditingWindowDelegate: NSObject, NSWindowDelegate {
     func windowDidBecomeKey(_ notification: Notification) {
         // Full and Glance retain separate delegates and hosted views. Reopening either window
         // does not move WindowReader into it again, so reclaim editing ownership on activation.
-        if let window = notification.object as? NSWindow, window === self.window, let model {
+        if let window = notification.object as? NSWindow, window === self.window,
+           window.delegate === self, let model {
             attach(window, model: model)
         }
+        guard let window = notification.object as? NSWindow, window.delegate === self else { return }
         original?.windowDidBecomeKey?(notification)
+    }
+
+    private static func nativeDelegate(_ delegate: (any NSWindowDelegate)?,
+                                       excluding owner: EditingWindowDelegate) -> (any NSWindowDelegate)? {
+        var candidate = delegate
+        var visited: Set<ObjectIdentifier> = [ObjectIdentifier(owner)]
+        while let proxy = candidate as? EditingWindowDelegate {
+            guard visited.insert(ObjectIdentifier(proxy)).inserted else { return nil }
+            candidate = proxy.original
+        }
+        return candidate
     }
 
     nonisolated override func responds(to selector: Selector!) -> Bool {
