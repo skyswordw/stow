@@ -9,9 +9,10 @@ mkdir -p "$out"
 typeset -A scene crop
 scene=(actions next-steps glance list archive-info details-planned notices details-planned
        notice source-access-unsaved lock encrypted tray tray batch batch opening browser-opening)
-crop=(actions 560,-200,260,200 archive-info -340,0,340,520 notices 0,40,800,300
-      notice 0,40,800,240 lock 0,0,560,64 batch 0,-330,520,330)
-transitions=(${@:-actions glance archive-info notices notice lock tray batch opening})
+crop=(actions 560,-200,260,200 archive-info 772,40,334,520 notices 0,40,800,300
+      notice 0,40,800,240 lock 200,4,150,52 batch 760,-260,346,260 opening 300,240,500,220)
+transitions=($@)
+(( $#transitions )) || transitions=(actions glance archive-info notices notice lock tray batch opening)
 overrides=(${=OVERRIDES:-none motion transparency contrast})
 for t in $transitions; do
   for look in light dark; do

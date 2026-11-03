@@ -173,18 +173,20 @@ enum DemoBurst {
 
     private static func sheet(_ frames: [FrameGrabber.Frame], rows: [Step], crop: CGRect?, name: String) -> URL? {
         guard !frames.isEmpty else { return nil }
-        let images = frames.map { frame -> CGImage in
-            guard let crop else { return frame.image }
-            let width = CGFloat(frame.image.width), height = CGFloat(frame.image.height)
+        let images = frames.map { frame -> CGImage? in
+            guard let image = frame.image else { return nil }
+            guard let crop else { return image }
+            let width = CGFloat(image.width), height = CGFloat(image.height)
             let rect = CGRect(x: crop.minX < 0 ? width + crop.minX : crop.minX,
                               y: crop.minY < 0 ? height + crop.minY : crop.minY,
                               width: crop.width, height: crop.height)
-            return frame.image.cropping(to: rect) ?? frame.image
+            return image.cropping(to: rect) ?? image
         }
+        guard let first = images.compactMap({ $0 }).first else { return nil }
         let isOpening = rows.count == 1 && rows[0].name == "shown"
         let offsets = isOpening ? [0, 100, 200, 300, 380, 420, 460, 500, 560, 650] : offsets
-        let cellWidth: CGFloat = min(CGFloat(images.map(\.width).max() ?? 300), crop == nil ? 360 : 440)
-        let aspect = CGFloat(images[0].height) / CGFloat(max(images[0].width, 1))
+        let cellWidth: CGFloat = min(CGFloat(images.compactMap { $0?.width }.max() ?? 300), crop == nil ? 360 : 440)
+        let aspect = CGFloat(first.height) / CGFloat(max(first.width, 1))
         let cellHeight = (cellWidth * aspect).rounded()
         let caption: CGFloat = 28, rowTitle: CGFloat = 34, gap: CGFloat = 8
         let width = gap + CGFloat(offsets.count) * (cellWidth + gap)
@@ -212,14 +214,17 @@ enum DemoBurst {
                 let target = Double(step.at + offset) / 1000
                 guard let index = frames.indices.min(by: { abs(frames[$0].time - target) < abs(frames[$1].time - target) }) else { continue }
                 let rect = CGRect(x: gap + CGFloat(column) * (cellWidth + gap), y: top + rowTitle, width: cellWidth, height: cellHeight)
-                context.cgContext.saveGState()
-                // Images draw upright in the flipped context by flipping them back locally.
-                context.cgContext.translateBy(x: rect.minX, y: rect.maxY)
-                context.cgContext.scaleBy(x: 1, y: -1)
-                let image = images[index]
-                let fit = min(cellWidth / CGFloat(image.width), cellHeight / CGFloat(image.height))
-                context.cgContext.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(image.width) * fit, height: CGFloat(image.height) * fit))
-                context.cgContext.restoreGState()
+                if let image = images[index] {
+                    context.cgContext.saveGState()
+                    // Images draw upright in the flipped context by flipping them back locally.
+                    context.cgContext.translateBy(x: rect.minX, y: rect.maxY)
+                    context.cgContext.scaleBy(x: 1, y: -1)
+                    let fit = min(cellWidth / CGFloat(image.width), cellHeight / CGFloat(image.height))
+                    context.cgContext.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(image.width) * fit, height: CGFloat(image.height) * fit))
+                    context.cgContext.restoreGState()
+                } else {
+                    ("no window on screen" as NSString).draw(at: CGPoint(x: rect.minX + 8, y: rect.midY), withAttributes: small)
+                }
                 let actual = Int(((frames[index].time * 1000) - Double(step.at)).rounded())
                 let label = isOpening ? "\(actual) ms" : (actual >= 0 ? "+\(actual) ms" : "\(actual) ms")
                 (label as NSString).draw(at: CGPoint(x: rect.minX + 2, y: rect.maxY + 3), withAttributes: small)
@@ -234,7 +239,8 @@ enum DemoBurst {
 
 /// Captures Stow's windows as fast as the window server gives them, off the main thread.
 nonisolated final class FrameGrabber: @unchecked Sendable {
-    struct Frame { let time: Double; let image: CGImage }
+    /// `image` is nil while none of Stow's windows is on screen.
+    struct Frame { let time: Double; let image: CGImage? }
 
     private let lock = NSLock()
     private var _ids: [CGWindowID] = []
@@ -256,7 +262,12 @@ nonisolated final class FrameGrabber: @unchecked Sendable {
         let thread = Thread { [self] in
             while lock.withLock({ running }) {
                 let ids = windowIDs
-                guard !ids.isEmpty else { usleep(4000); continue }
+                guard !ids.isEmpty else {
+                    let time = ProcessInfo.processInfo.systemUptime - start
+                    lock.withLock { frames.append(Frame(time: time, image: nil)) }
+                    usleep(8000)
+                    continue
+                }
                 var pointers = ids.map { UnsafeRawPointer(bitPattern: UInt($0)) }
                 guard let array = CFArrayCreate(nil, &pointers, pointers.count, nil) else { continue }
                 // Frame only (no shadow); one pixel per point unless it's a close-up.
