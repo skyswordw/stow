@@ -7,8 +7,11 @@ import SwiftUI
 /// main thread would stall the very animation it records, so it never runs there.
 ///
 /// Each step happens either as after a click or as after a key press. "Key" posts a key-down Stow
-/// ignores and runs the step while that event is current, so `Motion.byKeyboard` sees exactly what
-/// it sees when someone presses a key (DESIGN.md › Motion: keyboard actions never animate).
+/// ignores and runs the step while that event is current, so `Motion.byKeyboard` sees it at the
+/// moment of the change (DESIGN.md › Motion: keyboard actions never animate). The event is then
+/// swallowed, and AppKit forgets it before the next redraw: a view that decides its animation in
+/// `body` (`.animation(Motion.presence…)`) doesn't see the key press here, though it does for a real
+/// one (checked with the event passed on, which delays the change too much to film). Those rows show the click's motion; check them with the keyboard itself.
 ///
 /// `-StowBurstCrop x,y,w,h` crops every frame, in points from the windows' top-left corner;
 /// negative x or y count from the right or bottom edge. Transitions:
