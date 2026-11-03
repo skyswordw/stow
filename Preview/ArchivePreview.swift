@@ -21,12 +21,24 @@ struct ArchivePreview: View {
         .frame(minWidth: 360, minHeight: 260)
     }
 
-    /// DESIGN.md › Color: amber, light #D97B2B / dark #F0954A.
+    /// DESIGN.md › Color: the app's AccentColor, written out because the extension has no asset
+    /// catalog. Amber is only ever a fill here (button, badge, bar), so white words on it need
+    /// 4.5 : 1: light #D97B2B, dark #B85E1C, Increase Contrast #A8551C in both.
     static let amber = Color(nsColor: NSColor(name: "StowAmber") { appearance in
-        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ? NSColor(red: 0xF0 / 255, green: 0x95 / 255, blue: 0x4A / 255, alpha: 1)
-            : NSColor(red: 0xD9 / 255, green: 0x7B / 255, blue: 0x2B / 255, alpha: 1)
+        amberColor(for: appearance.bestMatch(from: [
+            .aqua, .darkAqua, .accessibilityHighContrastAqua, .accessibilityHighContrastDarkAqua,
+        ]))
     })
+
+    static func amberColor(for appearance: NSAppearance.Name?) -> NSColor {
+        let hex: Int = switch appearance {
+        case .accessibilityHighContrastAqua?, .accessibilityHighContrastDarkAqua?: 0xA8551C
+        case .darkAqua?: 0xB85E1C
+        default: 0xD97B2B
+        }
+        return NSColor(srgbRed: CGFloat(hex >> 16 & 0xFF) / 255, green: CGFloat(hex >> 8 & 0xFF) / 255,
+                       blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+    }
 }
 
 private struct ListedPreview: View {
