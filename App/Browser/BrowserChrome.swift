@@ -367,7 +367,7 @@ struct ToolbarSearchField: View {
                 if hasKeyboard != wants { hasKeyboard = wants }
                 // While a native table holds the keyboard, SwiftUI's focus doesn't cross into the
                 // toolbar's hosting view; AppKit hands it over directly.
-                if wants { DispatchQueue.main.async { anchor.focusField() } }
+                if wants { DispatchQueue.main.async { anchor.focusField() } } else { anchor.cancelPendingFocus() }
             }
             .onChange(of: focusRequest) { takeKeyboard() }
         }
@@ -386,11 +386,24 @@ private struct FieldAnchor: NSViewRepresentable {
     private let box = Box()
 
     private final class Box {
-        weak var view: NSView?
+        weak var view: AnchorView?
+    }
+
+    /// Finishes a focus request that arrived before the toolbar put the item in the window.
+    private final class AnchorView: NSView {
+        var pendingFocus: (@MainActor () -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil, let focus = pendingFocus else { return }
+            pendingFocus = nil
+            // The field moves in with the anchor; let AppKit finish installing it first.
+            DispatchQueue.main.async { focus() }
+        }
     }
 
     func makeNSView(context: Context) -> NSView {
-        let view = NSView()
+        let view = AnchorView()
         box.view = view
         return view
     }
@@ -398,9 +411,19 @@ private struct FieldAnchor: NSViewRepresentable {
     func updateNSView(_ view: NSView, context: Context) {}
 
     @MainActor func focusField() {
-        guard let field = ownField(), let window = field.window else { return }
+        guard let field = ownField(), let window = field.window else {
+            // When Search opens, the toolbar can build the field's view a moment before it puts
+            // it in the window, most often on a busy Mac: give it the keyboard once it's there,
+            // rather than leave ⌘F with Search open and the keyboard nowhere.
+            box.view?.pendingFocus = { focusField() }
+            return
+        }
+        box.view?.pendingFocus = nil
         if (window.firstResponder as? NSText)?.delegate !== field { window.makeFirstResponder(field) }
     }
+
+    /// Search let go of the keyboard before the field reached the window: don't take it later.
+    @MainActor func cancelPendingFocus() { box.view?.pendingFocus = nil }
 
     /// An input method has unfinished text in this item's field (marked text).
     @MainActor func isComposing() -> Bool {
@@ -412,7 +435,7 @@ private struct FieldAnchor: NSViewRepresentable {
     /// Lets go of the keyboard if this item's field has it; the files then take it back.
     @MainActor func releaseField() {
         guard let field = ownField(), let window = field.window,
-              (window.firstResponder as? NSText)?.delegate === field else { return }
+              (window.firstResponder as? NSText)?.delegate === field else { cancelPendingFocus(); return }
         window.makeFirstResponder(nil)
     }
 
