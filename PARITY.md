@@ -23,6 +23,17 @@ The [Pro trial comparison](Handoff/arczip-pro-trial-native-audit.md) adds actual
 rename/undo/redo/save, Windows-purpose ZIP creation, encrypted 7Z interoperability and Open File
 Flow evidence. It also records ArcZip's split-creation failure and the remaining untested scope.
 
+**Status update — 2026-11-02:** v0.1.3 (592), release ref `ec480387`, is published.
+Installed notarized-bundle verification passes, and real WeChat drag-in/double-click, RAR
+extraction/CRC checks and bounded signed folder-grant behavior have evidence in #212.
+#266 (`ec0a2e1`) subsequently fixes direct document launch, remembers Browser/Glance choice,
+and repairs native window/menu crashes; it is merged but not in v0.1.3. It passed 655 tests
+and all CI; signed repaired-build acceptance remains open. #160/#162 implementation/design
+scope is closed; #161/#104 retain their specific native acceptance work. Dedicated VoiceOver
+and Intel/Rosetta remain deferred. [ROADMAP.md](ROADMAP.md) and #38 carry the current matrix.
+Actions extensions and any plugin marketplace are only a demand-driven long-term candidate
+(#268), not implemented parity or a 1.0 requirement.
+
 **What the bundle shows about ArcZip's architecture**
 
 | Piece | ArcZip | Stow |
@@ -140,7 +151,7 @@ Progress and result appear in an Actions-style capsule (Stop, Show in Finder).
 | Opens near the pointer, compact browse/extract | ✅ | clamped to the visible screen; name + size list, Actions, Extract All |
 | Pin on top | ✅ | remembered |
 | Switch Glance ↔ full window keeping location, selection, history | ✅ | one shared browser; ⌥⌘G |
-| Default to Glance when opening from Finder/Quick Look | ✅ | Settings › Glance |
+| Choose Browser or Glance for archive opens | ✅ fixed choice in v0.1.3; ✅ last-used mode on main | #266 adds Last Used Window (initially Browser), fixed Browser/Glance and explicit switch persistence across relaunches. Settings › Glance; signed post-#266 acceptance remains open. |
 | Liquid Glass / classic material; colourful window controls option | ✅ | Glass, solid under Reduce Transparency; optional red Close / yellow Pin / green Open in Full Window controls (#86), off by default in Settings › Glance. Replaces the traffic lights and plain pin/expand controls while on |
 
 ## 8. Collecting files (ArcZip “File Box / Shelf”) → **Tray**
@@ -158,21 +169,21 @@ Progress and result appear in an Actions-style capsule (Stop, Show in Finder).
 | --- | --- | --- |
 | Finder context menu (Finder Sync) incl. optional external drives; Repair Finder menu (re-register, restart Finder) | ✅ menu, external-drive setting · 🎨 repair (sandbox: LSRegisterURL/pluginkit refused, so it opens the extension switch and explains relaunching Finder) | Extract Here, Extract To…, Open in Stow, Compress with Stow… |
 | Services: Extract Here, Extract To…, Quick Compress, Compress…, Send to app | ✅ (Quick Compress waits on the create engine) | results revealed in Finder; progress on the Dock icon |
-| File associations UI: choose formats, set/restore default app, report result | ✅ model + view · 🧪 Settings host (pending verification) | ➕ remembers each type's previous app; reports refusals and types macOS kept |
+| File associations UI: choose formats, set/restore default app, report result | ✅ implemented; user exercised per-type confirmation · 🧪 exact result/restore matrix | Settings › File Types; remembers previous apps, skips types already assigned and reports refusals. User confirmed the macOS confirmation-per-type flow; full selected-format/restore acceptance is not claimed. |
 | Launch at login, Dock icon hides with last window | ✅ (opt-in) | login item shows macOS's real status |
 | URL scheme for extension → app hand-off (one-time requests) | ✅ | ➕ 128-bit one-time tokens, 60 s, no paths in URLs |
-| Reading files dropped from other apps (WeChat etc.), permission guidance | 🧪 (pending verification) | ➕ promised drops (Mail attachments, chat files) are received into Stow's own folder, emptied at launch; unreadable files in another app's storage say which app and how to save a copy, with Show in Finder |
+| Reading files dropped from other apps (WeChat etc.), scoped source authorization | ✅ real WeChat drag/double-click and bounded signed grant checks · 🧪 remaining matrix | #214/#223 add scoped file/folder selection and retry; #264 provides a non-modal unsaved-bookmark notice. User-performed WeChat drag and double-click opened a real RAR; source and drag-copy hashes matched. Signed folder restart/sibling/removal checks passed; remaining repaired-build, split and entry-point cases stay in #212. |
 
 ## 10. Settings, onboarding, maintenance
 
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | General: appearance (light/dark/auto), default view, CPU cores | 🧪 pending verification | |
-| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Actions panes; Glance and Tray controls live in General |
+| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Actions panes; Glance has its own page and Tray controls live in General. #162 is closed; broader native keyboard acceptance remains #38 |
 | Password field: show by default (for CJK input) | 🧪 pending verification | |
 | Advanced: temp-file usage & cleanup, reset all preferences | 🧪 pending verification | |
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |
-| Updates: automatic check, install after tasks finish | 🧪 pending verification | Sparkle 2.10 (#35): Check for Updates…, General › Updates (check / download automatically), relaunch held until running tasks finish. Notarized v0.1.0 and v0.1.1 shipped on GitHub Releases with appcasts; the live update/relaunch hand-test remains (ROADMAP Tests #21) |
+| Updates: automatic check, install after tasks finish | 🧪 pending verification | Sparkle 2.10 (#35): Check for Updates…, General › Updates (check / download automatically), relaunch held until running tasks finish. Notarized releases through v0.1.3 shipped on GitHub Releases with appcasts; the live update/relaunch hand-test remains (ROADMAP Tests #21) |
 | Open-source licence viewer | 🧪 pending verification | |
 | Native dialogs, detailed error codes + request IDs for support | ✅ codes + Copy Details | Stable `AREA-NNN` codes ([ERROR-CODES.md](ERROR-CODES.md)) on every failure card, failed capsule and batch row (right-click); Copy Details copies code, what people saw, the error's own words and domain/code chain, Stow and macOS versions and the time. No request IDs: Stow has no server to correlate them with |
 
@@ -183,7 +194,7 @@ Progress and result appear in an Actions-style capsule (Stop, Show in Finder).
 
 ## Where Stow already goes further
 
-- Checkup on every archive, in plain words.
+- Contextual archive findings in plain words, with ordinary findings available on demand.
 - Pack sentence with a live compatibility report (ArcZip shows a preset picker).
 - Engine never sees a path; extraction is streamed and audited twice.
 - Warm hover previews (instant once one is open).
