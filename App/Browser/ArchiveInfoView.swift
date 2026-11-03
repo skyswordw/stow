@@ -71,6 +71,9 @@ struct ArchiveInfoView: View {
                     .font(.callout.weight(.medium))
                     .foregroundStyle(.secondary)
             }
+            // The disclosure's own ring cut through the label and past Details' edge; round the
+            // whole row instead, inside the panel.
+            .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             // Opened from the keyboard (Space on the disclosure) it just opens (DESIGN.md › Motion).
             .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: showsMore)
             .onReceive(NotificationCenter.default.publisher(for: DemoBurst.request)) { note in
@@ -180,6 +183,8 @@ struct ArchiveNotices: View {
                                    : AnyShapeStyle(severity.color.opacity(colorScheme == .dark ? 0.18 : 0.28)))
                     .allowsHitTesting(false)
             }
+            // The disclosure's own ring hugged its chevron and glyph and crossed the card's corner.
+            .focusRing(in: shape)
             .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: isExpanded)
             .onReceive(NotificationCenter.default.publisher(for: DemoBurst.request)) { note in
                 if note.object as? String == "notices" { $isExpanded.keyboardAware.wrappedValue.toggle() }

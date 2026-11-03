@@ -254,3 +254,32 @@ extension BrowserModel {
                                 container: nestedHits[entry.id]?.container.name)
     }
 }
+
+extension View {
+    /// Keyboard navigation's ring on `shape` instead of the control's own: for a native control
+    /// (a disclosure) whose ring hugs only part of a row or crosses its container's edge. Apply it
+    /// where `shape` fits the view, after the padding and background the ring should go round.
+    /// `outset` 0 keeps the ring inside the view, for one a scroll view would clip.
+    func focusRing(in shape: some InsettableShape, outset: CGFloat = 3) -> some View {
+        modifier(FocusRingModifier(shape: shape, outset: outset))
+    }
+}
+
+private struct FocusRingModifier<S: InsettableShape>: ViewModifier {
+    let shape: S
+    let outset: CGFloat
+    @FocusState private var hasFocus: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .focused($hasFocus)
+            .focusEffectDisabled()
+            .overlay {
+                if hasFocus {
+                    shape.inset(by: -outset)
+                        .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 3)
+                        .allowsHitTesting(false)
+                }
+            }
+    }
+}

@@ -258,6 +258,9 @@ private struct RecentRow: View {
             .contentShape(.rect)
         }
         .buttonStyle(RecentButtonStyle())
+        // The default ring was square and the scroll view cut off its sides; round the row as its
+        // hover does, inside the list.
+        .focusRing(in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous), outset: 0)
         .help(entry.path)
         .accessibilityElement(children: .combine)
         .accessibilityHint(Text("Opens the archive"))
