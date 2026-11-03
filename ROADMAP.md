@@ -4,7 +4,7 @@ Where Stow is, what's left to reach — and pass — ArcZip Pro's feature set, a
 tested yet. Feature-by-feature status lives in [PARITY.md](PARITY.md); the design rules every item
 must follow are in [DESIGN.md](DESIGN.md).
 
-*Last updated 2026-10-27, after Tray home-based activation (#189/#192), DMG Finder chrome (#85) and AX failure-leaf hardening (#190).*
+*Last updated 2026-11-02 (Pacific/Honolulu), after the 0.1.3 release, real WeChat acceptance, and the window/menu stability repairs in #266. Tracking: [#39](https://github.com/Beastry/stow/issues/39); native acceptance: [#38](https://github.com/Beastry/stow/issues/38).*
 
 ---
 
@@ -21,19 +21,33 @@ Glance, Tray, Settings, onboarding and Simplified Chinese are also built; [PARIT
 distinguishes working features from those still awaiting macOS verification. Open Recent uses real
 bookmark history, and Glance now has optional colourful window controls (off by default).
 
-**Released:** notarized **v0.1.0** and **v0.1.1** shipped on
-[GitHub Releases](https://github.com/Beastry/stow/releases), with signed DMGs and Sparkle appcasts.
-The release pipeline automates signing, notarization, stapling and bundle/appcast checks. Still
-open: a clean-Mac Gatekeeper and live Finder hand-off check (#32/#38, Tests #17), a live Sparkle
-update check (Tests #21), Homebrew tap publication, and the deferred work below. The source tree
-also includes features added since those releases.
+**Released:** notarized **v0.1.3 (592)** is the latest published release, from `ec480387`,
+following v0.1.0–v0.1.2. The installed `/Applications/Stow.app` passed the full notarized-bundle
+verification with zero problems; enabled Finder/Quick Look extensions point to that app.
+This is current-machine evidence, not a clean-Mac acceptance pass. See
+[GitHub Releases](https://github.com/Beastry/stow/releases) and [RELEASING.md](RELEASING.md).
+
+**Merged after that release:** #266 (`ec0a2e1`) fixes direct document launch via an unnecessary
+Welcome window, remembers the last selected Browser/Glance mode, and repairs two actual 0.1.3
+crashes (recursive editing-window delegates and Finder menu callback actor isolation).
+**These repairs are not in v0.1.3.** Their 655-test local suite, complete zh-Hans coverage
+(1,202 strings), Universal 2 and snapshot CI passed; a new signed artifact and native acceptance
+remain in #212/#38. #265 is closed as an implementation fix, not signed-release acceptance.
+
+**Current remaining work:** signed repaired-build integration and the environment matrix
+(#32/#38/#210/#212), Actions acceptance (#161), real system display/motion preference checks
+(#104), and media/video delivery (#69). DMG AES (#84), Intel/Rosetta (#144) and dedicated
+VoiceOver/#93 remain explicitly deferred. Homebrew tooling exists, but a maintained public tap
+and its install path have not been verified. Actions extensions / a possible plugin ecosystem
+are a demand-driven long-term candidate (#268), not a 1.0 gate.
 
 ## Goal
 
 Every ArcZip Pro capability, free and open source, with a design that is calmer and clearer:
-plain-words Checkup on every archive, the Pack sentence instead of option dialogs, one right next
-step instead of menus, Liquid Glass used for floating controls only, and no animation on anything
-done a hundred times a day.
+contextual archive findings with details available on demand, clear packing outcomes and options,
+and relevant Actions without overwhelming the file workspace. The full Browser keeps Details
+visible; navigation and Actions float over the files. DESIGN.md is the current visual/motion
+direction; historical mockups and permanent Checkup-promotion proposals are superseded.
 
 ---
 
@@ -50,17 +64,19 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 - Rename the archive itself (including SMB/NAS shares); keep the browsing position after saving.
 - Read-only formats (RAR, DMG, ISO, packages) say so and offer "Extract and repack as ZIP/7Z".
 - *Verification:* round-trip, cancel and fault-injection tests cover preserving the original;
-  live editing and SMB/NAS checks remain pending.
+  native ZIP editing/Save/Undo and external-change recovery passed; wider format and SMB/NAS checks remain pending.
 
 ### F. Glance — the compact window (ArcZip "Mini")
 - Opens near the pointer (clamped to the screen), browse and extract in a small window.
 - Pin on top; switch Glance ↔ full window keeping folder, selection and history.
-- Setting: open in Glance by default from Finder and Quick Look.
+- Opening preference: Last Used Window, Full Browser or Glance (#266, merged after v0.1.3).
+  Explicit legacy fixed-mode choices are preserved; new/default users remember their last switch.
 - Liquid Glass material with a solid fallback for Reduce Transparency.
 - Optional red / yellow / green Close, Pin and Open in Full Window controls (#86), in Settings ›
-  General, off by default; switching off restores the standard chrome.
-- *Verification:* placement and shared browsing-state tests exist; the new colourful controls
-  still need macOS visual checks in both themes and under Reduce Transparency.
+  Glance, off by default. Borderless Glance has its own functional Close/Pin/Expand controls.
+- *Verification:* shared state, Columns selection and native Browser/Glance round trips have evidence.
+  #266 adds restart/mode-memory checks; exact signed repaired-build and real display-preference
+  acceptance remain open. English/Chinese light/dark snapshots are not that acceptance.
 
 ### G. Tray in the menu bar (ArcZip "File Box")
 - Menu-bar icon; Tray appears when dragged files reach it (#180) and hides after a configurable idle
@@ -82,10 +98,12 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
   Done in #35: Sparkle 2.10 (sandboxed: installer + downloader XPC services, no network
   entitlement), Stow › Check for Updates…, General › Updates, relaunch held while busy, appcast
   signed by `scripts/generate-appcast.sh` in the Release workflow. Still to test: a real update
-  between the published v0.1.0 and v0.1.1 releases (Tests #21).
+  between published releases, including busy-task/relaunch behavior (Tests #21).
 - Simplified Chinese localization via String Catalogs; remaining layout checks are tracked below.
-- *Verification:* settings registry/default/reset tests exist; desktop checks of every pane in
-  both languages and themes remain pending.
+- *Verification:* #162 is closed after Settings presentation, persistence/reset contracts and
+  native sidebar/reopening/deep-link checks. The user exercised File Types and observed macOS
+  confirmation per type. Exact per-format outcomes/restore and full keyboard navigation remain
+  in #38; screenshots cover both languages and themes.
 
 ## Wave 3 — smaller gaps and going further
 
@@ -97,7 +115,7 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 | Open Recent menu with clear history | done (#83): Welcome and File › Open Recent share real security-scoped bookmark history and Clear; missing/trashed files are hidden, not forgotten. Sample names only in `-StowScene recents` via `recents.preview(...)` for screenshots |
 | Search across nested archives | done (#21): search reads the archives inside the open one (one level, up to 40 archives / 512 MB each / 2 GB total), lists matches under the archive’s name, and Show opens it with the match selected; deeper levels: open the inner archive and search again |
 | ✅ Streaming listings beyond ~100k entries (#78) | First rows from streamed XPC chunks; final listing remains authoritative; cancellation stops 7zz. See StreamingListingBenchmark. |
-| Reading files dropped from other apps (e.g. WeChat) with permission guidance | built (#19), pending a real WeChat/Mail check: archives an app only promises during a drag are received first; a file macOS won't let Stow read gets plain words naming the app (`OPN-101`) and how to get a copy |
+| Reading files dropped from other apps (e.g. WeChat) with scoped recovery | #214/#223 implement file/folder authorization and retry; #264 makes bookmark-save failure non-modal. On installed 0.1.3 the user manually dragged and double-clicked a real WeChat RAR; source/drag-copy hashes matched, and four extracted files matched archive CRCs. Signed folder grant/restart/sibling isolation/removal also passed with task fixtures. Remaining signed repaired-build, split and alternate-entry matrix: #210/#212 |
 | Error details with codes for bug reports | done (#14): every failure has a stable code (`EXT-120`, see [ERROR-CODES.md](ERROR-CODES.md)) and Copy Details |
 | Create disk images (DMG) | done (#23, #77): Pack › DMG for Macs; default HFS+ `makehybrid` then `convert` by level; optional APFS via `create -srcfolder` with HFS+ hybrid fallback; Applications → /Applications shortcut for drag-to-install. Optional Finder window chrome done (#85): `.DS_Store` icon positions, solid-color background, and best-effort app-derived volume icon, written before image creation without mounting. Picture backgrounds excluded: Carbon Alias requires the mounted volume. Deferred: AES password (#84; App Sandbox blocks MediaKit attach for `hdiutil`/`diskutil` encrypt on macOS 27) |
 | TAR.ZST creation | done: 7-Zip writes the TAR, Stow's linked zstd 1.5.7 compresses it (Linux audience, splits into volumes, verified by 7-Zip) |
@@ -109,19 +127,19 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 | --- | --- |
 | App icon | Implemented: amber parcel icon in `Design/AppIcon.svg` and the Icon Composer document, with light/dark/tinted appearances; further tuning is optional. |
 | Welcome window | Real Open Recent is done (#83), with a responsive layout and a smaller empty-state drop target; further spacing and title-bar polish is optional. Screenshot sample recents remain in DemoScene only. |
-| Motion audit | Run the `review-animations` skill over every transition; enforce DESIGN.md (no animation on keyboard actions, exits faster than entrances, springs only where touched). |
+| Motion audit | #104 tracks current native acceptance. #255/#260 implement display-preference and accent-contrast fixes; #261/#262 refine encrypted states and Actions motion. Real System Settings switches still need acceptance. Claude Code owns visual/motion treatment. |
 | Consistency | One progress capsule style for packing, extracting, installing and batch; one prompt style for conflicts, signatures and passwords. |
-| Accessibility | done (#29): composed VoiceOver labels (grid, list, columns, Glance, Tray, nested search results, Actions), headers for the rotor, reading order content → Details → archive controls → Actions, keyboard paths (Tray rows, onboarding, Quick Look); no animation for keyboard actions, solid surfaces under Reduce Transparency, stronger outlines and metadata under Increase Contrast. Manual VoiceOver checklist in #66 / #38 |
+| Accessibility | Baseline semantics and keyboard paths are implemented (#29), with display-preference support. Complete VoiceOver support is not claimed: #93 and dedicated VoiceOver acceptance are deferred at low priority. Preserve existing names, keyboard/focus and system preferences; ordinary-use crashes remain functional stability defects. |
 | Empty and error states | Every failure says what happened and what to do, in plain words, with one action. |
-| Website | `scripts/website-shots.sh` retakes every screenshot and walkthrough frame in light and dark. Browsing shots open Try the Sample's own ZIP through the engine; the install walkthrough shows a separate app build ("Harbor Prototype 1.3.zip") because the sample holds no app. A real product video of Pack and installing an app remains open (#31). |
+| Website | `scripts/website-shots.sh` retakes every screenshot and walkthrough frame in light and dark. Browsing shots open Try the Sample's own ZIP through the engine; the install walkthrough shows a separate app build ("Harbor Prototype 1.3.zip") because the sample holds no app. The historical #31 issue is closed; actual video delivery and remaining Pack/release-shot refresh remain tracked by #69. |
 
 ## Release engineering
 
 | Item | Why |
 | --- | --- |
-| Developer ID signing and notarization | Shipped in v0.1.0 and v0.1.1 (#32): `scripts/package.sh`, `scripts/verify-app-bundle.sh` and the **Release** workflow sign inside-out, notarize, staple and verify; see [RELEASING.md](RELEASING.md). Team-signed Finder hand-off uses the App Group (`YNQ2233752.app.stow.Stow`); ad-hoc builds keep the private pasteboard fallback. Clean-Mac Gatekeeper and live Finder hand-off remain manual (#32/#38, Tests #17). |
+| Developer ID signing and notarization | Shipped through v0.1.3 (#32): `scripts/package.sh`, `scripts/verify-app-bundle.sh` and the **Release** workflow sign inside-out, notarize, staple and verify; see [RELEASING.md](RELEASING.md). Team-signed Finder hand-off uses the App Group (`YNQ2233752.app.stow.Stow`); ad-hoc builds keep the private pasteboard fallback. Clean-Mac Gatekeeper and live Finder hand-off remain manual (#32/#38, Tests #17). |
 | Universal 2 build (arm64 + x86_64) | done (#33): Release builds `$(ARCHS_STANDARD)` for every target; CI's `universal` job builds Release and `scripts/check-universal.sh` fails unless the app, StowEngine.xpc, its 7zz and both extensions carry arm64 and x86_64. Rosetta probes of the x86_64 7zz are informational; a full x86_64 test run is a manual `workflow_dispatch` option. Real Intel hardware remains untested. |
-| Signed DMG + GitHub Releases + Sparkle appcast | v0.1.0 and v0.1.1 published. The **Release** workflow (#34/#35) builds the notarized DMG, signs it with Stow's EdDSA key and writes `appcast.xml`, then attaches both to a draft release. Publication makes the appcast available at `releases/latest/download/appcast.xml`; a live update/relaunch hand-test remains (Tests #21). |
+| Signed DMG + GitHub Releases + Sparkle appcast | v0.1.0–v0.1.3 published. The **Release** workflow (#34/#35) builds the notarized DMG, signs it with Stow's EdDSA key and writes `appcast.xml`, then attaches both to a draft release. Publication makes the appcast available at `releases/latest/download/appcast.xml`; a live update/relaunch hand-test remains (Tests #21). |
 | Homebrew cask | template and tooling done (#36): `packaging/homebrew/stow.rb`, `scripts/render-cask.sh` and the `Homebrew cask` workflow fill in version + DMG checksum per release, audit, and install/uninstall once. Signed release DMGs are available; publishing to a tap remains open (or homebrew/cask under a non-conflicting token — `stow` is a homebrew/core formula). |
 | CI | `.github/workflows/ci.yml` tests pushes to main and PRs on GitHub's `xcode-27` runner (preview image: macOS 27, Xcode 27). Fails if 7zz is missing or any test is skipped; also builds Universal 2 Release, packages an ad-hoc DMG and checks a throwaway-key appcast. Developer ID signing/notarization run in the Release workflow; clean-Mac checks are manual. Moving off the preview image once GA remains open. |
 | Fuzzing | done (#37): `Tests/FuzzTests.swift` mutates ZIP, 7Z, TAR (.gz/.bz2/.xz), RAR 4/5 and DMG seeds (truncation, bit flips, header/trailer corruption, huge length fields, splices, zero runs) and checks that 7zz never crashes or hangs, the engine only fails cleanly and survives, and extraction stays inside its folder; plus libarchive's malformed-RAR regressions. ~15 mutants per seed on every CI run; `.github/workflows/fuzz.yml` runs hundreds weekly and on demand, keeping any failing input |
@@ -140,36 +158,47 @@ Editing, Glance (including colourful controls), Tray, Settings, onboarding, Simp
 Actions customisation, iCloud download handling, Open Recent, nested search, promised-file drops,
 DMG creation and the app icon are implemented. Items marked 🧪 in [PARITY.md](PARITY.md) still need
 verification; they are not unimplemented features. Clean-Mac Gatekeeper, live Sparkle updates and
-other manual checks remain below. Harbor sample files and Try the Sample wiring are on main (#70). Website shots and hover-demo thumbs use those assets. All website shots and walkthrough frames were retaken with `scripts/website-shots.sh` on the current UI (#69); the browsing shots come from the bundled sample ZIP, so they match Try the Sample. Handing the sample to the #31 video remains open on #69 (it needs the signed build, #32).
+other manual checks remain below. Harbor sample files and Try the Sample wiring are on main (#70). Website shots and hover-demo thumbs use those assets. Website shots and walkthrough frames have been refreshed in stages with `scripts/website-shots.sh` (#69); the browsing shots come from the bundled sample ZIP, so they match Try the Sample. The latest #69 evidence records Browser/Details/Tray retakes in #247; Pack walkthrough refresh after #245 and the full video remain open. Signed builds now exist, so lack of any signed build is no longer the blocker.
 
 ## Tests not yet conducted
 
 Automated tests cover the engine, packing, extraction, editing, placement/conflicts, signatures,
 hand-off tokens, associations logic, browsing, streaming listings, search, encodings, passwords,
-recents and settings. CI requires at least 509 reported tests. The following tracks remaining
+recents and settings. CI requires at least 655 reported tests after #266. The following tracks remaining
 verification toward 1.0 (including automated coverage whose manual or longer-running counterpart
 is still open). Explicitly deferred work is not a merge or release blocker for the current milestone:
 
 | # | What | Why it hasn't been done / how to run it |
 | --- | --- | --- |
-| 1 | Finder context menu clicked through by a person (Extract Here, Extract To…, Compress, Open in Stow), including external drives | needs Accessibility to drive Finder; run by hand after `scripts/register-extensions.sh` |
-| 2 | One-time folder grant panel (Allow / choose another folder / cancel) from a Finder action | headless runs used Stow's own container |
-| 3 | Changing the default app for a type end to end (macOS shows its own confirmation per type) | the live check stopped at the system dialog |
-| 4 | Repair Finder Menu flow (System Settings switch, relaunch Finder) | sandbox refuses `pluginkit`/`LSRegisterURL`; verify the guidance works |
-| 5 | Installing a font into the real `~/Library/Fonts` | tests used a scratch folder; needs one Allow click |
-| 6 | Download-quarantine carried over during a real Extract All into a folder picked in the Open panel | unit-tested only |
-| 7 | Drag-out to Finder with a real mouse, icon **and** list view | verified up to the drag session and promise fulfilment; list view (NSTableView) unverified |
-| 8 | Typing into the password sheet, including Chinese/Japanese input methods | no desktop control in the sessions |
-| 9 | Pack save panel and Replace / Keep Both alert by hand | headless runs share the code, not the dialogs |
-| 10 | Encrypted + split + verified 7Z packing once died with SIGTERM | passed 3/3 reruns; not reproduced — needs a stress loop |
-| 11 | Quick Look extension after installing from a DMG on a clean account, and after updates | only tested from the build folder |
-| 12 | Archives of several GB, low disk space, and the engine's temporary copy while packing | packing needs space for the input plus the archive |
-| 13 | SMB/NAS and iCloud Drive locations (open, extract, pack, rename) | not tested |
-| 14 | Real-world corpus: multi-part RAR5, self-extracting EXE, ZIPs from Windows/Linux tools, legacy encodings beyond the fixtures | fixtures are synthetic |
-| 15 | Accessibility: VoiceOver, keyboard-only use, Reduce Motion/Transparency, Increase Contrast | automated parts covered (#29); dedicated VoiceOver acceptance and the AX-only #93 investigation are deferred at low priority, not current merge/release blockers (user decision, 2026-10-26). Basic keyboard/focus and display-setting behavior remain in scope; ordinary-use crashes retain their stability priority. Checklist: #38 |
-| 16 | Intel Macs and macOS 26.0 (development was on Apple silicon, macOS 27) | the universal Release build is checked in CI (#33) and the test suite passed as x86_64 under Rosetta, but the x86_64 7zz dies with "Illegal instruction" under Rosetta; nothing has run on real Intel hardware or on macOS 26.0 |
-| 17 | Signed/notarized build behaviour (Gatekeeper on extracted apps, extensions, App Group hand-off on a clean Mac) | notarized DMG published; clean-Mac Gatekeeper + live Finder hand-off still to run by hand (#38) |
-| 18 | Fuzzing malformed archives | automated (#37): a deterministic set on every CI run, a longer weekly run (`fuzz.yml`). Still open: a sustained multi-hour run with no findings, and coverage-guided fuzzing of Stow's own parsers (AppleDouble, tar headers) |
-| 19 | Website in Safari, Firefox and on real phones | checked in one desktop browser engine and a 375 px emulation |
-| 20 | CI | runs on GitHub's `xcode-27` runner (`.github/workflows/ci.yml`); ad-hoc signed, so signed-build behaviour is still item 17 |
-| 21 | Sparkle: a real update from one published release to the next (check, download through the downloader service, install outside the sandbox, relaunch waiting for a running extraction) | v0.1.0 and v0.1.1 are published and notarized; the live update still needs a hand-test. Automated checks cover signing, bundle layout and appcast signatures, not this desktop flow. |
+| 1 | Signed Finder menu and external drives | Installed 0.1.3 extensions now point to `/Applications/Stow.app`. Actual menu callback crash is repaired in #266; validate the new signed artifact and full hand-off matrix. |
+| 2 | Source/destination folder grants and Finder entry points | Signed-app folder Allow, automatic retry, second file after restart, sibling isolation, wrong-file refusal, Escape and Forget/restart passed. Finder hand-off and remaining cases stay in #212. |
+| 3 | Default app changes and restore | User exercised File Types and confirmed per-type macOS dialogs. Record exact selected types, resulting associations and Switch Back; the full matrix is not yet verified. |
+| 4 | Repair Finder Menu via Settings | Correct installed extension registration verified; the complete System Settings/relaunch recovery workflow remains unverified. |
+| 5 | Real font-library installation/activation | Scratch font installation, unsupported formats and Skip/Replace passed; real user font activation remains untested. |
+| 6 | Downloaded/quarantined vendor archives | Generated quarantined ZIP extraction preserved bytes and quarantine. Wider real-vendor/Gatekeeper matrix remains. |
+| 7 | Finder drag-out and Tray workflows | #171/#172/#176 are closed; the main fix is `8293e06`. Real WeChat drag-in passed with a human gesture and hash checks. This does not complete Grid/List drag-out, repeated/cancelled drags or Tray acceptance. |
+| 8 | Passwords and CJK IMEs | Native real encrypted ZIP entry, wrong-password retry, Return, Escape and close cancellation passed. Chinese/Japanese IME composition remains separate. |
+| 9 | Pack destination/conflict dialogs | Passed: Cancel preserves original; Keep Both and Replace produce exact expected bytes and recoverable prior files. See #38. |
+| 10 | Encrypted/split/verified packing stress | Bounded native pack/reopen/recovery checks passed; the historical SIGTERM needs an extended repetition campaign. |
+| 11 | Quick Look after clean installation/update | Correct 0.1.3 plugin path is registered; clean-account install/update behavior remains unverified. |
+| 12 | Large archives and disk pressure | Native 2.2 GB Store ZIP round trip and low-space EXT-130 recovery passed. Broader ZIP64, repeated pressure and private-copy exhaustion remain. |
+| 13 | SMB/NAS and real iCloud | No suitable environment/evidence for the full open/extract/pack/rename matrix. |
+| 14 | Wider archive corpus | Real WeChat single RAR passed; split RAR5 samples were prepared and CLI-checked, not accepted through the signed UI. SFX, legacy encodings and cross-platform corpus remain. |
+| 15 | Keyboard and display preferences | Basic keyboard/undo and bounded native walkthroughs passed; full keyboard-navigation-on focus, Pack keyboard and real Reduce Motion/Transparency/Increase Contrast checks remain. VoiceOver/#93 are deferred, not passed. |
+| 16 | Physical Intel and macOS 26 | Universal 2 CI passes; x86_64 7zz exits 132 under Rosetta (#144). Physical Intel/macOS 26 remain unverified; Intel/Rosetta investigation is deferred. |
+| 17 | Signed release / Gatekeeper / App Group | Installed 0.1.3 passed complete notarized-bundle verification with zero problems. Clean-Mac/account behavior and signed post-#266 runtime acceptance remain #32/#38/#212. |
+| 18 | Fuzzing | Bounded deterministic malformed-archive CI is implemented and passing. Extended multi-hour / coverage-guided campaigns are separate unfinished scope. |
+| 19 | Website browser/device matrix | Safari/Firefox and real-phone acceptance remain beyond prior desktop-engine/mobile-emulation evidence. |
+| 20 | CI | #266 passed 655 local tests, no failures/skips, 1,202 translated strings, generated-plist consistency and build-test/Universal 2/snapshot CI. |
+| 21 | Sparkle update between published releases | Releases through v0.1.3 and appcasts exist. Actual download/install, busy-task deferral and relaunch remain unverified; a version already being installed does not establish how it was updated. |
+
+## Long-term candidates — revisit on demand
+
+[**Extensible Actions / Shortcuts / optional plugin ecosystem — #268**](https://github.com/Beastry/stow/issues/268).
+The user confirmed this as long-term planning, not immediate implementation or a 1.0 gate.
+Possible stages are useful built-in actions, user-configured actions / Shortcuts integration,
+a bounded extension interface, and only then a shareable action library or marketplace if
+usage warrants it. No runtime, SDK, distribution scheme, schedule or marketplace commitment
+has been chosen. Revisit after concrete repeated workflows or developer demand establish a need.
+Keep Actions contextual and compact; preserve Stow's archive-write, cancellation and cleanup
+contracts. Codex owns functional/security contracts; Claude Code owns visual/motion treatment.
