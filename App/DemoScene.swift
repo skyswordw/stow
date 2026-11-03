@@ -665,6 +665,11 @@ enum DemoScene {
                     : NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible })
                     ?? NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible })
                 guard let window = targetWindow else { return }
+                // Resize only once SwiftUI has finished sizing the window itself. Changing the frame
+                // while the archive is still arriving lands in the middle of SwiftUI's own window-size
+                // update, which then re-applies the difference on every layout pass until AppKit stops
+                // the loop and crashes (#276: 1,120 → 12,280 pt wide in 120-pt steps).
+                await Self.waitUntilSettled(window, isOpening: { app.isOpening })
                 // A scene's size is for its picture only: never save it as the window's everyday frame.
                 window.setFrameAutosaveName("")
                 window.setContentSize(CGSize(width: size[0], height: size[1]))
@@ -727,6 +732,19 @@ enum DemoScene {
     static var trayMoreFrame: CGRect?
 
     /// Clicks the Tray's More button. The menu then tracks on its own; the snapshot task keeps running.
+    /// Waits (up to 5 s) until no archive is opening and the window's frame has held still for
+    /// 300 ms: SwiftUI has then finished fitting the window to its content.
+    static func waitUntilSettled(_ window: NSWindow, isOpening: () -> Bool) async {
+        var lastFrame = window.frame
+        var stillChecks = 0
+        for _ in 0..<50 where stillChecks < 3 {
+            try? await Task.sleep(for: .milliseconds(100))
+            let frame = window.frame
+            stillChecks = !isOpening() && frame == lastFrame ? stillChecks + 1 : 0
+            lastFrame = frame
+        }
+    }
+
     private static func openTrayMoreMenu() {
         guard let panel = trayPanel, let content = panel.contentView, let frame = trayMoreFrame else { return }
         let point = CGPoint(x: frame.midX, y: content.bounds.height - frame.midY)
