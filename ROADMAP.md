@@ -37,8 +37,8 @@ remain in #212/#38. #265 is closed as an implementation fix, not signed-release 
 **Current remaining work:** signed repaired-build integration and the environment matrix
 (#32/#38/#210/#212), Actions acceptance (#161), real system display/motion preference checks
 (#104), and media/video delivery (#69). DMG AES (#84), Intel/Rosetta (#144) and dedicated
-VoiceOver/#93 remain explicitly deferred. Homebrew tooling exists, but a maintained public tap
-and its install path have not been verified. Actions extensions / a possible plugin ecosystem
+VoiceOver/#93 remain explicitly deferred. Homebrew own-tap publish is wired
+(`Beastry/homebrew-tap`, `brew install --cask Beastry/tap/stow`); verify install on a clean Mac after the next published release. Actions extensions / a possible plugin ecosystem
 are a demand-driven long-term candidate (#268), not a 1.0 gate.
 
 ## Goal
@@ -140,7 +140,7 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
 | Developer ID signing and notarization | Shipped through v0.1.3 (#32): `scripts/package.sh`, `scripts/verify-app-bundle.sh` and the **Release** workflow sign inside-out, notarize, staple and verify; see [RELEASING.md](RELEASING.md). Team-signed Finder hand-off uses the App Group (`YNQ2233752.app.stow.Stow`); ad-hoc builds keep the private pasteboard fallback. Clean-Mac Gatekeeper and live Finder hand-off remain manual (#32/#38, Tests #17). |
 | Universal 2 build (arm64 + x86_64) | done (#33): Release builds `$(ARCHS_STANDARD)` for every target; CI's `universal` job builds Release and `scripts/check-universal.sh` fails unless the app, StowEngine.xpc, its 7zz and both extensions carry arm64 and x86_64. Rosetta probes of the x86_64 7zz are informational; a full x86_64 test run is a manual `workflow_dispatch` option. Real Intel hardware remains untested. |
 | Signed DMG + GitHub Releases + Sparkle appcast | v0.1.0–v0.1.3 published. The **Release** workflow (#34/#35) builds the notarized DMG, signs it with Stow's EdDSA key and writes `appcast.xml`, then attaches both to a draft release. Publication makes the appcast available at `releases/latest/download/appcast.xml`; a live update/relaunch hand-test remains (Tests #21). |
-| Homebrew cask | template and tooling done (#36): `packaging/homebrew/stow.rb`, `scripts/render-cask.sh` and the `Homebrew cask` workflow fill in version + DMG checksum per release, audit, and install/uninstall once. Signed release DMGs are available; publishing to a tap remains open (or homebrew/cask under a non-conflicting token — `stow` is a homebrew/core formula). |
+| Homebrew cask | Shipped to own tap (#36): `packaging/homebrew/stow.rb`, `scripts/render-cask.sh` and the `Homebrew cask` workflow fill in version + DMG checksum per published release, audit, install/uninstall once, and push `Casks/stow.rb` to [Beastry/homebrew-tap](https://github.com/Beastry/homebrew-tap) (`brew install --cask Beastry/tap/stow`). Official `homebrew/homebrew-cask` remains optional (`stow` collides with the homebrew/core formula). |
 | CI | `.github/workflows/ci.yml` tests pushes to main and PRs on GitHub's `xcode-27` runner (preview image: macOS 27, Xcode 27). Fails if 7zz is missing or any test is skipped; also builds Universal 2 Release, packages an ad-hoc DMG and checks a throwaway-key appcast. Developer ID signing/notarization run in the Release workflow; clean-Mac checks are manual. Moving off the preview image once GA remains open. |
 | Fuzzing | done (#37): `Tests/FuzzTests.swift` mutates ZIP, 7Z, TAR (.gz/.bz2/.xz), RAR 4/5 and DMG seeds (truncation, bit flips, header/trailer corruption, huge length fields, splices, zero runs) and checks that 7zz never crashes or hangs, the engine only fails cleanly and survives, and extraction stays inside its folder; plus libarchive's malformed-RAR regressions. ~15 mutants per seed on every CI run; `.github/workflows/fuzz.yml` runs hundreds weekly and on demand, keeping any failing input |
 
@@ -152,7 +152,7 @@ Remaining feature and delivery gaps:
 
 - DMG AES password creation (#84), deferred because the sandbox blocks the MediaKit attach path.
 - Automated Finder-menu repair: sandbox restrictions leave System Settings and relaunch guidance.
-- Homebrew tap publication.
+- Official homebrew/homebrew-cask submission (optional; token collision with GNU Stow).
 
 Editing, Glance (including colourful controls), Tray, Settings, onboarding, Simplified Chinese,
 Actions customisation, iCloud download handling, Open Recent, nested search, promised-file drops,
