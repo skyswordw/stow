@@ -35,7 +35,8 @@ struct QuickLookPreparingCapsule: View {
             }
         }
         // It comes and goes on its own (a read finishing), so it eases rather than springs.
-        .animation(Motion.resolved(visible ? Motion.status : Motion.exit, reduceMotion: reduceMotion), value: visible)
+        // Esc cancelling the read takes it away at once.
+        .animation(Motion.byKeyboard ? nil : Motion.resolved(visible ? Motion.status : Motion.exit, reduceMotion: reduceMotion), value: visible)
         // The wait starts again once a password has been typed: a quick read after it shows nothing.
         .task(id: Wait(request: request?.id, asking: asking)) {
             shown = nil

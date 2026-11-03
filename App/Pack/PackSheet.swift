@@ -482,7 +482,7 @@ struct PackSheet: View {
     }
 
     private func moreOptionsGroup(_ report: PackReport) -> some View {
-        DisclosureGroup(isExpanded: $showMore) {
+        DisclosureGroup(isExpanded: $showMore.keyboardAware) {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.m, verticalSpacing: Space.l) {
                 optionRow("Compression") {
                     Picker("Compression", selection: levelBinding) {

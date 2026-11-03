@@ -154,17 +154,29 @@ private struct DetailsPanelSurface: ViewModifier {
 }
 
 /// The window's background exactly as the window draws it behind the files, wallpaper tinting
-/// included. Reduce Transparency makes it solid on its own.
-private struct WindowBackdrop: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .windowBackground
-        view.blendingMode = .behindWindow
-        view.state = .followsWindowActiveState
-        return view
+/// included. Reduce Transparency makes it solid on its own; the snapshot override does it here.
+private struct WindowBackdrop: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if DisplayPreferences.reducesTransparency(reduceTransparency) {
+            Color(nsColor: .windowBackgroundColor)
+        } else {
+            Material()
+        }
     }
 
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+    private struct Material: NSViewRepresentable {
+        func makeNSView(context: Context) -> NSVisualEffectView {
+            let view = NSVisualEffectView()
+            view.material = .windowBackground
+            view.blendingMode = .behindWindow
+            view.state = .followsWindowActiveState
+            return view
+        }
+
+        func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+    }
 }
 
 /// Hides the inspector column's own edge, the shadow and hairline AppKit draws beside it and

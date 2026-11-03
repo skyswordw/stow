@@ -211,7 +211,9 @@ struct RichPreviewView: View {
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(.accentText)
                                 .frame(width: 22, height: 22)
-                                .background(.regularMaterial, in: .circle)
+                                .background(DisplayPreferences.reducesTransparency(reduceTransparency)
+                                            ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor)) : AnyShapeStyle(.regularMaterial),
+                                            in: .circle)
                                 .overlay { Circle().strokeBorder(.primary.opacity(contrastStyle.faintBorderOpacity)) }
                                 .offset(x: 4, y: 4)
                                 .accessibilityHidden(true)

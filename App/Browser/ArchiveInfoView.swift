@@ -47,7 +47,7 @@ struct ArchiveInfoView: View {
                 // The password's status and its action are one control, right under the figures.
                 ArchiveLockRow(model: model)
             }
-            DisclosureGroup(isExpanded: $showsMore) {
+            DisclosureGroup(isExpanded: $showsMore.keyboardAware) {
                 VStack(alignment: .leading, spacing: Space.m) {
                     let rows = Self.moreRows(isEncrypted: archive.isEncrypted, change: packed.change)
                     if !rows.isEmpty {
@@ -71,9 +71,10 @@ struct ArchiveInfoView: View {
                     .font(.callout.weight(.medium))
                     .foregroundStyle(.secondary)
             }
-            .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: showsMore)
+            // Opened from the keyboard (Space on the disclosure) it just opens (DESIGN.md › Motion).
+            .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: showsMore)
             .onReceive(NotificationCenter.default.publisher(for: DemoBurst.request)) { note in
-                if note.object as? String == "archive-info" { showsMore.toggle() }
+                if note.object as? String == "archive-info" { $showsMore.keyboardAware.wrappedValue.toggle() }
             }
         }
     }
@@ -124,7 +125,7 @@ struct ArchiveNotices: View {
         if let first = notices.first {
             let severity = first.severity
             let shape = RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-            DisclosureGroup(isExpanded: $isExpanded) {
+            DisclosureGroup(isExpanded: $isExpanded.keyboardAware) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Space.m) {
                         // The label already names the first finding; here is what it means.
@@ -179,9 +180,9 @@ struct ArchiveNotices: View {
                                    : AnyShapeStyle(severity.color.opacity(colorScheme == .dark ? 0.18 : 0.28)))
                     .allowsHitTesting(false)
             }
-            .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: isExpanded)
+            .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: isExpanded)
             .onReceive(NotificationCenter.default.publisher(for: DemoBurst.request)) { note in
-                if note.object as? String == "notices" { isExpanded.toggle() }
+                if note.object as? String == "notices" { $isExpanded.keyboardAware.wrappedValue.toggle() }
             }
             .padding(.horizontal, placement == .browser ? Space.m : 0)
             .padding(.bottom, Space.s)

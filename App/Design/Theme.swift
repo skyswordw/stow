@@ -78,6 +78,17 @@ enum Motion {
     }
 }
 
+extension Binding {
+    /// The same value, set without animation when a key press caused the change. A disclosure
+    /// animates its own expansion whatever `.animation` says, so Space on it would otherwise
+    /// reveal its rows over a few frames (DESIGN.md › Motion).
+    var keyboardAware: Binding<Value> {
+        Binding(get: { wrappedValue }, set: { value in
+            withTransaction(Motion.keyboardAware) { wrappedValue = value }
+        })
+    }
+}
+
 extension AnyTransition {
     /// Rises from the bottom edge with a slight scale and leaves with a smaller drop, so the exit
     /// stays quieter than the entrance; a plain fade under Reduce Motion.

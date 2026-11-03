@@ -88,8 +88,8 @@ private struct LockBadge: ViewModifier {
     func body(content: Content) -> some View {
         if isBadge, let state {
             content.buttonStyle(ArchiveLockBadgeStyle(state: state))
-                // The state changes on its own (a check finishing), so it eases rather than springs.
-                .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: state)
+                // A check finishing eases; Return or Esc changes it at once (as the row below).
+                .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: state)
         } else {
             content
         }
@@ -186,8 +186,9 @@ struct ArchiveLockRow: View {
                           : String(localized: "File names are visible; contents need the password."))
                 }
             }
-            // The state changes on its own (a check finishing), so it eases rather than springs.
-            .animation(Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: state)
+            // A check finishing changes it on its own, so it eases rather than springs; Return
+            // starting the check, or Esc cancelling it, changes it at once.
+            .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: state)
         }
     }
 
