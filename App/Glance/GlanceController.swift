@@ -155,6 +155,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
             model.folder = selected.parent
             model.select([selected.id], scroll: true)
         }
+        app?.rememberArchiveWindow(.glance)
         // Transfer ownership before the full window emits willCloseNotification.
         isShown = true
         closeMainWindow()
@@ -171,6 +172,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
         if let model, let selected = selectedColumnFolder, selected.parent == model.folder {
             model.columnSelect(selected)
         }
+        app?.rememberArchiveWindow(.browser)
         close()
         mainWindowAnimation = byKeyboard ? .none : .default
         // A full window SwiftUI kept around is ordered in again; a new one gets it in `prepareMainWindow`.

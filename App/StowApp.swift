@@ -23,6 +23,17 @@ final class AppState {
     var isChoosingArchive = false
     var isChoosingBatch = false
     private(set) var isOpening = false
+    private(set) var openingName: String?
+    /// Loading and open failures belong to Browser too, without a Welcome interlude.
+    var usesBrowserWindow: Bool { browser != nil || isOpening || (openingName != nil && openFailure != nil) }
+    var presentationDefaults = UserDefaults.standard
+
+    func rememberArchiveWindow(_ window: SettingsKeys.ArchiveWindow) {
+        // Snapshot fixtures and unit tests must not overwrite the user's last-used window.
+        guard UserDefaults.standard.string(forKey: "StowScene") == nil,
+              NSClassFromString("XCTestCase") == nil || presentationDefaults !== UserDefaults.standard else { return }
+        presentationDefaults.set(window.rawValue, forKey: SettingsKeys.lastArchiveWindow)
+    }
     private var openingTask: Task<Void, Never>?
     private var openingID = UUID()
     var openFailure: OpenFailure?
@@ -49,8 +60,7 @@ final class AppState {
         }
         TrayTemporaryGroups.purgeAbandoned(keeping: [])
         batch.onOpen = { [weak self] url in
-            self?.showMainWindow()
-            self?.open(url)
+            self?.openPreferred(url)
         }
         // Copies opened in a default app last time.
         TemporaryOpen.removeAll()
@@ -75,6 +85,7 @@ final class AppState {
         let id = UUID()
         openingID = id
         isOpening = true
+        openingName = url.lastPathComponent
         let scoped = url.startAccessingSecurityScopedResource()
         openingTask = Task {
             var recovered: SourceReadAccess.Grant?
@@ -295,32 +306,37 @@ final class AppState {
         }
         if let archive = urls.first(where: \.isFileURL) {
             NSApp.activate()
-            if SettingsKeys.flag(SettingsKeys.openInGlance) {
-                glance.open(archive)
-                return
-            }
+            openPreferred(archive)
+        }
+    }
+
+    /// Establish the destination and loading state before showing a window.
+    func openPreferred(_ url: URL) {
+        if SettingsKeys.archiveWindow(in: presentationDefaults) == .glance {
+            glance.open(url)
+        } else {
+            glance.close()
+            open(url)
             showMainWindow()
-            open(archive)
         }
     }
 
     /// File › Open Recent and the welcome window's Recent list.
     func openRecent(_ entry: RecentArchives.Entry) {
         guard let url = recents.url(for: entry) else { return }
-        showMainWindow()
-        open(url)
+        openPreferred(url)
     }
 
     /// Opens the bundled Harbor sample ZIP through the normal browse/preview/extract engine (#91).
     /// Extract and Install write real files; they are not `simulate()` timers.
     func openSample() {
-        showMainWindow()
         guard let url = SampleArchive.bundledURL else {
             // Bundle missing the ZIP (incomplete checkout): fall back to the in-memory design listing.
             openArchive(named: SampleArchive.make().name)
+            showMainWindow()
             return
         }
-        open(url)
+        openPreferred(url)
     }
 
     /// In-memory sample for design-review scenes (`DemoScene`, nested-search demos). Prefer `openSample()` for Try the Sample.
@@ -375,7 +391,7 @@ final class AppState {
     /// Called only after AppKit has accepted the close (including the unsaved-edits decision).
     /// Automatic Welcome/Browser handovers and transfers to Glance do not end the session.
     func mainWindowDidClose(_ host: AppRoot.Host) {
-        guard WindowSwitch.ownsOpening(host, hasArchive: browser != nil,
+        guard WindowSwitch.ownsOpening(host, hasArchive: usesBrowserWindow,
                                        glanceIsShown: glance.isShown) else { return }
         mainWindowDismissed = true
         clearArchive()
@@ -392,6 +408,7 @@ final class AppState {
         cancelOpening()
         releaseScope()
         browser = nil
+        openingName = nil
         openFailure = nil
     }
 
@@ -414,8 +431,11 @@ struct StowApp: App {
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
     @State private var app = AppState()
     @AppStorage(SettingsKeys.appearance) private var appearance = "system"
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some Scene {
+        let _ = configureRouting()
         // The welcome is a window of its own, fixed and compact as welcome windows usually are. It's
         // up while no archive is open; the Browser takes over when one opens and hands back on close.
         Window("Stow", id: "welcome") {
@@ -427,7 +447,7 @@ struct StowApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
-        .defaultLaunchBehavior(.presented)
+        .defaultLaunchBehavior(.suppressed)
         .restorationBehavior(.disabled)
         .commands {
             StowCommands(app: app)
@@ -458,6 +478,18 @@ struct StowApp: App {
         }
         .windowResizability(.contentSize)
     }
+
+    private func configureRouting() {
+        let open = openWindow
+        app.showMainWindow = { [weak app] in
+            guard let app else { return }
+            app.prepareToShowMainWindow()
+            open(id: app.usesBrowserWindow ? "main" : "welcome")
+        }
+        SettingsRouter.shared.open = { openSettings() }
+        OnboardingRouter.shared.open = { open(id: "onboarding") }
+        delegate.app = app
+    }
 }
 
 /// The Browser window. It only ever shows an open archive: with none, the welcome takes over (`AppRoot`).
@@ -471,8 +503,15 @@ struct RootView: View {
                 BrowserView(model: browser)
                     .overlay(alignment: .bottom) { PackActivityAccessory() }
             } else {
-                // For the moment it takes the welcome to come back.
-                Color.clear
+                VStack(spacing: Space.m) {
+                    if app.isOpening {
+                        ProgressView().controlSize(.small)
+                        Text("Opening “\(app.openingName ?? "")”…")
+                            .foregroundStyle(.secondary)
+                        Button("Cancel") { app.cancelCloudDownload(); app.cancelOpening() }
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .background {
@@ -502,9 +541,8 @@ struct AppRoot: ViewModifier {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
     @Environment(\.openSettings) private var openSettings
-    @MainActor private static var launched = false
 
-    private var isHost: Bool { (host == .welcome) == (app.browser == nil) }
+    private var isHost: Bool { (host == .browser) == app.usesBrowserWindow }
 
     func body(content: Content) -> some View {
         @Bindable var app = app
@@ -521,7 +559,7 @@ struct AppRoot: ViewModifier {
             .passwordSheet(app.passwords, isActive: isHost && !app.glance.isShown)
             .fileImporter(isPresented: isHost ? $app.isChoosingArchive : .constant(false),
                           allowedContentTypes: [.archive, .diskImage, .data]) { result in
-                if case .success(let url) = result { app.open(url) }
+                if case .success(let url) = result { app.openPreferred(url) }
             }
             .sheet(item: isHost ? $app.openFailure : .constant(nil)) { open in
                 FailureCard(failure: open.failure) { action in
@@ -531,32 +569,7 @@ struct AppRoot: ViewModifier {
             }
             .cloudDownloadSheet(app, isActive: isHost && !app.glance.isShown)
             .overlay(alignment: .bottomTrailing) { if isHost { BatchStack(queue: app.batch) } }
-            .onChange(of: app.browser == nil, initial: true) { _, noArchive in handOver(noArchive: noArchive) }
-            .task {
-                SettingsRouter.shared.open = { openSettings() }
-                OnboardingRouter.shared.open = { openWindow(id: "onboarding") }
-                guard !Self.launched else { return }
-                Self.launched = true
-                DemoScene.apply(to: app)
-                guard !OnboardingRouter.shared.didCheckAutomaticPresentation else { return }
-                OnboardingRouter.shared.didCheckAutomaticPresentation = true
-                // Let the window appear before presenting the first-run checklist.
-                await Task.yield()
-                if Onboarding.shouldShowAutomatically() {
-                    openWindow(id: "onboarding")
-                }
-            }
-            // "Show the main window": the Browser with an archive open, the welcome without one.
-            .onAppear(perform: routeShowMainWindow)
-    }
-
-    private func routeShowMainWindow() {
-        let open = openWindow
-        app.showMainWindow = { [weak app] in
-            guard let app else { return }
-            app.prepareToShowMainWindow()
-            open(id: app.browser == nil ? "welcome" : "main")
-        }
+            .onChange(of: app.usesBrowserWindow, initial: true) { _, browser in handOver(noArchive: !browser) }
     }
 
     /// An archive opened in the welcome, or the Browser's archive closed: the other window takes
@@ -564,6 +577,10 @@ struct AppRoot: ViewModifier {
     /// window animation (DESIGN.md › Motion).
     private func handOver(noArchive: Bool) {
         guard !app.mainWindowDismissed else { return }
+        if app.glance.isShown {
+            dismissWindow(id: host == .welcome ? "welcome" : "main")
+            return
+        }
         let leaving: String, arriving: String?
         switch host {
         case .welcome where !noArchive: (leaving, arriving) = ("welcome", app.glance.isShown ? nil : "main")

@@ -27,11 +27,11 @@ struct OpeningWindowTests {
         #expect(!app.mainWindowDismissed)
     }
 
-    @Test func closingWelcomeCancelsPendingOpenAndIgnoresLateFailure() async throws {
+    @Test func closingLoadingBrowserCancelsPendingOpenAndIgnoresLateFailure() async throws {
         let app = AppState()
         app.open(URL(filePath: "/tmp/Absent-\(UUID().uuidString).zip"))
         #expect(app.isOpening)
-        app.mainWindowDidClose(.welcome)
+        app.mainWindowDidClose(.browser)
         #expect(!app.isOpening && app.mainWindowDismissed)
         // Let the cancelled task run its cleanup; it must not restore content or a failure sheet.
         try await Task.sleep(for: .milliseconds(100))

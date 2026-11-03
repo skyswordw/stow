@@ -153,7 +153,7 @@ struct WelcomeView: View {
         guard !urls.isEmpty else { return false }
         let archives = urls.allSatisfy { ArchiveFormat.infer(fromName: $0.lastPathComponent) != nil }
         if urls.count == 1, archives {
-            app.open(urls[0])
+            app.openPreferred(urls[0])
         } else if archives {
             app.extractArchives(urls)
         } else {

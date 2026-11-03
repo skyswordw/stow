@@ -33,8 +33,7 @@ final class SystemActions {
         guard !urls.isEmpty else { return }
         switch action {
         case .open:
-            app?.showMainWindow()
-            app?.open(urls[0])
+            app?.openPreferred(urls[0])
         case .extractHere:
             Task { await extract(urls, to: nil) }
         case .extractTo:
@@ -53,7 +52,7 @@ final class SystemActions {
     func send(_ urls: [URL]) {
         let archives = urls.filter { ArchiveTypes.type(forFileName: $0.lastPathComponent) != nil }
         let others = urls.filter { ArchiveTypes.type(forFileName: $0.lastPathComponent) == nil }
-        if let archive = archives.first { app?.showMainWindow(); app?.open(archive) }
+        if let archive = archives.first { app?.openPreferred(archive) }
         if !others.isEmpty, let tray = app?.tray {
             tray.add(others)
             tray.show()
