@@ -102,7 +102,13 @@ plain path-row and bottom-path studies.
   overshoot, stepped frame by frame because the toolbar doesn't follow SwiftUI animations; ⌘F, Esc
   and Reduce Motion change it at once (`SearchWidthMotion`). It's the Browser's own field (the
   system toolbar field always settles last, at the window's end) with the system field's
-  contracts: one query, Esc clears it and returns the keyboard to the files in one step. CJK input
+  contracts: one query, Esc clears it and returns the keyboard to the files in one step. Open, it
+  carries two controls that never share a glyph (#294): **Clear** is the system field's filled
+  circle inside the text, shown only with a query, and keeps Search open with the keyboard;
+  **Close** (a plain ×, medium weight) sits past a hairline at the capsule's trailing end in every
+  state, so it never moves, and does what Esc does: clears, closes and hands the keyboard back.
+  Both are as quiet as the magnifying glass until the pointer is over them (no hover animation),
+  with an 18 × 22 pt hit area. A pointer Close shrinks the field like any close (0.18 s); CJK input
   composes in it without filtering on half-typed pinyin, and while an input method is composing,
   Esc is the input method's (it cancels the composition; Search stays open). `TitleBarLayout` gives it room
   from free space first, then from the name (which truncates in the middle), never from the path.

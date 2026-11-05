@@ -6,7 +6,7 @@ import SwiftUI
 ///     Stow.app/Contents/MacOS/Stow -StowScene grid -StowSnapshot YES
 ///
 /// Scenes: onboarding, welcome (no history), recents (the welcome window with history),
-/// grid, list, fonts, search, search-nested (results inside an inner archive; search-nested-many selects two), activity, pack, tray, open (`-StowOpen <path>`),
+/// grid, list, fonts, search, search-open (Search opened by ⌘F, nothing typed yet), search-nested (results inside an inner archive; search-nested-many selects two), activity, pack, tray, open (`-StowOpen <path>`),
 /// packing / packed (the pack capsule), packrun (a real pack, see `runPack`).
 /// `pack` with `-StowPack <path>` shows the sentence for real files; `-PackAudience mac` and the other
 /// `PackPreferences` keys work as launch arguments too; `-StowPackPassword YES` starts with “with a password”;
@@ -192,6 +192,13 @@ enum DemoScene {
         case "search":
             app.openArchive(named: SampleArchive.make().name)
             app.browser?.query = "harbor"
+        case "search-open":
+            app.openArchive(named: SampleArchive.make().name)
+            // ⌘F once the Browser is on screen: its toolbar answers the request, not the model.
+            Task {
+                try? await Task.sleep(for: .milliseconds(600))
+                app.browser?.focusSearch()
+            }
         case "activity":
             app.openDemo(SampleArchive.prototypeBuild())
             app.browser?.selection = ["Harbor Prototype.app"]
