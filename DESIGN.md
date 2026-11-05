@@ -484,12 +484,18 @@ transition frame by frame, by click and as after a key press, for review.
   Archive…** and **Create Archive…** side by side at one width, Create the prominent glass button
   on the trailing side, as a Mac pair puts its primary. Both reach the same routes as ⌘O and ⌘N
   (`AppState.beginNewArchive()` for Create; a repeated click focuses the one draft). Their tooltips
-  name the shortcut. With keyboard navigation on, the window starts on Create. **Settings…** belongs
-  to the app, not to what's dropped, so it is one quiet borderless control (gear and title,
-  secondary) under everything at the zone's leading edge, below Recent when there is history. A
-  short window drops the format chips first, then the icon; the two actions always stay. The
-  sample is not on Welcome. *Supersedes* the earlier Open Archive… / Try the Sample pair and its
-  prominent sample button.
+  name the shortcut. With keyboard navigation on, the window starts on Create. **Settings** belongs
+  to the app, not to what's dropped, so it is an icon-only gear in the top-trailing corner that
+  mirrors the traffic lights: their vertical centre, and the close button's leading inset as the
+  gear glyph's trailing inset (measured from the window's own close button, so it follows the
+  system's metrics). Its glyph is a traffic light's size (14 pt, medium weight to carry the
+  filled lights' weight); it is secondary and borderless, with a faint 22 pt hover circle; under
+  Increase Contrast it is full strength with a hairline ring of that circle. Its accessibility name is "Settings…" and its
+  tooltip names ⌘,. The actions keep their words: they are the primary choices. A short window
+  drops the format chips first, then the icon; the two actions always stay. The sample is not on
+  Welcome. *Supersedes* the earlier Open Archive… / Try the Sample pair and its prominent sample
+  button, and the first #299 draft's bottom-leading "⚙ Settings…" footer (user feedback: the
+  corner suits it, and a text label there felt uncoordinated).
 - **The sample** (#292) is a web download, so it lives with the app's web pages: **Help ›
   Download Sample Archive** beside **Sample Credits and Licenses**, and the same button in Welcome
   to Stow with a caption that says the browser saves it and the ZIP is then opened normally. No

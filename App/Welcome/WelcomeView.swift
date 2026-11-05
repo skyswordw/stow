@@ -7,15 +7,29 @@ struct WelcomeWindow: View {
     static let size = CGSize(width: 640, height: 600)
     @Environment(AppState.self) private var app
     @State private var window: NSWindow?
+    @State private var trafficLights = TrafficLights.standard
 
     var body: some View {
         WelcomeView()
             .safeAreaInset(edge: .bottom, spacing: 0) { PackActivityAccessory() }
             .frame(width: Self.size.width, height: Self.size.height)
+            // Settings mirrors the traffic lights in the other top corner: their vertical centre,
+            // and the close button's inset from the leading edge as its glyph's from the trailing.
+            .overlay(alignment: .topTrailing) {
+                WelcomeSettingsButton()
+                    // The gear's ink sits half a point below its frame's centre.
+                    .padding(.top, trafficLights.midY - WelcomeSettingsButton.size / 2 - 0.5)
+                    .padding(.trailing, trafficLights.inset - WelcomeSettingsButton.glyphInset)
+                    .ignoresSafeArea()
+            }
             .background {
                 WindowReader { window in
                     self.window = window
                     window.animationBehavior = WindowSwitch.animation
+                    // Once AppKit has laid out the title bar.
+                    DispatchQueue.main.async {
+                        if let measured = TrafficLights(in: window) { trafficLights = measured }
+                    }
                 }
             }
             // Closing it while an archive is still on its way cancels that, as closing the Browser
@@ -26,6 +40,73 @@ struct WelcomeWindow: View {
                 app.mainWindowDidClose(.welcome)
             }
             .modifier(AppRoot(host: .welcome))
+    }
+}
+
+/// Where the window's own buttons sit, measured from the close button (in points from the window's
+/// top-leading corner), so the Settings gear can mirror them whatever the system's metrics are.
+private struct TrafficLights: Equatable {
+    var inset: CGFloat
+    var midY: CGFloat
+    /// The macOS 26 metrics, until the window is measured.
+    static let standard = TrafficLights(inset: 9, midY: 16)
+
+    init(inset: CGFloat, midY: CGFloat) {
+        self.inset = inset
+        self.midY = midY
+    }
+
+    @MainActor init?(in window: NSWindow) {
+        guard let close = window.standardWindowButton(.closeButton), close.window != nil else { return nil }
+        let frame = close.convert(close.bounds, to: nil)
+        guard frame.width > 0 else { return nil }
+        self.init(inset: frame.minX, midY: window.frame.height - frame.midY)
+    }
+}
+
+/// Settings as a quiet gear in the window's top-trailing corner: an icon like the traffic lights
+/// opposite, named "Settings…" for VoiceOver and its tooltip, with a hover circle and a focus ring.
+private struct WelcomeSettingsButton: View {
+    /// The hover circle: a little over the traffic lights' own 16 pt buttons, so it stays light.
+    static let size: CGFloat = 22
+    /// The glyph draws as wide as a traffic light (14 pt) at this point size.
+    private static let pointSize: CGFloat = 13.5
+    private static let glyph: CGFloat = 14
+    /// From the circle's edge to the glyph's, so the glyph (not the circle) lines up with the inset.
+    static let glyphInset = (size - glyph) / 2
+
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    var body: some View {
+        Button {
+            SettingsRouter.shared.show(.general)
+        } label: {
+            Image(systemName: "gearshape")
+                // Medium, so its strokes carry about the weight of the filled lights opposite.
+                .font(.system(size: Self.pointSize, weight: .medium))
+                .frame(width: Self.size, height: Self.size)
+                .contentShape(.circle)
+        }
+        .buttonStyle(CornerButtonStyle(increased: ContrastStyle.resolve(colorSchemeContrast).increased))
+        .focusRing(in: Circle(), outset: 0)
+        .accessibilityLabel(Text("Settings…"))
+        .help("Open Stow’s settings (⌘,)")
+    }
+}
+
+private struct CornerButtonStyle: ButtonStyle {
+    let increased: Bool
+    @State private var isHovering = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            // Secondary like the window's other chrome; full strength under Increase Contrast.
+            .foregroundStyle(increased || isHovering ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+            .background(.primary.opacity(configuration.isPressed ? 0.12 : isHovering ? 0.06 : 0), in: .circle)
+            .overlay {
+                if increased { Circle().strokeBorder(.primary.opacity(0.45), lineWidth: 1) }
+            }
+            .onHover { isHovering = $0 }
     }
 }
 
@@ -55,9 +136,8 @@ struct WelcomeView: View {
             }
         }
         .frame(maxWidth: Self.dropZoneSize.width)
-        .safeAreaInset(edge: .bottom, spacing: Space.m) { footer }
         .padding(.horizontal, Space.xxl)
-        .padding(.bottom, Space.l)
+        .padding(.bottom, Space.xxl)
         .padding(.top, Space.l)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // A quiet title bar: the traffic lights over the window, no title, no bar.
@@ -80,23 +160,6 @@ struct WelcomeView: View {
     }
 
     private var highlighted: Bool { isTargeted || isPromiseTargeted }
-
-    /// Settings belongs to the app, not to what's dropped, so it sits outside the drop zone: one
-    /// quiet control under everything, lined up with the zone's leading edge.
-    private var footer: some View {
-        HStack {
-            Button {
-                SettingsRouter.shared.show(.general)
-            } label: {
-                Label("Settings…", systemImage: "gearshape")
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .help("Open Stow’s settings (⌘,)")
-            Spacer()
-        }
-        .padding(.horizontal, Space.s)
-    }
 
     private func dropZone(size: CGSize) -> some View {
         // Without the format list when a short window also has to fit the Recent list, then
