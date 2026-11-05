@@ -60,7 +60,9 @@ struct PackSheet: View {
     var body: some View {
         let report = report
         VStack(alignment: .leading, spacing: Space.xl) {
-            sentence
+            // A new archive already has its name and format: it says what will be saved and asks
+            // the rest as a short form. Quick Pack keeps the sentence (DESIGN.md › New archive draft).
+            if draft != nil { draftHeading(report) } else { sentence }
             // The middle grows with what people open (names, options). It asks for its full height,
             // so the sheet fits it when it can; when the screen can't, only the middle scrolls and
             // the sentence, name and buttons stay where they are. One copy of the fields, so focus
@@ -101,7 +103,7 @@ struct PackSheet: View {
             }
             .padding(-Space.xs) // …without moving the content off the sheet's grid
             VStack(alignment: .leading, spacing: Space.l) {
-                nameRow
+                if draft == nil { nameRow }
                 footer(report)
             }
         }
@@ -222,7 +224,8 @@ struct PackSheet: View {
 
     private func middle(_ report: PackReport) -> some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            if options.usesPassword { passwordField }
+            if draft != nil { draftForm }
+            else if options.usesPassword { passwordField }
             ReportView(report: report, audience: options.audience,
                        partsNote: Compatibility.partsNote(for: options, parts: report.parts, archiveName: archiveName),
                        overrides: $overrides, showDetails: $showDetails)
@@ -722,6 +725,117 @@ struct PackSheet: View {
         })
     }
 
+    // MARK: New archive draft
+
+    /// What will be saved, as it will be called: the format's icon and the file name the purpose
+    /// allows, over the planned contents. Their size is the originals' — the archive's own comes
+    /// from packing, and the footer only estimates it.
+    private func draftHeading(_ report: PackReport) -> some View {
+        HStack(spacing: Space.m) {
+            NativeIcon(type: options.format.contentType)
+                .frame(width: 48, height: 48)
+                .id(options.format)
+                .transition(.opacity)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: archiveName + "." + options.format.fileExtension)
+                    .font(.title2.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .accessibilityAddTraits(.isHeader)
+                Text(DraftSummary.text(items: request.roots.count,
+                                       bytes: request.files.reduce(Int64(0)) { $0 + ($1.isFolder ? 0 : $1.size) }))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .liveNumber()
+            }
+        }
+    }
+
+    /// Name, format, purpose, password and folder, one per row: the choices someone saving a new
+    /// file expects to see before committing. Compression, parts and the rest stay in More Options.
+    private var draftForm: some View {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.m, verticalSpacing: Space.m) {
+            optionRow("Name") {
+                HStack(spacing: Space.xs) {
+                    TextField("Name", text: $name, prompt: Text("Untitled Archive"))
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 260)
+                    Text("." + options.format.fileExtension)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .contentTransition(.opacity)
+                }
+                if archiveName != name.trimmingCharacters(in: .whitespaces), !name.isEmpty {
+                    caption(String(localized: "Characters \(options.audience.phrase) don’t allow are replaced."))
+                }
+            }
+            optionRow("Format") {
+                Picker("Format", selection: draftFormat) {
+                    ForEach(PackFormat.allCases) { Text($0.displayName).tag($0) }
+                }
+                .labelsHidden()
+                .fixedSize()
+            }
+            optionRow("For") {
+                Picker("For", selection: Binding(get: { options.audience }, set: { setAudience($0) })) {
+                    ForEach(Audience.allCases) { Text($0.phrase.sentenceCased).tag($0) }
+                }
+                .labelsHidden()
+                .fixedSize()
+            }
+            optionRow("Password") {
+                Picker("Password", selection: $options.usesPassword) {
+                    Text("Without a password").tag(false)
+                    Text("With a password").tag(true)
+                }
+                .labelsHidden()
+                .fixedSize()
+                .disabled(!options.format.supportsPassword)
+                if !options.format.supportsPassword {
+                    caption(String(localized: "\(options.format.displayName) can’t be password-protected"))
+                }
+            }
+            if options.usesPassword {
+                GridRow {
+                    Color.clear.frame(width: 0, height: 0)
+                    passwordField
+                }
+            }
+            optionRow("Where") {
+                if let directory = request.directory {
+                    HStack(spacing: Space.xs) {
+                        Image(nsImage: NSWorkspace.shared.icon(forFile: directory.path))
+                            .resizable()
+                            .frame(width: 16, height: 16)
+                            .accessibilityHidden(true)
+                        Text(verbatim: FileManager.default.displayName(atPath: directory.path))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    .help(directory.path)
+                    caption(String(localized: "Suggested. You’ll confirm the folder next."))
+                } else {
+                    Text("You’ll choose a folder next.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    /// Any format can be chosen; one the purpose doesn't offer brings a purpose that does, as a
+    /// draft's own format does when this sheet opens.
+    private var draftFormat: Binding<PackFormat> {
+        Binding(get: { options.format }, set: { format in
+            if !options.audience.formats.contains(format),
+               let audience = Audience.allCases.first(where: { $0.formats.contains(format) }) {
+                setAudience(audience)
+            }
+            options.setFormat(format)
+        })
+    }
+
     // MARK: Footer
 
     private var nameRow: some View {
@@ -760,7 +874,7 @@ struct PackSheet: View {
             Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
                 .controlSize(.large)
-            Button("Pack…") { pack(report) }
+            Button(draft == nil ? String(localized: "Pack…") : String(localized: "Save…")) { pack(report) }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.glassProminent)
                 .controlSize(.large)
@@ -954,8 +1068,9 @@ private extension String {
     var sentenceCased: String { prefix(1).uppercased() + dropFirst() }
 }
 
-/// A sentence word you can change. Looks like text, behaves like a menu.
-private struct Token<Items: View>: View {
+/// A sentence word you can change. Looks like text, behaves like a menu. The new-archive draft's
+/// heading uses it for the extension, so the format reads the same way there.
+struct Token<Items: View>: View {
     @Environment(\.colorSchemeContrast) private var contrast
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
     let title: String
