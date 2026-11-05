@@ -16,7 +16,8 @@ import SwiftUI
 /// `-StowBurstCrop x,y,w,h` crops every frame, in points from the windows' top-left corner;
 /// negative x or y count from the right or bottom edge. Transitions:
 /// actions (scene next-steps), glance (list), archive-info and notices (details-planned),
-/// notice (source-access-unsaved), lock (encrypted), tray (tray), batch (batch), opening (browser-opening).
+/// notice (source-access-unsaved), lock (encrypted), tray (tray), tray-pin (tray), batch (batch),
+/// opening (browser-opening).
 enum DemoBurst {
     enum Cause: String { case click, key, auto = "on its own" }
 
@@ -48,7 +49,7 @@ enum DemoBurst {
                 // The Tray is a panel of its own; leave out the welcome window behind it.
                 grabber.windowIDs = NSApp.windows
                     .filter { $0.isVisible && !$0.className.contains("StatusBar") && $0.windowNumber > 0 }
-                    .filter { transition != "tray" || $0 is NSPanel }
+                    .filter { !transition.hasPrefix("tray") || $0 is NSPanel }
                     .map { CGWindowID($0.windowNumber) }
                 try? await Task.sleep(for: .milliseconds(8))
             }
@@ -156,6 +157,18 @@ enum DemoBurst {
                 Step(at: 1100, name: "show", cause: .click) { app.tray.show() },
                 Step(at: 1900, name: "hide (Esc)", cause: .key) { app.tray.hide() },
                 Step(at: 2700, name: "show (⌥⌘T)", cause: .key) { app.tray.show() },
+            ]
+        case "tray-pin":
+            // Clicking the pin writes the real setting: put back what was saved once the burst is done.
+            let key = SettingsKeys.trayPinned
+            let saved = Bundle.main.bundleIdentifier.flatMap { UserDefaults.standard.persistentDomain(forName: $0)?[key] }
+            return [
+                Step(at: 300, name: "keep open", cause: .click) { post("tray-pin-on") },
+                Step(at: 2300, name: "note fades", cause: .auto) {},
+                Step(at: 3000, name: "stop keeping open (Space)", cause: .key) { post("tray-pin-off") },
+                Step(at: 5000, name: "note fades", cause: .auto) {
+                    if let saved { UserDefaults.standard.set(saved, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+                },
             ]
         case "batch":
             let rows: [(String, BatchQueue.Job.Phase)] = [("Field Recordings.7z", .done), ("server-logs.tar.xz", .running(0.62)),
