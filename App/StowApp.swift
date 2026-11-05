@@ -21,6 +21,7 @@ final class AppState {
     private(set) var mainWindowDismissed = false
     var archiveDraft: ArchiveDraft?
     var showCreationWindow: () -> Void = {}
+    var closeCreationWindow: () -> Void = {}
     var packRequest: PackRequest?
     private(set) var pendingCommands = 0
     private struct FinishingArchive {
@@ -323,6 +324,13 @@ final class AppState {
         showCreationWindow()
     }
 
+    func discardArchiveDraft() {
+        guard let draft = archiveDraft, !draft.isSaving else { return }
+        draft.close()
+        closeCreationWindow()
+        if archiveDraft === draft { archiveDraft = nil }
+    }
+
     /// Quick Pack: pick what to pack.
     func chooseFilesToPack() {
         pendingCommands += 1
@@ -556,6 +564,7 @@ struct StowApp: App {
             open(id: id)
         }
         let dismiss = dismissWindow
+        app.closeCreationWindow = { dismiss(id: "creation") }
         app.showCreationWindow = { [weak app] in
             ApplicationLifecycle.activateForWindow()
             ApplicationLifecycle.shared.presenting("creation")

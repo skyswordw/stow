@@ -71,8 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let app, let draft = app.archiveDraft, draft.isEdited {
             app.showCreationWindow()
             guard draft.allowDiscardOrSave(quitting: true) else { return .terminateCancel }
-            draft.close()
-            app.archiveDraft = nil
+            app.discardArchiveDraft()
         }
         guard app?.browser?.levels.contains(where: { $0.edits.isEdited }) == true else { return .terminateNow }
         guard !checkingTermination else { return .terminateLater }

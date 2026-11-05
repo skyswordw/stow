@@ -57,6 +57,7 @@ final class ArchiveDraft: Identifiable {
 
     /// Return true only when the caller may close; Save presents configuration and keeps the draft.
     func allowDiscardOrSave(quitting: Bool = false) -> Bool {
+        if isClosed { return true }
         guard !isSaving, !isChoosingSources, packRequest == nil else { return false }
         guard isEdited else { return true }
         let alert = NSAlert()

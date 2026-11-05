@@ -134,4 +134,19 @@ struct TrayLifecycleTests {
         #expect(app.browser === model)
     }
 
+    @Test func settingsRemainsAWorkSurfaceEvenWithAUtilityWindowHost() {
+        let settings = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+                               styleMask: [.titled], backing: .buffered, defer: false)
+        settings.identifier = NSUserInterfaceItemIdentifier("com_apple_SwiftUI_Settings_window")
+        settings.orderFrontRegardless()
+        defer { settings.orderOut(nil) }
+        #expect(ApplicationLifecycle.countsAsWorkWindow(settings))
+        settings.orderOut(nil)
+        #expect(!ApplicationLifecycle.countsAsWorkWindow(settings))
+        let tray = TrayPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        tray.orderFrontRegardless()
+        defer { tray.orderOut(nil) }
+        #expect(!ApplicationLifecycle.countsAsWorkWindow(tray))
+    }
+
 }

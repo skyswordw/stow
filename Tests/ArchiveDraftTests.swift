@@ -113,4 +113,18 @@ struct ArchiveDraftTests {
         #expect(result.report.verified)
     }
 
+    @Test func discardingADraftClosesItsWindowBeforeRemovingTheSceneContent() throws {
+        let app = AppState()
+        app.beginNewArchive()
+        let draft = try #require(app.archiveDraft)
+        var closed = false
+        app.closeCreationWindow = {
+            #expect(app.archiveDraft === draft)
+            #expect(draft.allowDiscardOrSave(), "An approved discard must not ask twice")
+            closed = true
+        }
+        app.discardArchiveDraft()
+        #expect(closed && app.archiveDraft == nil && !draft.canSave)
+    }
+
 }

@@ -86,7 +86,10 @@ individual issues. Dedicated VoiceOver remains deferred under #93.
 
 ## Validation
 
-The final full macOS suite passed **680 tests in 102 suites**. Localization export passed with
+The full macOS integration suite passed **680 tests in 102 suites**. A subsequent follow-up
+passed **23 lifecycle/draft/opening tests** after protecting utility-hosted Settings windows and
+closing an explicitly discarded draft window before removing its scene content (so cancelling a
+later Quit prompt cannot leave an orphaned empty creation window). Localization export passed with
 **0 missing translations out of 1,232 strings**. Debug and Release build succeeded; the Release
 bundle omits Sample, and all **12 Mach-O binaries** passed Universal 2 checking. The explicit
 browser-download URL returned HTTP 200; downloaded bytes matched the pinned source ZIP's

@@ -69,9 +69,7 @@ final class ApplicationLifecycle {
         generation += 1
         let current = generation
         let decision = withObservationTracking {
-            let window = app.glance.isShown || NSApp.windows.contains {
-                ($0.isVisible || $0.isMiniaturized) && !($0 is NSPanel) && $0.canBecomeMain
-            }
+            let window = app.glance.isShown || NSApp.windows.contains(where: Self.countsAsWorkWindow)
             let work = app.hasLifetimeWork || NSApp.modalWindow != nil
                 || NSApp.windows.contains { $0.isVisible && $0.sheetParent != nil }
                 || !pendingWindows.isEmpty
@@ -93,6 +91,13 @@ final class ApplicationLifecycle {
         case .terminate:
             NSApp.terminate(nil)
         }
+    }
+
+    static func countsAsWorkWindow(_ window: NSWindow) -> Bool {
+        guard window.isVisible || window.isMiniaturized else { return false }
+        // Settings can be a utility/key-only window depending on the macOS/SwiftUI host.
+        if window.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" { return true }
+        return !(window is NSPanel) && (window.canBecomeMain || window.canBecomeKey)
     }
 
     static func activateForWindow() {
