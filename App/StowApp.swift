@@ -387,8 +387,15 @@ final class AppState {
     private func makeBrowser(_ archive: Archive, isListing: Bool = false) -> BrowserModel {
         let model = BrowserModel(archive: archive, isListing: isListing)
         model.passwords = PasswordHook(prompt: passwords)
-        model.onArchiveGone = { [weak self] in self?.closeArchive() }
-        model.onCloseWindow = { [weak self] in self?.closeWindow() }
+        // A retained background job may finish after a different archive has taken over.
+        model.onArchiveGone = { [weak self, weak model] in
+            guard let self, let model, self.browser === model, !self.isOpening else { return }
+            self.closeArchive()
+        }
+        model.onCloseWindow = { [weak self, weak model] in
+            guard let self, let model, self.browser === model, !self.isOpening else { return }
+            self.closeWindow()
+        }
         // The Pack sentence is a sheet on the full window, so Glance hands over to it first.
         model.onPack = { [weak self] request in
             self?.glance.expand(byKeyboard: false)
@@ -399,9 +406,11 @@ final class AppState {
 
     /// "Close the window after Extract All or an install": the archive closes with it.
     func closeWindow() {
+        let archiveWindow = browser?.editingWindow
         cancelOpening()
         glance.close()
-        NSApp.windows.first { !($0 is NSPanel) && $0.isVisible && $0.sheetParent == nil }?.performClose(nil)
+        // Never pick an arbitrary visible window: Settings or a new draft may be in front.
+        if let archiveWindow, archiveWindow !== glance.window { archiveWindow.performClose(nil) }
     }
 
     /// Extracts several archives, one after another, into a folder chosen once.
@@ -415,8 +424,12 @@ final class AppState {
     }
 
     func closeArchive() {
+        let model = browser
+        let opening = openingID
         Task {
-            guard await browser?.confirmDiscardingEdits() ?? true else { return }
+            guard browser === model, openingID == opening else { return }
+            guard await model?.confirmDiscardingEdits() ?? true else { return }
+            guard browser === model, openingID == opening else { return }
             mainWindowDismissed = false
             clearArchive()
         }

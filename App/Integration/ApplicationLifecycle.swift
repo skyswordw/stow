@@ -36,7 +36,9 @@ final class ApplicationLifecycle {
                 MainActor.assumeIsolated {
                     self?.mayTerminate = true
                     if let identifier {
-                        self?.pendingWindows.remove(identifier)
+                        self?.pendingWindows = self?.pendingWindows.filter {
+                            identifier != $0 && !identifier.hasPrefix($0 + "-")
+                        } ?? []
                     }
                     self?.schedule()
                 }
@@ -47,7 +49,10 @@ final class ApplicationLifecycle {
 
     func presenting(_ identifier: String) {
         guard app != nil else { return }
-        if !NSApp.windows.contains(where: { $0.isVisible && $0.identifier?.rawValue == identifier }) {
+        if !NSApp.windows.contains(where: {
+            let actual = $0.identifier?.rawValue ?? ""
+            return ($0.isVisible || $0.isMiniaturized) && (actual == identifier || actual.hasPrefix(identifier + "-"))
+        }) {
             pendingWindows.insert(identifier)
         }
         schedule()

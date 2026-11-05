@@ -79,4 +79,48 @@ struct OpeningWindowTests {
             #expect(!WindowSwitch.ownsOpening(.welcome, hasArchive: hasArchive, glanceIsShown: true))
         }
     }
+    @Test func anOldOperationCannotCloseAReplacementArchiveOrCancelItsLoad() async throws {
+        let app = AppState()
+        app.openArchive(named: "Old.zip")
+        let old = try #require(app.browser)
+        app.open(URL(filePath: "/tmp/Replacement-\(UUID()).zip"))
+        old.onCloseWindow?()
+        #expect(app.isOpening, "The old operation must not cancel the new load")
+        app.cancelOpening()
+        app.openArchive(named: "New.zip")
+        let replacement = try #require(app.browser)
+        old.onArchiveGone?()
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(app.browser === replacement)
+    }
+
+    @Test func aQueuedArchiveCloseDoesNotDiscardAReplacementSession() async throws {
+        let app = AppState()
+        app.openArchive(named: "Old.zip")
+        app.closeArchive()
+        app.openArchive(named: "Replacement.zip")
+        let replacement = try #require(app.browser)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(app.browser === replacement)
+    }
+
+    @Test func automaticArchiveCloseDoesNotCloseTheCreationWorkspace() {
+        let app = AppState()
+        app.openArchive(named: "Working.zip")
+        let archive = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let creation = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+                                styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        app.browser?.editingWindow = archive
+        archive.identifier = NSUserInterfaceItemIdentifier("main-ownership-test")
+        creation.identifier = NSUserInterfaceItemIdentifier("creation-ownership-test")
+        archive.isReleasedWhenClosed = false
+        creation.isReleasedWhenClosed = false
+        archive.orderFrontRegardless()
+        creation.makeKeyAndOrderFront(nil)
+        defer { archive.orderOut(nil); creation.orderOut(nil) }
+        app.closeWindow()
+        #expect(!archive.isVisible && creation.isVisible)
+    }
+
 }
