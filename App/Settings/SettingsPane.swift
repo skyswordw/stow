@@ -35,7 +35,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
         switch self {
         case .general: [.general]
         case .archiveWork: [.extraction, .installing, .packing]
-        case .interaction: [.nextSteps, .glance, .previews]
+        case .interaction: [.nextSteps, .glance, .tray, .previews]
         case .security: [.passwords]
         case .systemIntegration: [.fileTypes, .integration]
         case .advanced: [.advanced, .licenses]
@@ -44,7 +44,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 }
 
 nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, extraction, installing, packing, nextSteps, glance, previews, passwords, fileTypes, integration, advanced, licenses
+    case general, extraction, installing, packing, nextSteps, glance, tray, previews, passwords, fileTypes, integration, advanced, licenses
     var id: Self { self }
 
     /// Category that hosts this pane in the #162 information map.
@@ -52,7 +52,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         switch self {
         case .general: .general
         case .extraction, .installing, .packing: .archiveWork
-        case .nextSteps, .glance, .previews: .interaction
+        case .nextSteps, .glance, .tray, .previews: .interaction
         case .passwords: .security
         case .fileTypes, .integration: .systemIntegration
         case .advanced, .licenses: .advanced
@@ -67,6 +67,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .packing: String(localized: "Packing")
         case .nextSteps: String(localized: "Actions")
         case .glance: String(localized: "Glance")
+        case .tray: String(localized: "Tray")
         case .previews: String(localized: "Previews")
         case .passwords: String(localized: "Passwords")
         case .fileTypes: String(localized: "File Types")
@@ -83,6 +84,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .packing: "shippingbox"
         case .nextSteps: "capsule.on.rectangle"
         case .glance: "macwindow"
+        case .tray: "tray"
         case .previews: "eye"
         case .passwords: "lock"
         case .fileTypes: "doc.on.doc"
@@ -99,6 +101,7 @@ nonisolated enum SettingsPane: String, CaseIterable, Identifiable {
         case .packing: PackingSettingsView()
         case .nextSteps: NextStepsSettingsView()
         case .glance: GlanceSettingsView()
+        case .tray: TraySettingsView()
         case .previews: PreviewSettingsView()
         case .passwords: PasswordSettingsView()
         case .fileTypes: AssociationsView(model: Associations(), showsTitle: false)

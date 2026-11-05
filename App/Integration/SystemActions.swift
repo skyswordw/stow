@@ -9,6 +9,15 @@ final class SystemActions {
     var packer: any ArchivePacking = Packers.current
     /// Jobs in flight; the Dock icon shows their combined progress.
     private(set) var running = 0
+    private(set) var pendingRequests = 0
+
+    private func launch(_ operation: @escaping () async -> Void) {
+        pendingRequests += 1
+        Task {
+            defer { pendingRequests -= 1 }
+            await operation()
+        }
+    }
     private var progress: [UUID: Double] = [:]
 
     private static let log = Logger(subsystem: "app.stow.Stow", category: "system")
@@ -35,16 +44,16 @@ final class SystemActions {
         case .open:
             app?.openPreferred(urls[0])
         case .extractHere:
-            Task { await extract(urls, to: nil) }
+            launch { await self.extract(urls, to: nil) }
         case .extractTo:
-            Task {
-                guard let destination = await chooseDestination(for: urls) else { return }
-                await extract(urls, to: destination)
+            launch {
+                guard let destination = await self.chooseDestination(for: urls) else { return }
+                await self.extract(urls, to: destination)
             }
         case .compress:
             showPackSheet(urls)
         case .quickCompress:
-            Task { await quickCompress(urls) }
+            launch { await self.quickCompress(urls) }
         }
     }
 
@@ -54,8 +63,13 @@ final class SystemActions {
         let others = urls.filter { ArchiveTypes.type(forFileName: $0.lastPathComponent) == nil }
         if let archive = archives.first { app?.openPreferred(archive) }
         if !others.isEmpty, let tray = app?.tray {
-            tray.add(others)
-            tray.show()
+            if tray.isEnabled {
+                tray.add(others)
+                tray.show()
+            } else {
+                app?.showMainWindow()
+                app?.pack(others)
+            }
         }
     }
 
@@ -104,7 +118,7 @@ final class SystemActions {
 
     private func showPackSheet(_ urls: [URL]) {
         app?.showMainWindow()
-        app?.packRequest = PackRequest(files: urls.map { PackFile(path: $0.lastPathComponent, size: $0.fileSize) })
+        app?.pack(urls)
     }
 
     private func chooseDestination(for archives: [URL]) async -> URL? {

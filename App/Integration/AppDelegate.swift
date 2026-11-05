@@ -27,7 +27,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        DockPolicy.shared.install()
         IntegrationSettings.shared.publishFinderSettings()
         // Starts Sparkle only in Developer ID release builds (UpdatePolicy); a relaunch into an
         // update waits until nothing is running.
@@ -35,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let isDefault = (notification.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? NSNumber)?.boolValue ?? true
         Task { @MainActor [weak self] in
             guard let self, let app else { return }
+            ApplicationLifecycle.shared.install(app: app, backgroundLaunch: !isDefault || receivedExternalRequest)
             DemoScene.apply(to: app)
             if app.usesBrowserWindow || app.glance.isShown {
                 if !app.glance.isShown { app.showMainWindow() }
@@ -49,16 +49,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Stow keeps running without windows so Finder and Services actions don't wait for a launch.
+    /// The coordinator reevaluates after SwiftUI handovers and any pending work have settled.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
 
     private var checkingTermination = false
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !checkingTermination else { return .terminateLater }
+        if app?.isBusy == true {
+            if app?.archiveDraft?.isSaving == true || app?.archiveDraft?.isImporting == true {
+                app?.showCreationWindow()
+            } else { app?.showMainWindow() }
+            let alert = NSAlert()
+            alert.messageText = String(localized: "An operation is still running")
+            alert.informativeText = String(localized: "Wait for it to finish, or cancel it in Stow before quitting.")
+            alert.addButton(withTitle: String(localized: "OK"))
+            alert.runModal()
+            return .terminateCancel
+        }
+        if let app, let draft = app.archiveDraft, draft.isEdited {
+            app.showCreationWindow()
+            guard draft.allowDiscardOrSave(quitting: true) else { return .terminateCancel }
+            draft.close()
+            app.archiveDraft = nil
+        }
         guard app?.browser?.levels.contains(where: { $0.edits.isEdited }) == true else { return .terminateNow }
         guard !checkingTermination else { return .terminateLater }
         checkingTermination = true
+        app?.showMainWindow()
         Task {
             let allowed = await app?.browser?.confirmDiscardingEdits() ?? true
             checkingTermination = false
@@ -83,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func enqueue(_ job: @escaping (AppState) -> Void) {
+        receivedExternalRequest = true
         pending.append(job)
         flush()
     }

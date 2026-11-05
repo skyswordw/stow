@@ -18,11 +18,11 @@ struct SettingsTests {
                 "extract.allFolder", "extract.afterExtractAll", "extract.closeWindowAfter",
                 "extract.folderConflict", "extract.fileConflict", "extract.skipSystemFiles",
                 "install.afterInstall", "install.removeQuarantine", "PackAudience", "PackVerify",
-                "PackCPUCores", "FinderMenuOnExternalDrives", "HideDockIconWithoutWindows",
+                "PackCPUCores", "FinderMenuOnExternalDrives",
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
                 "browse.hoverPreviews", "password.showByDefault", "password.rememberInKeychain",
                 "glance.openFromFinder", "browse.archiveWindowMode", "browse.lastArchiveWindow", "glance.pinned", "glance.colourfulControls", "glance.material",
-                "tray.menuBarIcon", "tray.showWhileDragging", "tray.border", "tray.pinned",
+                "tray.enabled", "tray.menuBarIcon", "tray.showWhileDragging", "tray.border", "tray.pinned",
                 "nextSteps.shown", "nextSteps.hidden", "SUEnableAutomaticChecks", "SUAutomaticallyUpdate",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]
@@ -74,10 +74,10 @@ struct SettingsTests {
     @Test func panesHaveDesignOrderAndUniqueLabels() {
         let panes = SettingsPane.allCases
         #expect(panes.map(\.rawValue) == ["general", "extraction", "installing", "packing", "nextSteps", "glance",
-                                          "previews", "passwords", "fileTypes", "integration", "advanced", "licenses"])
+                                          "tray", "previews", "passwords", "fileTypes", "integration", "advanced", "licenses"])
         #expect(panes.allSatisfy { !$0.title.isEmpty && !$0.systemImage.isEmpty })
-        #expect(Set(panes.map(\.title)).count == 12)
-        #expect(Set(panes.map(\.systemImage)).count == 12)
+        #expect(Set(panes.map(\.title)).count == 13)
+        #expect(Set(panes.map(\.systemImage)).count == 13)
         #expect(SettingsPane.nextSteps.title == String(localized: "Actions"))
     }
 
@@ -130,7 +130,7 @@ struct SettingsTests {
             "general", "archiveWork", "interaction", "security", "systemIntegration", "advanced"
         ])
         #expect(SettingsCategory.archiveWork.panes == [.extraction, .installing, .packing])
-        #expect(SettingsCategory.interaction.panes == [.nextSteps, .glance, .previews])
+        #expect(SettingsCategory.interaction.panes == [.nextSteps, .glance, .tray, .previews])
         #expect(SettingsCategory.systemIntegration.panes == [.fileTypes, .integration])
         #expect(SettingsCategory.advanced.panes == [.advanced, .licenses])
         #expect(SettingsCategory.allCases.allSatisfy { !$0.title.isEmpty && !$0.systemImage.isEmpty })

@@ -119,9 +119,5 @@ struct AssociationsTests {
         #expect(!model.selection.contains("com.apple.installer-package-archive"))
     }
 
-    @Test func dockHidesOnlyWhenAskedAndNoWindowsAreLeft() {
-        #expect(DockPolicy.shouldHide(setting: true, openWindows: 0))
-        #expect(!DockPolicy.shouldHide(setting: true, openWindows: 1))
-        #expect(!DockPolicy.shouldHide(setting: false, openWindows: 0))
-    }
+
 }

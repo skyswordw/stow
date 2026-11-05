@@ -44,6 +44,7 @@ nonisolated enum SettingsKeys {
     static let glanceColourfulControls = "glance.colourfulControls"
     /// Liquid Glass vs classic frosted Glance background (#158). Default preserves Liquid Glass.
     static let glanceMaterial = "glance.material"
+    static let trayEnabled = "tray.enabled"
     static let trayMenuBarIcon = "tray.menuBarIcon"
     static let trayShowWhileDragging = "tray.showWhileDragging"
     static let trayBorder = "tray.border"
@@ -99,7 +100,6 @@ nonisolated enum SettingsKeys {
         .init(key: "PackVerify", defaultValue: .bool(false)),
         .init(key: "PackCPUCores", defaultValue: .integer(0)),
         .init(key: "FinderMenuOnExternalDrives", defaultValue: .bool(false)),
-        .init(key: "HideDockIconWithoutWindows", defaultValue: .bool(false)),
         .init(key: appearance, defaultValue: .string("system")),
         .init(key: defaultView, defaultValue: .string("grid")),
         .init(key: volumeSize, defaultValue: .integer(0)),
@@ -112,6 +112,7 @@ nonisolated enum SettingsKeys {
         .init(key: glancePinned, defaultValue: .bool(false)),
         .init(key: glanceColourfulControls, defaultValue: .bool(false)),
         .init(key: glanceMaterial, defaultValue: .string(GlanceMaterialPreference.liquidGlass.rawValue)),
+        .init(key: trayEnabled, defaultValue: .bool(false)),
         .init(key: trayMenuBarIcon, defaultValue: .bool(true)),
         .init(key: trayShowWhileDragging, defaultValue: .bool(true)),
         .init(key: trayBorder, defaultValue: .string(TrayBorder.accent.rawValue)),
@@ -139,9 +140,10 @@ nonisolated enum SettingsKeys {
         case .general:
             keys = [
                 appearance, defaultView,
-                trayMenuBarIcon, trayShowWhileDragging, trayBorder, trayPinned,
                 updatesAutomaticallyCheck, updatesAutomaticallyDownload
             ]
+        case .tray:
+            keys = [trayEnabled, trayMenuBarIcon, trayShowWhileDragging, trayBorder, trayPinned]
         case .glance:
             // Pin on Top is set from Glance itself (and Window › Keep Glance on Top), not shown here,
             // but it is Glance's preference, so it resets with this page.
@@ -164,7 +166,7 @@ nonisolated enum SettingsKeys {
         case .passwords:
             keys = [showPassword, rememberPasswords]
         case .integration:
-            keys = ["FinderMenuOnExternalDrives", "HideDockIconWithoutWindows"]
+            keys = ["FinderMenuOnExternalDrives"]
         case .fileTypes, .advanced, .licenses:
             keys = []
         }
@@ -200,6 +202,21 @@ nonisolated enum SettingsKeys {
         guard value > 0 else { return .none }
         return SplitSize.stored(value)
     }
+    /// The marker is installation state, not a resettable preference. Reset must not remigrate.
+    static func migrateTray(in store: UserDefaults, persistent: [String: Any]) {
+        let marker = "tray.enablementMigrated"
+        guard !store.bool(forKey: marker) else { return }
+        if persistent[trayEnabled] == nil {
+            let oldKeys = Set(resettable.map(\.key)).subtracting([trayEnabled])
+                .union([Onboarding.completedKey, "recent.archives", "FolderGrants", "HideDockIconWithoutWindows"])
+            let existing = persistent.keys.contains { oldKeys.contains($0) || $0.hasPrefix("tray.") }
+            let icon = (persistent[trayMenuBarIcon] as? NSNumber)?.boolValue ?? true
+            let drag = (persistent[trayShowWhileDragging] as? NSNumber)?.boolValue ?? true
+            store.set(existing && (icon || drag), forKey: trayEnabled)
+        }
+        store.set(true, forKey: marker)
+    }
+
     // Legacy tray.idleSeconds values are intentionally ignored. Keep Open is the only
     // persistence preference; an old timeout (including Never) never changes tray.pinned.
     static func trayBorder(in store: UserDefaults = .standard) -> TrayBorder {

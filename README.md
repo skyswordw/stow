@@ -7,10 +7,10 @@ recipient's computer. *Stow* is a working name.
 
 **Status:** prototype. Real archives open, browse, preview and extract through a sandboxed 7-Zip
 engine; packing creates real archives; the install Actions (apps, fonts, installer packages) and
-Finder integration (Quick Look, context menu, Services, file types) are real. "Try the Sample" opens a
-bundled genuine ZIP through the normal engine, and the website's browsing screenshots are rendered from that
-same ZIP (`scripts/website-shots.sh`). The Recent list and most design-review scenes still use fictional
-sample data.
+Finder integration (Quick Look, context menu, Services, file types) are real. "Download Sample…" opens
+the browser to a versioned genuine ZIP; open it normally after downloading. Production bundles omit
+sample assets. Debug fixtures and the website's browsing screenshots use that same ZIP
+(`scripts/website-shots.sh`); other explicitly selected design-review scenes use synthetic data.
 
 - 🧪 Staged ZIP / 7Z / TAR editing: add, delete, rename, replace, undo/redo, and atomic Save (pending macOS verification).
 - 🧪 Read-only archives explain the limitation and offer Extract and Repack as ZIP or 7Z (pending macOS verification).
@@ -113,7 +113,8 @@ All archive parsing happens in `StowEngine.xpc`, a sandboxed XPC service that ru
 - **Services**: Stow: Extract Here, Extract To…, Quick Compress, Compress…, and Send to Stow.
 - **File types**: Settings › File Types sets Stow as the default per type, remembers the previous
   app and switches back. macOS confirms each change in its own dialog.
-- **Login item & Dock**: `SMAppService`; the Dock icon can hide when the last window closes.
+- **Login item & residency**: `SMAppService` remains opt-in. Enable Tray to keep a menu-bar resident
+  after normal windows close; with Tray disabled and no pending work, Stow exits.
 
 ### The Finder → Stow hand-off
 
@@ -183,7 +184,7 @@ Resetting preferences keeps first-run completion remembered.
 
 Stow has a Settings window (⌘,): a sidebar of General, Extraction, Installing, Packing, Actions,
 Glance, Previews, Passwords, File Types, Finder & Permissions, Advanced and Licenses pages, beside one
-scrolling page. Tray controls live in General. The host lives in `App/Settings` and reuses the extraction and
+scrolling page. Tray has its own settings page and master enable switch. The host lives in `App/Settings` and reuses the extraction and
 installing forms in `App/Options`. Advanced can clean preview caches and reset preferences.
 
 Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKeys`):
@@ -206,7 +207,9 @@ Settings keys (UserDefaults; the resettable list and defaults are in `SettingsKe
 | `PackLevel.<audience>` | `5` (Balanced) | One compression level per audience |
 | `PackVolumeSize` | `0` | `0`, `100000000`, `700000000`, `4000000000` bytes |
 | `PackVerify` / `PackCPUCores` | `false` / `0` | 0 cores means all |
-| `FinderMenuOnExternalDrives` / `HideDockIconWithoutWindows` | `false` | |
+| `FinderMenuOnExternalDrives` | `false` | |
+| `tray.enabled` | `false` for fresh installs | Existing effective Tray availability is migrated once; reset does not remigrate |
+| `tray.menuBarIcon` / `tray.showWhileDragging` | `true` / `true` | Subordinate to the master switch; no idle timer |
 | `SUEnableAutomaticChecks` / `SUAutomaticallyUpdate` | `true` / `false` | Sparkle's own keys (General › Updates); reset falls back to Info.plist |
 
 **Updates:** Stow updates itself with [Sparkle](https://sparkle-project.org) 2 (Stow › Check for
@@ -250,3 +253,16 @@ start Sparkle, so they never touch the network or show an update prompt.
 Stow is free software, licensed under the [GNU General Public License v3.0](LICENSE). Bundled
 third-party components keep their own licenses — see `THIRD_PARTY_NOTICES.md` (7-Zip is LGPL and
 ships as a separate, unmodified executable).
+
+### Optional sample and creation workflows
+
+Welcome and File > New Archive (Command-N) open an unsaved archive draft. Add/remove sources,
+then Save configures and creates a real archive using the same engine as quick Pack. Tray and
+ordinary-file drops retain the quick Pack path. Closing a changed draft offers Save/Discard/Cancel.
+
+Production Release bundles omit `Resources/Sample`. Debug builds copy those deterministic
+fixtures for tests and `scripts/snapshot.sh`; the source assets and licenses remain in the repository.
+File > Download Sample… is an explicit browser download of the genuine ZIP pinned to revision
+`33d533e7a74c0f6c862ce49a8d0fc72e93a71e90`; Help > Sample Credits and Licenses opens its source
+and license directory. Open the downloaded ZIP normally. No sample is fetched at launch, no
+network entitlement is added, and a missing fixture never becomes a fabricated production archive.

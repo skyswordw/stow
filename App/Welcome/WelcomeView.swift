@@ -141,11 +141,12 @@ struct WelcomeView: View {
 
             HStack(spacing: Space.s) {
                 Button("Open Archive…") { app.isChoosingArchive = true }
-                Button("Try the Sample") { app.openSample() }
+                Button("Create Archive…") { app.beginNewArchive() }
                     .buttonStyle(.glassProminent)
             }
             .controlSize(.large)
             .padding(.top, Space.s)
+            Button("Settings…") { SettingsRouter.shared.show(.general) }
         }
     }
 

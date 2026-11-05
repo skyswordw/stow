@@ -1,5 +1,21 @@
 # UI and motion handoff — Claude Code
 
+## Tray, creation and entry-point functional handoff — #286
+
+The [functional implementation brief](286-functional-followups.md) records the new interfaces and bounded
+native evidence for #287–#294. Tray gains a master switch and optional residency; the user
+reconfirmed outside-click dismissal without an idle timer. Welcome exposes Open/Create/Settings;
+New/Create opens an editable draft sharing Pack internals, while gathered inputs keep quick Pack.
+Sample leaves production bundles and becomes an explicit browser download. Search gains a
+separate Close action. These changes supersede primary Welcome sample placement and mandatory
+production bundling; they do not require copying ArcZip's visual composition.
+
+Claude Code owns final visual treatment and motion. The draft workspace, settings form and
+functional controls are implementation scaffolding, not approved visual designs. Preserve the
+state/routing/close/undo/security contracts in the brief; the Pack sentence is not a required
+composition for the new draft workflow. See #286 for task dependencies and #38 for remaining
+physical-input/signed-integration checks. No collaborator session or visual acceptance is claimed.
+
 The user has explicitly assigned UI visual design and animation to **Claude Code**.
 Codex supplies interaction intent and functional constraints. The proposals below are
 starting points for Claude Code's judgment, not approved final visual designs.

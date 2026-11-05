@@ -75,15 +75,18 @@ struct OnboardingView: View {
     @ViewBuilder private func action(for step: OnboardingStep) -> some View {
         switch step {
         case .archives:
-            Button("Try the Sample") {
-                app.openSample()
+            Button("Download Sample…") {
+                app.downloadSample()
             }
         case .fileTypes:
             Button("Choose File Types…") { showSettings(.fileTypes) }
         case .finder:
             Button("Finder & Permissions…") { showSettings(.integration) }
         case .tray:
-            Button("Show Tray") { app.tray.show() }
+            Button(app.tray.isEnabled ? String(localized: "Show Tray") : String(localized: "Enable Tray")) {
+                app.tray.setEnabled(true)
+                app.tray.show()
+            }
         }
     }
 

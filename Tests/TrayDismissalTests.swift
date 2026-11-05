@@ -69,6 +69,7 @@ struct TrayDismissalTests {
         let store = try #require(UserDefaults(suiteName: name))
         defer { store.removePersistentDomain(forName: name) }
         store.set(0, forKey: "tray.idleSeconds") // Old Never is not an implicit pin.
+        store.set(true, forKey: SettingsKeys.trayEnabled)
         let tray = TrayController(settings: store)
         defer { tray.hide() }
         #expect(!tray.isPinned)
@@ -102,6 +103,7 @@ struct TrayDismissalTests {
         let name = "TrayDismissalTests.\(UUID())"
         let store = try #require(UserDefaults(suiteName: name))
         defer { store.removePersistentDomain(forName: name) }
+        store.set(true, forKey: SettingsKeys.trayEnabled)
         let tray = TrayController(settings: store)
         defer { tray.hide() }
         tray.show()
@@ -126,6 +128,7 @@ struct TrayDismissalTests {
         let name = "TrayDismissalTests.\(UUID())"
         let store = try #require(UserDefaults(suiteName: name))
         defer { store.removePersistentDomain(forName: name) }
+        store.set(true, forKey: SettingsKeys.trayEnabled)
         let tray = TrayController(settings: store)
         defer { tray.hide() }
         let file = URL(filePath: "/tmp/Tray-drag-fixture.txt")

@@ -30,6 +30,8 @@ final class TrayDismissalMonitor {
     var interact: () -> Void = {}
     var dismiss: () -> Void = {}
     var mouseReleased: () -> Void = {}
+    /// A new press, with no other mouse button down, proves an earlier drag has ended.
+    var outsidePress: () -> Void = {}
     private var click = TrayOutsideClick()
     private var relatedPress = false
     private var local: Any?
@@ -83,6 +85,11 @@ final class TrayDismissalMonitor {
 
     func handle(_ event: NSEvent, local: Bool) {
         let related = local && isRelatedWindow(event.window)
+        let isPress = [.leftMouseDown, .rightMouseDown, .otherMouseDown].contains(event.type)
+        if isPress, !related, !isTrackingMenu,
+           NSEvent.pressedMouseButtons & ~(1 << event.buttonNumber) == 0 {
+            outsidePress()
+        }
         let outside = !related && !isTrackingMenu && canDismiss()
         switch event.type {
         case .leftMouseDown, .rightMouseDown, .otherMouseDown:

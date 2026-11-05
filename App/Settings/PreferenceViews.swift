@@ -3,9 +3,6 @@ import SwiftUI
 struct GeneralSettingsView: View {
     @AppStorage(SettingsKeys.appearance) private var appearance = SettingsKeys.Appearance.system.rawValue
     @AppStorage(SettingsKeys.defaultView) private var viewMode = "grid"
-    @AppStorage(SettingsKeys.trayMenuBarIcon) private var trayIcon = true
-    @AppStorage(SettingsKeys.trayShowWhileDragging) private var trayWhileDragging = true
-    @AppStorage(SettingsKeys.trayBorder) private var trayBorder = TrayBorder.accent.rawValue
     var body: some View {
         Form {
             Section {
@@ -32,28 +29,6 @@ struct GeneralSettingsView: View {
                 }
                 // Round the row: the disclosure's own ring sat over the chevron and cut through "How".
                 .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-            }
-            Section {
-                Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
-                // Dragging files anywhere else leaves the Tray alone (#180); say where to take them.
-                Toggle(isOn: $trayWhileDragging) {
-                    Text("Show Tray when files are dragged to it")
-                    Text(trayIcon ? String(localized: "Drag files up to the Tray icon in the menu bar.")
-                                  : String(localized: "Drag files to the right edge of the screen."))
-                }
-                Picker("Tray border", selection: $trayBorder) {
-                    ForEach(TrayBorder.allCases) { border in
-                        Label { Text(border.title) } icon: {
-                            Image(systemName: "circle.fill").foregroundStyle(border.color)
-                        }
-                        .tag(border.rawValue)
-                    }
-                }
-            } header: {
-                Text("Tray")
-            } footer: {
-                // There's no setting for this any more (#282): say what happens, and where the pin is.
-                Text("The Tray hides when you click elsewhere or switch apps. Its pin keeps it open until you close it.")
             }
             UpdateSettingsSection(updater: AppUpdater.shared)
         }
@@ -359,4 +334,26 @@ struct AdvancedSettingsView: View {
 private extension String {
     /// `Audience` and `SplitSize` phrases are written to sit inside a sentence; a label starts upper-case.
     var sentenceCased: String { prefix(1).uppercased() + dropFirst() }
+}
+
+/// Functional controls for #288; Claude Code owns final page presentation.
+struct TraySettingsView: View {
+    @AppStorage(SettingsKeys.trayEnabled) private var enabled = false
+    @AppStorage(SettingsKeys.trayMenuBarIcon) private var trayIcon = true
+    @AppStorage(SettingsKeys.trayShowWhileDragging) private var trayWhileDragging = true
+    @AppStorage(SettingsKeys.trayBorder) private var trayBorder = TrayBorder.accent.rawValue
+    var body: some View {
+        Form {
+            Toggle("Enable Tray", isOn: $enabled)
+            Section {
+                Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
+                Toggle("Show Tray when files are dragged to it", isOn: $trayWhileDragging)
+                Picker("Tray border", selection: $trayBorder) {
+                    ForEach(TrayBorder.allCases) { Text($0.title).tag($0.rawValue) }
+                }
+            }.disabled(!enabled)
+            Text("When enabled, Tray stays available after you close Stow’s windows. Launching at login is a separate setting.")
+            Text("The Tray hides when you click elsewhere or switch apps. Its pin keeps it open until you close it.")
+        }.formStyle(.grouped)
+    }
 }

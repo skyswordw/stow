@@ -58,16 +58,9 @@ struct IntegrationView: View {
                 if settings.loginItemStatus == .requiresApproval {
                     Button("Open Login Items Settings") { settings.openLoginItemsSettings() }
                 }
-                Toggle(isOn: $settings.hidesDockIconWithoutWindows) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Hide Dock icon when no windows are open")
-                        Text("Stow keeps running for Finder and Services actions. Open Stow from Finder or Spotlight to bring it back.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .accessibilityLabel(String(localized: "Hide Dock icon when no windows are open"))
-                .accessibilityHint(String(localized: "Stow keeps running for Finder and Services actions. Open Stow from Finder or Spotlight to bring it back."))
+                Text("Tray controls whether Stow stays available after its windows close.")
+                Button("Tray Settings…") { SettingsRouter.shared.show(.tray) }
+
             } header: {
                 Text("Startup").accessibilityAddTraits(.isHeader)
             }
