@@ -229,7 +229,7 @@ enum ArchiveSaver {
         let parent = url.deletingLastPathComponent()
         let probe = parent.appending(path: ".stow-access-\(UUID().uuidString)")
         guard mkdir(probe.path, 0o700) == 0 else {
-            throw EngineError(.failed, String(localized: "A replacement folder on the archive’s volume is unavailable. Save a copy instead."))
+            throw EngineError(.failed, String(localized: "Stow can’t write a temporary file next to the archive. Save a copy instead."))
         }
         rmdir(probe.path)
         let temporary = parent.appending(path: ".\(url.lastPathComponent).stow-saving-\(UUID().uuidString)")

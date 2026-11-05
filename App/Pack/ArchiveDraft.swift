@@ -62,7 +62,7 @@ final class ArchiveDraft: Identifiable {
         guard isEdited else { return true }
         let alert = NSAlert()
         alert.messageText = String(localized: "Save this new archive?")
-        alert.informativeText = String(localized: "Your source files are unchanged. The unsaved archive draft will be discarded if you don’t save.")
+        alert.informativeText = String(localized: "If you don’t save, this new archive is discarded. The files you added aren’t changed.")
         alert.addButton(withTitle: String(localized: "Save…"))
         alert.addButton(withTitle: String(localized: "Discard"))
         alert.addButton(withTitle: String(localized: "Cancel"))

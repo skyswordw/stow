@@ -81,7 +81,7 @@ struct OnboardingView: View {
                     app.downloadSample()
                 }
                 .help("Opens the download in your browser")
-                Text("Your browser saves it; open the ZIP to try Stow.")
+                Text("It downloads in your browser. Open the ZIP to try Stow.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

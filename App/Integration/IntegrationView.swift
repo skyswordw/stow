@@ -58,7 +58,7 @@ struct IntegrationView: View {
                 if settings.loginItemStatus == .requiresApproval {
                     Button("Open Login Items Settings") { settings.openLoginItemsSettings() }
                 }
-                Text("Tray controls whether Stow stays available after its windows close.")
+                Text("Whether Stow keeps running after its windows close is set in Tray settings.")
                 Button("Tray Settings…") { SettingsRouter.shared.show(.tray) }
 
             } header: {
