@@ -160,16 +160,6 @@ nonisolated enum TrayHome: Equatable, Sendable {
 
 /// Pure rules the Tray follows; kept apart from AppKit so they can be tested.
 nonisolated enum TrayRules {
-    /// Idle times offered in Settings, in seconds; 0 means never hide by itself.
-    static let idleChoices: [Int] = [0, 10, 30, 60, 300]
-
-    /// Whether an unpinned Tray should tuck itself away now.
-    static func shouldHide(lastActivity: Date, now: Date, idleSeconds: Int, pinned: Bool,
-                           isDragging: Bool, isHovered: Bool) -> Bool {
-        guard idleSeconds > 0, !pinned, !isDragging, !isHovered else { return false }
-        return now.timeIntervalSince(lastActivity) >= TimeInterval(idleSeconds)
-    }
-
     // MARK: Drags (#180)
 
     /// How far out from its home a drag of files reaches the Tray. Dragging files anywhere else

@@ -5,7 +5,6 @@ struct GeneralSettingsView: View {
     @AppStorage(SettingsKeys.defaultView) private var viewMode = "grid"
     @AppStorage(SettingsKeys.trayMenuBarIcon) private var trayIcon = true
     @AppStorage(SettingsKeys.trayShowWhileDragging) private var trayWhileDragging = true
-    @AppStorage(SettingsKeys.trayIdleSeconds) private var trayIdle = 30
     @AppStorage(SettingsKeys.trayBorder) private var trayBorder = TrayBorder.accent.rawValue
     var body: some View {
         Form {
@@ -42,11 +41,9 @@ struct GeneralSettingsView: View {
                     Text(trayIcon ? String(localized: "Drag files up to the Tray icon in the menu bar.")
                                   : String(localized: "Drag files to the right edge of the screen."))
                 }
-                Picker("Hide Tray when idle", selection: $trayIdle) {
-                    ForEach(TrayRules.idleChoices, id: \.self) { seconds in
-                        Text(Self.idleTitle(seconds)).tag(seconds)
-                    }
-                }
+                Text("Tray hides when you click outside or switch apps. Use Keep Tray Open to keep it visible.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                 Picker("Tray border", selection: $trayBorder) {
                     ForEach(TrayBorder.allCases) { border in
                         Label { Text(border.title) } icon: {
@@ -65,16 +62,6 @@ struct GeneralSettingsView: View {
     private static var languageName: String {
         let code = Bundle.main.preferredLocalizations.first ?? "en"
         return Locale.current.localizedString(forIdentifier: code) ?? code
-    }
-
-    private static func idleTitle(_ seconds: Int) -> String {
-        switch seconds {
-        case 0: String(localized: "Never")
-        case 10: String(localized: "After 10 seconds")
-        case 30: String(localized: "After 30 seconds")
-        case 60: String(localized: "After 1 minute")
-        default: String(localized: "After 5 minutes")
-        }
     }
 }
 

@@ -46,7 +46,6 @@ nonisolated enum SettingsKeys {
     static let glanceMaterial = "glance.material"
     static let trayMenuBarIcon = "tray.menuBarIcon"
     static let trayShowWhileDragging = "tray.showWhileDragging"
-    static let trayIdleSeconds = "tray.idleSeconds"
     static let trayBorder = "tray.border"
     static let trayPinned = "tray.pinned"
     static let nextStepsShown = "nextSteps.shown"
@@ -115,7 +114,6 @@ nonisolated enum SettingsKeys {
         .init(key: glanceMaterial, defaultValue: .string(GlanceMaterialPreference.liquidGlass.rawValue)),
         .init(key: trayMenuBarIcon, defaultValue: .bool(true)),
         .init(key: trayShowWhileDragging, defaultValue: .bool(true)),
-        .init(key: trayIdleSeconds, defaultValue: .integer(30)),
         .init(key: trayBorder, defaultValue: .string(TrayBorder.accent.rawValue)),
         .init(key: trayPinned, defaultValue: .bool(false)),
         .init(key: nextStepsShown, defaultValue: .bool(true)),
@@ -141,7 +139,7 @@ nonisolated enum SettingsKeys {
         case .general:
             keys = [
                 appearance, defaultView,
-                trayMenuBarIcon, trayShowWhileDragging, trayIdleSeconds, trayBorder, trayPinned,
+                trayMenuBarIcon, trayShowWhileDragging, trayBorder, trayPinned,
                 updatesAutomaticallyCheck, updatesAutomaticallyDownload
             ]
         case .glance:
@@ -202,11 +200,8 @@ nonisolated enum SettingsKeys {
         guard value > 0 else { return .none }
         return SplitSize.stored(value)
     }
-    static func trayIdleSeconds(in store: UserDefaults = .standard) -> Int {
-        guard let number = store.object(forKey: trayIdleSeconds) as? NSNumber,
-              TrayRules.idleChoices.contains(number.intValue) else { return 30 }
-        return number.intValue
-    }
+    // Legacy tray.idleSeconds values are intentionally ignored. Keep Open is the only
+    // persistence preference; an old timeout (including Never) never changes tray.pinned.
     static func trayBorder(in store: UserDefaults = .standard) -> TrayBorder {
         TrayBorder(rawValue: store.string(forKey: trayBorder) ?? "") ?? .accent
     }

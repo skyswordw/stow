@@ -22,7 +22,7 @@ struct SettingsTests {
                 "general.appearance", "browse.defaultView", "PackVolumeSize",
                 "browse.hoverPreviews", "password.showByDefault", "password.rememberInKeychain",
                 "glance.openFromFinder", "browse.archiveWindowMode", "browse.lastArchiveWindow", "glance.pinned", "glance.colourfulControls", "glance.material",
-                "tray.menuBarIcon", "tray.showWhileDragging", "tray.idleSeconds", "tray.border", "tray.pinned",
+                "tray.menuBarIcon", "tray.showWhileDragging", "tray.border", "tray.pinned",
                 "nextSteps.shown", "nextSteps.hidden", "SUEnableAutomaticChecks", "SUAutomaticallyUpdate",
                 "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]
@@ -44,7 +44,6 @@ struct SettingsTests {
             #expect(SettingsKeys.flag(SettingsKeys.trayMenuBarIcon, in: store))
             #expect(SettingsKeys.flag(SettingsKeys.trayShowWhileDragging, in: store))
             #expect(!SettingsKeys.flag(SettingsKeys.trayPinned, in: store))
-            #expect(SettingsKeys.trayIdleSeconds(in: store) == 30)
             #expect(SettingsKeys.trayBorder(in: store) == .accent)
         }
     }

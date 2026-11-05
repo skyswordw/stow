@@ -79,8 +79,11 @@ checks remain recorded in [PARITY.md](PARITY.md) and *Tests not yet conducted* b
   acceptance remain open. English/Chinese light/dark snapshots are not that acceptance.
 
 ### G. Tray in the menu bar (ArcZip "File Box")
-- Menu-bar icon; Tray appears when dragged files reach it (#180) and hides after a configurable idle
-  time; pin open.
+- Menu-bar icon; Tray appears when dragged files reach it (#180). The local 2026-11-04
+  implementation replaces idle hiding with outside-click/application-switch dismissal
+  when unpinned; Keep Tray Open prevents it. Related surfaces and active drags are protected.
+  See the [behavior, validation and ownership brief](Handoff/tray-keep-open-2026-11-04.md);
+  Claude Code visual/motion review remains pending.
 - Folder browsing, previews, multi-select, drag out.
 - Actions: Pack, Extract, Collect into a Folder (then rename), Share, Reveal, Send to the main window.
 - Border-colour setting.
