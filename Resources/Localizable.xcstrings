@@ -2315,16 +2315,6 @@
         }
       }
     },
-    "Tray border": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "托盘边框"
-          }
-        }
-      }
-    },
     "Tray — gather files from anywhere": {
       "localizations": {
         "zh-Hans": {
@@ -12911,13 +12901,92 @@
         }
       }
     },
-    "When enabled, Tray stays available after you close Stow’s windows. Launching at login is a separate setting.": {
-      "extractionState": "manual",
+    "Border colour": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "启用后，关闭 Stow 窗口仍可使用托盘。登录时启动需单独设置。"
+            "value": "边框颜色"
+          }
+        }
+      }
+    },
+    "Click it to show or hide the Tray. Control-click it for Stow’s menu.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按图标可显示或隐藏托盘；按住 Control 键点按可打开 Stow 菜单。"
+          }
+        }
+      }
+    },
+    "Gather files from anywhere to pack, extract or collect into a folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从任何地方收集文件，用于压缩、解压缩或收集到文件夹"
+          }
+        }
+      }
+    },
+    "Show or hide the Tray": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示或隐藏托盘"
+          }
+        }
+      }
+    },
+    "Showing and Hiding": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示与隐藏"
+          }
+        }
+      }
+    },
+    "When you close Stow’s last window, Stow keeps running without a Dock icon so the Tray stays ready. To open Stow when you log in, use Finder & Permissions.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭 Stow 的最后一个窗口后，Stow 会继续运行（不显示程序坞图标），托盘随时可用。要在登录时打开 Stow，请前往“访达与权限”。"
+          }
+        }
+      }
+    },
+    "When you close Stow’s last window, Stow quits once its work finishes. To open Stow when you log in, use Finder & Permissions.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭 Stow 的最后一个窗口后，Stow 会在当前任务完成后退出。要在登录时打开 Stow，请前往“访达与权限”。"
+          }
+        }
+      }
+    },
+    "While Stow is in front. It’s also in the Window menu.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 位于最前面时可用，也可在“窗口”菜单中找到。"
+          }
+        }
+      }
+    },
+    "With the icon and dragging both off, show the Tray with ⌥⌘T.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图标和拖移显示都关闭时，可用 ⌥⌘T 显示托盘。"
           }
         }
       }

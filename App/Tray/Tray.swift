@@ -155,21 +155,24 @@ final class TrayController {
         guard let button = statusItem?.button, let target = statusTarget else { return }
         let token = beginRelatedInteraction()
         defer { endRelatedInteraction(token) }
+        // Native and short (#290), grouped the way an app menu is: what it opens, then Settings…,
+        // then Quit on its own at the bottom. Settings… goes straight to the Tray page.
         let menu = NSMenu()
-        for (title, action) in [
-            (String(localized: "Open Tray"), #selector(StatusTarget.openTray)),
-            (String(localized: "Open Stow"), #selector(StatusTarget.openStow)),
-            (String(localized: "Create Archive…"), #selector(StatusTarget.createArchive)),
-            (String(localized: "Settings…"), #selector(StatusTarget.settings))
-        ] {
-            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-            item.target = target
-            menu.addItem(item)
+        let groups: [[(String, Selector)]] = [
+            [(String(localized: "Open Tray"), #selector(StatusTarget.openTray)),
+             (String(localized: "Open Stow"), #selector(StatusTarget.openStow)),
+             (String(localized: "Create Archive…"), #selector(StatusTarget.createArchive))],
+            [(String(localized: "Settings…"), #selector(StatusTarget.settings))],
+            [(String(localized: "Quit Stow"), #selector(StatusTarget.quit))]
+        ]
+        for (index, group) in groups.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+            for (title, action) in group {
+                let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+                item.target = target
+                menu.addItem(item)
+            }
         }
-        menu.addItem(.separator())
-        let quit = NSMenuItem(title: String(localized: "Quit Stow"), action: #selector(StatusTarget.quit), keyEquivalent: "")
-        quit.target = target
-        menu.addItem(quit)
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
     }
 
