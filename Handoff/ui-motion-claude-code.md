@@ -13,6 +13,23 @@ Claude Code retains visual and motion ownership.
 This document records a handoff; it does not mean a Claude Code session has been dispatched.
 Track the design work in [issue #104](https://github.com/skyswordw/stow/issues/104).
 
+## Tray Keep Open and outside dismissal — 2026-11-04
+
+Track the UI/motion work in [#282](https://github.com/Beastry/stow/issues/282).
+Follow the [current Tray brief](tray-keep-open-2026-11-04.md). The user accepted
+outside-click dismissal when unpinned and persistent display when pinned, replacing
+idle dismissal. Preserve drag reveal and explicit close, and protect related dialogs,
+previews, drafts and ongoing work. ArcZip 1.2.1 still exposes an idle countdown and
+Keep Box Open; the brief records the native evidence and its limits separately from
+Stow's accepted direction.
+
+Codex / Grok Bot owns state/event handling, preferences, localization, keyboard and
+accessibility semantics, and functional tests. Claude Code owns pin-state treatment,
+control composition, materials and motion. Existing controls provide the functional
+baseline; proposed visual ideas are optional. The functional implementation is now in
+the local working tree, with validation recorded in the brief. Claude Code visual/motion
+review remains pending; no collaborator session has been dispatched.
+
 ## Password-card and Actions command contracts — #261, #161
 
 Glance's password card blocks archive menu commands as well as controls behind it. Menu

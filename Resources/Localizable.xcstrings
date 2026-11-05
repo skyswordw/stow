@@ -2170,7 +2170,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保持托盘打开"
+            "value": "保持打开"
           }
         }
       }
@@ -12856,6 +12856,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "“上次使用的窗口”会在你上次切换到的窗口中打开压缩包，即完整浏览器窗口或速览，退出 Stow 后也一样。“窗口 › 切换到速览”（⌥⌘G）可让已打开的压缩包在两者之间切换。"
+          }
+        }
+      }
+    },
+    "Tray hides when you click outside or switch apps. Use Keep Tray Open to keep it visible.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击外部或切换应用时，暂存架会收起。开启“保持打开”可让它持续显示。"
+          }
+        }
+      }
+    },
+    "The Tray stays open when you click outside. Turn off to allow it to hide.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击外部时暂存架仍保持打开。关闭此选项后可自动收起。"
+          }
+        }
+      }
+    },
+    "Keep the Tray open when you click outside.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击外部时仍保持暂存架打开。"
           }
         }
       }

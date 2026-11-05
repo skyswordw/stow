@@ -10,20 +10,6 @@ struct TrayTests {
         return url
     }
 
-    @Test func idleHidesOnlyWhenNothingKeepsItOpen() {
-        let start = Date(timeIntervalSinceReferenceDate: 0)
-        let later = start.addingTimeInterval(31)
-        #expect(TrayRules.shouldHide(lastActivity: start, now: later, idleSeconds: 30, pinned: false, isDragging: false, isHovered: false))
-        #expect(!TrayRules.shouldHide(lastActivity: start, now: start.addingTimeInterval(29), idleSeconds: 30,
-                                      pinned: false, isDragging: false, isHovered: false))
-        #expect(!TrayRules.shouldHide(lastActivity: start, now: later, idleSeconds: 30, pinned: true, isDragging: false, isHovered: false))
-        #expect(!TrayRules.shouldHide(lastActivity: start, now: later, idleSeconds: 30, pinned: false, isDragging: true, isHovered: false))
-        #expect(!TrayRules.shouldHide(lastActivity: start, now: later, idleSeconds: 30, pinned: false, isDragging: false, isHovered: true))
-        #expect(!TrayRules.shouldHide(lastActivity: start, now: start.addingTimeInterval(9999), idleSeconds: 0,
-                                      pinned: false, isDragging: false, isHovered: false))
-        #expect(TrayRules.idleChoices.contains(0) && TrayRules.idleChoices.contains(30))
-    }
-
     // MARK: Drags (#180)
 
     /// A 1440 × 900 screen with a 25 pt menu bar and a 70 pt Dock.
@@ -176,10 +162,6 @@ struct TrayTests {
         #expect(SettingsKeys.trayBorder(in: store) == .pink)
         store.set("nonsense", forKey: SettingsKeys.trayBorder)
         #expect(SettingsKeys.trayBorder(in: store) == .accent)
-        store.set(60, forKey: SettingsKeys.trayIdleSeconds)
-        #expect(SettingsKeys.trayIdleSeconds(in: store) == 60)
-        store.set(17, forKey: SettingsKeys.trayIdleSeconds)
-        #expect(SettingsKeys.trayIdleSeconds(in: store) == 30)
     }
 
     @Test @MainActor func trayAddsAndCollectsTargets() throws {

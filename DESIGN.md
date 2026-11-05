@@ -185,6 +185,22 @@ chevron and the file count to the title. A read that takes longer than 0.4 s fad
 and *Opening “Harbor.zip”…* in the middle, with Cancel (Esc); Glance shows the same words above its
 window controls, and its Close stops it. A quick open shows neither.
 
+## Tray dismissal — direction confirmed 2026-11-04
+
+The user accepted outside-click dismissal for an unpinned Tray and **Keep Tray Open**
+for persistent display. A manually opened Tray must not disappear just because time
+passes or the pointer leaves. The local functional implementation removes idle dismissal;
+pinning controls persistence, not window level. Keep drag reveal, protect active drags
+and Tray-owned dialogs/previews, and retain explicit Close/Escape while pinned.
+Successful drops stay visible for confirmation until the next dismissal action.
+
+The [current Tray brief](Handoff/tray-keep-open-2026-11-04.md) separates confirmed
+decisions, native ArcZip 1.2.1 evidence and engineering requirements. It supersedes
+older idle-dismissal guidance, not the actual-home drag activation contract.
+Codex / Grok Bot owns behavior, state, tests and accessibility semantics; Claude Code
+owns visual expression and motion. Functional code is implemented locally; Claude Code
+visual/motion review and release remain pending.
+
 ## Glance layout (#159)
 
 Glance is the Browser made small: the same archive, folder, selection and history, the same

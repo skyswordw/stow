@@ -5,12 +5,12 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// The Tray: a shelf that lives in the menu bar and collects files from anywhere. It comes out
-/// when files are dragged to it, tucks itself away after an idle time unless pinned (or as soon as
-/// a drag that brought it out ends with nothing dropped), and enters and leaves along the same edge.
+/// when files are dragged to it and dismisses on an outside click unless kept open. An unused
+/// drag reveal tucks away after the drag ends. Showing and hiding never clear collected files.
 @Observable
 final class TrayController {
     /// What was dropped on the Tray (the top level).
-    var items: [TrayItem] = [] { didSet { touch() } }
+    var items: [TrayItem] = []
     /// Folders browsed into, outermost first; empty at the top level.
     private(set) var path: [TrayItem] = []
     var selection: Set<UUID> = []
@@ -18,13 +18,15 @@ final class TrayController {
     private(set) var isShown = false
     var isHovered = false {
         didSet {
-            touch()
             // The pointer on it after a drag means people turned to it: it stays like any Tray.
             if isHovered, !isDragging { revealedByDrag = false }
         }
     }
-    var isPinned = SettingsKeys.flag(SettingsKeys.trayPinned) {
-        didSet { UserDefaults.standard.set(isPinned, forKey: SettingsKeys.trayPinned); touch() }
+    var isPinned: Bool {
+        didSet {
+            settings.set(isPinned, forKey: SettingsKeys.trayPinned)
+            retainAfterInteraction()
+        }
     }
     /// Something that went wrong, told inside the Tray (it has no window to hang a sheet on).
     var failure: Failure?
@@ -69,8 +71,10 @@ final class TrayController {
     @ObservationIgnored private var tuckTask: Task<Void, Never>?
     /// Shows where the Tray comes out while files are dragged, when that isn't the menu-bar icon.
     @ObservationIgnored private var hint: TrayHint?
-    @ObservationIgnored private var idleTimer: Timer?
-    @ObservationIgnored private var lastActivity = Date()
+    @ObservationIgnored private let dismissal = TrayDismissalMonitor()
+    @ObservationIgnored private var relatedInteractions: Set<UUID> = []
+    @ObservationIgnored private var shareSessions: [UUID: TrayShareSession] = [:]
+    var isDropTargeted = false
     @ObservationIgnored private var rowMonitor: Any?
     @ObservationIgnored private var moveObserver: (any NSObjectProtocol)?
     /// Where people dragged the Tray to, if they did; it comes back out there until Stow quits.
@@ -81,6 +85,13 @@ final class TrayController {
     @ObservationIgnored private var dragStarted = false
     /// The row under the pointer, as rows report it (multi-item drag out starts from here).
     @ObservationIgnored var hoveredRow: UUID?
+
+    @ObservationIgnored private let settings: UserDefaults
+
+    init(settings: UserDefaults = .standard) {
+        self.settings = settings
+        isPinned = SettingsKeys.flag(SettingsKeys.trayPinned, in: settings)
+    }
 
     private let size = TrayView.size
 
@@ -174,32 +185,39 @@ final class TrayController {
                 if isDragging { mouseUp() }
                 return
             }
-            isDragging = true
-            touch()
-            if !isShown { showHint(true) }
+            beginFileDrag()
         }
         guard isDragging, !isShown, approachZone().contains(NSEvent.mouseLocation) else { return }
         showHint(false)
         show(fromDrag: true)
     }
 
+    func beginFileDrag() {
+        isDragging = true
+        if !isShown { showHint(true) }
+    }
+
     private func mouseUp() {
+        endFileDrag(overTray: isShown && contentFrameShown().contains(NSEvent.mouseLocation))
+    }
+
+    func endFileDrag(overTray: Bool) {
         let ended = isDragging
         isDragging = false
-        touch()
         guard ended else { return }
         showHint(false)
         // Let go over the Tray: people brought the files to it, and a drop of promised files can
         // take a while to arrive. It stays like any Tray.
-        if isShown, contentFrameShown().contains(NSEvent.mouseLocation) { revealedByDrag = false }
+        if overTray { revealedByDrag = false }
         guard revealedByDrag else { return }
         // A drop lands on mouse-up too: give it a moment to arrive before deciding nothing came.
         tuckTask?.cancel()
         tuckTask = Task { [weak self] in
             try? await Task.sleep(for: TrayRules.unusedDragGrace)
             guard let self, !Task.isCancelled, self.isShown else { return }
-            if TrayRules.shouldTuckAfterDrag(revealedByDrag: self.revealedByDrag, isDragging: self.isDragging,
-                                             pinned: self.isPinned, isHovered: self.isHovered) {
+            if self.canDismissAutomatically,
+               TrayRules.shouldTuckAfterDrag(revealedByDrag: self.revealedByDrag, isDragging: self.isDragging,
+                                            pinned: self.isPinned, isHovered: self.isHovered) {
                 self.hide()
             }
         }
@@ -269,8 +287,12 @@ final class TrayController {
         revealedByDrag = fromDrag
         tuckTask?.cancel()
         isShown = true
-        touch()
-        startIdleTimer()
+        dismissal.isRelatedWindow = { [weak self] in self?.isRelatedWindow($0) ?? false }
+        dismissal.canDismiss = { [weak self] in self?.canDismissAutomatically ?? false }
+        dismissal.interact = { [weak self] in self?.retainAfterInteraction() }
+        dismissal.dismiss = { [weak self] in self?.dismissForOutsideInteraction() }
+        dismissal.mouseReleased = { [weak self] in self?.mouseUp() }
+        dismissal.start()
         if fromDrag { panel.orderFrontRegardless() } else { panel.makeKeyAndOrderFront(nil) }
         // Nothing moves when ⌥⌘T brought it out. Decided now, while the key press is current.
         let animation = Motion.presence(true, reduceMotion: DisplayPreferences.reducesMotionNow)
@@ -286,15 +308,13 @@ final class TrayController {
     }
 
     func hide() {
-        guard let panel else { return }
         isShown = false
         revealedByDrag = false
         tuckTask?.cancel()
-        idleTimer?.invalidate()
-        idleTimer = nil
-        collectingName = nil
-        collected = nil
-        if QLPreviewPanel.sharedPreviewPanelExists(), QLPreviewPanel.shared().isVisible { QLPreviewPanel.shared().orderOut(nil) }
+        dismissal.stop()
+        isDropTargeted = false
+        if let preview = ownedPreview { preview.orderOut(nil) }
+        guard let panel else { return }
         // Esc and ⌥⌘T: gone at once. Otherwise `Motion.exit`, quicker than it came.
         guard let animation = Motion.presence(false, reduceMotion: DisplayPreferences.reducesMotionNow) else {
             isPresented = false
@@ -337,24 +357,63 @@ final class TrayController {
                       width: size.width, height: size.height)
     }
 
-    // MARK: - Idle
+    // MARK: - Dismissal
 
-    /// Anything people do with the Tray counts as activity.
-    func touch() { lastActivity = Date() }
-
-    private func startIdleTimer() {
-        idleTimer?.invalidate()
-        idleTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.checkIdle() }
-        }
+    /// A menu, picker or successful drop turns a drag reveal into an ordinary open Tray.
+    func retainAfterInteraction() {
+        revealedByDrag = false
+        tuckTask?.cancel()
     }
 
-    private func checkIdle() {
-        guard isShown else { return }
-        if TrayRules.shouldHide(lastActivity: lastActivity, now: Date(), idleSeconds: SettingsKeys.trayIdleSeconds(),
-                                pinned: isPinned, isDragging: isDragging, isHovered: isHovered) {
-            hide()
+    var canDismissAutomatically: Bool {
+        isShown && !isPinned && !isDragging && !dragStarted && !isDropTargeted
+            && relatedInteractions.isEmpty && ownedPreview == nil && !dismissal.isTrackingMenu
+    }
+
+    func dismissForOutsideInteraction() {
+        guard canDismissAutomatically else { return }
+        hide()
+    }
+
+    /// A token spans synchronous panels and asynchronous permission/share flows alike.
+    @discardableResult
+    func beginRelatedInteraction() -> UUID {
+        retainAfterInteraction()
+        let token = UUID()
+        relatedInteractions.insert(token)
+        return token
+    }
+
+    func endRelatedInteraction(_ token: UUID) { relatedInteractions.remove(token) }
+
+    private var ownedPreview: QLPreviewPanel? {
+        guard QLPreviewPanel.sharedPreviewPanelExists(), let preview = QLPreviewPanel.shared(),
+              preview.isVisible, let panel, preview.dataSource === panel else { return nil }
+        return preview
+    }
+
+    func isRelatedWindow(_ window: NSWindow?) -> Bool {
+        guard let window else { return false }
+        if let statusWindow = statusItem?.button?.window, window === statusWindow { return true }
+        if let preview = ownedPreview, window === preview { return true }
+        var ancestor: NSWindow? = window
+        while let candidate = ancestor {
+            if candidate === panel { return true }
+            ancestor = candidate.sheetParent ?? candidate.parent
         }
+        return false
+    }
+
+    isolated deinit {
+        dismissal.stop()
+        if let dragMonitor { NSEvent.removeMonitor(dragMonitor) }
+        if let dragEndMonitor { NSEvent.removeMonitor(dragEndMonitor) }
+        if let rowMonitor { NSEvent.removeMonitor(rowMonitor) }
+        if let moveObserver { NotificationCenter.default.removeObserver(moveObserver) }
+        if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
+        if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
+        tuckTask?.cancel()
+        arrivalTask?.cancel()
     }
 
     // MARK: - Items
@@ -370,7 +429,7 @@ final class TrayController {
 
     func add(_ urls: [URL]) {
         // Something was dropped on it (or added by hand): it stays out like any Tray.
-        revealedByDrag = false
+        retainAfterInteraction()
         let fresh = TrayRules.newURLs(urls, existing: items.compactMap(\.url))
         items += fresh.map(TrayItem.init(url:))
         if !path.isEmpty { path = [] }
@@ -461,7 +520,6 @@ final class TrayController {
         if let collected, collected.resolvingSymlinksInPath().standardizedFileURL.path == path {
             self.collected = nil
         }
-        touch()
     }
 
     /// One undo step. While undoing or redoing, the manager is already collecting the inverse step.
@@ -508,11 +566,9 @@ final class TrayController {
         collected = nil
         selection = result.selection
         anchor = result.anchor
-        touch()
     }
 
     func open(_ item: TrayItem) {
-        touch()
         if item.isFolder, let url = item.url {
             browsed[url] = TrayRules.children(of: url)
             path.append(item)
@@ -531,7 +587,6 @@ final class TrayController {
         path.removeLast()
         selection = []
         anchor = nil
-        touch()
     }
 
     /// The selection, or everything shown when nothing is selected.
@@ -587,7 +642,6 @@ final class TrayController {
         collectDestination = TrayTemporaryGroups.root()
         collectingName = suggestedName(in: collectDestination)
         panel?.makeKey()
-        touch()
     }
 
     /// "New Folder", or the first free variant once there's a folder to check.
@@ -622,11 +676,12 @@ final class TrayController {
         collectDestination = folder
         if suggested { collectingName = suggestedName(in: folder) }
         collectProblem = nil
-        touch()
     }
 
     /// The Where menu's Other…: any folder, from an Open panel (which also lets Stow write there).
     func chooseOtherCollectDestination() {
+        let interaction = beginRelatedInteraction()
+        defer { endRelatedInteraction(interaction) }
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
@@ -662,9 +717,11 @@ final class TrayController {
             return
         }
         collectingName = nil
-        guard let folder = await FolderAccess.shared.writableFolder(
+        let interaction = beginRelatedInteraction()
+        let authorizedFolder = await FolderAccess.shared.writableFolder(
             parent, for: .explained(String(localized: "Stow needs access to this folder to collect the Tray’s items into it.")))
-        else { return }
+        endRelatedInteraction(interaction)
+        guard let folder = authorizedFolder else { collectingName = typed; return }
         let destination = folder.appending(path: name, directoryHint: .isDirectory)
         do {
             // Only knowable once the folder is readable: ask again, with what was typed.
@@ -726,8 +783,13 @@ final class TrayController {
     func share(from view: NSView?) {
         let urls = targetURLs
         guard !urls.isEmpty, let view = view ?? panel?.contentView else { return }
-        let picker = NSSharingServicePicker(items: urls)
-        picker.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
+        let token = beginRelatedInteraction()
+        let session = TrayShareSession(items: urls) { [weak self] in
+            self?.endRelatedInteraction(token)
+            self?.shareSessions[token] = nil
+        }
+        shareSessions[token] = session
+        session.show(from: view)
     }
 
     func reveal() {
@@ -752,6 +814,7 @@ final class TrayController {
     func quickLook() {
         let urls = targetURLs
         guard !urls.isEmpty, let panel else { return }
+        retainAfterInteraction()
         panel.previewURLs = urls
         panel.makeKey()
         let preview = QLPreviewPanel.shared()!
@@ -778,6 +841,11 @@ final class TrayController {
         host.trayUndoManager = undoManager
         panel.contentView = host
         panel.trayUndoManager = undoManager
+        panel.dragEnded = { [weak self] in
+            self?.dragStarted = false
+            self?.press = nil
+            self?.mouseUp()
+        }
         installRowDrag(in: panel)
         moveObserver = NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: panel,
                                                               queue: .main) { [weak self, weak panel] _ in
@@ -817,7 +885,6 @@ final class TrayController {
             let urls = visibleItems.filter { selection.contains($0.id) }.compactMap(\.url)
             guard !urls.isEmpty, let view = panel.contentView else { return event }
             dragStarted = true
-            touch()
             let point = view.convert(event.locationInWindow, from: nil)
             let dragItems = urls.enumerated().map { index, url in
                 let item = NSDraggingItem(pasteboardWriter: url as NSURL)
@@ -850,6 +917,7 @@ final class TrayPanel: NSPanel, QLPreviewPanelDataSource, NSDraggingSource {
     nonisolated(unsafe) var previewURLs: [URL] = []
     var border: TrayBorder = .accent
     var trayUndoManager: UndoManager?
+    var dragEnded: (() -> Void)?
 
     override var canBecomeKey: Bool { true }
     override var undoManager: UndoManager? { trayUndoManager ?? super.undoManager }
@@ -883,6 +951,10 @@ final class TrayPanel: NSPanel, QLPreviewPanelDataSource, NSDraggingSource {
     nonisolated func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { previewURLs.count }
     nonisolated func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> (any QLPreviewItem)! {
         previewURLs.indices.contains(index) ? previewURLs[index] as NSURL : nil
+    }
+
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        dragEnded?()
     }
 
     nonisolated func draggingSession(_ session: NSDraggingSession,
@@ -936,7 +1008,7 @@ struct TrayView: View {
         .dropDestination(for: URL.self) { urls, _ in
             tray.add(urls)
             return true
-        } isTargeted: { isTargeted = $0; tray.touch() }
+        } isTargeted: { isTargeted = $0; tray.isDropTargeted = $0 }
         .accessibleGlass(in: RoundedRectangle(cornerRadius: Self.radius))
         .overlay {
             // Increase Contrast draws the chosen colour at full strength.
@@ -988,7 +1060,7 @@ struct TrayView: View {
             .accessibilityLabel(String(localized: "Keep Tray Open"))
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
-            .help(tray.isPinned ? String(localized: "The Tray stays open") : String(localized: "Keep the Tray open"))
+            .help(tray.isPinned ? String(localized: "The Tray stays open when you click outside. Turn off to allow it to hide.") : String(localized: "Keep the Tray open when you click outside."))
             Button("Close", systemImage: "xmark") { tray.hide() }
                 .accessibilityLabel(String(localized: "Close"))
                 .labelStyle(.iconOnly)
@@ -1060,6 +1132,8 @@ struct TrayView: View {
     }
 
     private func chooseFiles() {
+        let interaction = tray.beginRelatedInteraction()
+        defer { tray.endRelatedInteraction(interaction) }
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
