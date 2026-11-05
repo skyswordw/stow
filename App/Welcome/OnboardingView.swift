@@ -75,8 +75,16 @@ struct OnboardingView: View {
     @ViewBuilder private func action(for step: OnboardingStep) -> some View {
         switch step {
         case .archives:
-            Button("Download Sample…") {
-                app.downloadSample()
+            // Honest about where it goes: the browser downloads it, and nothing opens by itself.
+            HStack(alignment: .firstTextBaseline, spacing: Space.s) {
+                Button("Download Sample Archive") {
+                    app.downloadSample()
+                }
+                .help("Opens the download in your browser")
+                Text("Your browser saves it; open the ZIP to try Stow.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         case .fileTypes:
             Button("Choose File Types…") { showSettings(.fileTypes) }

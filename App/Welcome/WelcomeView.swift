@@ -37,6 +37,9 @@ struct WelcomeView: View {
     @State private var isTargeted = false
     /// A drag that only promises a file (Mail, Photos, chat apps); see `OtherAppFiles`.
     @State private var isPromiseTargeted = false
+    /// With keyboard navigation on, the window starts on Create Archive, its primary action.
+    @FocusState private var focus: Action?
+    private enum Action: Hashable { case open, create }
 
     private static let dropZoneSize = CGSize(width: 560, height: 380)
     /// With no history it is the whole window, at the same width it has above the Recent list.
@@ -51,8 +54,10 @@ struct WelcomeView: View {
                     .frame(maxWidth: Self.dropZoneSize.width, maxHeight: .infinity)
             }
         }
+        .frame(maxWidth: Self.dropZoneSize.width)
+        .safeAreaInset(edge: .bottom, spacing: Space.m) { footer }
         .padding(.horizontal, Space.xxl)
-        .padding(.bottom, Space.xxl)
+        .padding(.bottom, Space.l)
         .padding(.top, Space.l)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // A quiet title bar: the traffic lights over the window, no title, no bar.
@@ -67,6 +72,7 @@ struct WelcomeView: View {
             }
             return true
         }
+        .defaultFocus($focus, .create)
         .onAppear { app.recents.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             app.recents.refresh()
@@ -75,11 +81,30 @@ struct WelcomeView: View {
 
     private var highlighted: Bool { isTargeted || isPromiseTargeted }
 
+    /// Settings belongs to the app, not to what's dropped, so it sits outside the drop zone: one
+    /// quiet control under everything, lined up with the zone's leading edge.
+    private var footer: some View {
+        HStack {
+            Button {
+                SettingsRouter.shared.show(.general)
+            } label: {
+                Label("Settings…", systemImage: "gearshape")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help("Open Stow’s settings (⌘,)")
+            Spacer()
+        }
+        .padding(.horizontal, Space.s)
+    }
+
     private func dropZone(size: CGSize) -> some View {
-        // Without the format list when a short window also has to fit the Recent list.
+        // Without the format list when a short window also has to fit the Recent list, then
+        // without the icon; the two actions always stay.
         ViewThatFits(in: .vertical) {
             dropZoneContent(showsFormats: true)
             dropZoneContent(showsFormats: false)
+            dropZoneContent(showsFormats: false, showsIcon: false)
         }
         .padding(.horizontal, Space.xl)
         .padding(.vertical, Space.l)
@@ -99,19 +124,21 @@ struct WelcomeView: View {
         } isTargeted: { isTargeted = $0 }
     }
 
-    private func dropZoneContent(showsFormats: Bool) -> some View {
+    private func dropZoneContent(showsFormats: Bool, showsIcon: Bool = true) -> some View {
         VStack(spacing: Space.l) {
             // The app's own icon and name, so a large empty window still says whose it is.
             // The drop feedback is the border, the tint and the words; the icon stays put.
-            VStack(spacing: Space.xs) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 64, height: 64)
-                    .accessibilityHidden(true)
-                Text(verbatim: "Stow")
-                    .font(.headline).accessibilityAddTraits(.isHeader)
-                    .foregroundStyle(.secondary)
+            if showsIcon {
+                VStack(spacing: Space.xs) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: 64, height: 64)
+                        .accessibilityHidden(true)
+                    Text(verbatim: "Stow")
+                        .font(.headline).accessibilityAddTraits(.isHeader)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             VStack(spacing: Space.xs) {
@@ -139,16 +166,31 @@ struct WelcomeView: View {
                 .accessibilityElement(children: .combine)
             }
 
-            HStack(spacing: Space.s) {
-                Button("Open Archive…") { app.isChoosingArchive = true }
-                Button("Create Archive…") { app.beginNewArchive() }
-                    .buttonStyle(.glassProminent)
+            // The two ways in, side by side at one width: Create is the prominent one, trailing as
+            // the primary button of a pair is on the Mac; Open is its plain partner. While a drag
+            // is over the zone they step back, so the drop is the only thing it asks for.
+            HStack(spacing: Space.m) {
+                Button { app.isChoosingArchive = true } label: {
+                    Text("Open Archive…").frame(minWidth: Self.actionWidth)
+                }
+                .help("Choose an archive to open (⌘O)")
+                .focused($focus, equals: .open)
+                Button { app.beginNewArchive() } label: {
+                    Text("Create Archive…").frame(minWidth: Self.actionWidth)
+                }
+                .buttonStyle(.glassProminent)
+                .help("Start a new archive and add files to it (⌘N)")
+                .focused($focus, equals: .create)
             }
             .controlSize(.large)
+            .fixedSize()
             .padding(.top, Space.s)
-            Button("Settings…") { SettingsRouter.shared.show(.general) }
+            .opacity(highlighted ? 0.35 : 1)
         }
     }
+
+    /// Wide enough for both titles in English and Simplified Chinese, so the pair reads as one row.
+    private static let actionWidth: CGFloat = 132
 
     private func handleDrop(_ urls: [URL]) -> Bool {
         guard !urls.isEmpty else { return false }
