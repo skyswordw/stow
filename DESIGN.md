@@ -198,8 +198,17 @@ The [current Tray brief](Handoff/tray-keep-open-2026-11-04.md) separates confirm
 decisions, native ArcZip 1.2.1 evidence and engineering requirements. It supersedes
 older idle-dismissal guidance, not the actual-home drag activation contract.
 Codex / Grok Bot owns behavior, state, tests and accessibility semantics; Claude Code
-owns visual expression and motion. Functional code is implemented locally; Claude Code
-visual/motion review and release remain pending.
+owns visual expression and motion.
+
+**How it looks (#282).** Back, Keep Tray Open and Close are Glance's circular window
+controls (`ActionButtonStyle`, 26 pt, hover fill). Kept open is `pin.fill` in the accent
+inside an accent ring, the same on-state as Glance's Pin on Top, so it reads by shape as well
+as colour; not kept open is the plain `pin`. Close stays right beside it: it still closes a
+Tray that's kept open. Clicking the pin says what changed for 2 s in a small glass capsule
+hanging under it — *Stays open until you close it* / *Hides when you click elsewhere* — that
+takes no clicks and covers only the top of the first row. The help tags say the same at more
+length, and Settings › General explains it in the Tray section's footer (no setting of its
+own any more). Chinese calls the Tray 托盘 everywhere and the pin 保持打开.
 
 ## Glance layout (#159)
 
@@ -368,7 +377,8 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
 | Tray rows a drop (or Add Files…) brought in, new or already there | Accent ring and faint tint **at once**; fade out after 1.2 s; scrolled into view if below the fold (no scroll animation under Reduce Motion) | fade `Motion.status` 200 ms |
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |
-| Tray panel show/hide | Same edge in, same edge out: scale 0.96 → 1 from the menu bar + opacity (`Motion.presence`) | `appear` in, `exit` out; **none** for ⌥⌘T and Esc |
+| Tray panel show/hide, including an outside click or app switch hiding it | Same edge in, same edge out: scale 0.96 → 1 from the menu bar + opacity (`Motion.presence`). Hiding on an outside click uses the same quick exit: the click has already reached what it was aimed at, and the Tray only gets out of its way | `appear` in, `exit` out; **none** for ⌥⌘T and Esc |
+| Keep Tray Open toggled | The pin's symbol swaps with the system replace effect, its accent ring fades in or out, and the note under it drops 4 pt into place (scale 0.96 → 1 from its top-trailing corner) and fades out 2 s later. **None** when Space toggled it (the note still shows, unanimated); under Reduce Motion the symbol swaps at once and the ring and note only fade | `status` 200 ms in, `exit` 180 ms out |
 | Files dragged in another app (#180) | Nothing comes out at the start. The menu-bar icon becomes `tray.and.arrow.down`; without an icon, a 44 pt piece of Tray glass with that symbol fades up where the Tray comes out (scale 0.9 → 1). The Tray comes out **at once** when the drag reaches 160 pt in front of its home (under the icon as wide as the Tray, at the screen's edge as tall as it, or over where it was put), stays for the rest of the drag, and goes back 0.8 s after the drag ends if nothing was dropped. ArcZip's Box: no reveal at drag start; opens at once ~150–165 pt under its icon, about its own width; stays while dragging; gone within ~3 s of a drag with no drop | hint `appear` in, `exit` out; fade only under Reduce Motion |
 | Password card in Glance appears / goes | A click: scale 0.96 → 1 + opacity, dimming fades in; it eases out. Asked again after a wrong password: fade only. **None** when a key (Return, Esc, Space) caused it | `appear` in, `exit` out |
 | Preparing-a-preview capsule appears / goes (after 0.4 s) | Ease-out fade with a 4 pt drop and scale 0.96 → 1 from its top; fades out. Its ring as Actions' | `status` in, `exit` out |

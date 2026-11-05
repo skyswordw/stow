@@ -31,7 +31,7 @@ import SwiftUI
 /// install-running (an app part-way into Applications), install-done (installed), install-app-open (refused: the installed copy is open, INS-181).
 /// The install walkthrough (checkup, signature-warning, replace-app, install-*, activity) uses "Harbor Prototype 1.3.zip",
 /// an app build, because Try the Sample's ZIP holds no app; `checkup -StowSelect "Harbor Prototype.app"` selects it.
-/// tray-files (real files on disk, for their icons), tray-arrived (rows pointed out after a drop),
+/// tray-files (real files on disk, for their icons), tray-folder (the same, browsed into Site Photos), tray-arrived (rows pointed out after a drop),
 /// tray-collect (Collect into a Folder, items from one folder), tray-collect-mixed (from three: people choose where),
 /// tray-collect-taken (a name that's taken), tray-collected (after a real collect: where it went),
 /// tray-more and tray-more-selected (the More menu open over real files; also captured as -menu.png).
@@ -66,6 +66,8 @@ import SwiftUI
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
 /// `-StowArchiveInfoOpen YES` opens Archive Info from the title menu in any Browser scene.
+/// `-StowTrayPinNote kept|hides` shows the note the Tray's pin gives once clicked, and holds it.
+/// Its pin state comes from `-tray.pinned '<true/>'` (read only; nothing is saved).
 /// `-StowBurst <transition>` captures a frame burst of one transition instead of a still; see `DemoBurst`.
 /// `-StowReduceMotion YES` stands in for the system's Reduce Motion, as the two above do for theirs.
 /// `-StowLogLayout YES` also prints who has the keyboard and which toolbar items are showing.
@@ -85,6 +87,12 @@ enum DemoScene {
         if defaults.bool(forKey: "StowNoticesOpen") { ArchiveNotices.expandsForDemo = true }
         // Any Browser scene: Archive Info's popover opens by itself (with `details-more`, expanded).
         if defaults.bool(forKey: "StowArchiveInfoOpen") { ArchiveInfoView.opensForDemo = true }
+        // Any Tray scene: the pin's note, as if it had just been clicked.
+        switch defaults.string(forKey: "StowTrayPinNote") {
+        case "kept": TrayView.pinNoteForDemo = .init(pinned: true)
+        case "hides": TrayView.pinNoteForDemo = .init(pinned: false)
+        default: break
+        }
         switch defaults.string(forKey: "StowAppearance") {
         case "light": NSApp.appearance = NSAppearance(named: .aqua)
         case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -542,7 +550,7 @@ enum DemoScene {
             ]
             app.tray.selection = [app.tray.items[1].id, app.tray.items[2].id]
             app.tray.show()
-        case "tray-files":
+        case "tray-files", "tray-folder":
             // Real files on disk, so the rows show what Finder would: text, an image, a PDF, a ZIP, a folder.
             let folder = FileManager.default.temporaryDirectory.appending(path: "Demo Tray Files", directoryHint: .isDirectory)
             try? FileManager.default.removeItem(at: folder)
@@ -559,8 +567,12 @@ enum DemoScene {
             try? page.dataWithPDF(inside: page.bounds).write(to: pdf)
             let zip = folder.appending(path: "Brand Assets.zip")
             try? Data([0x50, 0x4B, 0x05, 0x06] + [UInt8](repeating: 0, count: 18)).write(to: zip)
+            if scene == "tray-folder", let photo = SampleContent.photo(named: "Pier at Dawn.jpg") {
+                try? FileManager.default.copyItem(at: photo, to: folder.appending(path: "Site Photos/Pier at Dawn.jpg"))
+            }
             app.tray.add([note, short, picture, pdf, zip, folder.appending(path: "Site Photos")])
             app.tray.showArrivalForDemo([])
+            if scene == "tray-folder", let photos = app.tray.items.first(where: \.isFolder) { app.tray.open(photos) }
             app.tray.show()
         case "tray-arrived":
             // Three rows just dropped; the last is already on the Tray and was dropped again.

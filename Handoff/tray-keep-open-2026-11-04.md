@@ -213,3 +213,37 @@ display/motion preferences. Unrelated edits in the original checkout were exclud
   pass is claimed for the rebased app; remaining physical-input checks stay explicit.
 - Claude Code's separate UI/motion task is [#282](https://github.com/Beastry/stow/issues/282);
   the functional PR must not close it.
+
+## Claude Code visual and motion delivery — #282
+
+Stacked on the functional branch (`codex/tray-keep-open`); the dismissal rules above are
+unchanged. DESIGN.md › Tray dismissal and › Motion describe the result.
+
+- **Pin state by shape, not colour alone.** Back, Keep Tray Open and Close use Glance's
+  circular window controls (`ActionButtonStyle`, 26 pt, hover fill). Kept open is `pin.fill`
+  in the accent inside an accent ring (Glance's Pin on Top on-state); not kept open is plain
+  `pin`. The symbols keep their previous positions; the header grows by about 1.5 pt.
+- **Immediate feedback.** Clicking the pin shows a 2 s glass note under it: *Stays open until
+  you close it* / *Hides when you click elsewhere*. It takes no clicks and is hidden from
+  accessibility, because the toggle's own value already reports the change.
+- **Close.** Stays beside the pin; its help now says the files stay: *Close the Tray. Its
+  files stay for next time.* Its name, Escape shortcut and folder-name exception are unchanged.
+- **Copy.** Help: *Keep the Tray open when you click elsewhere or switch apps* / *The Tray
+  stays open until you close it*. The Settings explanation moved from a loose row into the
+  Tray section's footer, like Updates. The new Chinese strings called the Tray 暂存架; they
+  now use 托盘 like the rest of the app, and 点按 for click. Unused catalog entries (two from
+  before this change, three from the functional PR) were removed.
+- **Motion.** Pin toggle: symbol replace + ring fade, note in with `status` (4 pt drop,
+  scale 0.96) and out with `exit` after 2 s; none when Space toggled it; fade only under
+  Reduce Motion. Reveal, outside-click/app-switch dismissal and the drop receipt were
+  reviewed and kept: the exit is already the quick 180 ms ease-out, and the 1.2 s receipt
+  stays readable now that a drop no longer risks an idle hide.
+- **Demo tools.** `-StowTrayPinNote kept|hides`, the `tray-folder` scene and the `tray-pin`
+  burst (it restores the saved `tray.pinned` value when done).
+
+No behaviour change to dismissal, state or semantics is proposed. Evidence was made with
+design snapshots (light/dark, English/zh-Hans, empty/populated/folder, both pin states,
+Stow's Increase Contrast and Reduce Transparency overrides) and frame bursts with Stow's
+Reduce Motion override. The system display switches themselves were not flipped, and
+menus/pickers/Quick Look/Collect draft keep the existing composition (nothing in them
+changed). No VoiceOver testing (#93).

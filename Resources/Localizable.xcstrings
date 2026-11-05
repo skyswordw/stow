@@ -2175,16 +2175,6 @@
         }
       }
     },
-    "Keep the Tray open": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保持托盘打开"
-          }
-        }
-      }
-    },
     "More": {
       "localizations": {
         "zh-Hans": {
@@ -2311,16 +2301,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stow 需要访问此文件夹，才能把托盘中的项目收集进去。"
-          }
-        }
-      }
-    },
-    "The Tray stays open": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "托盘会保持打开"
           }
         }
       }
@@ -12860,32 +12840,62 @@
         }
       }
     },
-    "Tray hides when you click outside or switch apps. Use Keep Tray Open to keep it visible.": {
+    "The Tray stays open until you close it": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "点击外部或切换应用时，暂存架会收起。开启“保持打开”可让它持续显示。"
+            "value": "托盘会保持打开，直到你将其关闭"
           }
         }
       }
     },
-    "The Tray stays open when you click outside. Turn off to allow it to hide.": {
+    "Keep the Tray open when you click elsewhere or switch apps": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "点击外部时暂存架仍保持打开。关闭此选项后可自动收起。"
+            "value": "点按别处或切换应用时，让托盘保持打开"
           }
         }
       }
     },
-    "Keep the Tray open when you click outside.": {
+    "Close the Tray. Its files stay for next time.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "点击外部时仍保持暂存架打开。"
+            "value": "关闭托盘。其中的文件会留到下次。"
+          }
+        }
+      }
+    },
+    "Stays open until you close it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保持打开，直到你将其关闭"
+          }
+        }
+      }
+    },
+    "Hides when you click elsewhere": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按别处时收起"
+          }
+        }
+      }
+    },
+    "The Tray hides when you click elsewhere or switch apps. Its pin keeps it open until you close it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按别处或切换应用时，托盘会收起。用托盘上的图钉可让它保持打开，直到你将其关闭。"
           }
         }
       }

@@ -33,7 +33,7 @@ struct GeneralSettingsView: View {
                 // Round the row: the disclosure's own ring sat over the chevron and cut through "How".
                 .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
-            Section("Tray") {
+            Section {
                 Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
                 // Dragging files anywhere else leaves the Tray alone (#180); say where to take them.
                 Toggle(isOn: $trayWhileDragging) {
@@ -41,9 +41,6 @@ struct GeneralSettingsView: View {
                     Text(trayIcon ? String(localized: "Drag files up to the Tray icon in the menu bar.")
                                   : String(localized: "Drag files to the right edge of the screen."))
                 }
-                Text("Tray hides when you click outside or switch apps. Use Keep Tray Open to keep it visible.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
                 Picker("Tray border", selection: $trayBorder) {
                     ForEach(TrayBorder.allCases) { border in
                         Label { Text(border.title) } icon: {
@@ -52,6 +49,11 @@ struct GeneralSettingsView: View {
                         .tag(border.rawValue)
                     }
                 }
+            } header: {
+                Text("Tray")
+            } footer: {
+                // There's no setting for this any more (#282): say what happens, and where the pin is.
+                Text("The Tray hides when you click elsewhere or switch apps. Its pin keeps it open until you close it.")
             }
             UpdateSettingsSection(updater: AppUpdater.shared)
         }

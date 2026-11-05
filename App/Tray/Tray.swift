@@ -983,10 +983,26 @@ struct TrayView: View {
     @Environment(\.colorSchemeContrast) private var contrast
     @AppStorage(SettingsKeys.trayBorder) private var borderName = TrayBorder.accent.rawValue
     @State private var isTargeted = false
+    /// What the pin just changed, said for a moment under it; nil the rest of the time.
+    @State private var pinNote: PinNote? = Self.pinNoteForDemo
     @FocusState private var focusedRow: UUID?
 
     static let radius = Radius.card + Space.s
     static let size = CGSize(width: 300, height: 440)
+    /// The header's circular controls (Back, Keep Tray Open, Close), and how far each reaches
+    /// past its symbol.
+    static let controlSize: CGFloat = 26
+    static let controlInset: CGFloat = 4
+    /// How long the pin's note stays before it fades.
+    static let pinNoteDuration: Duration = .seconds(2)
+
+    /// Design review: the note the scene starts with, held until it's captured.
+    static var pinNoteForDemo: PinNote?
+
+    struct PinNote: Equatable {
+        let id = UUID()
+        let pinned: Bool
+    }
     /// Room around the panel for its shadow.
     static let shadowMargin: CGFloat = 24
     private var border: TrayBorder { TrayBorder(rawValue: borderName) ?? .accent }
@@ -997,6 +1013,9 @@ struct TrayView: View {
         VStack(spacing: 0) {
             header
             card
+                .overlay(alignment: .topTrailing) {
+                    if let pinNote { pinNoteCapsule(pinNote) }
+                }
                 .padding(.horizontal, Space.s)
                 // Same 8 below the card as beside it when there's no footer.
                 .padding(.bottom, hasFooter ? 0 : Space.s)
@@ -1026,6 +1045,14 @@ struct TrayView: View {
         .padding(Self.shadowMargin)
         .onHover { tray.isHovered = $0 }
         .onKeyPress(.space) { tray.quickLook(); return .handled }
+        // Motion review: `-StowBurst tray-pin` clicks the pin, then presses Space on it.
+        .onReceive(NotificationCenter.default.publisher(for: DemoBurst.request)) { note in
+            switch note.object as? String {
+            case "tray-pin-on": setPinned(true)
+            case "tray-pin-off": setPinned(false)
+            default: break
+            }
+        }
     }
 
 
@@ -1037,7 +1064,7 @@ struct TrayView: View {
                 Button("Back", systemImage: "chevron.left") { tray.goBack() }
                     .accessibilityLabel(String(localized: "Back"))
                     .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
+                    .buttonStyle(ActionButtonStyle(iconOnly: true, height: Self.controlSize))
                     .help("Back to the Tray")
                 Text(title).font(.headline).lineLimit(1).truncationMode(.middle).accessibilityAddTraits(.isHeader)
             } else {
@@ -1053,31 +1080,85 @@ struct TrayView: View {
                 }
             }
             Spacer(minLength: Space.s)
-            Toggle(isOn: Binding(get: { tray.isPinned }, set: { tray.isPinned = $0 })) {
-                Label("Keep Tray Open", systemImage: tray.isPinned ? "pin.fill" : "pin")
+            // Keep Tray Open and Close share Glance's window-control look: kept open is the filled
+            // pin inside an accent ring, so it reads by shape as well as colour (#282). Close
+            // stays beside it because it still closes a Tray that's kept open.
+            HStack(spacing: 2) {
+                Toggle(isOn: Binding(get: { tray.isPinned }, set: { setPinned($0) })) {
+                    Label("Keep Tray Open", systemImage: tray.isPinned ? "pin.fill" : "pin")
+                        .contentTransition(reduceMotion || Motion.byKeyboard ? .identity : .symbolEffect(.replace))
+                }
+                .toggleStyle(.button)
+                .accessibilityLabel(String(localized: "Keep Tray Open"))
+                .buttonStyle(ActionButtonStyle(iconOnly: true, height: Self.controlSize, isOn: tray.isPinned))
+                .help(tray.isPinned ? String(localized: "The Tray stays open until you close it")
+                                    : String(localized: "Keep the Tray open when you click elsewhere or switch apps"))
+                Button("Close", systemImage: "xmark") { tray.hide() }
+                    .accessibilityLabel(String(localized: "Close"))
+                    .buttonStyle(ActionButtonStyle(iconOnly: true, height: Self.controlSize))
+                    .help("Close the Tray. Its files stay for next time.")
+                    // While a folder name is being typed, Escape cancels that instead.
+                    .keyboardShortcut(tray.collectingName == nil ? .cancelAction : nil)
             }
-            .toggleStyle(.button)
-            .accessibilityLabel(String(localized: "Keep Tray Open"))
             .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
-            .help(tray.isPinned ? String(localized: "The Tray stays open when you click outside. Turn off to allow it to hide.") : String(localized: "Keep the Tray open when you click outside."))
-            Button("Close", systemImage: "xmark") { tray.hide() }
-                .accessibilityLabel(String(localized: "Close"))
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .help("Close")
-                // While a folder name is being typed, Escape cancels that instead.
-                .keyboardShortcut(tray.collectingName == nil ? .cancelAction : nil)
         }
-        .padding(.horizontal, Space.l)
-        .padding(.top, Space.m)
-        .padding(.bottom, Space.s)
+        // The circles reach past their symbols: pull them in so the symbols keep their old places.
+        .padding(.leading, tray.folderTitle == nil ? Space.l : Space.l - Self.controlInset)
+        .padding(.trailing, Space.l - Self.controlInset)
+        .padding(.top, Space.m - Self.controlInset)
+        .padding(.bottom, Space.s - Self.controlInset)
         // The header is the Tray's title bar: drag it to move the panel. The buttons in it keep
         // their clicks. (SwiftUI never passes a background drag to AppKit, so
         // `isMovableByWindowBackground` alone doesn't move it.)
         .contentShape(.rect)
         .gesture(WindowDragGesture())
         .allowsWindowActivationEvents(true)
+    }
+
+    /// Pins or unpins, then says for a moment what that means, since the pin alone doesn't tell
+    /// whether the Tray hides on an outside click (#282). A key press (Space on the focused pin)
+    /// changes it at once; the note still shows, unanimated.
+    private func setPinned(_ pinned: Bool) {
+        let animation = Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion)
+        let note = PinNote(pinned: pinned)
+        withAnimation(animation) {
+            tray.isPinned = pinned
+            pinNote = note
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: Self.pinNoteDuration)
+            // A later toggle has its own note and its own time.
+            guard pinNote == note else { return }
+            withAnimation(Motion.resolved(Motion.exit, reduceMotion: reduceMotion)) { pinNote = nil }
+        }
+    }
+
+    /// A small glass capsule under the pin, the way Quick Look's preparing capsule hangs under the
+    /// path: it drops 4 pt into place from the pin, and only fades under Reduce Motion. It doesn't
+    /// take clicks, so a row under it stays reachable.
+    private func pinNoteCapsule(_ note: PinNote) -> some View {
+        Label {
+            Text(note.pinned ? String(localized: "Stays open until you close it")
+                             : String(localized: "Hides when you click elsewhere"))
+        } icon: {
+            // The pin's own colours: accent while kept open, secondary once it isn't.
+            Image(systemName: note.pinned ? "pin.fill" : "pin.slash")
+                .foregroundStyle(note.pinned ? AnyShapeStyle(.accentText) : AnyShapeStyle(.secondary))
+        }
+            .font(.callout.weight(.medium))
+            .lineLimit(1)
+            .padding(.horizontal, Space.m)
+            .frame(height: 28)
+            .accessibleGlass(in: .capsule)
+            .padding(.top, Space.s)
+            .padding(.trailing, Space.s)
+            .allowsHitTesting(false)
+            // The pin's own value says this to VoiceOver; a note that leaves on its own would only repeat it.
+            .accessibilityHidden(true)
+            .transition(reduceMotion ? .opacity
+                        : .asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing))
+                                        .combined(with: .offset(y: -4)),
+                                      removal: .opacity))
     }
 
     // MARK: Card
