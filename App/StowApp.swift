@@ -765,7 +765,7 @@ struct StowCommands: Commands {
                 .disabled(!AppUpdater.shared.isAvailable)
         }
         CommandGroup(replacing: .newItem) {
-            Button("New Archive…") { app.passwords.performCommand { app.beginNewArchive() } }
+            Button("New Archive") { app.passwords.performCommand { app.beginNewArchive() } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("n")
             Button("Open Archive…") { app.passwords.performCommand { app.isChoosingArchive = true } }

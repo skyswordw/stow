@@ -160,7 +160,7 @@ struct PackSheet: View {
                     Button(options.format.displayName) { options.setCustomFormat(options.format) }
                 }
                 Divider()
-                Button("More Options…") { showMore = true }
+                Button("More Options") { showMore = true }
             }
         case .audience:
             Token(title: options.audience.phrase, suffix: suffix) {

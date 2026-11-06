@@ -28,7 +28,7 @@ claim that the complete signed/physical-input matrix has passed.
   reopening instead of silently ending the process. The obsolete Hide Dock checkbox is removed;
   its stored value is not reused as a competing lifecycle preference. Login remains opt-in.
 - **Status menu (#290):** normal click toggles; right/Control-click opens native Open Tray,
-  Open Stow, Create Archive…, Settings…, Quit Stow. Open Tray is idempotent. Menu tracking
+  Open Stow, Create Archive, Settings…, Quit Stow. Open Tray is idempotent. Menu tracking
   is a related interaction. Settings deep-links to Tray; Quit uses `NSApp.terminate`.
 - **New archive (#291/#293):** `AppState.beginNewArchive()` and `showCreationWindow` route
   Welcome, Command-N and the status menu to one `ArchiveDraft` in scene `creation`.

@@ -239,7 +239,7 @@ struct WelcomeView: View {
                 .help("Choose an archive to open (⌘O)")
                 .focused($focus, equals: .open)
                 Button { app.beginNewArchive() } label: {
-                    Text("Create Archive…").frame(minWidth: Self.actionWidth)
+                    Text("Create Archive").frame(minWidth: Self.actionWidth)
                 }
                 .buttonStyle(.glassProminent)
                 .help("Start a new archive and add files to it (⌘N)")

@@ -163,7 +163,7 @@ final class TrayController {
         let menu = NSMenu()
         let groups: [[(String, Selector)]] = [
             [(String(localized: "Open Stow"), #selector(StatusTarget.openStow)),
-             (String(localized: "Create Archive…"), #selector(StatusTarget.createArchive))],
+             (String(localized: "Create Archive"), #selector(StatusTarget.createArchive))],
             [(String(localized: "Settings…"), #selector(StatusTarget.settings))],
             [(String(localized: "Quit Stow"), #selector(StatusTarget.quit))]
         ]
@@ -1488,9 +1488,10 @@ struct TrayView: View {
             Button {
                 tray.pack()
             } label: {
-                Label(tray.packActionTitle, systemImage: "archivebox").lineLimit(1)
+                // The ellipsis as on every Pack: the sentence asks how before anything is written.
+                Label(tray.packActionTitle + "…", systemImage: "archivebox").lineLimit(1)
             }
-            .accessibilityLabel(tray.packActionTitle)
+            .accessibilityLabel(tray.packActionTitle + "…")
             .buttonStyle(.borderedProminent)
             .help(tray.selection.isEmpty ? String(localized: "Pack everything shown into an archive")
                   : String(localized: "Pack the selected items into an archive"))

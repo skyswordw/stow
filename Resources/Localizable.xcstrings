@@ -51,16 +51,6 @@
         }
       }
     },
-    "More Options…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更多选项…"
-          }
-        }
-      }
-    },
     "This format is outside the recommendations for %@. The recipient may need another app to open it.": {
       "localizations": {
         "zh-Hans": {
@@ -6330,16 +6320,6 @@
         }
       }
     },
-    "New Archive…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新建压缩包…"
-          }
-        }
-      }
-    },
     "No app": {
       "localizations": {
         "zh-Hans": {
@@ -7247,16 +7227,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "还原"
-          }
-        }
-      }
-    },
-    "Reset All Preferences…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还原所有设置…"
           }
         }
       }
@@ -10569,16 +10539,6 @@
         }
       }
     },
-    "Remove All Saved Passwords…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清除全部已保存密码…"
-          }
-        }
-      }
-    },
     "Saved passwords": {
       "localizations": {
         "zh-Hans": {
@@ -11145,16 +11105,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "页面"
-          }
-        }
-      }
-    },
-    "Reset This Page…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还原此页面…"
           }
         }
       }
@@ -13033,17 +12983,6 @@
         }
       }
     },
-    "Create Archive…": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "创建压缩包…"
-          }
-        }
-      }
-    },
     "Create Archive": {
       "extractionState": "manual",
       "localizations": {
@@ -13669,6 +13608,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "选择文件即可将其移出这个压缩包"
+          }
+        }
+      }
+    },
+    "Remove All Saved Passwords": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除全部已保存密码"
+          }
+        }
+      }
+    },
+    "Reset This Page": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原此页面"
+          }
+        }
+      }
+    },
+    "Reset All Preferences": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原所有设置"
           }
         }
       }

@@ -97,6 +97,23 @@ user preferences where compatible with these newer product decisions. The
 [earlier product design review](Handoff/product-design-review-2026-10-24.md) retains historical
 evidence; its optional-pane composition and mockups are superseded.
 
+### Ellipses on commands
+
+The Mac rule, applied the same way to menu items, buttons in content, floating glass and title-bar
+buttons that carry a word: a label ends in **…** when the command asks for more before it does
+anything — an Open or Save panel, a sheet, a sentence to finish, a share picker, Settings.
+
+- **Pack…** everywhere (File menu, draft title bar, Tray button and menu, Actions, the close
+  prompt): the Pack sentence and then the destination come first. The draft is an untitled
+  document, so **New Archive** (⌘N) and **Create Archive** (Welcome, the status menu) open it
+  without one, as File › New does in a document app; Pack… is its Save….
+- **Save** acts at once and has none; **Save a Copy…** asks where.
+- No ellipsis when only a warning follows: **Reset This Page**, **Reset All Preferences**, **Remove
+  All Saved Passwords** each confirm in an alert, which isn't asking for anything new.
+- No ellipsis when the result opens in place: the format token's **More Options** item opens the
+  sheet's own disclosure. Help › Download Sample Archive hands over to the browser.
+- Progress text (Saving…, Unlocking…, Adding files…) is a status, not a command.
+
 ## Browser layout (#160, #161)
 
 **Floating-path direction (#242, user's choice 2026-10-31).** The user compared interactive
@@ -356,7 +373,7 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
   under the switch is disabled and its words go tertiary (a grouped form greys a disabled
   switch but not its title); the values are kept. No idle timer, by the user's choice (#286).
   The status item's Control/right-click menu is native and short (#290): Open Stow,
-  Create Archive… · Settings… (straight to this page) · Quit Stow, no key equivalents shown.
+  Create Archive · Settings… (straight to this page) · Quit Stow, no key equivalents shown.
 - **General** shows the language in use and folds the macOS how-to into a disclosure.
 - File Types drops its own heading in Settings (the title bar names the page); its standalone
   scene keeps it. Its introduction lines up with the form's headers and footers, and its buttons
@@ -545,7 +562,7 @@ transition frame by frame, by click and as after a key press, for review.
   with the traffic light or ⌘W ends that archive session and leaves Stow running without a window;
   reopening Stow from the Dock shows Welcome. Only one of them is open at a time.
 - **Welcome's actions** (#291) sit inside the drop zone, under what dropping does: **Open
-  Archive…** and **Create Archive…** side by side at one width, Create the prominent glass button
+  Archive…** and **Create Archive** side by side at one width, Create the prominent glass button
   on the trailing side, as a Mac pair puts its primary. Both reach the same routes as ⌘O and ⌘N
   (`AppState.beginNewArchive()` for Create; a repeated click focuses the one draft). Their tooltips
   name the shortcut. With keyboard navigation on, the window starts on Create. **Settings** belongs

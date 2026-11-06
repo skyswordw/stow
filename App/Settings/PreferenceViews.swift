@@ -225,7 +225,7 @@ struct PasswordSettingsView: View {
                         }
                     }
                     if !entries.isEmpty {
-                        Button("Remove All Saved Passwords…", role: .destructive) { confirmsWipe = true }
+                        Button("Remove All Saved Passwords", role: .destructive) { confirmsWipe = true }
                     }
                 } header: {
                     Text("Saved passwords")
@@ -289,12 +289,12 @@ struct AdvancedSettingsView: View {
                         }
                         .labelsHidden()
                         .fixedSize()
-                        Button("Reset This Page…", role: .destructive) { confirmsResetPage = true }
+                        Button("Reset This Page", role: .destructive) { confirmsResetPage = true }
                             .disabled(SettingsKeys.resettableEntries(for: pageToReset).isEmpty)
                     }
                 }
                 LabeledContent("Every page") {
-                    Button("Reset All Preferences…", role: .destructive) { confirmsResetAll = true }
+                    Button("Reset All Preferences", role: .destructive) { confirmsResetAll = true }
                 }
             } header: {
                 Text("Reset")
