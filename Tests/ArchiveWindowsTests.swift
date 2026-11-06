@@ -1,5 +1,6 @@
 import AppKit
 import Testing
+import UniformTypeIdentifiers
 @testable import Stow
 
 @MainActor
@@ -176,6 +177,10 @@ struct ArchiveTransferTests {
     }
 
     @Test func privateTokenSurvivesNativePasteboardEncodingAndCancellationRevokesIt() throws {
+        let declarations = try #require(Bundle.main.object(forInfoDictionaryKey: "UTExportedTypeDeclarations") as? [[String: Any]])
+        #expect(declarations.contains { $0["UTTypeIdentifier"] as? String == ArchiveTransfer.typeIdentifier })
+        let type = try #require(UTType(ArchiveTransfer.typeIdentifier), "SwiftUI must resolve the native drop type")
+        #expect(type.conforms(to: .data))
         let source = BrowserModel(archive: Archive(name: "a.zip", format: .zip, files: [ArchiveEntry(path: "a.txt", isFolder: false, size: 1, packedSize: 1, modified: .now)]))
         let token = ArchiveTransfer.register(source: source, entries: source.archive.files)
         let provider = ArchiveDragPromise(fileType: "public.plain-text", delegate: source.dragOut)

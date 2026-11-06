@@ -346,7 +346,7 @@ private struct ArchiveDrop: ViewModifier {
     @State private var targeted = false
     func body(content: Content) -> some View {
         content
-            .onDrop(of: ["public.file-url", ArchiveTransfer.typeIdentifier], isTargeted: $targeted) { providers in
+            .onDrop(of: [.fileURL, ArchiveTransfer.contentType], isTargeted: $targeted) { providers in
                 guard model.editSession.requireEditable() else { return true }
                 let destination = model.level
                 let local = providers.filter { $0.hasItemConformingToTypeIdentifier(ArchiveTransfer.typeIdentifier) }

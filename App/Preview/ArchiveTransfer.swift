@@ -1,9 +1,11 @@
 import AppKit
+import UniformTypeIdentifiers
 
 /// A process-local capability for a drag. It never accepts a source URL supplied by another app.
 /// Finder still receives ordinary file promises; Stow windows resolve this token as one batch.
 final class ArchiveTransfer {
     nonisolated static let typeIdentifier = "app.stow.archive-selection"
+    nonisolated static let contentType = UTType(exportedAs: typeIdentifier, conformingTo: .data)
     static var pending: [String: ArchiveTransfer] = [:]
     let source: BrowserModel
     let level: BrowserModel.Level
