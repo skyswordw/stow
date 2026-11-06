@@ -5,6 +5,13 @@ import Testing
 @MainActor
 @Suite("Tray enablement and lifetime", .serialized)
 struct TrayLifecycleTests {
+    @Test func delayedPresentationKeepsQuitConfirmationAboveItsParent() {
+        let parent = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        let alert = NSPanel(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        #expect(ApplicationLifecycle.foregroundSurface(for: parent, modal: alert) === alert)
+        #expect(ApplicationLifecycle.foregroundSurface(for: parent, modal: nil) === parent)
+    }
+
     @Test func explicitWindowRequestSelectsOnlyItsOwnVisibleScene() {
         let main = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
         let settings = NSPanel(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)

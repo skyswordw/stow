@@ -131,7 +131,7 @@ final class ApplicationLifecycle {
                 guard !Task.isCancelled else { return }
                 if let window = Self.window(for: identifier, in: NSApp.windows) {
                     if window.isMiniaturized { window.deminiaturize(nil) }
-                    window.makeKeyAndOrderFront(nil)
+                    Self.foregroundSurface(for: window, modal: NSApp.modalWindow).makeKeyAndOrderFront(nil)
                     NSApp.activate()
                     if !NSApp.isActive {
                         // Use the same Launch Services activation path as an explicit Dock open;
@@ -145,7 +145,7 @@ final class ApplicationLifecycle {
                                       let destination = Self.window(for: identifier, in: NSApp.windows) else { return }
                                 // The reopen event can choose the main window; restore the actual
                                 // requested destination (notably Settings) after activation completes.
-                                destination.makeKeyAndOrderFront(nil)
+                                Self.foregroundSurface(for: destination, modal: NSApp.modalWindow).makeKeyAndOrderFront(nil)
                             }
                         }
                     }
@@ -162,5 +162,13 @@ final class ApplicationLifecycle {
             return (actual == identifier || actual.hasPrefix(identifier + "-"))
                 && ($0.isVisible || $0.isMiniaturized)
         }
+    }
+
+    /// Presentation may finish inside an alert's nested run loop. Never raise its parent above
+    /// an active quit/discard confirmation or a picker that arrived after the original request.
+    static func foregroundSurface(for window: NSWindow, modal: NSWindow?) -> NSWindow {
+        var surface = modal ?? window
+        while let sheet = surface.attachedSheet { surface = sheet }
+        return surface
     }
 }
