@@ -336,24 +336,98 @@ private extension String {
     var sentenceCased: String { prefix(1).uppercased() + dropFirst() }
 }
 
-/// Functional controls for #288; Claude Code owns final page presentation.
+/// Settings › Tray (#288): the master switch first, with what it means for closing Stow's last
+/// window, then how the Tray comes out and goes away, then how it looks. Everything under the
+/// switch dims while it's off and keeps its value for when it's turned back on. The switch goes
+/// through `TrayController`, the one owner of `tray.enabled`. No idle timer: the user chose
+/// outside-click dismissal and the pin instead (#286), so nothing here counts time.
 struct TraySettingsView: View {
-    @AppStorage(SettingsKeys.trayEnabled) private var enabled = false
+    @Environment(AppState.self) private var app
     @AppStorage(SettingsKeys.trayMenuBarIcon) private var trayIcon = true
     @AppStorage(SettingsKeys.trayShowWhileDragging) private var trayWhileDragging = true
     @AppStorage(SettingsKeys.trayBorder) private var trayBorder = TrayBorder.accent.rawValue
+
+    private var isEnabled: Bool { app.tray.isEnabled }
+    private var enabled: Binding<Bool> {
+        Binding(get: { app.tray.isEnabled }, set: { app.tray.setEnabled($0) })
+    }
+
     var body: some View {
         Form {
-            Toggle("Enable Tray", isOn: $enabled)
             Section {
-                Toggle("Show Tray icon in the menu bar", isOn: $trayIcon)
-                Toggle("Show Tray when files are dragged to it", isOn: $trayWhileDragging)
-                Picker("Tray border", selection: $trayBorder) {
-                    ForEach(TrayBorder.allCases) { Text($0.title).tag($0.rawValue) }
+                Toggle(isOn: enabled) {
+                    Text("Enable Tray")
+                    Text("Gather files from anywhere to pack, extract or collect into a folder")
                 }
-            }.disabled(!enabled)
-            Text("When enabled, Tray stays available after you close Stow’s windows. Launching at login is a separate setting.")
-            Text("The Tray hides when you click elsewhere or switch apps. Its pin keeps it open until you close it.")
-        }.formStyle(.grouped)
+            } footer: {
+                // What the switch means once Stow's windows are closed (#289), said for the state it's in.
+                if isEnabled {
+                    Text("When you close Stow’s last window, Stow keeps running without a Dock icon so the Tray stays ready. To open Stow when you log in, use Finder & Permissions.")
+                } else {
+                    Text("When you close Stow’s last window, Stow quits once its work finishes. To open Stow when you log in, use Finder & Permissions.")
+                }
+            }
+            Section {
+                Toggle(isOn: $trayIcon) {
+                    Text("Show Tray icon in the menu bar")
+                    Text("Click it to show or hide the Tray. Control-click it for Stow’s menu.")
+                }
+                // Dragging files anywhere else leaves the Tray alone (#180); say where to take them.
+                Toggle(isOn: $trayWhileDragging) {
+                    Text("Show Tray when files are dragged to it")
+                    if trayIcon {
+                        Text("Drag files up to the Tray icon in the menu bar.")
+                    } else {
+                        Text("Drag files to the right edge of the screen.")
+                    }
+                }
+                // Fixed, so it's shown rather than edited: Window › Show Tray uses it.
+                LabeledContent {
+                    Text(verbatim: "⌥⌘T")
+                } label: {
+                    Text("Show or hide the Tray")
+                    Text("While Stow is in front. It’s also in the Window menu.")
+                }
+            } header: {
+                Text("Showing and Hiding")
+            } footer: {
+                VStack(alignment: .leading, spacing: Space.m) {
+                    // With neither icon nor drag reveal, the shortcut is the only way out: say so.
+                    if !trayIcon && !trayWhileDragging {
+                        Text("With the icon and dragging both off, show the Tray with ⌥⌘T.")
+                    }
+                    // Keep Tray Open has no setting of its own (#282): say what happens, and where the pin is.
+                    Text("The Tray hides when you click elsewhere or switch apps. Its pin keeps it open until you close it.")
+                }
+            }
+            .dependsOnTray(isEnabled)
+            Section {
+                Picker("Border colour", selection: $trayBorder) {
+                    ForEach(TrayBorder.allCases) { border in
+                        Label { Text(border.title) } icon: {
+                            Image(systemName: "circle.fill").foregroundStyle(border.color)
+                        }
+                        .tag(border.rawValue)
+                    }
+                }
+            } header: {
+                Text("Appearance")
+            }
+            .dependsOnTray(isEnabled)
+        }
+        .formStyle(.grouped)
+    }
+}
+
+private extension View {
+    /// Rows that only matter while Tray is on: disabled, and their words dimmed too, since a grouped
+    /// form greys a disabled switch but leaves its title at full strength.
+    /// Only off sets a style: any style set while on would flatten the subtitles and footer to primary.
+    @ViewBuilder func dependsOnTray(_ enabled: Bool) -> some View {
+        if enabled {
+            self
+        } else {
+            disabled(true).foregroundStyle(.tertiary)
+        }
     }
 }

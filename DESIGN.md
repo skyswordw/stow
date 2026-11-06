@@ -223,7 +223,7 @@ as colour; not kept open is the plain `pin`. Close stays right beside it: it sti
 Tray that's kept open. Clicking the pin says what changed for 2 s in a small glass capsule
 hanging under it — *Stays open until you close it* / *Hides when you click elsewhere* — that
 takes no clicks and covers only the top of the first row. The help tags say the same at more
-length, and Settings › General explains it in the Tray section's footer (no setting of its
+length, and Settings › Tray explains it in the Showing and Hiding footer (no setting of its
 own any more). Chinese calls the Tray 托盘 everywhere and the pin 保持打开.
 
 ## Glance layout (#159)
@@ -292,16 +292,16 @@ All stays ready.
 
 ## Settings layout (#162)
 
-Twelve pages are too many for toolbar tabs, so Settings is System Settings' shape: a fixed sidebar
+Thirteen pages are too many for toolbar tabs, so Settings is System Settings' shape: a fixed sidebar
 beside one page. The window is 756 pt wide (a 196-pt sidebar, a 560-pt page) and keeps its size
 when the page changes; a long page scrolls, and the window can be made taller (its width is fixed).
 Switching pages doesn't animate.
 
 | Sidebar group (`SettingsCategory`) | Pages |
 | --- | --- |
-| General | General: appearance, the Browser's first view, app language, Tray, updates |
+| General | General: appearance, the Browser's first view, app language, updates |
 | Archive work | Extraction · Installing · Packing |
-| Interaction | Actions · **Glance** · Previews |
+| Interaction | Actions · **Glance** · **Tray** · Previews |
 | Security | Passwords |
 | System integration | File Types · Finder & Permissions |
 | Advanced | Advanced (cache, reset) · Licenses |
@@ -329,6 +329,18 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
   open archive between the two (see Browser layout › Opening an archive). Then, under Appearance,
   the window material and colourful controls. While Reduce Transparency is on, the
   footer says Glance is solid whatever is chosen; the choice itself is kept.
+- **Tray** (#288) has its own page, like Actions: the master switch **Enable Tray** first, with
+  a footer that says what it means once Stow's last window closes (on: Stow keeps running without
+  a Dock icon so the Tray stays ready; off: Stow quits once its work finishes) and that opening at
+  login lives in Finder & Permissions. Then **Showing and Hiding**: the menu-bar icon (its
+  subtitle says Control-click opens Stow's menu), drag reveal (its subtitle says where to drag:
+  up to the icon, or to the right edge without it), and ⌥⌘T as a read-only row; the footer says
+  how the Tray hides and that the pin keeps it open, plus how to reach it when the icon and drag
+  reveal are both off. Then **Appearance** with the border colour. While Tray is off everything
+  under the switch is disabled and its words go tertiary (a grouped form greys a disabled
+  switch but not its title); the values are kept. No idle timer, by the user's choice (#286).
+  The status item's Control/right-click menu is native and short (#290): Open Tray, Open Stow,
+  Create Archive… · Settings… (straight to this page) · Quit Stow, no key equivalents shown.
 - **General** shows the language in use and folds the macOS how-to into a disclosure.
 - File Types drops its own heading in Settings (the title bar names the page); its standalone
   scene keeps it. Its introduction lines up with the form's headers and footers, and its buttons
