@@ -348,6 +348,58 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
 - In Simplified Chinese the page is **访达与权限**, macOS's own name for Finder, like every other
   Finder string on that page and in Welcome.
 
+## New archive draft (#293)
+
+File › New Archive, Welcome's Create Archive… and the Tray menu open one **draft**: a window of
+its own that plans an archive from real files and writes nothing until Save succeeds. Quick Pack
+(Tray, Finder, drops on Welcome) keeps the Pack sentence; the draft doesn't use it.
+
+- **Heading.** The format's Finder icon, then the archive's name as the window's title in `.title2`
+  semibold, with the extension straight after it as a sentence token (`.zip ⌄`, amber, pull-down
+  chevron) that picks any format. The name is a plain field that reads as the title until hovered
+  (faint fill) or clicked (field background and focus ring). Under it, secondary: **Not saved yet**,
+  then what's planned, "5 items · 884 kB before compression". That size is the originals', never
+  the archive's: no final bytes and no encryption claim until a pack has succeeded. The title bar is
+  quiet, as on Welcome: traffic lights only.
+- **Save… at the trailing edge**, where the Browser keeps Save. Prominent glass once there is
+  something to save; while the draft is empty it steps back to plain glass, disabled, and the empty
+  card's **Add Files…** is the prominent one: the next step is always the accented button.
+- **Contents card** (radius 16, `.background`) is the drop target, as the Tray's card and Welcome's
+  zone are: dashed edge while empty; accent edge, light tint and 1.015 scale while something is held
+  over it. Empty, it says what dropping does and that the originals stay where they are. Filled,
+  it's a native outline of the planned contents: top-level items in the order they were added,
+  folders openable with their contents sorted by name, each row with the file's Finder icon, its
+  name (a numbered one when two share a name, "Notes 2.txt") and, trailing and secondary, a size or
+  "2 items". No separators. Selection, arrows and the context menu (Remove, with "The originals stay
+  where they are"; Show in Finder) are the system list's.
+- **List bar** under the list, attached to it: borderless **+ Add Files…** and **− Remove** (named
+  with the count for several), and a tertiary "Drop more to add them". The keys stay in the Edit
+  menu: ⇧⌘A adds, ⌘⌫ removes, ⌘Z puts back.
+- **A problem** (an add that failed, a source that changed before Save) is one yellow-tinted card
+  between the heading and the list, its words selectable, with a small × to dismiss.
+- **Saving.** Save… opens the save sheet; packing then floats in the pack capsule over the list,
+  as over the Browser's files.
+
+**Save sheet for a draft.** The draft already has a name and a format, so the sheet starts with
+what will be saved: the format's icon and the file name the purpose allows ("Harbor Handoff.zip",
+`.title2` semibold) over the planned contents. Then a short form, labels trailing-aligned as in More
+Options: **Name** (field, extension beside it, a caption when the purpose replaces characters),
+**Format** (any format; one the purpose doesn't offer brings a purpose that does), **For** (the
+purposes), **Password** (without / with; a format that can't says so under it; the password and
+check fields open under the row), **Where** (the suggested folder with its icon and "Suggested.
+You'll confirm the folder next.", or "You'll choose a folder next."). The report card, More Options
+and the footer's estimate ("About 810 kB") follow exactly as in Pack; the primary button is
+**Save…** and opens the same folder chooser. Compression, parts, verification and the rest stay in
+More Options.
+
+**Motion.** Rows an add (or an Undo) brings in get the Tray's accent ring and faint tint at once,
+fading after 1.2 s, and the last is scrolled into view (no scroll animation under Reduce Motion).
+Empty ↔ filled cross-fades (`status` 200 ms; none after a key, so ⌘Z doesn't animate). The drop
+target springs as everywhere (`target`). The heading's icon cross-fades and the token blurs over to a
+new format (`token` 180 ms). The problem card fades in (`status`) and out (`exit`); the pack capsule
+rises as Actions does. Under Reduce Motion nothing scales or moves; Increase Contrast gives the card
+and the problem card a visible edge.
+
 ## Color
 
 - **Accent — Amber** `#D97B2B` (light) / `#B85E1C` (dark). Warm, like kraft paper and parcel tape;
