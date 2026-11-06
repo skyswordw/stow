@@ -8,7 +8,9 @@ sentence builder as the primary configuration, and unrestricted format controls 
 Options**. Add General Sharing; recommendations must not be hard format restrictions. The
 previous compact draft composition and separate Save form from #297 are superseded. Claude Code's
 Browser-consistent treatment (#302) is in › New archive draft; Codex owns functional integration. Status-menu Open Tray is removed;
-Open Stow/Settings must come to the front. Dock exposes current windows and existing recent history.
+Open Stow/Settings must come to the front. Dock lists existing recent archives directly at the top
+of its menu, followed by current windows with the current-window checkmark; recent files do not
+require an Open Recent submenu (user correction, 2026-11-06).
 
 ## Tray, creation and entry-point functional handoff — #286
 

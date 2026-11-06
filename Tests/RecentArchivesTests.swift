@@ -203,13 +203,18 @@ struct DockMenuTests {
         defer { window.orderOut(nil) }
         let controller = DockMenuController()
         let menu = controller.makeMenu(app: app, windows: [window], current: window)
-        #expect(menu.items.first?.title == "Create Archive")
-        #expect(menu.items.first?.state == .on)
-        let recent = try #require(menu.items.last?.submenu)
-        #expect(recent.items.map(\.title) == ["existing.zip"])
-        #expect(recent.items.first?.representedObject as? String == app.recents.visible.first?.id)
+        #expect(menu.items.count == 3)
+        #expect(menu.items.first?.title == "existing.zip")
+        #expect(menu.items.first?.submenu == nil)
+        #expect(menu.items.first?.representedObject as? String == app.recents.visible.first?.id)
+        #expect(menu.items[1].isSeparatorItem)
+        #expect(menu.items.last?.title == "Create Archive")
+        #expect(menu.items.last?.state == .on)
         window.orderOut(nil)
         let hidden = controller.makeMenu(app: app, windows: [window], current: window)
         #expect(hidden.items.count == 1, "A closed window must not remain in the Dock menu")
+        app.recents.clear()
+        #expect(controller.makeMenu(app: app, windows: [window], current: nil).items.isEmpty,
+                "No empty submenu or separator is shown without history or open windows")
     }
 }

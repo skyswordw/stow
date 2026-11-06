@@ -137,18 +137,7 @@ final class DockMenuController: NSObject {
         self.app = app
         let menu = NSMenu()
         menu.autoenablesItems = false
-        for window in windows where Self.includes(window) {
-            let item = NSMenuItem(title: window.title, action: #selector(showWindow(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = window
-            item.state = window === current ? .on : .off
-            menu.addItem(item)
-        }
-        if !menu.items.isEmpty { menu.addItem(.separator()) }
         app.recents.refresh()
-        let recent = NSMenuItem(title: String(localized: "Open Recent"), action: nil, keyEquivalent: "")
-        let submenu = NSMenu()
-        submenu.autoenablesItems = false
         for entry in app.recents.visible {
             let item = NSMenuItem(title: OpenRecentMenu.title(for: entry, among: app.recents.visible),
                                  action: #selector(openRecent(_:)), keyEquivalent: "")
@@ -156,11 +145,17 @@ final class DockMenuController: NSObject {
             item.representedObject = entry.id
             item.toolTip = entry.folderDisplay
             item.isEnabled = app.passwords.question == nil
-            submenu.addItem(item)
+            menu.addItem(item)
         }
-        recent.submenu = submenu
-        recent.isEnabled = !submenu.items.isEmpty && app.passwords.question == nil
-        menu.addItem(recent)
+        let visibleWindows = windows.filter(Self.includes)
+        if !menu.items.isEmpty && !visibleWindows.isEmpty { menu.addItem(.separator()) }
+        for window in visibleWindows {
+            let item = NSMenuItem(title: window.title, action: #selector(showWindow(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = window
+            item.state = window === current ? .on : .off
+            menu.addItem(item)
+        }
         return menu
     }
 
