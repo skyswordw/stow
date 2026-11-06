@@ -7,7 +7,7 @@ recipient's computer. *Stow* is a working name.
 
 **Status:** prototype. Real archives open, browse, preview and extract through a sandboxed 7-Zip
 engine; packing creates real archives; the install Actions (apps, fonts, installer packages) and
-Finder integration (Quick Look, context menu, Services, file types) are real. "Download Sample…" opens
+Finder integration (Quick Look, context menu, Services, file types) are real. "Download Sample Archive" opens
 the browser to a versioned genuine ZIP; open it normally after downloading. Production bundles omit
 sample assets. Debug fixtures and the website's browsing screenshots use that same ZIP
 (`scripts/website-shots.sh`); other explicitly selected design-review scenes use synthetic data.
@@ -262,7 +262,7 @@ ordinary-file drops retain the quick Pack path. Closing a changed draft offers S
 
 Production Release bundles omit `Resources/Sample`. Debug builds copy those deterministic
 fixtures for tests and `scripts/snapshot.sh`; the source assets and licenses remain in the repository.
-File > Download Sample… is an explicit browser download of the genuine ZIP pinned to revision
+Help > Download Sample Archive (also in Welcome to Stow) is an explicit browser download of the genuine ZIP pinned to revision
 `33d533e7a74c0f6c862ce49a8d0fc72e93a71e90`; Help > Sample Credits and Licenses opens its source
 and license directory. Open the downloaded ZIP normally. No sample is fetched at launch, no
 network entitlement is added, and a missing fixture never becomes a fabricated production archive.

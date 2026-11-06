@@ -7,15 +7,29 @@ struct WelcomeWindow: View {
     static let size = CGSize(width: 640, height: 600)
     @Environment(AppState.self) private var app
     @State private var window: NSWindow?
+    @State private var trafficLights = TrafficLights.standard
 
     var body: some View {
         WelcomeView()
             .safeAreaInset(edge: .bottom, spacing: 0) { PackActivityAccessory() }
             .frame(width: Self.size.width, height: Self.size.height)
+            // Settings mirrors the traffic lights in the other top corner: their vertical centre,
+            // and the close button's inset from the leading edge as its glyph's from the trailing.
+            .overlay(alignment: .topTrailing) {
+                WelcomeSettingsButton()
+                    // The gear's ink sits half a point below its frame's centre.
+                    .padding(.top, trafficLights.midY - WelcomeSettingsButton.size / 2 - 0.5)
+                    .padding(.trailing, trafficLights.inset - WelcomeSettingsButton.glyphInset)
+                    .ignoresSafeArea()
+            }
             .background {
                 WindowReader { window in
                     self.window = window
                     window.animationBehavior = WindowSwitch.animation
+                    // Once AppKit has laid out the title bar.
+                    DispatchQueue.main.async {
+                        if let measured = TrafficLights(in: window) { trafficLights = measured }
+                    }
                 }
             }
             // Closing it while an archive is still on its way cancels that, as closing the Browser
@@ -29,6 +43,73 @@ struct WelcomeWindow: View {
     }
 }
 
+/// Where the window's own buttons sit, measured from the close button (in points from the window's
+/// top-leading corner), so the Settings gear can mirror them whatever the system's metrics are.
+private struct TrafficLights: Equatable {
+    var inset: CGFloat
+    var midY: CGFloat
+    /// The macOS 26 metrics, until the window is measured.
+    static let standard = TrafficLights(inset: 9, midY: 16)
+
+    init(inset: CGFloat, midY: CGFloat) {
+        self.inset = inset
+        self.midY = midY
+    }
+
+    @MainActor init?(in window: NSWindow) {
+        guard let close = window.standardWindowButton(.closeButton), close.window != nil else { return nil }
+        let frame = close.convert(close.bounds, to: nil)
+        guard frame.width > 0 else { return nil }
+        self.init(inset: frame.minX, midY: window.frame.height - frame.midY)
+    }
+}
+
+/// Settings as a quiet gear in the window's top-trailing corner: an icon like the traffic lights
+/// opposite, named "Settings…" for VoiceOver and its tooltip, with a hover circle and a focus ring.
+private struct WelcomeSettingsButton: View {
+    /// The hover circle: a little over the traffic lights' own 16 pt buttons, so it stays light.
+    static let size: CGFloat = 22
+    /// The glyph draws as wide as a traffic light (14 pt) at this point size.
+    private static let pointSize: CGFloat = 13.5
+    private static let glyph: CGFloat = 14
+    /// From the circle's edge to the glyph's, so the glyph (not the circle) lines up with the inset.
+    static let glyphInset = (size - glyph) / 2
+
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    var body: some View {
+        Button {
+            SettingsRouter.shared.show(.general)
+        } label: {
+            Image(systemName: "gearshape")
+                // Medium, so its strokes carry about the weight of the filled lights opposite.
+                .font(.system(size: Self.pointSize, weight: .medium))
+                .frame(width: Self.size, height: Self.size)
+                .contentShape(.circle)
+        }
+        .buttonStyle(CornerButtonStyle(increased: ContrastStyle.resolve(colorSchemeContrast).increased))
+        .focusRing(in: Circle(), outset: 0)
+        .accessibilityLabel(Text("Settings…"))
+        .help("Open Stow’s settings (⌘,)")
+    }
+}
+
+private struct CornerButtonStyle: ButtonStyle {
+    let increased: Bool
+    @State private var isHovering = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            // Secondary like the window's other chrome; full strength under Increase Contrast.
+            .foregroundStyle(increased || isHovering ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+            .background(.primary.opacity(configuration.isPressed ? 0.12 : isHovering ? 0.06 : 0), in: .circle)
+            .overlay {
+                if increased { Circle().strokeBorder(.primary.opacity(0.45), lineWidth: 1) }
+            }
+            .onHover { isHovering = $0 }
+    }
+}
+
 /// The empty window is the drop target: it says what dropping will do. Archives opened before sit
 /// below it.
 struct WelcomeView: View {
@@ -37,6 +118,9 @@ struct WelcomeView: View {
     @State private var isTargeted = false
     /// A drag that only promises a file (Mail, Photos, chat apps); see `OtherAppFiles`.
     @State private var isPromiseTargeted = false
+    /// With keyboard navigation on, the window starts on Create Archive, its primary action.
+    @FocusState private var focus: Action?
+    private enum Action: Hashable { case open, create }
 
     private static let dropZoneSize = CGSize(width: 560, height: 380)
     /// With no history it is the whole window, at the same width it has above the Recent list.
@@ -51,6 +135,7 @@ struct WelcomeView: View {
                     .frame(maxWidth: Self.dropZoneSize.width, maxHeight: .infinity)
             }
         }
+        .frame(maxWidth: Self.dropZoneSize.width)
         .padding(.horizontal, Space.xxl)
         .padding(.bottom, Space.xxl)
         .padding(.top, Space.l)
@@ -67,6 +152,7 @@ struct WelcomeView: View {
             }
             return true
         }
+        .defaultFocus($focus, .create)
         .onAppear { app.recents.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             app.recents.refresh()
@@ -76,10 +162,12 @@ struct WelcomeView: View {
     private var highlighted: Bool { isTargeted || isPromiseTargeted }
 
     private func dropZone(size: CGSize) -> some View {
-        // Without the format list when a short window also has to fit the Recent list.
+        // Without the format list when a short window also has to fit the Recent list, then
+        // without the icon; the two actions always stay.
         ViewThatFits(in: .vertical) {
             dropZoneContent(showsFormats: true)
             dropZoneContent(showsFormats: false)
+            dropZoneContent(showsFormats: false, showsIcon: false)
         }
         .padding(.horizontal, Space.xl)
         .padding(.vertical, Space.l)
@@ -99,19 +187,21 @@ struct WelcomeView: View {
         } isTargeted: { isTargeted = $0 }
     }
 
-    private func dropZoneContent(showsFormats: Bool) -> some View {
+    private func dropZoneContent(showsFormats: Bool, showsIcon: Bool = true) -> some View {
         VStack(spacing: Space.l) {
             // The app's own icon and name, so a large empty window still says whose it is.
             // The drop feedback is the border, the tint and the words; the icon stays put.
-            VStack(spacing: Space.xs) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 64, height: 64)
-                    .accessibilityHidden(true)
-                Text(verbatim: "Stow")
-                    .font(.headline).accessibilityAddTraits(.isHeader)
-                    .foregroundStyle(.secondary)
+            if showsIcon {
+                VStack(spacing: Space.xs) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: 64, height: 64)
+                        .accessibilityHidden(true)
+                    Text(verbatim: "Stow")
+                        .font(.headline).accessibilityAddTraits(.isHeader)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             VStack(spacing: Space.xs) {
@@ -139,16 +229,31 @@ struct WelcomeView: View {
                 .accessibilityElement(children: .combine)
             }
 
-            HStack(spacing: Space.s) {
-                Button("Open Archive…") { app.isChoosingArchive = true }
-                Button("Create Archive…") { app.beginNewArchive() }
-                    .buttonStyle(.glassProminent)
+            // The two ways in, side by side at one width: Create is the prominent one, trailing as
+            // the primary button of a pair is on the Mac; Open is its plain partner. While a drag
+            // is over the zone they step back, so the drop is the only thing it asks for.
+            HStack(spacing: Space.m) {
+                Button { app.isChoosingArchive = true } label: {
+                    Text("Open Archive…").frame(minWidth: Self.actionWidth)
+                }
+                .help("Choose an archive to open (⌘O)")
+                .focused($focus, equals: .open)
+                Button { app.beginNewArchive() } label: {
+                    Text("Create Archive…").frame(minWidth: Self.actionWidth)
+                }
+                .buttonStyle(.glassProminent)
+                .help("Start a new archive and add files to it (⌘N)")
+                .focused($focus, equals: .create)
             }
             .controlSize(.large)
+            .fixedSize()
             .padding(.top, Space.s)
-            Button("Settings…") { SettingsRouter.shared.show(.general) }
+            .opacity(highlighted ? 0.35 : 1)
         }
     }
+
+    /// Wide enough for both titles in English and Simplified Chinese, so the pair reads as one row.
+    private static let actionWidth: CGFloat = 132
 
     private func handleDrop(_ urls: [URL]) -> Bool {
         guard !urls.isEmpty else { return false }

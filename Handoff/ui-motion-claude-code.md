@@ -301,8 +301,12 @@ Relevant files: `App/Settings/PreferenceViews.swift`, `SettingsPane.swift`,
 
 ## 3. Distinguish a sample from real archive operations
 
+*Superseded in part by #292:* Release no longer bundles the sample and Try the Sample is gone;
+Help › Download Sample Archive (and Welcome to Stow) opens a browser download of the genuine ZIP.
+See DESIGN.md › Signature details › The sample. The rule below about simulated scenes still holds.
+
 [Issue #91](https://github.com/skyswordw/stow/issues/91): the product choice is a genuine ZIP.
-Try the Sample opens `Resources/Sample/Harbor Rebrand Handoff.zip` through the normal engine
+Try the Sample opened `Resources/Sample/Harbor Rebrand Handoff.zip` through the normal engine
 (`AppState.openSample()`). Do not present `DemoScene` / `SampleArchive.make()` simulated
 extraction or installs as verified release behaviour — those remain design-review only.
 Screenshot/video asset retakes stay on [#69](https://github.com/skyswordw/stow/issues/69).
