@@ -292,7 +292,7 @@ struct ToolbarSearchField: View {
     @Binding var isFocused: Bool
     /// Bumped by ⌘F and the collapsed button: put the keyboard in the field, even if it has it.
     let focusRequest: Int
-    /// From `TitleBarLayout`, stepped by `SearchWidthMotion` while Search opens or closes: the
+    /// From `TitleBarLayout`, stepped by `ToolbarWidthMotion` while Search opens or closes: the
     /// toolbar sizes items at their ideal width, so the field is told how wide to be rather than
     /// left to shrink.
     let width: CGFloat
@@ -538,11 +538,13 @@ final class SearchFieldFocus {
     }
 }
 
-/// How Search's width moves between the button and the open field (#242). The toolbar sizes its
-/// items once per update and doesn't follow SwiftUI's animations (the capsule jumped in one frame),
-/// so the Browser steps the width itself along this curve. A key press (⌘F) or Reduce Motion
-/// changes it at once (DESIGN.md › Motion), as does anything other than opening or closing.
-nonisolated enum SearchWidthMotion {
+/// How a title-bar control's width moves: Search between the button and the open field (#242), and
+/// Save or Pack… taking its name (`ToolbarNamedAction`). The toolbar sizes its items once per update
+/// and doesn't follow SwiftUI's animations (the capsule jumped in one frame, and every control
+/// before it with it), so the width is stepped along this curve instead. A key press (⌘F, ⌘⌫, ⌘Z)
+/// or Reduce Motion changes it at once (DESIGN.md › Motion), as does anything else, such as a
+/// window resize.
+nonisolated enum ToolbarWidthMotion {
     static let opening: Double = 0.26
     static let closing: Double = 0.18
 
@@ -556,6 +558,110 @@ nonisolated enum SearchWidthMotion {
     static func progress(_ fraction: Double) -> Double {
         let t = min(max(fraction, 0), 1)
         return 1 - (1 - t) * (1 - t) * (1 - t)
+    }
+}
+
+/// A title-bar width moved over a few frames along `ToolbarWidthMotion`, or at once.
+@Observable
+final class ToolbarWidthStep {
+    private(set) var value: CGFloat
+    @ObservationIgnored private var move: Task<Void, Never>?
+
+    init(_ value: CGFloat) { self.value = value }
+
+    /// Moves to `target` over `duration` seconds; nil (a key press, Reduce Motion) sets it at once.
+    func move(to target: CGFloat, duration: Double?) {
+        move?.cancel()
+        move = nil
+        guard let duration, target != value else {
+            value = target
+            return
+        }
+        let start = value
+        move = Task { [weak self] in
+            let began = ContinuousClock.now
+            while !Task.isCancelled {
+                let fraction = (ContinuousClock.now - began) / .seconds(duration)
+                self?.value = start + (target - start) * ToolbarWidthMotion.progress(fraction)
+                if fraction >= 1 { break }
+                try? await Task.sleep(for: .milliseconds(8))
+            }
+        }
+    }
+}
+
+/// Save, and the draft's Pack…: an icon in the editing capsule while there's nothing to do; the
+/// accent and its name once there is, since an icon alone in a filled circle reads as a pressed
+/// button, especially in a window that isn't active. The name is revealed from the icon over a few
+/// frames (`ToolbarWidthMotion`) so the controls before it slide aside instead of jumping, and
+/// folds back into the icon the same way before it rejoins the capsule.
+struct ToolbarNamedAction: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    /// There's something to do: the accent and the name.
+    let isNamed: Bool
+    /// While named, whether it can be done right now (a pack already running can't start another).
+    var isEnabled = true
+    let action: () -> Void
+
+    @Environment(\.reducesMotion) private var reduceMotion
+    @State private var reveal: ToolbarWidthStep
+    @State private var titleWidth: CGFloat = 0
+
+    init(_ title: LocalizedStringKey, systemImage: String, isNamed: Bool, isEnabled: Bool = true,
+         action: @escaping () -> Void) {
+        self.title = title
+        self.systemImage = systemImage
+        self.isNamed = isNamed
+        self.isEnabled = isEnabled
+        self.action = action
+        _reveal = State(initialValue: ToolbarWidthStep(isNamed ? 1 : 0))
+    }
+
+    var body: some View {
+        Group {
+            if isNamed || reveal.value > 0 {
+                // Folding away, it stays as it was until it's back to the icon and does nothing:
+                // a prominent button the toolbar sees go disabled is drawn again as a plain one,
+                // and it blinks out for a frame on the way.
+                Button {
+                    if isNamed { action() }
+                } label: {
+                    Label(title, systemImage: systemImage)
+                }
+                .labelStyle(RevealedTitle(reveal: reveal.value, titleWidth: $titleWidth))
+                .buttonStyle(.borderedProminent)
+                .disabled(isNamed && !isEnabled)
+            } else {
+                Button(title, systemImage: systemImage, action: action)
+                    .disabled(true)
+            }
+        }
+        .onChange(of: isNamed) { _, named in
+            reveal.move(to: named ? 1 : 0, duration: ToolbarWidthMotion.duration(
+                opening: named, byKeyboard: Motion.byKeyboard, reduceMotion: reduceMotion))
+        }
+    }
+
+    /// `.titleAndIcon`, with the title shown as far as `reveal` (0…1) from the icon's side.
+    private struct RevealedTitle: LabelStyle {
+        let reveal: CGFloat
+        @Binding var titleWidth: CGFloat
+        /// The gap `.titleAndIcon` leaves between a toolbar button's icon and its title.
+        static let gap: CGFloat = 8.5
+
+        func makeBody(configuration: Configuration) -> some View {
+            HStack(spacing: 0) {
+                configuration.icon
+                configuration.title
+                    .padding(.leading, Self.gap)
+                    .fixedSize()
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { titleWidth = $0 }
+                    .opacity(min(1, reveal * 1.6))
+                    .frame(width: reveal >= 1 ? nil : titleWidth * reveal, alignment: .leading)
+                    .clipped()
+            }
+        }
     }
 }
 

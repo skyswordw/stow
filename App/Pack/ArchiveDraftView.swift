@@ -30,6 +30,9 @@ struct ArchiveDraftView: View {
     @State private var isSearchExpanded = false
     @State private var searchFocusRequest = 0
     @State private var windowWidth: CGFloat = 980
+    /// Search's width as drawn: `titleBar.searchWidth`, stepped there while Search opens or closes.
+    @State private var searchWidth = ToolbarWidthStep(TitleBarLayout.buttonWidth)
+    @State private var searchWasOpen = false
 
     private var browsing: DraftBrowsing { draft.browsing }
     private var isSearchOpen: Bool { isSearchExpanded || isSearchFocused || !browsing.query.isEmpty }
@@ -89,6 +92,7 @@ struct ArchiveDraftView: View {
                 return true
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { windowWidth = $0 }
+            .onChange(of: titleBar.searchWidth, initial: true) { _, target in followSearchWidth(target) }
             .onChange(of: browsing.searchFocusRequest) { activateSearch() }
             .onChange(of: isSearchFocused) { _, focused in if !focused { isSearchExpanded = false } }
             .onKeyPress(.escape) {
@@ -149,7 +153,7 @@ struct ArchiveDraftView: View {
         ToolbarItem {
             ToolbarSearchField(query: Bindable(browsing).query, prompt: String(localized: "Search \(tree.isEmpty ? 0 : browsing.nodes.count) files"),
                                isFocused: $isSearchFocused, focusRequest: searchFocusRequest,
-                               width: titleBar.searchWidth, isOpen: isSearchOpen, activate: activateSearch, close: {
+                               width: searchWidth.value, isOpen: isSearchOpen, activate: activateSearch, close: {
                                    browsing.query = ""
                                    isSearchFocused = false
                                    isSearchExpanded = false
@@ -183,22 +187,28 @@ struct ArchiveDraftView: View {
                   : String(localized: "Take the selection out of this archive. The originals stay where they are."))
             .accessibilityLabel(String(localized: "Delete"))
 
-            Group {
-                if isEmpty {
-                    packButton.disabled(true)
-                } else {
-                    // Says its name once there's something to pack: an icon alone in a filled
-                    // circle reads as a pressed button.
-                    packButton
-                        .labelStyle(.titleAndIcon)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!draft.canSave || app.packing.isRunning)
-                }
+            // Tray's Pack glyph: a box the files go into. Says its name once there's something to
+            // pack, as Save does. It greys only while a pack is running: behind its own sheet or
+            // Add Files' panel, or for the moment an add takes, it stays as it is (the sheet holds
+            // the window, and `prepareSave` waits for `canSave`). Each time a prominent toolbar
+            // button goes disabled the toolbar draws it again, and it blinks out on the way.
+            ToolbarNamedAction("Pack…", systemImage: "archivebox", isNamed: !isEmpty,
+                               isEnabled: !draft.isSaving && !app.packing.isRunning) {
+                draft.prepareSave()
             }
             .help(isEmpty ? String(localized: "Add files to pack this archive")
                   : String(localized: "Choose how to pack it and where to put it"))
             .accessibilityLabel(String(localized: "Pack…"))
         }
+    }
+
+    /// Opening or closing Search moves its width over a few frames, as in the Browser; a window
+    /// resize, ⌘F or Reduce Motion sets it at once.
+    private func followSearchWidth(_ target: CGFloat) {
+        let toggled = isSearchOpen != searchWasOpen
+        searchWasOpen = isSearchOpen
+        searchWidth.move(to: target, duration: toggled ? ToolbarWidthMotion.duration(
+            opening: isSearchOpen, byKeyboard: Motion.byKeyboard, reduceMotion: reduceMotion) : nil)
     }
 
     /// Opens Search, then gives it the keyboard once the field exists (as the Browser does).
@@ -209,15 +219,6 @@ struct ArchiveDraftView: View {
             await Task.yield()
             isSearchFocused = true
             searchFocusRequest += 1
-        }
-    }
-
-    /// Tray's Pack glyph: a box the files go into.
-    private var packButton: some View {
-        Button {
-            draft.prepareSave()
-        } label: {
-            Label("Pack…", systemImage: "archivebox")
         }
     }
 

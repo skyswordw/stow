@@ -114,22 +114,38 @@ struct BrowserChromeTests {
 
     /// Opening and closing Search move its width over a few frames; ⌘F and Reduce Motion don't (#242).
     @Test func searchWidthMovesOnlyForAPointerAndWithoutReduceMotion() {
-        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: false, reduceMotion: false) == SearchWidthMotion.opening)
-        #expect(SearchWidthMotion.duration(opening: false, byKeyboard: false, reduceMotion: false) == SearchWidthMotion.closing)
+        #expect(ToolbarWidthMotion.duration(opening: true, byKeyboard: false, reduceMotion: false) == ToolbarWidthMotion.opening)
+        #expect(ToolbarWidthMotion.duration(opening: false, byKeyboard: false, reduceMotion: false) == ToolbarWidthMotion.closing)
         // Closing is quicker than opening, as everything leaving is (DESIGN.md › Motion).
-        #expect(SearchWidthMotion.closing < SearchWidthMotion.opening)
-        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: true, reduceMotion: false) == nil)
-        #expect(SearchWidthMotion.duration(opening: true, byKeyboard: false, reduceMotion: true) == nil)
-        #expect(SearchWidthMotion.duration(opening: false, byKeyboard: false, reduceMotion: true) == nil)
+        #expect(ToolbarWidthMotion.closing < ToolbarWidthMotion.opening)
+        #expect(ToolbarWidthMotion.duration(opening: true, byKeyboard: true, reduceMotion: false) == nil)
+        #expect(ToolbarWidthMotion.duration(opening: true, byKeyboard: false, reduceMotion: true) == nil)
+        #expect(ToolbarWidthMotion.duration(opening: false, byKeyboard: false, reduceMotion: true) == nil)
 
         // The curve starts and ends where it should, never runs backwards and never overshoots.
-        #expect(SearchWidthMotion.progress(0) == 0 && SearchWidthMotion.progress(1) == 1)
-        #expect(SearchWidthMotion.progress(-1) == 0 && SearchWidthMotion.progress(2) == 1)
-        let steps = stride(from: 0.0, through: 1.0, by: 0.05).map(SearchWidthMotion.progress)
+        #expect(ToolbarWidthMotion.progress(0) == 0 && ToolbarWidthMotion.progress(1) == 1)
+        #expect(ToolbarWidthMotion.progress(-1) == 0 && ToolbarWidthMotion.progress(2) == 1)
+        let steps = stride(from: 0.0, through: 1.0, by: 0.05).map(ToolbarWidthMotion.progress)
         #expect(zip(steps, steps.dropFirst()).allSatisfy { $0 <= $1 })
         #expect(steps.allSatisfy { $0 >= 0 && $0 <= 1 })
         // Ease-out: most of the way there by halfway.
-        #expect(SearchWidthMotion.progress(0.5) > 0.8)
+        #expect(ToolbarWidthMotion.progress(0.5) > 0.8)
+    }
+
+    /// Save's and Pack…'s names unroll over a few frames and end exactly where they're headed; a key
+    /// press or Reduce Motion (no duration) sets the width at once, stopping a move in progress.
+    @Test func toolbarWidthStepArrivesAndKeyPressesSetItAtOnce() async throws {
+        let step = ToolbarWidthStep(0)
+        step.move(to: 1, duration: 0.05)
+        #expect(step.value < 1)
+        try await Task.sleep(for: .milliseconds(250))
+        #expect(step.value == 1)
+
+        step.move(to: 0, duration: 0.5)
+        step.move(to: 0.25, duration: nil)
+        #expect(step.value == 0.25)
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(step.value == 0.25)
     }
 
     @Test func passwordAccessTakesTheLocksWidthFromTheName() {
