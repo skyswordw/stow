@@ -346,22 +346,31 @@ struct ToolbarSearchField: View {
                         closeSearch()
                         return .handled
                     }
+                // Clear belongs to the text: the system field's filled circle, only while there's
+                // something to clear, and Search stays open with the keyboard.
                 if !query.isEmpty {
                     Button("Clear Search", systemImage: "xmark.circle.fill") {
                         query = ""
                         takeKeyboard()
                     }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                    .buttonStyle(SearchFieldButtonStyle())
                     .help("Clear Search")
                 }
+                // Close belongs to the capsule: past a hairline, at its trailing end in every
+                // state, so it never moves and never reads as a second Clear (#294).
+                Rectangle()
+                    .fill(.separator)
+                    .frame(width: 1, height: 16)
+                    .padding(.horizontal, 2)
+                    .accessibilityHidden(true)
                 Button("Close Search", systemImage: "xmark", action: closeSearch)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
+                    .buttonStyle(SearchFieldButtonStyle())
+                    .fontWeight(.medium)
                     .help("Close Search")
             }
-            .padding(.horizontal, Space.m)
+            // The trailing button's own hit area is the inset there.
+            .padding(.leading, Space.m)
+            .padding(.trailing, Space.xs + 2)
             // Only the background takes this gesture: a close-button click must not refocus.
             .background {
                 Color.clear.contentShape(.capsule).onTapGesture { takeKeyboard() }
@@ -391,6 +400,29 @@ struct ToolbarSearchField: View {
         }
 
         @State private var anchor = FieldAnchor()
+    }
+}
+
+/// Search's Clear and Close: icon-only, as quiet as the field's magnifying glass until the pointer
+/// is over one, with a hit area larger than the glyph. No hover animation, as the system field's.
+private struct SearchFieldButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HoverLabel(configuration: configuration)
+    }
+
+    private struct HoverLabel: View {
+        let configuration: Configuration
+        @State private var isHovered = false
+
+        var body: some View {
+            configuration.label
+                .labelStyle(.iconOnly)
+                .foregroundStyle(isHovered ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                .opacity(configuration.isPressed ? 0.55 : 1)
+                .frame(width: 18, height: 22)
+                .contentShape(.rect)
+                .onHover { isHovered = $0 }
+        }
     }
 }
 

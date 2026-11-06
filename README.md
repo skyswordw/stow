@@ -53,7 +53,7 @@ running step finishes and is unavailable when another window or a sheet is activ
 scripts/snapshot.sh <scene> [light|dark]   # → snapshots/
 ```
 
-Scenes: `editing`, `readonly`, `welcome`, `grid`, `list`, `fonts`, `search`, `activity`, `pack`, `draft-empty`, `draft`, `draft-save` (the new-archive draft and its Save sheet), `tray`, `quicklook`
+Scenes: `editing`, `readonly`, `welcome`, `grid`, `list`, `fonts`, `search`, `search-open`, `activity`, `pack`, `draft-empty`, `draft`, `draft-save` (the new-archive draft and its Save sheet), `tray`, `quicklook`
 (`-StowPreview encrypted|slow`), `associations`, `integration` (`-StowRepair YES`), `batch`,
 `conflict`, `conflict-folder`, `signature-warning`, `replace-app`, `extract-options`, `install-options`,
 `packing`, `packed`, `packrun`, `checkup`, `install-preparing`, `install-done`, `open-unreadable`, Details and archive notices (`details-clean`, `details-planned`,
