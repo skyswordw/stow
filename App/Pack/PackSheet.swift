@@ -586,7 +586,7 @@ struct PackSheet: View {
                     }
                     .labelsHidden()
                     .fixedSize()
-                    caption(String(localized: "A limit is a request; some formats may still use fewer cores."))
+                    caption(String(localized: "Some formats can’t use every core, so they may use fewer."))
                 }
 
                 // Open, Reset sits under the rows it puts back, with its reach in words rather than

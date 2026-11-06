@@ -217,7 +217,7 @@ enum PackDestination {
     static func resolveConflict(fileName: String, keepBothName: String, in folder: URL) async -> ArchiveCreation.Conflict? {
         let prompt = Prompt(symbol: "doc.on.doc.fill",
                             title: String(localized: "“\(fileName)” already exists in “\(FileManager.default.displayName(atPath: folder.path))”."),
-                            message: String(localized: "Keep both and the new one is named “\(keepBothName)”. Replace moves the old one to the Trash."),
+                            message: String(localized: "Keep Both names the new one “\(keepBothName)”. Replace moves the old one to the Trash."),
                             choices: [.init(title: String(localized: "Cancel"), role: .cancel),
                                       .init(title: String(localized: "Replace")),
                                       .init(title: String(localized: "Keep Both"), role: .primary)])

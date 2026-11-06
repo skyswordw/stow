@@ -54,7 +54,7 @@ struct ArchiveInfoView: View {
                         VStack(alignment: .leading, spacing: Space.xs) {
                             PropertyList(rows)
                             if packed.change != nil {
-                                Text("Compared with the file contents before compression. Includes archive overhead when reported.")
+                                Text("Compared with the files before compression. When the archive reports only its total size, the format’s own overhead is included.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)

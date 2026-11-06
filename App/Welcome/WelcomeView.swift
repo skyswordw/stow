@@ -208,7 +208,7 @@ struct WelcomeView: View {
                 Text(highlighted ? String(localized: "Let go to open") : String(localized: "Drop to open or pack"))
                     .font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .contentTransition(.opacity)
-                Text("An archive opens here; several are extracted. Anything else gets packed.")
+                Text("One archive opens here, several are extracted, and other files are packed.")
                     .foregroundStyle(.secondary)
             }
 

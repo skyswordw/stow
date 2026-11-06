@@ -165,7 +165,7 @@ struct GlanceSettingsView: View {
                     ForEach(SettingsKeys.ArchiveWindowMode.allCases) { Text($0.title).tag($0.rawValue) }
                 }
             } footer: {
-                Text("Last Used Window opens archives in the window you last switched to, the full Browser or Glance, even after you quit Stow. Window › Switch to Glance (⌥⌘G) moves an open archive between the two.")
+                Text("Last Used Window opens archives in whichever window you used last — the full Browser or Glance — even after Stow quits. Window › Switch to Glance (⌥⌘G) moves an open archive between the two.")
             }
             Section {
                 Picker("Window material", selection: $material) {
