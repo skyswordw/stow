@@ -195,6 +195,9 @@ final class ArchiveDraft: Identifiable {
             configuration = nil
             undoManager.removeAllActions()
         case .failure(let error):
+            // A failed/cancelled Save-and-Quit ends that quit attempt. A later ordinary Save
+            // must not inherit permission to terminate the app.
+            quitAfterSave = false
             if EngineError(error).failure != .cancelled { problem = error.localizedDescription }
         }
     }

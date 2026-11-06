@@ -127,4 +127,24 @@ struct ArchiveDraftTests {
         #expect(closed && app.archiveDraft == nil && !draft.canSave)
     }
 
+    @Test(arguments: [false, true])
+    func unsuccessfulSaveAndQuitDoesNotQuitAfterALaterSave(cancelled: Bool) async throws {
+        let temp = try TemporaryFolder()
+        defer { temp.cleanUp() }
+        let source = temp.url.appending(path: "keep.txt")
+        try Data("keep".utf8).write(to: source)
+        let draft = ArchiveDraft()
+        defer { draft.close() }
+        await draft.add([source])
+        draft.quitAfterSave = true
+        draft.beganSaving()
+        draft.finishedSaving(.failure(cancelled ? EngineError(.cancelled, "cancelled") : EngineError(.failed, "failed")))
+        #expect(!draft.quitAfterSave && !draft.isSaving && draft.canSave)
+        #expect(draft.files.count == 1)
+        #expect((draft.problem == nil) == cancelled)
+        draft.beganSaving()
+        draft.finishedSaving(.success([temp.url.appending(path: "Archive.zip")]))
+        #expect(!draft.quitAfterSave, "A later Save must return to the archive, not terminate Stow")
+    }
+
 }
