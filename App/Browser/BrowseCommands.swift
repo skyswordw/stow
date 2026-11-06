@@ -114,19 +114,22 @@ struct BrowseCommands: Commands {
         CommandGroup(after: .textEditing) {
             // Search is in the full window's title bar (#215). ⌘F focuses it, expanding it
             // first if the window is too narrow to show the field. Glance has none.
-            Button("Find…") { app.passwords.performCommand { browser?.focusSearch() } }
+            Button("Find…") {
+                if let draft { draft.browsing.searchFocusRequest += 1 }
+                else { app.passwords.performCommand { browser?.focusSearch() } }
+            }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("f")
-                .disabled(browser == nil || app.glance.isShown)
+                .disabled(draft.map(\.files.isEmpty) ?? (browser == nil || app.glance.isShown))
         }
         CommandGroup(before: .toolbar) {
-            Button("as Icons") { app.passwords.performCommand { browser?.viewMode = .grid } }
+            Button("as Icons") { if let draft { draft.browsing.viewMode = .grid } else { app.passwords.performCommand { browser?.viewMode = .grid } } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("1")
-            Button("as List") { app.passwords.performCommand { browser?.viewMode = .list } }
+            Button("as List") { if let draft { draft.browsing.viewMode = .list } else { app.passwords.performCommand { browser?.viewMode = .list } } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("2")
-            Button("as Columns") { app.passwords.performCommand { browser?.viewMode = .columns } }
+            Button("as Columns") { if let draft { draft.browsing.viewMode = .columns } else { app.passwords.performCommand { browser?.viewMode = .columns } } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("3")
             Divider()

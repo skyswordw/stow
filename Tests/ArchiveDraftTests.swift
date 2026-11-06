@@ -197,4 +197,35 @@ struct ArchiveDraftTests {
         draft.name = "  "
         #expect(draft.fileName == String(localized: "Untitled Archive") + ".tar.xz")
     }
+
+    /// The draft's window gets the Browser's way around (#302): folders, history, Up, Search, and a
+    /// removed folder falls back to the nearest one still planned.
+    @Test func browsingFollowsFoldersHistoryAndSearch() {
+        let files = [
+            PackFile(path: "Photos", size: 0, isFolder: true),
+            PackFile(path: "Photos/Raw", size: 0, isFolder: true),
+            PackFile(path: "Photos/Raw/b.dng", size: 700),
+            PackFile(path: "Notes.txt", size: 12),
+        ]
+        let browsing = DraftBrowsing()
+        browsing.update(tree: DraftNode.tree(from: files))
+        #expect(browsing.visible.map(\.name) == ["Photos", "Notes.txt"])
+        browsing.open(browsing.nodes["Photos"]!)
+        browsing.go(to: "Photos/Raw")
+        #expect(browsing.visible.map(\.name) == ["b.dng"])
+        #expect(browsing.segments.map(\.title) == ["Photos", "Raw"])
+        browsing.goBack()
+        #expect(browsing.folder == "Photos" && browsing.canGoForward)
+        browsing.goForward()
+        browsing.goUp()
+        #expect(browsing.folder == "Photos")
+
+        browsing.query = "dng"
+        #expect(browsing.visible.map(\.id) == ["Photos/Raw/b.dng"])
+        browsing.open(browsing.visible[0])
+        #expect(browsing.folder == "Photos/Raw" && !browsing.isSearching)
+
+        browsing.update(tree: DraftNode.tree(from: files.filter { !$0.path.hasPrefix("Photos") }))
+        #expect(browsing.folder == "" && browsing.visible.map(\.name) == ["Notes.txt"])
+    }
 }

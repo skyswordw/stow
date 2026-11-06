@@ -392,27 +392,34 @@ archive edits retain Save. Cancel/failure preserves the draft and source access;
 the real archive. The title format menu uses direct actions rather than an inline picker nested
 inside a menu.
 
-**Layout (#302).** The draft is the Browser's workspace with the Browser's words, mapped one to one,
-so making an archive and reading one feel like the same window. The previous #297 card/heading
+**Layout (#302).** The draft is the Browser with an archive that has nothing in it yet, as ArcZip's
+Create Archive is its browser over an empty archive (inspected natively 2026-11-05: the same view
+modes, Delete, Save and Search in the title bar, Back/Forward/Up with the path, the list's columns,
+Add Files at the bottom and its details pane). The user asked for the same consistency with the
+Browser after the first #302 pass trimmed the title bar. The previous #297 card/heading
 composition and its separate Save form are superseded.
 
 | Browser | Draft |
 |---|---|
-| Title: name ⌄ over "ZIP archive · 28 files" | Name (a field that reads as the title) and the format as the Pack sentence's `.zip ⌄` token, over "Not packed yet · 5 items · 884 kB before compression" |
-| Title bar, trailing: Delete · Save, Save prominent and titled once there's something to save | Remove · **Pack…**, Pack prominent and titled once there's something to pack; icon-only and disabled while empty |
-| Bottom-leading glass: Extract All | Bottom-leading glass: **Add Files…** (hidden while empty, where the centred button is the one prominent action) |
+| Title: name ⌄ over "ZIP archive · 28 files" | Name (a field that reads as the title) and the Pack sentence's `.zip ⌄` token, over "Not packed yet · 5 items · 884 kB before compression" |
+| Search · Icons/List/Columns · Delete · Save | The same controls in the same capsules: Search (the draft's names), the view modes (⌘1–3), **Delete** (trash; takes items out of the plan, ⌘⌫, Undo puts them back) · **Pack…** (prominent and titled once there's something to pack, icon-only and disabled while empty) |
+| Path capsule: Back, Forward, Up, archive › folders | The same, starting at the archive-to-be (`Harbor Handoff.zip`) |
+| Icons, List, Columns | The same three, from the real originals: Finder icons and Quick Look thumbnails (icon mode), Finder's kind and date. A double-click opens a folder; Search lists matches with where they are |
+| Bottom-leading glass: Extract All | **Add Files…** (hidden while empty, where the centred button is the one prominent action) |
 | Bottom-trailing: Actions / activity | Packing's progress capsule |
-| List with Name · Size · Kind · Modified | The same columns from the real originals (Finder's kind and date); folders open in place so a subtree can be checked or removed without navigating |
-| Details: Archive Info / File Info / Selection Info | The same panel and headings. Archive Info shows the badge, *Files to pack*, *Total file size — Before compression* and *Archive file size — Known after packing*. File Info shows a Quick Look thumbnail, kind, size before compression, date, *Location in archive* and *Original location*. Nothing claims a packed size or a password before Pack makes them |
+| Details: Archive Info / File Info / Selection Info | The same panel and headings. Archive Info: badge, *Files to pack*, *Total file size — Before compression*, *Archive file size — Known after packing*. File Info: thumbnail, kind, size before compression, date, *Location in archive*, *Original location*. Nothing claims a packed size or a password before Pack makes them |
 
-- No path capsule: a draft is one list with disclosure, not a place to navigate. The list starts
-  under the title bar, level with Details.
-- Empty: the Browser's empty-content layout (symbol, line, description, button) inside a dashed
-  edge with Details' radius and inset, so the space reads as a drop target.
-- A drop anywhere on the files draws an accent edge with a light tint at the same inset; promised
-  files (Mail, Photos) land anywhere in the window. New top-level rows ring in the accent for 1.2 s.
-- Problems sit under the title bar in the Browser's notice position.
-- Remove uses `minus.circle`, not Delete's trash: the originals are never touched.
+- Adds land at the top of the archive (the draft has no "add into this folder" yet), so an add
+  goes back to the top, where the new rows ring in the accent for 1.2 s.
+- Empty: the Browser's empty-content layout inside a dashed edge with Details' radius and inset;
+  the path capsule, Search and Delete show but are disabled.
+- A drop anywhere on the files column (path and floating glass included) draws an accent edge with
+  a light tint at the same inset; promised files (Mail, Photos) land anywhere in the window. The
+  list's table is its own AppKit view, so it takes drops through its rows' drop destination and
+  shows the system's drop line rather than the accent edge (checked with real drags from Finder).
+- Opening a folder (double-click, or Return in the list) clears the selection, so Details doesn't
+  describe the folder you're standing in. Columns keep the selected folder, as Finder does.
+- Problems sit under the path in the Browser's notice position.
 
 Preserve file selection, add/remove/undo, source safety, keyboard routing and system
 display/motion preferences.

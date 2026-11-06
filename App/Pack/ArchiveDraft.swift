@@ -18,6 +18,8 @@ final class ArchiveDraft: Identifiable {
     var configuration: Configuration?
     var packRequest: PackRequest?
     let undoManager = UndoManager()
+    /// Where its window is looking: folder, history, view mode and Search (#302).
+    let browsing = DraftBrowsing()
     private var generation = 0
     private var isClosed = false
     private var scopes: [URL] = []

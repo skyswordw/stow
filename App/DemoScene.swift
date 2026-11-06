@@ -62,7 +62,8 @@ import SwiftUI
 /// archive-app and glance-app: an archive that's one app with nothing selected, where Actions offers
 /// Install App (fictional, so it only simulates).
 /// `-nextSteps.hidden quickLook,extract` and `-nextSteps.shown NO` try other choices without saving them.
-/// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops).
+/// `-StowWindowSize 900x560` resizes the main window first (compact marketing crops; the new-archive
+/// window in draft scenes).
 /// `-StowViewMode grid|list|columns` switches the view; `-StowScrollToEnd YES` scrolls to the last item.
 /// With -StowSnapshot, each visible window is rendered to a PNG in the sandbox's temporary
 /// directory and its path printed to stdout, so no Screen Recording permission is needed.
@@ -557,6 +558,15 @@ enum DemoScene {
             Task {
                 await draft.add(urls)
                 if scene == "draft" { draft.selection = ["Invoice October.pdf"] }
+                // -StowView grid|list|columns and -StowFolder, as for an archive (BrowseDemo).
+                let defaults = UserDefaults.standard
+                if let view = defaults.string(forKey: "StowView").flatMap(BrowserModel.ViewMode.init(rawValue:)) {
+                    draft.browsing.viewMode = view
+                }
+                if let folder = defaults.string(forKey: "StowFolder") {
+                    draft.browsing.go(to: folder)
+                    if let first = draft.browsing.visible.first { draft.selection = [first.id] }
+                }
                 app.beginNewArchive()
                 guard scene == "draft-save" else { return }
                 try? await Task.sleep(for: .milliseconds(600))
@@ -701,11 +711,13 @@ enum DemoScene {
                 try? await Task.sleep(for: .milliseconds(300))
                 // The Browser opens a moment after the welcome window; wait for it rather than
                 // resizing whichever window happens to be up first.
-                for _ in 0..<20 where scene != "settings" && !NSApp.windows.contains(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible }) {
+                // Draft scenes size the new-archive window (#302).
+                let identifier = scene.hasPrefix("draft") ? "creation" : "main"
+                for _ in 0..<20 where scene != "settings" && !NSApp.windows.contains(where: { $0.identifier?.rawValue.hasPrefix(identifier) == true && $0.isVisible }) {
                     try? await Task.sleep(for: .milliseconds(100))
                 }
                 let targetWindow = scene == "settings" ? NSApp.keyWindow
-                    : NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main") == true && $0.isVisible })
+                    : NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix(identifier) == true && $0.isVisible })
                     ?? NSApp.windows.first(where: { !($0 is NSPanel) && $0.isVisible })
                 guard let window = targetWindow else { return }
                 // Resize only once SwiftUI has finished sizing the window itself. Changing the frame

@@ -2,14 +2,13 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A new archive that isn't written yet (#293), laid out as the Browser is (#302), so making an
-/// archive and opening one read as the same workspace. Where the Browser names the archive, the
-/// title bar names this one (its name and format, both editable, over what it plans); where the
-/// Browser keeps Delete · Save, this keeps Remove · Pack…; where Extract All floats, Add Files…
-/// does. The planned files take the Browser's list and columns, folders open in place, and Details
-/// beside them tells the real sources' facts — never a packed size or a password before Pack has
-/// made them. Nothing on disk changes until the pack succeeds; the originals never do.
-/// DESIGN.md › New archive draft.
+/// A new archive that isn't written yet (#293), in the Browser's workspace (#302), as ArcZip's
+/// new archive is its browser with nothing in it yet: the name and format where the Browser names
+/// its archive; Search, the view modes and Delete · Pack… where the Browser has Search, the view
+/// modes and Delete · Save; the path capsule with Back, Forward and Up; Icons, List and Columns;
+/// Add Files… where Extract All floats; and Details beside the files with the real sources'
+/// facts — never a packed size or a password before Pack has made them. Nothing on disk changes
+/// until the pack succeeds; the originals never do. DESIGN.md › New archive draft.
 struct ArchiveDraftView: View {
     @Bindable var draft: ArchiveDraft
     @Environment(AppState.self) private var app
@@ -26,6 +25,17 @@ struct ArchiveDraftView: View {
     @State private var isPromiseTargeted = false
     /// The list takes the keyboard when it appears, as the Browser's files do.
     @FocusState private var listFocused: Bool
+    /// Search in the title bar, as the Browser keeps it (`BrowserView`).
+    @State private var isSearchFocused = false
+    @State private var isSearchExpanded = false
+    @State private var searchFocusRequest = 0
+    @State private var windowWidth: CGFloat = 980
+
+    private var browsing: DraftBrowsing { draft.browsing }
+    private var isSearchOpen: Bool { isSearchExpanded || isSearchFocused || !browsing.query.isEmpty }
+    private var titleBar: TitleBarLayout {
+        TitleBarLayout(windowWidth: windowWidth, isSearchOpen: isSearchOpen, saveShowsTitle: !isEmpty)
+    }
 
     private var contrastStyle: ContrastStyle { .resolve(contrast) }
     private var highlighted: Bool { isTargeted || isPromiseTargeted }
@@ -36,7 +46,13 @@ struct ArchiveDraftView: View {
     var body: some View {
         files
             .frame(minWidth: BrowserView.minFilesWidth)
-            .safeAreaInset(edge: .top, spacing: 0) { banner }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
+                    DraftNavigation(browsing: browsing, archiveName: draft.fileName)
+                        .disabled(isEmpty)
+                    banner
+                }
+            }
             // Room for the floating glass, so the last row scrolls clear of it.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear
@@ -45,6 +61,13 @@ struct ArchiveDraftView: View {
                     .accessibilityHidden(true)
             }
             .overlay(alignment: .bottom) { floatingControls }
+            // The whole files column takes drops, the path and the floating glass included; the
+            // list's table takes its own (see `list`).
+            .dropDestination(for: URL.self) { urls, _ in
+                guard canAdd else { return false }
+                Task { await draft.add(urls) }
+                return true
+            } isTargeted: { isTargeted = $0 }
             // Details is part of the window, as in the Browser: no toggle, no close button.
             .inspector(isPresented: .constant(true)) {
                 DraftDetails(draft: draft)
@@ -65,13 +88,21 @@ struct ArchiveDraftView: View {
                 draft.receivePromises(providers)
                 return true
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { windowWidth = $0 }
+            .onChange(of: browsing.searchFocusRequest) { activateSearch() }
+            .onChange(of: isSearchFocused) { _, focused in if !focused { isSearchExpanded = false } }
             .onKeyPress(.escape) {
+                if browsing.isSearching {
+                    browsing.query = ""
+                    return .handled
+                }
                 guard !draft.selection.isEmpty else { return .ignored }
                 draft.selection = []
                 return .handled
             }
             .onChange(of: draft.files, initial: true) { old, new in
                 tree = DraftNode.tree(from: new)
+                browsing.update(tree: tree)
                 noteArrivals(old: old, new: new)
             }
             .background {
@@ -115,16 +146,42 @@ struct ArchiveDraftView: View {
 
         ToolbarSpacer(.flexible)
 
+        ToolbarItem {
+            ToolbarSearchField(query: Bindable(browsing).query, prompt: String(localized: "Search \(tree.isEmpty ? 0 : browsing.nodes.count) files"),
+                               isFocused: $isSearchFocused, focusRequest: searchFocusRequest,
+                               width: titleBar.searchWidth, isOpen: isSearchOpen, activate: activateSearch, close: {
+                                   browsing.query = ""
+                                   isSearchFocused = false
+                                   isSearchExpanded = false
+                               })
+                .disabled(isEmpty)
+        }
+
+        ToolbarSpacer(.fixed)
+
+        ToolbarItem {
+            Picker("View", selection: Bindable(browsing).viewMode) {
+                Label("Icons", systemImage: "square.grid.2x2").tag(BrowserModel.ViewMode.grid)
+                Label("List", systemImage: "list.bullet").tag(BrowserModel.ViewMode.list)
+                Label("Columns", systemImage: "rectangle.split.3x1").tag(BrowserModel.ViewMode.columns)
+            }
+            .pickerStyle(.segmented)
+        }
+
+        ToolbarSpacer(.fixed)
+
+        // Delete · Pack…, in the Browser's Delete · Save capsule. Delete takes items out of the plan
+        // (Edit › Delete, ⌘⌫); the originals are never touched, and Undo puts them back.
         ToolbarItemGroup {
             Button {
                 draft.removeSelection()
             } label: {
-                Label("Remove", systemImage: "minus.circle")
+                Label("Delete", systemImage: "trash")
             }
             .disabled(draft.selection.isEmpty || isBusy)
             .help(draft.selection.isEmpty ? String(localized: "Select files to take them out of this archive")
                   : String(localized: "Take the selection out of this archive. The originals stay where they are."))
-            .accessibilityLabel(String(localized: "Remove"))
+            .accessibilityLabel(String(localized: "Delete"))
 
             Group {
                 if isEmpty {
@@ -141,6 +198,17 @@ struct ArchiveDraftView: View {
             .help(isEmpty ? String(localized: "Add files to pack this archive")
                   : String(localized: "Choose how to pack it and where to put it"))
             .accessibilityLabel(String(localized: "Pack…"))
+        }
+    }
+
+    /// Opens Search, then gives it the keyboard once the field exists (as the Browser does).
+    private func activateSearch() {
+        guard !isEmpty else { return }
+        withAnimation(Motion.current(Motion.appear)) { isSearchExpanded = true }
+        Task { @MainActor in
+            await Task.yield()
+            isSearchFocused = true
+            searchFocusRequest += 1
         }
     }
 
@@ -202,14 +270,22 @@ struct ArchiveDraftView: View {
 
     // MARK: Files
 
-    /// The whole files area takes drops. While something is held over it, an accent edge inset as
-    /// far as Details is, with a light tint, says where it lands.
+    /// The files area. While something is held over the files column, an accent edge inset as far
+    /// as Details is, with a light tint, says where it lands.
     private var files: some View {
         ZStack {
             if isEmpty {
                 empty.transition(.opacity)
+            } else if browsing.isSearching, browsing.visible.isEmpty {
+                ContentUnavailableView.search(text: browsing.query)
             } else {
-                list.transition(.opacity)
+                // View-mode switches are keyboard-speed: no animation. Search lists its results,
+                // as the Browser's Columns do.
+                switch browsing.isSearching && browsing.viewMode == .columns ? .list : browsing.viewMode {
+                case .grid: DraftGrid(draft: draft, browsing: browsing, arrived: arrived).takesKeyboard($listFocused, isSearchFocused: $isSearchFocused)
+                case .list: list
+                case .columns: DraftColumns(draft: draft, browsing: browsing, arrived: arrived).takesKeyboard($listFocused, isSearchFocused: $isSearchFocused)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -222,11 +298,6 @@ struct ArchiveDraftView: View {
                 .allowsHitTesting(false)
                 .animation(Motion.resolved(Motion.target, reduceMotion: reduceMotion), value: highlighted)
         }
-        .dropDestination(for: URL.self) { urls, _ in
-            guard canAdd else { return false }
-            Task { await draft.add(urls) }
-            return true
-        } isTargeted: { isTargeted = $0 }
     }
 
     /// Nothing planned yet. A dashed edge where the files will be, the same shape and inset as
@@ -261,14 +332,24 @@ struct ArchiveDraftView: View {
         }
     }
 
-    /// The Browser's list, with its columns: Name, Size, Kind and Modified, read from the real files.
-    /// Folders open in place, so a subtree can be checked or taken out without leaving the list.
+    /// The Browser's list and columns for the folder you're in — Name, Size, Kind and Modified, read
+    /// from the real originals. A double-click opens a folder; while searching, each name says where
+    /// it is.
     private var list: some View {
         ScrollViewReader { proxy in
-            Table(tree, children: \.children, selection: $draft.selection) {
+            Table(of: DraftNode.self, selection: $draft.selection) {
                 TableColumn(String(localized: "Name")) { node in
-                    DraftNameCell(node: node, hasArrived: arrived.contains(node.id), contrastStyle: contrastStyle)
-                        .id(node.id)
+                    VStack(alignment: .leading, spacing: 0) {
+                        DraftNameCell(node: node, hasArrived: arrived.contains(node.id), contrastStyle: contrastStyle)
+                        if browsing.isSearching {
+                            Text(verbatim: DraftDetails.location(of: node.file, archiveName: draft.fileName))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .padding(.leading, 18 + Space.s)
+                        }
+                    }
+                    .id(node.id)
                 }
                 .width(min: 130, ideal: 320)
 
@@ -295,31 +376,33 @@ struct ArchiveDraftView: View {
                     }
                 }
                 .width(min: ContentList.modifiedWidth, ideal: max(110, ContentList.modifiedWidth), max: 140)
+            } rows: {
+                // The table is its own AppKit view, so the window's drop target never sees drags over
+                // it; files dropped on the list come through the table itself (checked with a real
+                // drag from Finder). They join the top of the archive wherever they land.
+                ForEach(browsing.visible) { TableRow($0) }
+                    .dropDestination(for: URL.self) { _, urls in
+                        guard canAdd else { return }
+                        Task { await draft.add(urls) }
+                    }
             }
             .alternatingRowBackgrounds(.disabled)
             .contextMenu(forSelectionType: String.self) { paths in
-                if !paths.isEmpty {
-                    Button {
-                        draft.selection = paths
-                        draft.removeSelection()
-                    } label: {
-                        Text(paths.count > 1 ? String(localized: "Remove \(paths.count) Items") : String(localized: "Remove"))
-                        Text("The originals stay where they are")
-                    }
-                    .disabled(isBusy)
-                    Divider()
-                    Button("Show in Finder") {
-                        let urls = draft.files.filter { paths.contains($0.path) }.compactMap(\.source)
-                        NSWorkspace.shared.activateFileViewerSelecting(urls)
-                    }
+                DraftItemMenu(draft: draft, paths: paths)
+            } primaryAction: { paths in
+                if paths.count == 1, let path = paths.first, let node = browsing.nodes[path] {
+                    if node.file.isFolder || browsing.isSearching { draft.selection = node.file.isFolder ? [] : [node.id] }
+                    browsing.open(node)
                 }
             }
             .disabled(isBusy)
             .focused($listFocused)
-            .onAppear { listFocused = true }
+            .onAppear { if !isSearchFocused { listFocused = true } }
+            // The files hold the keyboard, not the name or Search, when the window opens (#215).
+            .filesTakeKeyboard($listFocused, isSearchFocused: $isSearchFocused)
             // What an add brought in may be below the fold: bring the last of it into view.
             .onChange(of: arrived) { _, arrived in
-                guard let last = tree.last(where: { arrived.contains($0.id) }) else { return }
+                guard let last = browsing.visible.last(where: { arrived.contains($0.id) }) else { return }
                 withAnimation(reduceMotion ? nil : Motion.current(Motion.status)) { proxy.scrollTo(last.id) }
             }
         }
@@ -363,6 +446,11 @@ struct ArchiveDraftView: View {
         let before = Set(old.lazy.filter { !$0.path.contains("/") }.map(\.path))
         let added = Set(new.lazy.filter { !$0.path.contains("/") }.map(\.path)).subtracting(before)
         guard !added.isEmpty else { return }
+        // Adds land at the top of the archive: go there so they're seen arriving.
+        if !browsing.folder.isEmpty || browsing.isSearching {
+            browsing.query = ""
+            browsing.go(to: "")
+        }
         arrived = added
         Task {
             try? await Task.sleep(for: .seconds(1.2))
@@ -628,5 +716,17 @@ final class CreationWindowDelegate: NSObject, NSWindowDelegate {
     private nonisolated struct DelegateBox: @unchecked Sendable { let delegate: (any NSWindowDelegate)? }
     nonisolated override func forwardingTarget(for selector: Selector!) -> Any? {
         MainActor.assumeIsolated { DelegateBox(delegate: original) }.delegate
+    }
+}
+
+private extension View {
+    /// Icons and Columns hold the keyboard as the list does, so the window doesn't open with the
+    /// name field or Search taking it (`filesTakeKeyboard`).
+    func takesKeyboard(_ focus: FocusState<Bool>.Binding, isSearchFocused: Binding<Bool>) -> some View {
+        focusable()
+            .focusEffectDisabled()
+            .focused(focus)
+            .onAppear { if !isSearchFocused.wrappedValue { focus.wrappedValue = true } }
+            .filesTakeKeyboard(focus, isSearchFocused: isSearchFocused)
     }
 }
