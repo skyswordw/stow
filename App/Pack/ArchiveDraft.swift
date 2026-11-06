@@ -39,7 +39,7 @@ final class ArchiveDraft: Identifiable {
         guard !isImporting, !isChoosingSources, !isSaving, !isClosed else { return }
         isChoosingSources = true
         Task {
-            let urls = await PackDestination.chooseSources()
+            let urls = await PackDestination.chooseSources(forAdding: true)
             isChoosingSources = false
             await add(urls)
         }

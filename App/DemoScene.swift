@@ -14,6 +14,7 @@ import SwiftUI
 /// `-StowPackFormat sevenZip` starts with that format, `-StowPackMore YES` opens More Options alone,
 /// `-StowPackChanged YES` changes two choices from the purpose, `-StowPackSplitEditor sentence|options`
 /// opens the part-size editor.
+/// draft-empty (File › New Archive), draft (a draft of real files, one selected), draft-save (its Save sheet, #293).
 /// quicklook (the Finder preview; `-StowPreview encrypted|slow`, or `-StowOpen <path>` for a real file),
 /// associations (Settings › File Types), integration (Settings › Integration; `-StowRepair YES`
 /// runs Repair for real).
@@ -536,6 +537,24 @@ enum DemoScene {
                 ("/Volumes/Archive/Backups/Old Backup.rar", .now.addingTimeInterval(-9 * 24 * hour)),
                 ("\(home)/Desktop/Kickoff Deck.zip", .now.addingTimeInterval(-24 * 24 * hour)),
             ])
+        case "draft-empty":
+            // File › New Archive: the empty draft (#293).
+            app.beginNewArchive()
+        case "draft", "draft-save":
+            // A draft holding real files from two folders, so rows show Finder's icons and the second
+            // "Notes.txt" is numbered. draft-save opens Save's form over it.
+            let urls = demoDraftFiles()
+            let draft = ArchiveDraft()
+            draft.name = "Harbor Handoff"
+            app.archiveDraft = draft
+            Task {
+                await draft.add(urls)
+                if scene == "draft" { draft.selection = ["Invoice October.pdf"] }
+                app.beginNewArchive()
+                guard scene == "draft-save" else { return }
+                try? await Task.sleep(for: .milliseconds(600))
+                draft.prepareSave()
+            }
         case "tray":
             // The photo is the sample's real file, so its row shows a real thumbnail.
             let pier = SampleContent.photo(named: "Pier at Dawn.jpg")
@@ -828,6 +847,33 @@ enum DemoScene {
                                                      withIntermediateDirectories: true)
         }
         return urls
+    }
+
+    /// Real files for the draft scenes: a folder of photos, documents from two folders, and a
+    /// second "Notes.txt" so the draft's collision numbering shows.
+    private static func demoDraftFiles() -> [URL] {
+        let manager = FileManager.default
+        let base = manager.temporaryDirectory.appending(path: "Demo Draft", directoryHint: .isDirectory)
+        try? manager.removeItem(at: base)
+        let kickoff = base.appending(path: "Kickoff", directoryHint: .isDirectory)
+        let photos = kickoff.appending(path: "Site Photos", directoryHint: .isDirectory)
+        let client = base.appending(path: "Client", directoryHint: .isDirectory)
+        for dir in [photos, client] { try? manager.createDirectory(at: dir, withIntermediateDirectories: true) }
+        for name in ["Pier at Dawn.jpg", "Lighthouse.jpg"] {
+            let url = photos.appending(path: name)
+            if let photo = SampleContent.photo(named: name) { try? manager.copyItem(at: photo, to: url) }
+            else { manager.createFile(atPath: url.path, contents: Data(repeating: 0x2A, count: 240_000)) }
+        }
+        let notes = "Kickoff notes\n\n- Agree the scope\n- Book the photographer\n- Send the brand kit\n"
+        manager.createFile(atPath: kickoff.appending(path: "Notes.txt").path, contents: Data(notes.utf8))
+        manager.createFile(atPath: client.appending(path: "Notes.txt").path, contents: Data("Client call\n".utf8))
+        let pdf = client.appending(path: "Invoice October.pdf")
+        let page = NSTextView(frame: CGRect(x: 0, y: 0, width: 300, height: 400))
+        page.string = "Invoice October\n\nHarbor Studio\n\n3 × Brand workshop\nTotal 4,200"
+        try? page.dataWithPDF(inside: page.bounds).write(to: pdf)
+        manager.createFile(atPath: client.appending(path: "Budget 2027.numbers").path, contents: Data(repeating: 0x2A, count: 412_000))
+        return [photos, kickoff.appending(path: "Notes.txt"), pdf, client.appending(path: "Notes.txt"),
+                client.appending(path: "Budget 2027.numbers")]
     }
 
     /// The error scenes' failures, made from the errors the engine and the file system really throw.

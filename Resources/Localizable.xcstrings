@@ -13254,6 +13254,193 @@
           }
         }
       }
+    },
+    "%@ before compression": {
+      "comment": "Planned contents of a new archive draft: the originals' total size, never the archive's final size. %@ is a size such as “12.4 MB”.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩前 %@"
+          }
+        }
+      }
+    },
+    "Add files to save this archive": {
+      "comment": "Help for the new-archive draft's disabled Save button.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加文件后才能保存这个压缩包"
+          }
+        }
+      }
+    },
+    "Add more files and folders": {
+      "comment": "Help for Add Files… under the new-archive draft's list.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加更多文件和文件夹"
+          }
+        }
+      }
+    },
+    "Choose how to pack it and where to save it": {
+      "comment": "Help for the new-archive draft's Save… button.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择打包方式和保存位置"
+          }
+        }
+      }
+    },
+    "Drop files and folders here": {
+      "comment": "Title of the empty new-archive draft.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将文件和文件夹拖到这里"
+          }
+        }
+      }
+    },
+    "Drop more to add them": {
+      "comment": "Hint under a new-archive draft's list.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖入更多即可添加"
+          }
+        }
+      }
+    },
+    "For": {
+      "comment": "Row label in the new-archive Save form: who the archive is for (Windows PCs, Macs…).",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用于"
+          }
+        }
+      }
+    },
+    "Format": {
+      "comment": "Row label in the new-archive Save form.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "格式"
+          }
+        }
+      }
+    },
+    "Not saved yet": {
+      "comment": "Status under a new-archive draft's name: nothing has been written to disk.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未保存"
+          }
+        }
+      }
+    },
+    "Or add them from anywhere on your Mac. Nothing is written until you save, and the originals stay where they are.": {
+      "comment": "Empty new-archive draft, under its title.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "也可以从 Mac 上的任何位置添加。保存之前不会写入任何内容，原始文件也会留在原处。"
+          }
+        }
+      }
+    },
+    "Remove %lld Items": {
+      "comment": "Removes several selected items from a new-archive draft; the files stay where they are.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除 %lld 个项目"
+          }
+        }
+      }
+    },
+    "Rename the archive": {
+      "comment": "Help for the new-archive draft's name in its heading.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重命名压缩包"
+          }
+        }
+      }
+    },
+    "Suggested. You’ll confirm the folder next.": {
+      "comment": "New-archive Save form, under the suggested folder: a folder chooser follows Save….",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议位置。下一步会请你确认文件夹。"
+          }
+        }
+      }
+    },
+    "Symbolic link": {
+      "comment": "Marks a symbolic link in a new-archive draft's list.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号链接"
+          }
+        }
+      }
+    },
+    "Take the selection out of this archive. The originals stay where they are.": {
+      "comment": "Help for Remove under the new-archive draft's list.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将所选项目移出这个压缩包。原始文件会留在原处。"
+          }
+        }
+      }
+    },
+    "The originals stay where they are": {
+      "comment": "Subtitle of Remove in the new-archive draft's context menu.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始文件会留在原处"
+          }
+        }
+      }
+    },
+    "You’ll choose a folder next.": {
+      "comment": "New-archive Save form's Where row when no folder is suggested: a folder chooser follows Save….",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一步会请你选择文件夹。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
