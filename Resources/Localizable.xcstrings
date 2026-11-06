@@ -1,6 +1,96 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "If you don’t pack it, this new archive is discarded. The files you added aren’t changed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果不压缩，这个新压缩包的草稿将被丢弃。已添加的原文件不会改变。"
+          }
+        }
+      }
+    },
+    "Pack this new archive?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要创建这个压缩包吗？"
+          }
+        }
+      }
+    },
+    "Or add them from anywhere on your Mac. Nothing is written until you pack, and the originals stay where they are.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "也可以从 Mac 上添加文件。点击“压缩”后才会创建压缩包，原文件保持不变。"
+          }
+        }
+      }
+    },
+    "Choose how to pack it and where to put it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择压缩方式和存放位置"
+          }
+        }
+      }
+    },
+    "Add files to pack this archive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加文件后才能压缩"
+          }
+        }
+      }
+    },
+    "More Options…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多选项…"
+          }
+        }
+      }
+    },
+    "This format is outside the recommendations for %@. The recipient may need another app to open it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此格式不在“%@”的推荐范围内。收件人可能需要其他 App 才能打开。"
+          }
+        }
+      }
+    },
+    "Check the recipient’s archive app": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请确认收件人使用的解压缩 App"
+          }
+        }
+      }
+    },
+    "general sharing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用分享"
+          }
+        }
+      }
+    },
     "Select “%@”, then choose Allow to open it.\nStow can read and write this archive only — not other files in this folder.": {
       "localizations": {
         "zh-Hans": {

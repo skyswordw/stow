@@ -98,11 +98,12 @@ nonisolated struct PackRequest: Identifiable, Sendable {
 }
 
 nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
-    case windows, mac, linux, web
+    case general, windows, mac, linux, web
     var id: Self { self }
 
     var phrase: String {
         switch self {
+        case .general: String(localized: "general sharing")
         case .windows: String(localized: "Windows PCs")
         case .mac: String(localized: "Macs")
         case .linux: String(localized: "Linux & servers")
@@ -112,6 +113,7 @@ nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
 
     var formats: [PackFormat] {
         switch self {
+        case .general: [.zip, .sevenZip]
         case .windows: [.zip, .sevenZip]
         case .mac: [.zip, .sevenZip, .dmg]
         case .linux: [.tarXz, .tarGz, .tarZst, .tarBz2, .tar, .zip, .sevenZip]
@@ -121,7 +123,7 @@ nonisolated enum Audience: String, CaseIterable, Identifiable, Sendable {
 
     var dropsMacHelperFiles: Bool { self != .mac }
     /// Windows-safe characters and reserved names.
-    var normalizesNames: Bool { self == .windows || self == .web }
+    var normalizesNames: Bool { self == .general || self == .windows || self == .web }
     /// Precomposed (NFC) names, which is what everything but a Mac expects.
     var composesNames: Bool { self != .mac }
     /// Links stay links. Elsewhere they can't be recreated, so they're left out.
@@ -348,6 +350,8 @@ nonisolated extension CompressionLevel {
 nonisolated struct PackOptions: Equatable, Sendable {
     var audience: Audience = .windows
     var format: PackFormat = .zip
+    /// An explicit advanced choice survives purpose changes; recommendations are not restrictions.
+    var hasCustomFormat = false
     var usesPassword = false
     var split: SplitSize = .none
     var level: CompressionLevel = .balanced
@@ -419,12 +423,19 @@ nonisolated struct PackOptions: Equatable, Sendable {
     /// Keeps format and password consistent when the audience changes.
     mutating func setAudience(_ newValue: Audience) {
         audience = newValue
-        if !newValue.formats.contains(format) { format = newValue.formats[0] }
+        if !hasCustomFormat, !newValue.formats.contains(format) { format = newValue.formats[0] }
         reconcileCapabilities()
     }
 
     mutating func setFormat(_ newValue: PackFormat) {
         format = newValue
+        hasCustomFormat = false
+        reconcileCapabilities()
+    }
+
+    mutating func setCustomFormat(_ newValue: PackFormat) {
+        format = newValue
+        hasCustomFormat = true
         reconcileCapabilities()
     }
 
@@ -663,8 +674,14 @@ nonisolated enum Compatibility {
 
     private static func notes(for options: PackOptions, password: String) -> [PackReport.Note] {
         var notes: [PackReport.Note] = []
+        if !options.audience.formats.contains(options.format) {
+            notes.append(.init(tone: .caution,
+                title: String(localized: "Check the recipient’s archive app"),
+                detail: String(localized: "This format is outside the recommendations for \(options.audience.phrase). The recipient may need another app to open it.")))
+        }
         switch (options.audience, options.format) {
-        case (.windows, .zip) where options.usesPassword:
+        case (.windows, .zip) where options.usesPassword,
+             (.general, .zip) where options.usesPassword:
             notes.append(.init(
                 tone: .caution,
                 title: String(localized: "File Explorer may not open it"),

@@ -22,6 +22,8 @@ final class ApplicationLifecycle {
     private var scheduled = false
     private var generation = 0
     private var pendingWindows: Set<String> = []
+    private var foregroundTask: Task<Void, Never>?
+    private var foregroundRequest = UUID()
 
     func install(app: AppState, backgroundLaunch: Bool) {
         // Test hosts and screenshot scenes must never terminate the host or alter Dock policy.
@@ -109,5 +111,56 @@ final class ApplicationLifecycle {
         guard NSClassFromString("XCTestCase") == nil else { return }
         if NSApp.activationPolicy() != .regular { NSApp.setActivationPolicy(.regular) }
         NSApp.activate()
+    }
+
+    /// Explicit user requests must order the requested window after SwiftUI creates it and
+    /// after any status/Dock menu finishes tracking. Never pick an unrelated visible window.
+    func presentWindow(_ identifier: String, open: () -> Void) {
+        Self.activateForWindow()
+        presenting(identifier)
+        open()
+        guard NSClassFromString("XCTestCase") == nil,
+              UserDefaults.standard.string(forKey: "StowScene") == nil else { return }
+        foregroundTask?.cancel()
+        let request = UUID()
+        foregroundRequest = request
+        foregroundTask = Task { @MainActor in
+            let deadline = ContinuousClock.now + .seconds(2)
+            repeat {
+                await Task.yield()
+                guard !Task.isCancelled else { return }
+                if let window = Self.window(for: identifier, in: NSApp.windows) {
+                    if window.isMiniaturized { window.deminiaturize(nil) }
+                    window.makeKeyAndOrderFront(nil)
+                    NSApp.activate()
+                    if !NSApp.isActive {
+                        // Use the same Launch Services activation path as an explicit Dock open;
+                        // this reuses the running process and does not open a second document.
+                        let configuration = NSWorkspace.OpenConfiguration()
+                        configuration.activates = true
+                        configuration.createsNewApplicationInstance = false
+                        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: configuration) { [weak self] _, _ in
+                            Task { @MainActor in
+                                guard self?.foregroundRequest == request,
+                                      let destination = Self.window(for: identifier, in: NSApp.windows) else { return }
+                                // The reopen event can choose the main window; restore the actual
+                                // requested destination (notably Settings) after activation completes.
+                                destination.makeKeyAndOrderFront(nil)
+                            }
+                        }
+                    }
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(20))
+            } while ContinuousClock.now < deadline
+        }
+    }
+
+    static func window(for identifier: String, in windows: [NSWindow]) -> NSWindow? {
+        windows.first {
+            let actual = $0.identifier?.rawValue ?? ""
+            return (actual == identifier || actual.hasPrefix(identifier + "-"))
+                && ($0.isVisible || $0.isMiniaturized)
+        }
     }
 }

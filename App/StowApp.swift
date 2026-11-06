@@ -571,22 +571,17 @@ struct StowApp: App {
         app.showMainWindow = { [weak app] in
             guard let app else { return }
             app.prepareToShowMainWindow()
-            ApplicationLifecycle.activateForWindow()
             let id = app.usesBrowserWindow ? "main" : "welcome"
-            ApplicationLifecycle.shared.presenting(id)
-            open(id: id)
+            ApplicationLifecycle.shared.presentWindow(id) { open(id: id) }
         }
         let dismiss = dismissWindow
         app.closeCreationWindow = { dismiss(id: "creation") }
         app.showCreationWindow = { [weak app] in
-            ApplicationLifecycle.activateForWindow()
-            ApplicationLifecycle.shared.presenting("creation")
-            open(id: "creation")
+            ApplicationLifecycle.shared.presentWindow("creation") { open(id: "creation") }
             if app?.usesBrowserWindow == false { dismiss(id: "welcome") }
         }
         SettingsRouter.shared.open = {
-            ApplicationLifecycle.activateForWindow()
-            openSettings()
+            ApplicationLifecycle.shared.presentWindow("com_apple_SwiftUI_Settings_window") { openSettings() }
         }
         OnboardingRouter.shared.open = { open(id: "onboarding") }
         delegate.app = app

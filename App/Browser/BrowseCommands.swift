@@ -23,7 +23,7 @@ struct BrowseCommands: Commands {
                 .keyboardShortcut("w")
                 .disabled(!closing.isEnabled)
             Divider()
-            Button("Save") {
+            Button(draft == nil ? String(localized: "Save") : String(localized: "Pack…")) {
                 if let draft { draft.prepareSave() }
                 else { app.passwords.performCommand { if let browser { Task { await browser.saveEdits() } } } }
             }

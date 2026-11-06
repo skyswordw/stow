@@ -78,6 +78,8 @@ final class TrayController {
     /// Shows where the Tray comes out while files are dragged, when that isn't the menu-bar icon.
     @ObservationIgnored private var hint: TrayHint?
     @ObservationIgnored private let dismissal = TrayDismissalMonitor()
+    /// Timer/state tests inject false so real desktop clicks cannot dismiss their fixture panel.
+    @ObservationIgnored private let monitorsSystemEvents: Bool
     private var relatedInteractions: Set<UUID> = []
     var hasRelatedInteraction: Bool { !relatedInteractions.isEmpty }
     @ObservationIgnored private var shareSessions: [UUID: TrayShareSession] = [:]
@@ -95,8 +97,9 @@ final class TrayController {
 
     @ObservationIgnored private let settings: UserDefaults
 
-    init(settings: UserDefaults = .standard) {
+    init(settings: UserDefaults = .standard, monitorsSystemEvents: Bool = true) {
         self.settings = settings
+        self.monitorsSystemEvents = monitorsSystemEvents
         isEnabled = SettingsKeys.flag(SettingsKeys.trayEnabled, in: settings)
         isPinned = SettingsKeys.flag(SettingsKeys.trayPinned, in: settings)
     }
@@ -159,8 +162,7 @@ final class TrayController {
         // then Quit on its own at the bottom. Settings… goes straight to the Tray page.
         let menu = NSMenu()
         let groups: [[(String, Selector)]] = [
-            [(String(localized: "Open Tray"), #selector(StatusTarget.openTray)),
-             (String(localized: "Open Stow"), #selector(StatusTarget.openStow)),
+            [(String(localized: "Open Stow"), #selector(StatusTarget.openStow)),
              (String(localized: "Create Archive…"), #selector(StatusTarget.createArchive))],
             [(String(localized: "Settings…"), #selector(StatusTarget.settings))],
             [(String(localized: "Quit Stow"), #selector(StatusTarget.quit))]
@@ -173,7 +175,12 @@ final class TrayController {
                 menu.addItem(item)
             }
         }
+        target.pendingCommand = nil
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
+        let command = target.pendingCommand
+        target.pendingCommand = nil
+        // popUp has returned and the related-interaction token is released before presentation.
+        if let command { DispatchQueue.main.async { [weak target] in target?.perform(command) } }
     }
 
     @ObservationIgnored private var statusTarget: StatusTarget?
@@ -338,7 +345,7 @@ final class TrayController {
         dismissal.dismiss = { [weak self] in self?.dismissForOutsideInteraction() }
         dismissal.mouseReleased = { [weak self] in self?.mouseUp() }
         dismissal.outsidePress = { [weak self] in self?.reconcileOutsidePress() }
-        dismissal.start()
+        if monitorsSystemEvents { dismissal.start() }
         if fromDrag { panel.orderFrontRegardless() } else { panel.makeKeyAndOrderFront(nil) }
         // Nothing moves when ⌥⌘T brought it out. Decided now, while the key press is current.
         let animation = Motion.presence(true, reduceMotion: DisplayPreferences.reducesMotionNow)
@@ -964,6 +971,8 @@ private struct TrayEventBox: @unchecked Sendable { let event: NSEvent? }
 
 /// Holds the status item's action (NSStatusBarButton needs an Objective-C target).
 private final class StatusTarget: NSObject, NSMenuItemValidation {
+    enum Command { case openStow, createArchive, settings, quit }
+    var pendingCommand: Command?
     weak var tray: TrayController?
     init(tray: TrayController) { self.tray = tray }
     @objc func clicked() {
@@ -972,11 +981,19 @@ private final class StatusTarget: NSObject, NSMenuItemValidation {
             tray?.showStatusMenu()
         } else { tray?.toggle() }
     }
-    @objc func openTray() { tray?.show() }
-    @objc func openStow() { tray?.app?.showMainWindow() }
-    @objc func createArchive() { tray?.app?.beginNewArchive() }
-    @objc func settings() { SettingsRouter.shared.show(.tray) }
-    @objc func quit() { NSApp.terminate(nil) }
+    @objc func openStow() { pendingCommand = .openStow }
+    @objc func createArchive() { pendingCommand = .createArchive }
+    @objc func settings() { pendingCommand = .settings }
+    @objc func quit() { pendingCommand = .quit }
+
+    func perform(_ command: Command) {
+        switch command {
+        case .openStow: tray?.app?.showMainWindow()
+        case .createArchive: tray?.app?.beginNewArchive()
+        case .settings: SettingsRouter.shared.show(.tray)
+        case .quit: NSApp.terminate(nil)
+        }
+    }
 
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         if item.action == #selector(createArchive) { return tray?.app?.passwords.question == nil }

@@ -24,7 +24,7 @@ struct SettingsTests {
                 "glance.openFromFinder", "browse.archiveWindowMode", "browse.lastArchiveWindow", "glance.pinned", "glance.colourfulControls", "glance.material",
                 "tray.enabled", "tray.menuBarIcon", "tray.showWhileDragging", "tray.border", "tray.pinned",
                 "nextSteps.shown", "nextSteps.hidden", "SUEnableAutomaticChecks", "SUAutomaticallyUpdate",
-                "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
+                "PackLevel.general", "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]
             let keys = SettingsKeys.resettable.map(\.key)
             #expect(Set(keys) == expected)
@@ -221,7 +221,7 @@ struct SettingsTests {
             let entries = SettingsKeys.resettableEntries(for: .packing)
             #expect(Set(entries.map(\.key)) == Set([
                 "PackAudience", "PackVerify", "PackCPUCores", SettingsKeys.volumeSize,
-                "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
+                "PackLevel.general", "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
             ]))
             store.set("mac", forKey: "PackAudience")
             store.set(true, forKey: "PackVerify")

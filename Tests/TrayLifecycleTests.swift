@@ -5,6 +5,21 @@ import Testing
 @MainActor
 @Suite("Tray enablement and lifetime", .serialized)
 struct TrayLifecycleTests {
+    @Test func explicitWindowRequestSelectsOnlyItsOwnVisibleScene() {
+        let main = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        let settings = NSPanel(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        main.identifier = NSUserInterfaceItemIdentifier("main-instance")
+        settings.identifier = NSUserInterfaceItemIdentifier("com_apple_SwiftUI_Settings_window")
+        main.orderFrontRegardless()
+        settings.orderFrontRegardless()
+        defer { main.orderOut(nil); settings.orderOut(nil) }
+        #expect(ApplicationLifecycle.window(for: "main", in: [settings, main]) === main)
+        #expect(ApplicationLifecycle.window(for: "com_apple_SwiftUI_Settings_window", in: [main, settings]) === settings)
+        #expect(ApplicationLifecycle.window(for: "creation", in: [settings, main]) == nil)
+        main.orderOut(nil)
+        #expect(ApplicationLifecycle.window(for: "main", in: [settings, main]) == nil)
+    }
+
     private func store() -> (UserDefaults, String) {
         let name = "TrayLifecycleTests.\(UUID())"
         return (UserDefaults(suiteName: name)!, name)
