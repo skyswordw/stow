@@ -147,4 +147,24 @@ struct ArchiveDraftTests {
         #expect(!draft.quitAfterSave, "A later Save must return to the archive, not terminate Stow")
     }
 
+    @Test func failedDraftPackCannotReplayAnOutdatedJobFromAnotherWindow() async throws {
+        let temp = try TemporaryFolder()
+        defer { temp.cleanUp() }
+        let packing = PackController()
+        let request = CreateRequest(operationID: UUID().uuidString, archiveName: "Draft", format: .zip,
+                                    level: .balanced, password: nil, volumeSize: nil, keepsMacMetadata: false, verify: false)
+        let result: Result<[URL], Error> = await withCheckedContinuation { continuation in
+            packing.start(.init(items: [], totalBytes: 0, attributes: false, request: request,
+                                name: "Draft", destination: temp.url.appending(path: "missing/output")),
+                          allowsRetry: false) { continuation.resume(returning: $0) }
+        }
+        guard case .failure = result else {
+            Issue.record("A missing destination must fail")
+            return
+        }
+        #expect(packing.activity == nil, "The draft owns its error; other windows must not offer a stale retry")
+        packing.follow(.tryAgain)
+        #expect(!packing.isRunning)
+    }
+
 }

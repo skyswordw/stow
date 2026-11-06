@@ -906,7 +906,8 @@ struct PackSheet: View {
             }
             app.packing.start(.init(items: report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,
                                     request: request, name: archiveName, destination: destination, conflict: conflict,
-                                    cleanupDirectory: cleanupDirectory, cleanupOnlyOnSuccess: cleanupOnlyOnSuccess)) { result in
+                                    cleanupDirectory: cleanupDirectory, cleanupOnlyOnSuccess: cleanupOnlyOnSuccess),
+                              allowsRetry: draft == nil) { result in
                 draft?.finishedSaving(result)
                 if case .success(let urls) = result, draft != nil { didCreate(urls) }
             }

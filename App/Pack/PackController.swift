@@ -47,9 +47,11 @@ final class PackController {
         if case .running = activity?.phase { true } else { false }
     }
 
-    func start(_ job: Job, completion: ((Result<[URL], Error>) -> Void)? = nil) {
+    /// Drafts handle failure in their editable workspace and must rebuild a job on the next Save.
+    /// Replaying a cached draft job would bypass its current files, source checks and save lifecycle.
+    func start(_ job: Job, allowsRetry: Bool = true, completion: ((Result<[URL], Error>) -> Void)? = nil) {
         task?.cancel()
-        lastJob = job
+        lastJob = allowsRetry ? job : nil
         let fileName = job.name + "." + job.request.format.fileExtension
         activity = Activity(name: fileName, phase: .running(0))
         task = Task { [weak self] in
@@ -79,7 +81,7 @@ final class PackController {
                     try? FileManager.default.removeItem(at: directory)
                 }
                 withAnimation(Motion.current(cancelled ? Motion.exit : Motion.status)) {
-                    if cancelled {
+                    if cancelled || !allowsRetry {
                         self?.activity = nil
                     } else {
                         self?.activity?.phase = .failed(failure)
