@@ -86,6 +86,42 @@ individual issues. Dedicated VoiceOver remains deferred under #93.
 
 ## Validation
 
+### Native follow-up, 2026-11-05 (Pacific/Honolulu)
+
+The merged #295–#300 tree (`7c53936`) was checked in an isolated ad-hoc app with bundle ID
+`app.stow.PRStackReview`, without Finder/Quick Look plugins. Read-only process inspection
+confirmed the following, before asking Computer Use to inspect the app again:
+
+- With Tray enabled, closing the last Welcome window kept PID 21145 alive and changed its
+  activation policy from regular (0) to accessory (1). Reopening restored regular policy in
+  the same process.
+- With Tray disabled, closing the last Welcome window terminated PID 21145. Reopening started
+  a new process (PID 21297). A minimize action retained that process with regular policy.
+- Explicit Quit terminated the test process even with Tray enabled. A changed draft prompted
+  before quitting, and Cancel retained its name and contents.
+
+The inspection tool can itself reopen a windowless app, or relaunch a terminated one; reading
+PID/policy before the next AX snapshot avoids mistaking that tool behavior for failed dismissal.
+These observations establish the core close/residency/reopen paths for #289. The broader signed
+login/external-launch, operation, display and performance matrices remain in #38.
+
+This pass found an empty-draft edge case: changing only its name made the quit/close prompt
+offer Save even though there were no files to save. The prompt now uses `canSave` to disable that
+button. Native AX checks confirmed Save disabled for the renamed empty draft, enabled after adding
+a real file, and Cancel retaining the draft. The focused draft/lifecycle/opening/dismissal/close
+run passed 41 tests in five suites.
+
+For #287, a CUA coordinate click selected the intended Finder fixture while Tray remained open.
+A temporary diagnostic build logged monitor startup and the local Tray mouse-down/up, but no
+global event for the Finder click. Thus this automation sequence does not establish a physical
+outside-click regression or a passing physical acceptance test. Diagnostics recorded only event
+types and state flags and were removed from production sources. Keep #287 open for a real pointer
+and drag pass. The status item was not exposed by the available CUA surface, and SystemUIServer
+inspection timed out; keep #290 open for actual right/Control-click and menu-dismissal checks.
+Consequently #286 remains open for those two tasks. None of this is VoiceOver testing (#93).
+
+### Earlier implementation validation
+
 The full macOS integration suite passed **680 tests in 102 suites**. A subsequent follow-up
 passed **23 lifecycle/draft/opening tests** after protecting utility-hosted Settings windows and
 closing an explicitly discarded draft window before removing its scene content (so cancelling a

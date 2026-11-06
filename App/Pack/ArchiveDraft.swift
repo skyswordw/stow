@@ -63,7 +63,8 @@ final class ArchiveDraft: Identifiable {
         let alert = NSAlert()
         alert.messageText = String(localized: "Save this new archive?")
         alert.informativeText = String(localized: "If you don’t save, this new archive is discarded. The files you added aren’t changed.")
-        alert.addButton(withTitle: String(localized: "Save…"))
+        // Metadata alone can mark an empty draft edited, but Save still needs real contents.
+        alert.addButton(withTitle: String(localized: "Save…")).isEnabled = canSave
         alert.addButton(withTitle: String(localized: "Discard"))
         alert.addButton(withTitle: String(localized: "Cancel"))
         switch alert.runModal() {
