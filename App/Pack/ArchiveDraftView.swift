@@ -3,7 +3,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// A new archive that isn't written yet (#293): its name and format as the window's heading, what
-/// will go in it as a list of the real files, and Save, which asks how to pack it. Nothing on disk
+/// will go in it as a list of the real files, and Pack, which asks how to create it. Nothing on disk
 /// changes until the pack succeeds; the originals never do. DESIGN.md › New archive draft.
 struct ArchiveDraftView: View {
     @Bindable var draft: ArchiveDraft
@@ -88,7 +88,7 @@ struct ArchiveDraftView: View {
 
     // MARK: Heading
 
-    /// The archive's own name and format, as it will be called, with Save at the trailing edge
+    /// The archive's own name and format, as it will be called, with Pack at the trailing edge
     /// where the Browser keeps it. A line under the name says it isn't saved and what is planned.
     private var header: some View {
         HStack(alignment: .center, spacing: Space.m) {
@@ -145,16 +145,12 @@ struct ArchiveDraftView: View {
     @State private var isHoveringName = false
 
     /// The extension as a sentence token: amber, with the pull-down chevron. Any format can be
-    /// chosen here; Save fits the purpose to it.
+    /// chosen here; Pack preserves it and the recipient policy.
     private var formatToken: some View {
         Token(title: "." + draft.format.fileExtension) {
-            Picker("Archive Format", selection: $draft.format) {
-                ForEach(PackFormat.allCases) { format in
-                    Text(format.displayName).tag(format)
-                }
+            ForEach(PackFormat.allCases) { format in
+                Button(format.displayName) { draft.format = format }
             }
-            .pickerStyle(.inline)
-            .labelsHidden()
         }
         .accessibilityLabel(String(localized: "Archive Format"))
         .accessibilityValue(draft.format.displayName)
@@ -184,22 +180,22 @@ struct ArchiveDraftView: View {
         return unsaved + " · " + DraftSummary.text(items: tree.count, bytes: bytes)
     }
 
-    /// Prominent once there's something to save; until then Add Files is the next step and Save
+    /// Prominent once there's something to save; until then Add Files is the next step and Pack
     /// steps back.
     @ViewBuilder private var saveButton: some View {
         let disabled = !draft.canSave || app.packing.isRunning
         if isEmpty {
-            Button("Save…") { draft.prepareSave() }
+            Button("Pack…") { draft.prepareSave() }
                 .buttonStyle(.glass)
                 .controlSize(.large)
                 .disabled(true)
-                .help(String(localized: "Add files to save this archive"))
+                .help(String(localized: "Add files to pack this archive"))
         } else {
-            Button("Save…") { draft.prepareSave() }
+            Button("Pack…") { draft.prepareSave() }
                 .buttonStyle(.glassProminent)
                 .controlSize(.large)
                 .disabled(disabled)
-                .help(String(localized: "Choose how to pack it and where to save it"))
+                .help(String(localized: "Choose how to pack it and where to put it"))
         }
     }
 
@@ -278,7 +274,7 @@ struct ArchiveDraftView: View {
                 Text(highlighted ? String(localized: "Let go to add") : String(localized: "Drop files and folders here"))
                     .font(.title3.weight(.semibold))
                     .contentTransition(.opacity)
-                Text("Or add them from anywhere on your Mac. Nothing is written until you save, and the originals stay where they are.")
+                Text("Or add them from anywhere on your Mac. Nothing is written until you pack, and the originals stay where they are.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

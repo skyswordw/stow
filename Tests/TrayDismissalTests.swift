@@ -129,7 +129,8 @@ struct TrayDismissalTests {
         let store = try #require(UserDefaults(suiteName: name))
         defer { store.removePersistentDomain(forName: name) }
         store.set(true, forKey: SettingsKeys.trayEnabled)
-        let tray = TrayController(settings: store)
+        // This exercises stale task cancellation; pointer event delivery has separate adapter tests.
+        let tray = TrayController(settings: store, monitorsSystemEvents: false)
         defer { tray.hide() }
         let file = URL(filePath: "/tmp/Tray-drag-fixture.txt")
         tray.add([file])

@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pending: [(AppState) -> Void] = []
     private var receivedExternalRequest = false
     private lazy var services = ServicesProvider { [weak self] job in self?.enqueue(job) }
+    private let dockMenu = DockMenuController()
 
     private static let log = Logger(subsystem: "app.stow.Stow", category: "open")
 
@@ -100,6 +101,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         enqueue { $0.receive(urls) }
     }
 
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        guard let app else { return nil }
+        return dockMenu.makeMenu(app: app, windows: sender.windows,
+                                 current: sender.keyWindow ?? sender.mainWindow)
+    }
+
     private func enqueue(_ job: @escaping (AppState) -> Void) {
         receivedExternalRequest = true
         pending.append(job)
@@ -119,5 +126,69 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let pid = event.attributeDescriptor(forKeyword: AEKeyword(keySenderPIDAttr))?.int32Value, pid > 0
         else { return nil }
         return NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? "pid \(pid)"
+    }
+}
+
+/// Reuse Stow's scoped recent-archive records rather than publishing a second, unscoped history.
+final class DockMenuController: NSObject {
+    private weak var app: AppState?
+
+    func makeMenu(app: AppState, windows: [NSWindow], current: NSWindow?) -> NSMenu {
+        self.app = app
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for window in windows where Self.includes(window) {
+            let item = NSMenuItem(title: window.title, action: #selector(showWindow(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = window
+            item.state = window === current ? .on : .off
+            menu.addItem(item)
+        }
+        if !menu.items.isEmpty { menu.addItem(.separator()) }
+        app.recents.refresh()
+        let recent = NSMenuItem(title: String(localized: "Open Recent"), action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+        for entry in app.recents.visible {
+            let item = NSMenuItem(title: OpenRecentMenu.title(for: entry, among: app.recents.visible),
+                                 action: #selector(openRecent(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = entry.id
+            item.toolTip = entry.folderDisplay
+            item.isEnabled = app.passwords.question == nil
+            submenu.addItem(item)
+        }
+        recent.submenu = submenu
+        recent.isEnabled = !submenu.items.isEmpty && app.passwords.question == nil
+        menu.addItem(recent)
+        return menu
+    }
+
+    static func includes(_ window: NSWindow) -> Bool {
+        guard window.isVisible || window.isMiniaturized else { return false }
+        let id = window.identifier?.rawValue ?? ""
+        return ["main", "welcome", "creation", "glance", "com_apple_SwiftUI_Settings_window"].contains {
+            id == $0 || id.hasPrefix($0 + "-")
+        }
+    }
+
+    @objc func showWindow(_ sender: NSMenuItem) {
+        guard let window = sender.representedObject as? NSWindow,
+              let id = window.identifier?.rawValue else { return }
+        DispatchQueue.main.async { [weak window] in
+            guard let window else { return }
+            ApplicationLifecycle.shared.presentWindow(id) {
+                if window.isMiniaturized { window.deminiaturize(nil) }
+                window.makeKeyAndOrderFront(nil)
+            }
+        }
+    }
+
+    @objc func openRecent(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let app = self?.app, let entry = app.recents.entries.first(where: { $0.id == id }) else { return }
+            app.passwords.performCommand { app.openRecent(entry) }
+        }
     }
 }

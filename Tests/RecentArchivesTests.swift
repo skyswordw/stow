@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Testing
 @testable import Stow
 
@@ -182,5 +182,34 @@ struct RecentArchivesTests {
         #expect(entry.folderDisplay == "~/Downloads")
         #expect(RecentArchives.Entry(path: "/Volumes/Disk/a.zip", openedAt: .now).folderDisplay == "/Volumes/Disk")
         #expect(entry.openedDisplay() == Date.now.formatted(.relative(presentation: .named, unitsStyle: .wide)))
+    }
+}
+
+@MainActor
+@Suite("Dock menu", .serialized)
+struct DockMenuTests {
+    @Test func menuUsesExistingHistoryAndMarksTheCurrentWindow() throws {
+        let temp = try TemporaryFolder()
+        defer { temp.cleanUp() }
+        let existing = temp.url.appending(path: "existing.zip")
+        try Data("fixture".utf8).write(to: existing)
+        let app = AppState()
+        app.recents.add(existing)
+        app.recents.add(temp.url.appending(path: "missing.zip"))
+        let window = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
+        window.identifier = NSUserInterfaceItemIdentifier("creation-instance")
+        window.title = "Create Archive"
+        window.orderFrontRegardless()
+        defer { window.orderOut(nil) }
+        let controller = DockMenuController()
+        let menu = controller.makeMenu(app: app, windows: [window], current: window)
+        #expect(menu.items.first?.title == "Create Archive")
+        #expect(menu.items.first?.state == .on)
+        let recent = try #require(menu.items.last?.submenu)
+        #expect(recent.items.map(\.title) == ["existing.zip"])
+        #expect(recent.items.first?.representedObject as? String == app.recents.visible.first?.id)
+        window.orderOut(nil)
+        let hidden = controller.makeMenu(app: app, windows: [window], current: window)
+        #expect(hidden.items.count == 1, "A closed window must not remain in the Dock menu")
     }
 }

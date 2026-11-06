@@ -27,6 +27,43 @@ struct WindowsNameTests {
 
 @Suite("Pack report")
 struct PackReportTests {
+    @Test func generalSharingUsesPortableNamesAndOmitsMacHelpers() {
+        var options = PackOptions()
+        options.setAudience(.general)
+        let report = Compatibility.report(for: SampleArchive.packCandidates, options: options)
+        #expect(options.format == .zip && options.level == .balanced)
+        #expect(options.dropsMacHelperFiles && !options.effectiveKeepsMacMetadata)
+        #expect(report.excluded.count == 4)
+        #expect(report.renames.map(\.to).contains("Q3 Report- Final.pdf"))
+    }
+
+    @Test func advancedFormatDoesNotChangeRecipientPolicyAndSurvivesPurposeChanges() {
+        var options = PackOptions()
+        options.usesPassword = true
+        options.setCustomFormat(.tarXz)
+        #expect(options.audience == .windows && options.format == .tarXz)
+        #expect(!options.usesPassword)
+        options.setAudience(.general)
+        #expect(options.format == .tarXz && options.hasCustomFormat)
+        let report = Compatibility.report(for: SampleArchive.packCandidates, options: options)
+        #expect(report.notes.contains { $0.tone == .caution })
+        options.setFormat(.sevenZip) // Explicitly return to a recommended format.
+        options.setAudience(.web)
+        #expect(options.format == .zip && !options.hasCustomFormat)
+    }
+
+    @Test func advancedFormatStillEnforcesEngineCapabilities() {
+        var options = PackOptions()
+        options.split = .mb100
+        options.usesPassword = true
+        options.setCustomFormat(.dmg)
+        #expect(options.split == .none && !options.usesPassword)
+        options.diskImageApplicationsLink = true
+        options.setCustomFormat(.zip)
+        #expect(!options.diskImageApplicationsLink)
+        #expect(options.audience == .windows)
+    }
+
     @Test func macHelperFilesAreRecognised() {
         #expect(Compatibility.isMacHelperFile(".DS_Store"))
         #expect(Compatibility.isMacHelperFile("Photos/._Lighthouse.jpg"))

@@ -1,5 +1,14 @@
 # UI and motion handoff — Claude Code
 
+## Current user correction — creation and entry points
+
+Follow [the 2026-11-05 Pack creation brief](pack-creation-direction-2026-11-05.md). The user
+wants Browser consistency for the draft, Pack for creation, the original sentence as the primary
+interaction, direct controls inside More Options and unrestricted advanced format choice plus
+General Sharing. This supersedes #297’s compact draft composition and separate Save form, and
+the earlier permission to replace the sentence. Claude Code owns the visual follow-up; Codex
+owns activation, state, menu routing and validation. No design acceptance is claimed.
+
 ## Tray, creation and entry-point functional handoff — #286
 
 The [functional implementation brief](286-functional-followups.md) records the new interfaces and bounded
@@ -12,8 +21,8 @@ production bundling; they do not require copying ArcZip's visual composition.
 
 Claude Code owns final visual treatment and motion. The draft workspace, settings form and
 functional controls are implementation scaffolding, not approved visual designs. Preserve the
-state/routing/close/undo/security contracts in the brief; the Pack sentence is not a required
-composition for the new draft workflow. See #286 for task dependencies and #38 for remaining
+state/routing/close/undo/security contracts in the brief; the latest user correction above restores
+the Pack sentence for the new draft workflow. See #286 for task dependencies and #38 for remaining
 physical-input/signed-integration checks. No collaborator session or visual acceptance is claimed.
 
 The user has explicitly assigned UI visual design and animation to **Claude Code**.

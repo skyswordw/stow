@@ -1,5 +1,15 @@
 # Stow — Design Language
 
+## Current creation and entry-point direction — 2026-11-05
+
+Follow [the current Pack/Browser brief](Handoff/pack-creation-direction-2026-11-05.md).
+The user wants a Browser-consistent creation workspace, **Pack…** for new output, the original
+sentence builder as the primary configuration, and unrestricted format controls inside **More
+Options**. Add General Sharing; recommendations must not be hard format restrictions. The
+previous compact draft composition and separate Save form from #297 are superseded. Claude Code
+owns the new visual treatment in #302; Codex owns functional integration. Status-menu Open Tray is removed;
+Open Stow/Settings must come to the front. Dock exposes current windows and existing recent history.
+
 ## Tray, creation and entry-point functional handoff — #286
 
 The [functional implementation brief](Handoff/286-functional-followups.md) records the new interfaces and bounded
@@ -12,8 +22,8 @@ production bundling; they do not require copying ArcZip's visual composition.
 
 Claude Code owns final visual treatment and motion. The draft workspace, settings form and
 functional controls are implementation scaffolding, not approved visual designs. Preserve the
-state/routing/close/undo/security contracts in the brief; the Pack sentence is not a required
-composition for the new draft workflow. See #286 for task dependencies and #38 for remaining
+state/routing/close/undo/security contracts in the brief. The current user direction above restores
+the Pack sentence for both draft creation and quick Pack. See #286 for task dependencies and #38 for remaining
 physical-input/signed-integration checks. No collaborator session or visual acceptance is claimed.
 
 > Working name. Check trademarks before launch.
@@ -345,7 +355,7 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
   reveal are both off. Then **Appearance** with the border colour. While Tray is off everything
   under the switch is disabled and its words go tertiary (a grouped form greys a disabled
   switch but not its title); the values are kept. No idle timer, by the user's choice (#286).
-  The status item's Control/right-click menu is native and short (#290): Open Tray, Open Stow,
+  The status item's Control/right-click menu is native and short (#290): Open Stow,
   Create Archive… · Settings… (straight to this page) · Quit Stow, no key equivalents shown.
 - **General** shows the language in use and folds the macOS how-to into a disclosure.
 - File Types drops its own heading in Settings (the title bar names the page); its standalone
@@ -354,57 +364,21 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
 - In Simplified Chinese the page is **访达与权限**, macOS's own name for Finder, like every other
   Finder string on that page and in Welcome.
 
-## New archive draft (#293)
+## New archive draft (#293, revised 2026-11-05)
 
-File › New Archive, Welcome's Create Archive… and the Tray menu open one **draft**: a window of
-its own that plans an archive from real files and writes nothing until Save succeeds. Quick Pack
-(Tray, Finder, drops on Welcome) keeps the Pack sentence; the draft doesn't use it.
+The current contract is [Pack creation direction](Handoff/pack-creation-direction-2026-11-05.md).
+New/Create opens one editable draft of real sources; **Pack…** opens the same sentence builder
+as quick Pack. Name/format choices carry through unchanged unless the user changes them. The
+More Options controls bind to that same state and expose all supported output formats without
+silently changing the recipient. General Sharing adds a neutral cross-platform purpose. Existing
+archive edits retain Save. Cancel/failure preserves the draft and source access; success opens
+the real archive. The title format menu uses direct actions rather than an inline picker nested
+inside a menu.
 
-- **Heading.** The format's Finder icon, then the archive's name as the window's title in `.title2`
-  semibold, with the extension straight after it as a sentence token (`.zip ⌄`, amber, pull-down
-  chevron) that picks any format. The name is a plain field that reads as the title until hovered
-  (faint fill) or clicked (field background and focus ring). Under it, secondary: **Not saved yet**,
-  then what's planned, "5 items · 884 kB before compression". That size is the originals', never
-  the archive's: no final bytes and no encryption claim until a pack has succeeded. The title bar is
-  quiet, as on Welcome: traffic lights only.
-- **Save… at the trailing edge**, where the Browser keeps Save. Prominent glass once there is
-  something to save; while the draft is empty it steps back to plain glass, disabled, and the empty
-  card's **Add Files…** is the prominent one: the next step is always the accented button.
-- **Contents card** (radius 16, `.background`) is the drop target, as the Tray's card and Welcome's
-  zone are: dashed edge while empty; accent edge, light tint and 1.015 scale while something is held
-  over it. Empty, it says what dropping does and that the originals stay where they are. Filled,
-  it's a native outline of the planned contents: top-level items in the order they were added,
-  folders openable with their contents sorted by name, each row with the file's Finder icon, its
-  name (a numbered one when two share a name, "Notes 2.txt") and, trailing and secondary, a size or
-  "2 items". No separators. Selection, arrows and the context menu (Remove, with "The originals stay
-  where they are"; Show in Finder) are the system list's.
-- **List bar** under the list, attached to it: borderless **+ Add Files…** and **− Remove** (named
-  with the count for several), and a tertiary "Drop more to add them". The keys stay in the Edit
-  menu: ⇧⌘A adds, ⌘⌫ removes, ⌘Z puts back.
-- **A problem** (an add that failed, a source that changed before Save) is one yellow-tinted card
-  between the heading and the list, its words selectable, with a small × to dismiss.
-- **Saving.** Save… opens the save sheet; packing then floats in the pack capsule over the list,
-  as over the Browser's files.
-
-**Save sheet for a draft.** The draft already has a name and a format, so the sheet starts with
-what will be saved: the format's icon and the file name the purpose allows ("Harbor Handoff.zip",
-`.title2` semibold) over the planned contents. Then a short form, labels trailing-aligned as in More
-Options: **Name** (field, extension beside it, a caption when the purpose replaces characters),
-**Format** (any format; one the purpose doesn't offer brings a purpose that does), **For** (the
-purposes), **Password** (without / with; a format that can't says so under it; the password and
-check fields open under the row), **Where** (the suggested folder with its icon and "Suggested.
-You'll confirm the folder next.", or "You'll choose a folder next."). The report card, More Options
-and the footer's estimate ("About 810 kB") follow exactly as in Pack; the primary button is
-**Save…** and opens the same folder chooser. Compression, parts, verification and the rest stay in
-More Options.
-
-**Motion.** Rows an add (or an Undo) brings in get the Tray's accent ring and faint tint at once,
-fading after 1.2 s, and the last is scrolled into view (no scroll animation under Reduce Motion).
-Empty ↔ filled cross-fades (`status` 200 ms; none after a key, so ⌘Z doesn't animate). The drop
-target springs as everywhere (`target`). The heading's icon cross-fades and the token blurs over to a
-new format (`token` 180 ms). The problem card fades in (`status`) and out (`exit`); the pack capsule
-rises as Actions does. Under Reduce Motion nothing scales or moves; Increase Contrast gives the card
-and the problem card a visible edge.
+Claude Code should make the draft a Browser-consistent workspace. The previous #297 card/heading
+composition and its separate Save form are superseded, not acceptance references. Preserve file
+selection, add/remove/undo, source safety, keyboard routing and system display/motion preferences.
+The existing workspace remains the functional baseline until that visual follow-up lands.
 
 ## Color
 
