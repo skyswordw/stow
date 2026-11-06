@@ -287,7 +287,7 @@ struct Breadcrumbs: View {
     }
 }
 
-private struct PathButtonStyle: ButtonStyle {
+struct PathButtonStyle: ButtonStyle {
     @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {

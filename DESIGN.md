@@ -6,8 +6,8 @@ Follow [the current Pack/Browser brief](Handoff/pack-creation-direction-2026-11-
 The user wants a Browser-consistent creation workspace, **Pack…** for new output, the original
 sentence builder as the primary configuration, and unrestricted format controls inside **More
 Options**. Add General Sharing; recommendations must not be hard format restrictions. The
-previous compact draft composition and separate Save form from #297 are superseded. Claude Code
-owns the new visual treatment in #302; Codex owns functional integration. Status-menu Open Tray is removed;
+previous compact draft composition and separate Save form from #297 are superseded. Claude Code's
+Browser-consistent treatment (#302) is in › New archive draft; Codex owns functional integration. Status-menu Open Tray is removed;
 Open Stow/Settings must come to the front. Dock exposes current windows and existing recent history.
 
 ## Tray, creation and entry-point functional handoff — #286
@@ -96,6 +96,23 @@ transition. Internal `NextStep*` types and stored preference keys keep their exi
 user preferences where compatible with these newer product decisions. The
 [earlier product design review](Handoff/product-design-review-2026-10-24.md) retains historical
 evidence; its optional-pane composition and mockups are superseded.
+
+### Ellipses on commands
+
+The Mac rule, applied the same way to menu items, buttons in content, floating glass and title-bar
+buttons that carry a word: a label ends in **…** when the command asks for more before it does
+anything — an Open or Save panel, a sheet, a sentence to finish, a share picker, Settings.
+
+- **Pack…** everywhere (File menu, draft title bar, Tray button and menu, Actions, the close
+  prompt): the Pack sentence and then the destination come first. The draft is an untitled
+  document, so **New Archive** (⌘N) and **Create Archive** (Welcome, the status menu) open it
+  without one, as File › New does in a document app; Pack… is its Save….
+- **Save** acts at once and has none; **Save a Copy…** asks where.
+- No ellipsis when only a warning follows: **Reset This Page**, **Reset All Preferences**, **Remove
+  All Saved Passwords** each confirm in an alert, which isn't asking for anything new.
+- No ellipsis when the result opens in place: the format token's **More Options** item opens the
+  sheet's own disclosure. Help › Download Sample Archive hands over to the browser.
+- Progress text (Saving…, Unlocking…, Adding files…) is a status, not a command.
 
 ## Browser layout (#160, #161)
 
@@ -356,7 +373,7 @@ footer right under it, no boxes of our own. Plain sidebar symbols, no coloured t
   under the switch is disabled and its words go tertiary (a grouped form greys a disabled
   switch but not its title); the values are kept. No idle timer, by the user's choice (#286).
   The status item's Control/right-click menu is native and short (#290): Open Stow,
-  Create Archive… · Settings… (straight to this page) · Quit Stow, no key equivalents shown.
+  Create Archive · Settings… (straight to this page) · Quit Stow, no key equivalents shown.
 - **General** shows the language in use and folds the macOS how-to into a disclosure.
 - File Types drops its own heading in Settings (the title bar names the page); its standalone
   scene keeps it. Its introduction lines up with the form's headers and footers, and its buttons
@@ -375,10 +392,37 @@ archive edits retain Save. Cancel/failure preserves the draft and source access;
 the real archive. The title format menu uses direct actions rather than an inline picker nested
 inside a menu.
 
-Claude Code should make the draft a Browser-consistent workspace. The previous #297 card/heading
-composition and its separate Save form are superseded, not acceptance references. Preserve file
-selection, add/remove/undo, source safety, keyboard routing and system display/motion preferences.
-The existing workspace remains the functional baseline until that visual follow-up lands.
+**Layout (#302).** The draft is the Browser with an archive that has nothing in it yet, as ArcZip's
+Create Archive is its browser over an empty archive (inspected natively 2026-11-05: the same view
+modes, Delete, Save and Search in the title bar, Back/Forward/Up with the path, the list's columns,
+Add Files at the bottom and its details pane). The user asked for the same consistency with the
+Browser after the first #302 pass trimmed the title bar. The previous #297 card/heading
+composition and its separate Save form are superseded.
+
+| Browser | Draft |
+|---|---|
+| Title: name ⌄ over "ZIP archive · 28 files" | Name (a field that reads as the title) and the Pack sentence's `.zip ⌄` token, over "Not packed yet · 5 items · 884 kB before compression" |
+| Search · Icons/List/Columns · Delete · Save | The same controls in the same capsules: Search (the draft's names), the view modes (⌘1–3), **Delete** (trash; takes items out of the plan, ⌘⌫, Undo puts them back) · **Pack…** (prominent and titled once there's something to pack, icon-only and disabled while empty) |
+| Path capsule: Back, Forward, Up, archive › folders | The same, starting at the archive-to-be (`Harbor Handoff.zip`) |
+| Icons, List, Columns | The same three, from the real originals: Finder icons and Quick Look thumbnails (icon mode), Finder's kind and date. A double-click opens a folder; Search lists matches with where they are |
+| Bottom-leading glass: Extract All | **Add Files…** (hidden while empty, where the centred button is the one prominent action) |
+| Bottom-trailing: Actions / activity | Packing's progress capsule |
+| Details: Archive Info / File Info / Selection Info | The same panel and headings. Archive Info: badge, *Files to pack*, *Total file size — Before compression*, *Archive file size — Known after packing*. File Info: thumbnail, kind, size before compression, date, *Location in archive*, *Original location*. Nothing claims a packed size or a password before Pack makes them |
+
+- Adds land at the top of the archive (the draft has no "add into this folder" yet), so an add
+  goes back to the top, where the new rows ring in the accent for 1.2 s.
+- Empty: the Browser's empty-content layout inside a dashed edge with Details' radius and inset;
+  the path capsule, Search and Delete show but are disabled.
+- A drop anywhere on the files column (path and floating glass included) draws an accent edge with
+  a light tint at the same inset; promised files (Mail, Photos) land anywhere in the window. The
+  list's table is its own AppKit view, so it takes drops through its rows' drop destination and
+  shows the system's drop line rather than the accent edge (checked with real drags from Finder).
+- Opening a folder (double-click, or Return in the list) clears the selection, so Details doesn't
+  describe the folder you're standing in. Columns keep the selected folder, as Finder does.
+- Problems sit under the path in the Browser's notice position.
+
+Preserve file selection, add/remove/undo, source safety, keyboard routing and system
+display/motion preferences.
 
 ## Color
 
@@ -525,7 +569,7 @@ transition frame by frame, by click and as after a key press, for review.
   with the traffic light or ⌘W ends that archive session and leaves Stow running without a window;
   reopening Stow from the Dock shows Welcome. Only one of them is open at a time.
 - **Welcome's actions** (#291) sit inside the drop zone, under what dropping does: **Open
-  Archive…** and **Create Archive…** side by side at one width, Create the prominent glass button
+  Archive…** and **Create Archive** side by side at one width, Create the prominent glass button
   on the trailing side, as a Mac pair puts its primary. Both reach the same routes as ⌘O and ⌘N
   (`AppState.beginNewArchive()` for Create; a repeated click focuses the one draft). Their tooltips
   name the shortcut. With keyboard navigation on, the window starts on Create. **Settings** belongs

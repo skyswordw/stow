@@ -5,6 +5,79 @@ import Testing
 @MainActor
 @Suite("New archive drafts", .serialized)
 struct ArchiveDraftTests {
+    @Test func navigationAndSearchCannotDeleteHiddenSelections() async throws {
+        let temp = try TemporaryFolder()
+        defer { temp.cleanUp() }
+        let folder = temp.url.appending(path: "Folder")
+        let root = temp.url.appending(path: "root.txt")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("child".utf8).write(to: folder.appending(path: "child.txt"))
+        try Data("root".utf8).write(to: root)
+        let draft = ArchiveDraft()
+        defer { draft.close() }
+        await draft.add([folder, root])
+        draft.selection = ["root.txt"]
+        draft.browsing.go(to: "Folder")
+        #expect(draft.selection.isEmpty)
+        draft.removeSelection()
+        #expect(draft.files.count == 3, "Delete must not act on an item hidden by navigation")
+        draft.selection = ["Folder/child.txt"]
+        draft.browsing.query = "root"
+        #expect(draft.selection.isEmpty)
+        draft.removeSelection()
+        #expect(draft.files.count == 3)
+        draft.browsing.query = "child"
+        draft.browsing.go(to: "")
+        draft.browsing.query = "child"
+        draft.open(try #require(draft.browsing.nodes["Folder/child.txt"]))
+        #expect(draft.browsing.folder == "Folder" && !draft.browsing.isSearching)
+        #expect(draft.selection == ["Folder/child.txt"])
+    }
+
+    @Test func columnSelectionStaysVisibleButDoesNotLeakIntoList() {
+        let draft = ArchiveDraft()
+        defer { draft.close() }
+        draft.browsing.update(tree: DraftNode.tree(from: [
+            PackFile(path: "Folder", size: 0, isFolder: true),
+            PackFile(path: "Folder/child.txt", size: 5)
+        ]))
+        draft.browsing.viewMode = .columns
+        draft.selection = ["Folder"]
+        draft.browsing.go(to: "Folder")
+        #expect(draft.selection == ["Folder"], "The folder is still visible in the previous column")
+        draft.browsing.viewMode = .list
+        #expect(draft.selection.isEmpty)
+        draft.browsing.go(to: "missing")
+        #expect(draft.browsing.folder == "Folder")
+    }
+
+    @Test func gridAndColumnKeyboardNavigationUsesDisplayedItems() {
+        let browsing = DraftBrowsing()
+        browsing.update(tree: DraftNode.tree(from: [
+            PackFile(path: "Folder", size: 0, isFolder: true),
+            PackFile(path: "Folder/child.txt", size: 5),
+            PackFile(path: "a.txt", size: 1), PackFile(path: "b.txt", size: 2)
+        ]))
+        browsing.viewMode = .grid
+        browsing.gridColumns = 2
+        var selection = browsing.move(.down, selection: [], extending: false)
+        #expect(selection == ["Folder"])
+        selection = browsing.move(.right, selection: selection, extending: true)
+        #expect(selection == ["Folder", "a.txt"])
+        selection = browsing.move(.down, selection: selection, extending: false)
+        #expect(selection == ["b.txt"])
+        browsing.viewMode = .columns
+        selection = browsing.move(.right, selection: ["Folder"], extending: false)
+        #expect(selection == ["Folder/child.txt"] && browsing.folder == "Folder")
+        selection = browsing.move(.left, selection: selection, extending: false)
+        #expect(selection == ["Folder"])
+        selection = browsing.move(.down, selection: selection, extending: false)
+        #expect(selection == ["a.txt"] && browsing.folder == "")
+        browsing.query = "child"
+        selection = browsing.move(.down, selection: [], extending: false)
+        #expect(selection == ["Folder/child.txt"], "Columns search uses the result list")
+    }
+
     @Test func importsCollisionsAndUndoWithoutChangingSources() async throws {
         let temp = try TemporaryFolder()
         defer { temp.cleanUp() }
@@ -167,4 +240,65 @@ struct ArchiveDraftTests {
         #expect(!packing.isRunning)
     }
 
+
+    /// Details and the Size column only ever describe the originals (#302): a folder's size is what's
+    /// inside it, and its place in the archive follows the draft's name and format.
+    @Test func detailsDescribeTheOriginalsBeforePacking() {
+        let files = [
+            PackFile(path: "Photos", size: 0, isFolder: true),
+            PackFile(path: "Photos/a.jpg", size: 300),
+            PackFile(path: "Photos/Raw", size: 0, isFolder: true),
+            PackFile(path: "Photos/Raw/b.dng", size: 700),
+            PackFile(path: "Notes.txt", size: 12),
+        ]
+        let tree = DraftNode.tree(from: files)
+        #expect(tree.map(\.name) == ["Photos", "Notes.txt"])
+        #expect(tree[0].bytes == 1000 && tree[0].count == 3)
+        #expect(tree[1].bytes == 12)
+
+        let inside = DraftDetails.contents(of: files[0], in: files)
+        #expect(inside.items == 3 && inside.bytes == 1000)
+        #expect(DraftDetails.contents(of: files[4], in: files).bytes == 12)
+
+        let draft = ArchiveDraft()
+        defer { draft.close() }
+        draft.name = "Harbor Handoff"
+        draft.format = .tarXz
+        #expect(draft.fileName == "Harbor Handoff.tar.xz")
+        #expect(DraftDetails.location(of: files[3], archiveName: draft.fileName) == "Harbor Handoff.tar.xz › Photos › Raw")
+        #expect(DraftDetails.location(of: files[4], archiveName: draft.fileName) == "Harbor Handoff.tar.xz")
+        draft.name = "  "
+        #expect(draft.fileName == String(localized: "Untitled Archive") + ".tar.xz")
+    }
+
+    /// The draft's window gets the Browser's way around (#302): folders, history, Up, Search, and a
+    /// removed folder falls back to the nearest one still planned.
+    @Test func browsingFollowsFoldersHistoryAndSearch() {
+        let files = [
+            PackFile(path: "Photos", size: 0, isFolder: true),
+            PackFile(path: "Photos/Raw", size: 0, isFolder: true),
+            PackFile(path: "Photos/Raw/b.dng", size: 700),
+            PackFile(path: "Notes.txt", size: 12),
+        ]
+        let browsing = DraftBrowsing()
+        browsing.update(tree: DraftNode.tree(from: files))
+        #expect(browsing.visible.map(\.name) == ["Photos", "Notes.txt"])
+        browsing.open(browsing.nodes["Photos"]!)
+        browsing.go(to: "Photos/Raw")
+        #expect(browsing.visible.map(\.name) == ["b.dng"])
+        #expect(browsing.segments.map(\.title) == ["Photos", "Raw"])
+        browsing.goBack()
+        #expect(browsing.folder == "Photos" && browsing.canGoForward)
+        browsing.goForward()
+        browsing.goUp()
+        #expect(browsing.folder == "Photos")
+
+        browsing.query = "dng"
+        #expect(browsing.visible.map(\.id) == ["Photos/Raw/b.dng"])
+        browsing.open(browsing.visible[0])
+        #expect(browsing.folder == "Photos/Raw" && !browsing.isSearching)
+
+        browsing.update(tree: DraftNode.tree(from: files.filter { !$0.path.hasPrefix("Photos") }))
+        #expect(browsing.folder == "" && browsing.visible.map(\.name) == ["Notes.txt"])
+    }
 }

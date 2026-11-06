@@ -75,6 +75,13 @@ an independent competing Save form. Ensure the title format menu is reachable an
 that the user must choose a format twice. The draft must clearly identify source sizes and unsaved
 state, never fabricated compressed size or encryption. Preserve the functional contracts above.
 
+Claude Code's layout for this is recorded in DESIGN.md › New archive draft (#302): the Browser's
+whole title bar (Search, view modes, Delete · Pack… in Delete · Save's place), its path capsule and
+three view modes over the draft, Add Files… in Extract All's place, and Details. View-only state
+(folder, history, view mode, Search) lives in `ArchiveDraft.browsing`; View › as Icons/List/Columns
+and Edit › Find… reach it. No functional contract changed. Follow-up for Codex: adding into the
+folder being viewed needs an `add(_:into:)` on the draft; adds land at the top level today.
+
 Native acceptance still needs the user's real status-item and Dock inputs from another foreground
 app. CUA/AX and isolated menu/model tests must be reported separately from these pointer checks.
 VoiceOver remains deferred under #93; basic keyboard/names/display preferences remain required.

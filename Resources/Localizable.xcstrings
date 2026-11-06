@@ -51,16 +51,6 @@
         }
       }
     },
-    "More Options…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更多选项…"
-          }
-        }
-      }
-    },
     "This format is outside the recommendations for %@. The recipient may need another app to open it.": {
       "localizations": {
         "zh-Hans": {
@@ -6330,16 +6320,6 @@
         }
       }
     },
-    "New Archive…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新建压缩包…"
-          }
-        }
-      }
-    },
     "No app": {
       "localizations": {
         "zh-Hans": {
@@ -7247,16 +7227,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "还原"
-          }
-        }
-      }
-    },
-    "Reset All Preferences…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还原所有设置…"
           }
         }
       }
@@ -10569,16 +10539,6 @@
         }
       }
     },
-    "Remove All Saved Passwords…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清除全部已保存密码…"
-          }
-        }
-      }
-    },
     "Saved passwords": {
       "localizations": {
         "zh-Hans": {
@@ -11145,16 +11105,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "页面"
-          }
-        }
-      }
-    },
-    "Reset This Page…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还原此页面…"
           }
         }
       }
@@ -13033,17 +12983,6 @@
         }
       }
     },
-    "Create Archive…": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "创建压缩包…"
-          }
-        }
-      }
-    },
     "Create Archive": {
       "extractionState": "manual",
       "localizations": {
@@ -13253,17 +13192,6 @@
         }
       }
     },
-    "Add more files and folders": {
-      "comment": "Help for Add Files… under the new-archive draft's list.",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加更多文件和文件夹"
-          }
-        }
-      }
-    },
     "Choose how to pack it and where to save it": {
       "comment": "Help for the new-archive draft's Save… button.",
       "localizations": {
@@ -13286,17 +13214,6 @@
         }
       }
     },
-    "Drop more to add them": {
-      "comment": "Hint under a new-archive draft's list.",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拖入更多即可添加"
-          }
-        }
-      }
-    },
     "For": {
       "comment": "Row label in the new-archive Save form: who the archive is for (Windows PCs, Macs…).",
       "localizations": {
@@ -13315,17 +13232,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "格式"
-          }
-        }
-      }
-    },
-    "Not saved yet": {
-      "comment": "Status under a new-archive draft's name: nothing has been written to disk.",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尚未保存"
           }
         }
       }
@@ -13583,6 +13489,155 @@
           "stringUnit": {
             "state": "translated",
             "value": "某些格式无法用满所有核心，实际可能用得更少。"
+          }
+        }
+      }
+    },
+    "Add more files and folders. You can also drop them on the list.": {
+      "comment": "Help for the floating Add Files… button in a new-archive draft.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加更多文件和文件夹。也可以直接拖到列表中。"
+          }
+        }
+      }
+    },
+    "Before compression": {
+      "comment": "Note under a size in a new-archive draft: the originals, not the packed archive.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩前"
+          }
+        }
+      }
+    },
+    "Choose the archive’s format. Pack starts with it.": {
+      "comment": "Help for the format token beside a draft’s name.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择压缩包格式。压缩时会沿用这个格式。"
+          }
+        }
+      }
+    },
+    "Files to pack": {
+      "comment": "Details for a new-archive draft: how many files it will hold.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待压缩文件数"
+          }
+        }
+      }
+    },
+    "Items inside": {
+      "comment": "Details for a folder in a new-archive draft.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含项目"
+          }
+        }
+      }
+    },
+    "Items inside selected folders are counted once.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选文件夹中的子项不会重复计入。"
+          }
+        }
+      }
+    },
+    "Known after packing": {
+      "comment": "Details for a new-archive draft: the archive’s size is unknown until it is packed.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩后可查看"
+          }
+        }
+      }
+    },
+    "Not packed yet": {
+      "comment": "Subtitle of a new-archive draft that has not been packed.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未压缩"
+          }
+        }
+      }
+    },
+    "Nothing is written until you pack. The files you add stay where they are.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击“压缩”后才会创建压缩包。添加的文件保持不变。"
+          }
+        }
+      }
+    },
+    "Original location": {
+      "comment": "Details for an item in a new-archive draft: the folder on this Mac it comes from.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始位置"
+          }
+        }
+      }
+    },
+    "Select files to take them out of this archive": {
+      "comment": "Help for a draft’s Remove button with nothing selected.",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择文件即可将其移出这个压缩包"
+          }
+        }
+      }
+    },
+    "Remove All Saved Passwords": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除全部已保存密码"
+          }
+        }
+      }
+    },
+    "Reset This Page": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原此页面"
+          }
+        }
+      }
+    },
+    "Reset All Preferences": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原所有设置"
           }
         }
       }

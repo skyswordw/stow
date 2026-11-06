@@ -273,7 +273,7 @@ struct BrowserView: View {
     /// password control), and what you do with it grouped at the trailing end: Search, the view
     /// modes, then Delete · Save. Search starts as a magnifying glass and opens leftward into the
     /// room the name leaves, so the controls after it never move. Tray and New Archive aren't about
-    /// this archive; they stay in the menu bar (Window › Show Tray ⌥⌘T, File › New Archive… ⌘N)
+    /// this archive; they stay in the menu bar (Window › Show Tray ⌥⌘T, File › New Archive ⌘N)
     /// and the Tray's menu-bar icon.
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
