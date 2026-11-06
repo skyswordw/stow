@@ -167,4 +167,34 @@ struct ArchiveDraftTests {
         #expect(!packing.isRunning)
     }
 
+
+    /// Details and the Size column only ever describe the originals (#302): a folder's size is what's
+    /// inside it, and its place in the archive follows the draft's name and format.
+    @Test func detailsDescribeTheOriginalsBeforePacking() {
+        let files = [
+            PackFile(path: "Photos", size: 0, isFolder: true),
+            PackFile(path: "Photos/a.jpg", size: 300),
+            PackFile(path: "Photos/Raw", size: 0, isFolder: true),
+            PackFile(path: "Photos/Raw/b.dng", size: 700),
+            PackFile(path: "Notes.txt", size: 12),
+        ]
+        let tree = DraftNode.tree(from: files)
+        #expect(tree.map(\.name) == ["Photos", "Notes.txt"])
+        #expect(tree[0].bytes == 1000 && tree[0].count == 3)
+        #expect(tree[1].bytes == 12)
+
+        let inside = DraftDetails.contents(of: files[0], in: files)
+        #expect(inside.items == 3 && inside.bytes == 1000)
+        #expect(DraftDetails.contents(of: files[4], in: files).bytes == 12)
+
+        let draft = ArchiveDraft()
+        defer { draft.close() }
+        draft.name = "Harbor Handoff"
+        draft.format = .tarXz
+        #expect(draft.fileName == "Harbor Handoff.tar.xz")
+        #expect(DraftDetails.location(of: files[3], archiveName: draft.fileName) == "Harbor Handoff.tar.xz › Photos › Raw")
+        #expect(DraftDetails.location(of: files[4], archiveName: draft.fileName) == "Harbor Handoff.tar.xz")
+        draft.name = "  "
+        #expect(draft.fileName == String(localized: "Untitled Archive") + ".tar.xz")
+    }
 }

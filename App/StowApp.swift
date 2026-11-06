@@ -556,7 +556,9 @@ struct StowApp: App {
         Window("Create Archive", id: "creation") {
             if let draft = app.archiveDraft { ArchiveDraftView(draft: draft).environment(app) }
         }
-        .defaultSize(width: 800, height: 560)
+        // The Browser's window and title bar (#302): room for the files and Details side by side.
+        .defaultSize(width: 980, height: 620)
+        .windowToolbarStyle(.unified)
         .defaultLaunchBehavior(.suppressed)
         .restorationBehavior(.disabled)
         .commandsRemoved()

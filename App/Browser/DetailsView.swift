@@ -91,7 +91,7 @@ extension DetailsPane {
 
 /// The heading's glyph sits on the text's baseline at a fixed width, so the words don't shift as the
 /// subject changes from archive to file to folder.
-private struct DetailsHeadingLabelStyle: LabelStyle {
+struct DetailsHeadingLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             configuration.icon
@@ -102,7 +102,7 @@ private struct DetailsHeadingLabelStyle: LabelStyle {
     }
 }
 
-private extension View {
+extension View {
     /// Details' surface: a rounded panel inset from the window's edges, concentric with its corner.
     func detailsPanel() -> some View {
         modifier(DetailsPanelSurface())
@@ -313,7 +313,7 @@ extension DetailsPane {
 
 /// The selection's name and kind, under its preview; an edit tag the way the grid shows it
 /// ("Text · New").
-private struct ItemIdentity: View {
+struct ItemIdentity: View {
     let name: String
     let kind: String
     var state: String?

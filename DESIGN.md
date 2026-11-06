@@ -6,8 +6,8 @@ Follow [the current Pack/Browser brief](Handoff/pack-creation-direction-2026-11-
 The user wants a Browser-consistent creation workspace, **Pack…** for new output, the original
 sentence builder as the primary configuration, and unrestricted format controls inside **More
 Options**. Add General Sharing; recommendations must not be hard format restrictions. The
-previous compact draft composition and separate Save form from #297 are superseded. Claude Code
-owns the new visual treatment in #302; Codex owns functional integration. Status-menu Open Tray is removed;
+previous compact draft composition and separate Save form from #297 are superseded. Claude Code's
+Browser-consistent treatment (#302) is in › New archive draft; Codex owns functional integration. Status-menu Open Tray is removed;
 Open Stow/Settings must come to the front. Dock exposes current windows and existing recent history.
 
 ## Tray, creation and entry-point functional handoff — #286
@@ -375,10 +375,30 @@ archive edits retain Save. Cancel/failure preserves the draft and source access;
 the real archive. The title format menu uses direct actions rather than an inline picker nested
 inside a menu.
 
-Claude Code should make the draft a Browser-consistent workspace. The previous #297 card/heading
-composition and its separate Save form are superseded, not acceptance references. Preserve file
-selection, add/remove/undo, source safety, keyboard routing and system display/motion preferences.
-The existing workspace remains the functional baseline until that visual follow-up lands.
+**Layout (#302).** The draft is the Browser's workspace with the Browser's words, mapped one to one,
+so making an archive and reading one feel like the same window. The previous #297 card/heading
+composition and its separate Save form are superseded.
+
+| Browser | Draft |
+|---|---|
+| Title: name ⌄ over "ZIP archive · 28 files" | Name (a field that reads as the title) and the format as the Pack sentence's `.zip ⌄` token, over "Not packed yet · 5 items · 884 kB before compression" |
+| Title bar, trailing: Delete · Save, Save prominent and titled once there's something to save | Remove · **Pack…**, Pack prominent and titled once there's something to pack; icon-only and disabled while empty |
+| Bottom-leading glass: Extract All | Bottom-leading glass: **Add Files…** (hidden while empty, where the centred button is the one prominent action) |
+| Bottom-trailing: Actions / activity | Packing's progress capsule |
+| List with Name · Size · Kind · Modified | The same columns from the real originals (Finder's kind and date); folders open in place so a subtree can be checked or removed without navigating |
+| Details: Archive Info / File Info / Selection Info | The same panel and headings. Archive Info shows the badge, *Files to pack*, *Total file size — Before compression* and *Archive file size — Known after packing*. File Info shows a Quick Look thumbnail, kind, size before compression, date, *Location in archive* and *Original location*. Nothing claims a packed size or a password before Pack makes them |
+
+- No path capsule: a draft is one list with disclosure, not a place to navigate. The list starts
+  under the title bar, level with Details.
+- Empty: the Browser's empty-content layout (symbol, line, description, button) inside a dashed
+  edge with Details' radius and inset, so the space reads as a drop target.
+- A drop anywhere on the files draws an accent edge with a light tint at the same inset; promised
+  files (Mail, Photos) land anywhere in the window. New top-level rows ring in the accent for 1.2 s.
+- Problems sit under the title bar in the Browser's notice position.
+- Remove uses `minus.circle`, not Delete's trash: the originals are never touched.
+
+Preserve file selection, add/remove/undo, source safety, keyboard routing and system
+display/motion preferences.
 
 ## Color
 

@@ -75,6 +75,10 @@ an independent competing Save form. Ensure the title format menu is reachable an
 that the user must choose a format twice. The draft must clearly identify source sizes and unsaved
 state, never fabricated compressed size or encryption. Preserve the functional contracts above.
 
+Claude Code's layout for this is recorded in DESIGN.md › New archive draft (#302): the Browser's
+title bar, Remove · Pack… in Delete · Save's place, Add Files… in Extract All's, the Browser's
+columns and Details. No functional contract changed.
+
 Native acceptance still needs the user's real status-item and Dock inputs from another foreground
 app. CUA/AX and isolated menu/model tests must be reported separately from these pointer checks.
 VoiceOver remains deferred under #93; basic keyboard/names/display preferences remain required.
