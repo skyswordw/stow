@@ -17,7 +17,7 @@ import SwiftUI
 /// negative x or y count from the right or bottom edge. Transitions:
 /// actions (scene next-steps), glance (list), archive-info and notices (details-planned),
 /// notice (source-access-unsaved), lock (encrypted), tray (tray), tray-pin (tray), batch (batch),
-/// opening (browser-opening).
+/// opening (browser-opening), draft-pack (draft).
 enum DemoBurst {
     enum Cause: String { case click, key, auto = "on its own" }
 
@@ -36,7 +36,11 @@ enum DemoBurst {
     }
 
     /// Offsets after each step, in milliseconds, that the sheet shows. -40 is just before it.
-    static let offsets = [-40, 16, 33, 50, 83, 116, 150, 200, 300, 500]
+    /// `-StowBurstOffsets 100,120,140` picks others, for a closer look at one stretch.
+    static var offsets: [Int] {
+        let custom = UserDefaults.standard.string(forKey: "StowBurstOffsets")?.split(separator: ",").compactMap { Int($0) }
+        return custom?.isEmpty == false ? custom! : [-40, 16, 33, 50, 83, 116, 150, 200, 300, 500]
+    }
 
     // MARK: - Running
 
@@ -179,6 +183,24 @@ enum DemoBurst {
                 Step(at: 1900, name: "batch ends", cause: .key) { app.batch.preview([]) },
                 Step(at: 2700, name: "batch starts", cause: .key) { app.batch.preview(rows) },
             ]
+        case "draft-pack":
+            // Pack… gaining and losing its name as the draft fills and empties (Delete, then Undo),
+            // then its sheet over the window, cancelled. Run it through `open` so the window is key.
+            let draft = app.archiveDraft
+            return [
+                Step(at: 100, name: "the window takes the keyboard", cause: .auto) {
+                    NSApp.activate()
+                    NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("creation") == true && $0.isVisible }?.makeKeyAndOrderFront(nil)
+                },
+                Step(at: 300, name: "delete everything", cause: .click) {
+                    guard let draft else { return }
+                    draft.selection = Set(draft.files.filter { !$0.path.contains("/") }.map(\.path))
+                    draft.removeSelection()
+                },
+                Step(at: 1300, name: "undo: files back", cause: .click) { draft?.undoManager.undo() },
+                Step(at: 2300, name: "Pack… opens its sheet", cause: .click) { draft?.prepareSave() },
+                Step(at: 3500, name: "Cancel", cause: .click) { draft?.packRequest = nil },
+            ]
         default:
             // "opening": nothing to do; the burst starts as the window does.
             return []
@@ -200,7 +222,7 @@ enum DemoBurst {
         }
         guard let first = images.compactMap({ $0 }).first else { return nil }
         let isOpening = rows.count == 1 && rows[0].name == "shown"
-        let offsets = isOpening ? [0, 100, 200, 300, 380, 420, 460, 500, 560, 650] : offsets
+        let offsets = isOpening ? [0, 100, 200, 300, 380, 420, 460, 500, 560, 650] : Self.offsets
         let cellWidth: CGFloat = min(CGFloat(images.compactMap { $0?.width }.max() ?? 300), crop == nil ? 360 : 440)
         let aspect = CGFloat(first.height) / CGFloat(max(first.width, 1))
         let cellHeight = (cellWidth * aspect).rounded()
