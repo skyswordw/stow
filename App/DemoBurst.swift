@@ -17,7 +17,7 @@ import SwiftUI
 /// negative x or y count from the right or bottom edge. Transitions:
 /// actions (scene next-steps), glance (list), archive-info and notices (details-planned),
 /// notice (source-access-unsaved), lock (encrypted), tray (tray), tray-pin (tray), batch (batch),
-/// opening (browser-opening), draft-pack (draft).
+/// opening (browser-opening), draft-pack (draft), draft-quit (draft-empty).
 enum DemoBurst {
     enum Cause: String { case click, key, auto = "on its own" }
 
@@ -200,6 +200,39 @@ enum DemoBurst {
                 Step(at: 1300, name: "undo: files back", cause: .click) { draft?.undoManager.undo() },
                 Step(at: 2300, name: "Pack… opens its sheet", cause: .click) { draft?.prepareSave() },
                 Step(at: 3500, name: "Cancel", cause: .click) { draft?.packRequest = nil },
+            ]
+        case "draft-quit":
+            // The menu-bar menu's flow (scene draft-empty): Create Archive, add files, then Quit
+            // from the same menu, answered Cancel; then Quit again, answered Pack…, and the Pack
+            // sheet cancelled. Each modal answer comes from a timer in the modal run loop.
+            func answer(_ response: NSApplication.ModalResponse, after seconds: Double) {
+                let timer = Timer(timeInterval: seconds, repeats: false) { _ in NSApp.stopModal(withCode: response) }
+                RunLoop.main.add(timer, forMode: .common)
+            }
+            func report(_ moment: String) {
+                let draft = app.archiveDraft
+                let window = NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("creation") == true && $0.isVisible }
+                NSLog("burst draft-quit \(moment): draft \(draft == nil ? "gone" : "\(draft!.files.count) files"), window \(window == nil ? "closed" : "open"), sheet \(draft?.packRequest == nil ? "none" : "open")")
+            }
+            return [
+                Step(at: 300, name: "add files", cause: .click) {
+                    let urls = DemoScene.demoDraftFiles()
+                    Task { await app.archiveDraft?.add(urls); report("added") }
+                },
+                Step(at: 1500, name: "Quit Stow, Cancel", cause: .click) {
+                    answer(.alertThirdButtonReturn, after: 0.8)
+                    NSApp.terminate(nil)
+                    report("after Cancel")
+                },
+                Step(at: 3000, name: "Quit Stow, Pack…", cause: .click) {
+                    answer(.alertFirstButtonReturn, after: 0.8)
+                    NSApp.terminate(nil)
+                    report("after Pack…")
+                },
+                Step(at: 4300, name: "Cancel the sheet", cause: .click) {
+                    app.archiveDraft?.packRequest = nil
+                    report("after the sheet's Cancel")
+                },
             ]
         default:
             // "opening": nothing to do; the burst starts as the window does.

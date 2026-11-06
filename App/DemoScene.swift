@@ -870,7 +870,7 @@ enum DemoScene {
 
     /// Real files for the draft scenes: a folder of photos, documents from two folders, and a
     /// second "Notes.txt" so the draft's collision numbering shows.
-    private static func demoDraftFiles() -> [URL] {
+    static func demoDraftFiles() -> [URL] {
         let manager = FileManager.default
         let base = manager.temporaryDirectory.appending(path: "Demo Draft", directoryHint: .isDirectory)
         try? manager.removeItem(at: base)
