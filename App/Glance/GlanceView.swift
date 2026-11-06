@@ -147,6 +147,9 @@ struct GlanceView: View {
                     .padding(.horizontal, GlanceLayout.inset)
             }
             .overlay(alignment: .bottom) { floatingControls }
+            // Glance shares the Browser's editable files surface, including its navigation and
+            // floating action band. ArchiveDrop retains format guards and groups each gesture.
+            .archiveDrop(model: model, folder: model.folder)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
                 else if model.editSession.isEdited { UnsavedChangesBar(model: model) }

@@ -39,7 +39,6 @@ struct BrowserView: View {
             .overlay(alignment: .top) { QuickLookPreparingCapsule(model: model, passwords: app.passwords) }
             .accessibilityElement(children: .contain)
             .accessibilitySortPriority(2)
-            .archiveDrop(model: model, folder: model.folder)
             .frame(minWidth: Self.minFilesWidth)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -65,6 +64,10 @@ struct BrowserView: View {
                         if !model.isActionStackOpen, !model.isActionStackGrown { floatingHeight = height }
                     }
             }
+            // Include the path and floating-controls band in the files column's drop surface.
+            // Row-specific targets still route into their folder; the surrounding area uses the
+            // current folder and the same read-only refusal / one-gesture Undo path (#305).
+            .archiveDrop(model: model, folder: model.folder)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
                     if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
