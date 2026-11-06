@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 final class ArchiveTransfer {
     nonisolated static let typeIdentifier = "app.stow.archive-selection"
     nonisolated static let contentType = UTType(exportedAs: typeIdentifier, conformingTo: .data)
-    static var pending: [String: ArchiveTransfer] = [:]
+    private(set) static var pending: [String: ArchiveTransfer] = [:]
     private static var activePasteboard: NSPasteboard?
     private static var activeChangeCount: Int?
     private static var activeToken: String?
@@ -45,19 +45,13 @@ final class ArchiveTransfer {
         return token
     }
 
-    static func finish(_ token: String?, cancelled: Bool) {
+    static func finish(_ token: String?) {
         activePasteboard = nil
         activeChangeCount = nil
         activeToken = nil
-        guard let token else { return }
-        if cancelled { pending[token] = nil }
-        else {
-            // AppKit ends a successful drag before an item provider's asynchronous callback.
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(30))
-                pending[token] = nil
-            }
-        }
+        // A native drop consumes synchronously before AppKit ends the gesture. Expire unused
+        // capabilities on both success and cancellation; external file promises do not use them.
+        if let token { pending[token] = nil }
     }
 
     var sourceIsCurrent: Bool {

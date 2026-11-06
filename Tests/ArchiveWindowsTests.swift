@@ -191,7 +191,7 @@ struct ArchiveTransferTests {
         #expect(pasteboard.writeObjects([provider]))
         let bytes = try #require(pasteboard.data(forType: .init(ArchiveTransfer.typeIdentifier)))
         #expect(String(data: bytes, encoding: .utf8) == token)
-        ArchiveTransfer.finish(token, cancelled: true)
+        ArchiveTransfer.finish(token)
         #expect(ArchiveTransfer.pending[token] == nil)
     }
 
@@ -222,16 +222,21 @@ struct ArchiveTransferTests {
         ArchiveTransfer.began(token: first, on: board)
         #expect(ArchiveTransfer.takeNativeDrop()?.source === source)
         #expect(ArchiveTransfer.takeNativeDrop() == nil, "Nested drop targets cannot consume a gesture twice")
-        ArchiveTransfer.finish(first, cancelled: false)
+        ArchiveTransfer.finish(first)
         #expect(ArchiveTransfer.takeNativeDrop() == nil)
+        #expect(ArchiveTransfer.pending[first] == nil)
 
         let second = ArchiveTransfer.register(source: source, entries: [])
         ArchiveTransfer.began(token: second, on: board)
         board.clearContents()
         board.setString("file:///tmp/external", forType: .fileURL)
         #expect(ArchiveTransfer.takeNativeDrop() == nil, "A new external drag must not reuse the internal capability")
-        ArchiveTransfer.finish(second, cancelled: true)
+        ArchiveTransfer.finish(second)
         #expect(ArchiveTransfer.pending[second] == nil)
+        let unused = ArchiveTransfer.register(source: source, entries: [])
+        ArchiveTransfer.began(token: unused, on: board)
+        ArchiveTransfer.finish(unused)
+        #expect(ArchiveTransfer.pending[unused] == nil, "A completed external drop must not leave a replayable capability")
     }
 
     @Test func externalSourceChangeIsRejectedEvenBeforeTheWatcherNotifies() async throws {

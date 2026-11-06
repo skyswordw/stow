@@ -338,22 +338,9 @@ private struct ArchiveDrop: ViewModifier {
                     model.receiveTransfer(transfer, into: folder, level: destination)
                     return true
                 }
-                let local = providers.filter { $0.hasItemConformingToTypeIdentifier(ArchiveTransfer.typeIdentifier) }
-                if !local.isEmpty {
-                    Task { @MainActor in
-                        // Every item from one drag has the same capability. Consume the batch once.
-                        guard let first = local.first else { return }
-                        let data: Data? = await withCheckedContinuation { continuation in
-                            first.loadDataRepresentation(forTypeIdentifier: ArchiveTransfer.typeIdentifier) { data, _ in
-                                continuation.resume(returning: data)
-                            }
-                        }
-                        guard let data, let token = String(data: data, encoding: .utf8),
-                              let transfer = ArchiveTransfer.pending.removeValue(forKey: token) else { return }
-                        model.receiveTransfer(transfer, into: folder, level: destination)
-                    }
-                    return true
-                }
+                // A private representation outside the current native gesture is stale or
+                // foreign. Never revive a capability asynchronously from a previous drag.
+                guard !providers.contains(where: { $0.hasItemConformingToTypeIdentifier(ArchiveTransfer.typeIdentifier) }) else { return false }
                 // Preserve provider order and register the whole gesture as one undo action.
                 Task { @MainActor in
                     var urls: [URL] = []

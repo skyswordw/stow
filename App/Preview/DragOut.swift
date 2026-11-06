@@ -117,7 +117,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     }
 
     func finishDrag(pasteboard: NSPasteboard, operation: NSDragOperation) {
-        ArchiveTransfer.finish(transferToken, cancelled: operation.isEmpty)
+        ArchiveTransfer.finish(transferToken)
         transferToken = nil
         if operation.isEmpty { pasteboard.clearContents() }
         let token = selectionSnapshot?.token
