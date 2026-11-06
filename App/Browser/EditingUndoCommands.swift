@@ -60,6 +60,9 @@ final class EditingUndoCommandsModel {
     }
 
     func archiveManager(in window: NSWindow?) -> UndoManager? {
+        if let window, window.attachedSheet == nil, NSApp.modalWindow == nil,
+           let draft = ArchiveDraft.focused(in: window), !draft.isImporting, !draft.isSaving,
+           !((window.firstResponder as? NSTextView)?.isEditable ?? false) { return draft.undoManager }
         guard let window, window.attachedSheet == nil, NSApp.modalWindow == nil,
               let delegate = window.delegate as? EditingWindowDelegate,
               let model = delegate.model, model.editingWindow === window,

@@ -60,7 +60,7 @@ targets:
         buildPhase: resources
       - path: THIRD_PARTY_NOTICES.md
         buildPhase: resources
-      # Sample folder + Harbor Rebrand Handoff.zip (Try the Sample); sources/licenses in CREDITS.md.
+      # Debug fixtures only; the Release exclusion below keeps production packages lean.
       - path: Resources/Sample
         type: folder
         buildPhase: resources
@@ -243,6 +243,9 @@ targets:
         ENABLE_APP_SANDBOX: YES
         ENABLE_USER_SELECTED_FILES: readwrite
         CODE_SIGN_ENTITLEMENTS: App/Stow.entitlements
+      configs:
+        Release:
+          EXCLUDED_SOURCE_FILE_NAMES: Sample
   # Sandboxed XPC service that parses every archive. It has no file access of its own: Stow passes
   # the archive and a staging folder as URLs, and their sandbox extensions travel with them.
   StowEngine:

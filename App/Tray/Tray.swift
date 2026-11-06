@@ -16,6 +16,12 @@ final class TrayController {
     var selection: Set<UUID> = []
     private(set) var anchor: UUID?
     private(set) var isShown = false
+    private(set) var isEnabled: Bool
+
+    func setEnabled(_ enabled: Bool) {
+        settings.set(enabled, forKey: SettingsKeys.trayEnabled)
+        applySettings()
+    }
     var isHovered = false {
         didSet {
             // The pointer on it after a drag means people turned to it: it stays like any Tray.
@@ -72,7 +78,8 @@ final class TrayController {
     /// Shows where the Tray comes out while files are dragged, when that isn't the menu-bar icon.
     @ObservationIgnored private var hint: TrayHint?
     @ObservationIgnored private let dismissal = TrayDismissalMonitor()
-    @ObservationIgnored private var relatedInteractions: Set<UUID> = []
+    private var relatedInteractions: Set<UUID> = []
+    var hasRelatedInteraction: Bool { !relatedInteractions.isEmpty }
     @ObservationIgnored private var shareSessions: [UUID: TrayShareSession] = [:]
     var isDropTargeted = false
     @ObservationIgnored private var rowMonitor: Any?
@@ -90,6 +97,7 @@ final class TrayController {
 
     init(settings: UserDefaults = .standard) {
         self.settings = settings
+        isEnabled = SettingsKeys.flag(SettingsKeys.trayEnabled, in: settings)
         isPinned = SettingsKeys.flag(SettingsKeys.trayPinned, in: settings)
     }
 
@@ -107,30 +115,62 @@ final class TrayController {
         }
         // Installing a status item writes its own defaults, which posts didChange again: only act
         // when a Tray setting really changed, and never re-entrantly.
-        let wanted = (icon: SettingsKeys.flag(SettingsKeys.trayMenuBarIcon),
-                      drags: SettingsKeys.flag(SettingsKeys.trayShowWhileDragging),
-                      border: SettingsKeys.trayBorder())
+        let wanted = (enabled: SettingsKeys.flag(SettingsKeys.trayEnabled, in: settings),
+                      icon: SettingsKeys.flag(SettingsKeys.trayMenuBarIcon, in: settings),
+                      drags: SettingsKeys.flag(SettingsKeys.trayShowWhileDragging, in: settings),
+                      border: SettingsKeys.trayBorder(in: settings),
+                      pinned: SettingsKeys.flag(SettingsKeys.trayPinned, in: settings))
         guard !isApplying, applied.map({ $0 != wanted }) ?? true else { return }
         isApplying = true
         defer { isApplying = false }
         applied = wanted
-        if wanted.icon { installStatusItem() } else { removeStatusItem() }
-        if wanted.drags { startWatchingDrags() } else { stopWatchingDrags() }
+        isEnabled = wanted.enabled
+        if isPinned != wanted.pinned { isPinned = wanted.pinned }
+        if !wanted.enabled {
+            hide()
+            showHint(false)
+            reconcileOutsidePress()
+        }
+        if wanted.enabled && wanted.icon { installStatusItem() } else { removeStatusItem() }
+        if wanted.enabled && wanted.drags { startWatchingDrags() } else { stopWatchingDrags() }
         panel?.border = wanted.border
     }
     @ObservationIgnored private var isApplying = false
-    @ObservationIgnored private var applied: (icon: Bool, drags: Bool, border: TrayBorder)?
+    @ObservationIgnored private var applied: (enabled: Bool, icon: Bool, drags: Bool, border: TrayBorder, pinned: Bool)?
 
     private func installStatusItem() {
         guard statusItem == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = Self.statusImage(receiving: false)
         item.button?.toolTip = String(localized: "Tray — gather files from anywhere")
-        item.button?.action = #selector(StatusTarget.toggleTray)
+        item.button?.action = #selector(StatusTarget.clicked)
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         let target = StatusTarget(tray: self)
         item.button?.target = target
         statusTarget = target
         statusItem = item
+    }
+
+    func showStatusMenu() {
+        guard let button = statusItem?.button, let target = statusTarget else { return }
+        let token = beginRelatedInteraction()
+        defer { endRelatedInteraction(token) }
+        let menu = NSMenu()
+        for (title, action) in [
+            (String(localized: "Open Tray"), #selector(StatusTarget.openTray)),
+            (String(localized: "Open Stow"), #selector(StatusTarget.openStow)),
+            (String(localized: "Create Archive…"), #selector(StatusTarget.createArchive)),
+            (String(localized: "Settings…"), #selector(StatusTarget.settings))
+        ] {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            item.target = target
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
+        let quit = NSMenuItem(title: String(localized: "Quit Stow"), action: #selector(StatusTarget.quit), keyEquivalent: "")
+        quit.target = target
+        menu.addItem(quit)
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
     }
 
     @ObservationIgnored private var statusTarget: StatusTarget?
@@ -193,6 +233,7 @@ final class TrayController {
     }
 
     func beginFileDrag() {
+        guard isEnabled else { return }
         isDragging = true
         if !isShown { showHint(true) }
     }
@@ -271,9 +312,10 @@ final class TrayController {
     /// A drag brings the Tray out without taking the keyboard from the app being dragged from;
     /// asking for it (menu-bar icon, toolbar, ⌥⌘T) makes it key, so its controls show as active.
     func show(fromDrag: Bool = false) {
+        guard isEnabled || UserDefaults.standard.string(forKey: "StowScene") != nil else { return }
         let panel = panel ?? makePanel()
         self.panel = panel
-        panel.border = SettingsKeys.trayBorder()
+        panel.border = SettingsKeys.trayBorder(in: settings)
         isPlacing = true
         panel.setFrame(frame(), display: false)
         isPlacing = false
@@ -292,6 +334,7 @@ final class TrayController {
         dismissal.interact = { [weak self] in self?.retainAfterInteraction() }
         dismissal.dismiss = { [weak self] in self?.dismissForOutsideInteraction() }
         dismissal.mouseReleased = { [weak self] in self?.mouseUp() }
+        dismissal.outsidePress = { [weak self] in self?.reconcileOutsidePress() }
         dismissal.start()
         if fromDrag { panel.orderFrontRegardless() } else { panel.makeKeyAndOrderFront(nil) }
         // Nothing moves when ⌥⌘T brought it out. Decided now, while the key press is current.
@@ -368,6 +411,17 @@ final class TrayController {
     var canDismissAutomatically: Bool {
         isShown && !isPinned && !isDragging && !dragStarted && !isDropTargeted
             && relatedInteractions.isEmpty && ownedPreview == nil && !dismissal.isTrackingMenu
+    }
+
+    /// Recover from a missed drag-end/drop-target callback before classifying a new click.
+    /// Menus, pickers, Quick Look and pin still independently protect the panel.
+    func reconcileOutsidePress() {
+        isDragging = false
+        dragStarted = false
+        isDropTargeted = false
+        press = nil
+        showHint(false)
+        retainAfterInteraction()
     }
 
     func dismissForOutsideInteraction() {
@@ -906,10 +960,25 @@ final class TrayController {
 private struct TrayEventBox: @unchecked Sendable { let event: NSEvent? }
 
 /// Holds the status item's action (NSStatusBarButton needs an Objective-C target).
-private final class StatusTarget: NSObject {
+private final class StatusTarget: NSObject, NSMenuItemValidation {
     weak var tray: TrayController?
     init(tray: TrayController) { self.tray = tray }
-    @objc func toggleTray() { tray?.toggle() }
+    @objc func clicked() {
+        let event = NSApp.currentEvent
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
+            tray?.showStatusMenu()
+        } else { tray?.toggle() }
+    }
+    @objc func openTray() { tray?.show() }
+    @objc func openStow() { tray?.app?.showMainWindow() }
+    @objc func createArchive() { tray?.app?.beginNewArchive() }
+    @objc func settings() { SettingsRouter.shared.show(.tray) }
+    @objc func quit() { NSApp.terminate(nil) }
+
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        if item.action == #selector(createArchive) { return tray?.app?.passwords.question == nil }
+        return true
+    }
 }
 
 /// The Tray's window: can take the keyboard, drives Quick Look for real files, and is the drag source.

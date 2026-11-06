@@ -9,7 +9,7 @@ final class AppState {
         var url: URL?
     }
 
-    let tray = TrayController()
+    let tray: TrayController
     let packing = PackController()
     let system = SystemActions()
     let passwords = PasswordPrompt()
@@ -19,7 +19,23 @@ final class AppState {
     var browser: BrowserModel?
     /// A native window close leaves Stow running without presenting a replacement window.
     private(set) var mainWindowDismissed = false
+    var archiveDraft: ArchiveDraft?
+    var showCreationWindow: () -> Void = {}
+    var closeCreationWindow: () -> Void = {}
     var packRequest: PackRequest?
+    private(set) var pendingCommands = 0
+    private struct FinishingArchive {
+        var model: BrowserModel
+        var scopedURL: URL?
+        var grant: SourceReadAccess.Grant?
+    }
+    private var finishingBrowsers: [FinishingArchive] = []
+    var hasLifetimeWork: Bool {
+        isBusy || packRequest != nil || isChoosingArchive || isChoosingBatch
+            || tray.hasRelatedInteraction || archiveDraft?.packRequest != nil
+            || archiveDraft?.isChoosingSources == true
+            || finishingBrowsers.contains { if case .failed = $0.model.activity?.phase { true } else { false } }
+    }
     var isChoosingArchive = false
     var isChoosingBatch = false
     private(set) var isOpening = false
@@ -51,7 +67,8 @@ final class AppState {
     var showMainWindow: () -> Void = {}
     let batch = BatchQueue()
 
-    init() {
+    init(traySettings: UserDefaults = .standard) {
+        tray = TrayController(settings: traySettings)
         tray.app = self
         system.app = self
         glance.app = self
@@ -72,6 +89,9 @@ final class AppState {
     /// Extracting, packing, opening or a browser action is running. Updates wait for it (#35), and
     /// Settings holds off cleaning temporary files.
     var isBusy: Bool {
+        if archiveDraft?.isImporting == true || archiveDraft?.isSaving == true { return true }
+        if pendingCommands > 0 || system.pendingRequests > 0 || system.running > 0
+            || finishingBrowsers.contains(where: { if case .running = $0.model.activity?.phase { true } else { false } }) { return true }
         if packing.isRunning || batch.isActive || isOpening || browser?.isUnlocking == true || passwords.question != nil { return true }
         if case .running = browser?.activity?.phase { return true }
         return false
@@ -247,7 +267,9 @@ final class AppState {
     /// `cleanupTemporaryGroups` are app-owned Tray folders removed only after a successful pack (#179).
     func pack(_ urls: [URL], cleanupTemporaryGroups: [URL] = []) {
         guard !urls.isEmpty else { return }
+        pendingCommands += 1
         Task {
+            defer { pendingCommands -= 1 }
             var request = await PackRequest.gather(urls)
             guard !request.files.isEmpty else { return }
             // Ownership is explicit: only attach directories that are known temporary groups.
@@ -262,6 +284,7 @@ final class AppState {
                         ?? FolderAccess.home.appending(path: "Desktop", directoryHint: .isDirectory)
                 }
             }
+            showMainWindow()
             packRequest = request
         }
     }
@@ -295,9 +318,26 @@ final class AppState {
         }
     }
 
-    /// New Archive (⌘N): pick what to pack.
+    func beginNewArchive() {
+        guard passwords.question == nil else { return }
+        if archiveDraft == nil { archiveDraft = ArchiveDraft() }
+        showCreationWindow()
+    }
+
+    func discardArchiveDraft() {
+        guard let draft = archiveDraft, !draft.isSaving else { return }
+        draft.close()
+        closeCreationWindow()
+        if archiveDraft === draft { archiveDraft = nil }
+    }
+
+    /// Quick Pack: pick what to pack.
     func chooseFilesToPack() {
-        Task { pack(await PackDestination.chooseSources()) }
+        pendingCommands += 1
+        Task {
+            defer { pendingCommands -= 1 }
+            pack(await PackDestination.chooseSources())
+        }
     }
 
     /// URLs macOS opened Stow with. Archives open in the browser (the first one; Stow has one window).
@@ -328,19 +368,10 @@ final class AppState {
         openPreferred(url)
     }
 
-    /// Opens the bundled Harbor sample ZIP through the normal browse/preview/extract engine (#91).
-    /// Extract and Install write real files; they are not `simulate()` timers.
-    func openSample() {
-        guard let url = SampleArchive.bundledURL else {
-            // Bundle missing the ZIP (incomplete checkout): fall back to the in-memory design listing.
-            openArchive(named: SampleArchive.make().name)
-            showMainWindow()
-            return
-        }
-        openPreferred(url)
-    }
+    /// Explicit browser download keeps the main app offline and never fabricates an archive.
+    func downloadSample() { NSWorkspace.shared.open(SampleDownload.url) }
 
-    /// In-memory sample for design-review scenes (`DemoScene`, nested-search demos). Prefer `openSample()` for Try the Sample.
+    /// In-memory sample for explicitly requested design-review scenes only.
     func openArchive(named name: String) {
         openDemo(SampleArchive.make(named: name))
     }
@@ -356,8 +387,15 @@ final class AppState {
     private func makeBrowser(_ archive: Archive, isListing: Bool = false) -> BrowserModel {
         let model = BrowserModel(archive: archive, isListing: isListing)
         model.passwords = PasswordHook(prompt: passwords)
-        model.onArchiveGone = { [weak self] in self?.closeArchive() }
-        model.onCloseWindow = { [weak self] in self?.closeWindow() }
+        // A retained background job may finish after a different archive has taken over.
+        model.onArchiveGone = { [weak self, weak model] in
+            guard let self, let model, self.browser === model, !self.isOpening else { return }
+            self.closeArchive()
+        }
+        model.onCloseWindow = { [weak self, weak model] in
+            guard let self, let model, self.browser === model, !self.isOpening else { return }
+            self.closeWindow()
+        }
         // The Pack sentence is a sheet on the full window, so Glance hands over to it first.
         model.onPack = { [weak self] request in
             self?.glance.expand(byKeyboard: false)
@@ -368,22 +406,30 @@ final class AppState {
 
     /// "Close the window after Extract All or an install": the archive closes with it.
     func closeWindow() {
+        let archiveWindow = browser?.editingWindow
         cancelOpening()
         glance.close()
-        NSApp.windows.first { !($0 is NSPanel) && $0.isVisible && $0.sheetParent == nil }?.performClose(nil)
+        // Never pick an arbitrary visible window: Settings or a new draft may be in front.
+        if let archiveWindow, archiveWindow !== glance.window { archiveWindow.performClose(nil) }
     }
 
     /// Extracts several archives, one after another, into a folder chosen once.
     func extractArchives(_ urls: [URL]) {
+        pendingCommands += 1
         Task {
+            defer { pendingCommands -= 1 }
             guard let destination = await ExtractDestination.choose(count: urls.count, near: urls.first) else { return }
             batch.enqueue(urls, into: destination)
         }
     }
 
     func closeArchive() {
+        let model = browser
+        let opening = openingID
         Task {
-            guard await browser?.confirmDiscardingEdits() ?? true else { return }
+            guard browser === model, openingID == opening else { return }
+            guard await model?.confirmDiscardingEdits() ?? true else { return }
+            guard browser === model, openingID == opening else { return }
             mainWindowDismissed = false
             clearArchive()
         }
@@ -400,9 +446,32 @@ final class AppState {
 
     func prepareToShowMainWindow() {
         mainWindowDismissed = false
+        // Closing a window must not make an accepted operation unreachable on reopen.
+        if browser == nil, !isOpening, let work = finishingBrowsers.popLast() {
+            browser = work.model
+            scopedURL = work.scopedURL
+            sourceGrant = work.grant
+        }
+    }
+
+    func releaseFinishedWork() {
+        finishingBrowsers.removeAll {
+            if case .running = $0.model.activity?.phase { return false }
+            // A failed accepted operation remains reachable on reopening, including its retry state.
+            if case .failed = $0.model.activity?.phase { return false }
+            $0.scopedURL?.stopAccessingSecurityScopedResource()
+            $0.grant?.release()
+            return true
+        }
     }
 
     private func clearArchive() {
+        releaseFinishedWork()
+        if let browser, case .running = browser.activity?.phase {
+            finishingBrowsers.append(FinishingArchive(model: browser, scopedURL: scopedURL, grant: sourceGrant))
+            scopedURL = nil
+            sourceGrant = nil
+        }
         browser?.quickLook.close()
         browser?.cancelUnlocking()
         cancelCloudDownload()
@@ -430,10 +499,20 @@ final class AppState {
 @main
 struct StowApp: App {
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
-    @State private var app = AppState()
+    @State private var app: AppState
+
+    init() {
+        let store = UserDefaults.standard
+        let domain = store.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "app.stow.Stow") ?? [:]
+        if NSClassFromString("XCTestCase") == nil, store.string(forKey: "StowScene") == nil {
+            SettingsKeys.migrateTray(in: store, persistent: domain)
+        }
+        _app = State(initialValue: AppState())
+    }
     @AppStorage(SettingsKeys.appearance) private var appearance = "system"
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.dismissWindow) private var dismissWindow
 
     var body: some Scene {
         let _ = configureRouting()
@@ -474,6 +553,13 @@ struct StowApp: App {
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
         .restorationBehavior(.disabled)
+        Window("Create Archive", id: "creation") {
+            if let draft = app.archiveDraft { ArchiveDraftView(draft: draft).environment(app) }
+        }
+        .defaultSize(width: 800, height: 560)
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
+        .commandsRemoved()
         Settings {
             SettingsView().environment(app)
         }
@@ -485,9 +571,23 @@ struct StowApp: App {
         app.showMainWindow = { [weak app] in
             guard let app else { return }
             app.prepareToShowMainWindow()
-            open(id: app.usesBrowserWindow ? "main" : "welcome")
+            ApplicationLifecycle.activateForWindow()
+            let id = app.usesBrowserWindow ? "main" : "welcome"
+            ApplicationLifecycle.shared.presenting(id)
+            open(id: id)
         }
-        SettingsRouter.shared.open = { openSettings() }
+        let dismiss = dismissWindow
+        app.closeCreationWindow = { dismiss(id: "creation") }
+        app.showCreationWindow = { [weak app] in
+            ApplicationLifecycle.activateForWindow()
+            ApplicationLifecycle.shared.presenting("creation")
+            open(id: "creation")
+            if app?.usesBrowserWindow == false { dismiss(id: "welcome") }
+        }
+        SettingsRouter.shared.open = {
+            ApplicationLifecycle.activateForWindow()
+            openSettings()
+        }
         OnboardingRouter.shared.open = { open(id: "onboarding") }
         delegate.app = app
     }
@@ -617,7 +717,10 @@ struct AppRoot: ViewModifier {
         }
         WindowSwitch.animation = Motion.byKeyboard ? .none : .default
         for window in GlanceController.mainWindows { window.animationBehavior = WindowSwitch.animation }
-        if let arriving { openWindow(id: arriving) }
+        if let arriving {
+            ApplicationLifecycle.shared.presenting(arriving)
+            openWindow(id: arriving)
+        }
         dismissWindow(id: leaving)
     }
 }
@@ -665,7 +768,7 @@ struct StowCommands: Commands {
                 .disabled(!AppUpdater.shared.isAvailable)
         }
         CommandGroup(replacing: .newItem) {
-            Button("New Archive…") { app.passwords.performCommand { app.chooseFilesToPack() } }
+            Button("New Archive…") { app.passwords.performCommand { app.beginNewArchive() } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("n")
             Button("Open Archive…") { app.passwords.performCommand { app.isChoosingArchive = true } }
@@ -678,7 +781,7 @@ struct StowCommands: Commands {
             Button("Extract Archives…") { app.passwords.performCommand { app.isChoosingBatch = true } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("e", modifiers: [.command, .option])
-            Button("Open Sample Archive") { app.passwords.performCommand { app.openSample() } }
+            Button("Download Sample…") { app.downloadSample() }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("o", modifiers: [.command, .shift])
             Divider()
@@ -689,9 +792,12 @@ struct StowCommands: Commands {
         }
         CommandGroup(after: .help) {
             Button("Welcome to Stow") { OnboardingRouter.shared.open() }
+            Button("Sample Credits and Licenses") { NSWorkspace.shared.open(SampleDownload.creditsURL) }
         }
         CommandGroup(after: .windowArrangement) {
-            Button(app.tray.isShown ? String(localized: "Hide Tray") : String(localized: "Show Tray")) { app.tray.toggle() }
+            Button(app.tray.isEnabled ? (app.tray.isShown ? String(localized: "Hide Tray") : String(localized: "Show Tray")) : String(localized: "Tray Settings…")) {
+                if app.tray.isEnabled { app.tray.toggle() } else { SettingsRouter.shared.show(.tray) }
+            }
                 .keyboardShortcut("t", modifiers: [.command, .option])
         }
     }

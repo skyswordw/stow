@@ -7,6 +7,8 @@ import SwiftUI
 /// heading says what they're set to while it's closed.
 struct PackSheet: View {
     let request: PackRequest
+    var draft: ArchiveDraft? = nil
+    var didCreate: ([URL]) -> Void = { _ in }
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
     @Environment(\.reducesMotion) private var reduceMotion
@@ -115,6 +117,11 @@ struct PackSheet: View {
         }
         .onAppear(perform: restore)
         .onDisappear {
+            if let draft, !handedOffCleanup {
+                draft.configuration = .init(options: options, name: name, overrides: overrides)
+                draft.name = name
+                draft.format = options.format
+            }
             if !handedOffCleanup, let directory = request.cleanupDirectory, !request.cleanupOnlyOnSuccess {
                 try? FileManager.default.removeItem(at: directory)
             }
@@ -757,7 +764,7 @@ struct PackSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.glassProminent)
                 .controlSize(.large)
-                .disabled(isChoosing || report.included.isEmpty || (options.usesPassword && (password.isEmpty || !passwordChecked)))
+                .disabled(isChoosing || app.packing.isRunning || report.included.isEmpty || (options.usesPassword && (password.isEmpty || !passwordChecked)))
         }
     }
 
@@ -770,6 +777,20 @@ struct PackSheet: View {
     // MARK: Actions
 
     private func restore() {
+        if let configuration = draft?.configuration {
+            options = configuration.options
+            name = request.suggestedName
+            if let format = request.initialFormat {
+                if !options.audience.formats.contains(format),
+                   let audience = Audience.allCases.first(where: { $0.formats.contains(format) }) {
+                    options.setAudience(audience)
+                }
+                options.setFormat(format)
+            }
+            overrides = configuration.overrides
+            revealsPassword = SettingsKeys.flag(SettingsKeys.showPassword)
+            return
+        }
         name = request.suggestedName
         options.setAudience(PackPreferences.audience)
         if let format = request.initialFormat {
@@ -875,10 +896,21 @@ struct PackSheet: View {
                 diskImageFinderChrome: format == .dmg && options.diskImageFinderChrome
             )
             request.encryptFilenames = options.format == .sevenZip && options.encryptFilenames
+            guard !app.packing.isRunning else { return }
             handedOffCleanup = true
+            if let draft {
+                draft.configuration = .init(options: options, name: name, overrides: overrides)
+                draft.name = name
+                draft.format = format
+                draft.beganSaving()
+            }
             app.packing.start(.init(items: report.items, totalBytes: report.totalBytes, attributes: keepsMetadata,
                                     request: request, name: archiveName, destination: destination, conflict: conflict,
-                                    cleanupDirectory: cleanupDirectory, cleanupOnlyOnSuccess: cleanupOnlyOnSuccess))
+                                    cleanupDirectory: cleanupDirectory, cleanupOnlyOnSuccess: cleanupOnlyOnSuccess),
+                              allowsRetry: draft == nil) { result in
+                draft?.finishedSaving(result)
+                if case .success(let urls) = result, draft != nil { didCreate(urls) }
+            }
             dismiss()
         }
     }

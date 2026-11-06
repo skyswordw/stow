@@ -300,10 +300,11 @@ struct ToolbarSearchField: View {
     let isOpen: Bool
     /// Opens Search and puts the keyboard in it.
     let activate: () -> Void
+    let close: () -> Void
 
     var body: some View {
         if isOpen || width > TitleBarLayout.buttonWidth + 0.5 {
-            Field(query: $query, prompt: prompt, isFocused: $isFocused, focusRequest: focusRequest)
+            Field(query: $query, prompt: prompt, isFocused: $isFocused, focusRequest: focusRequest, close: close)
                 // While it grows from the button's width, the field is revealed from its leading
                 // magnifying glass, which stays where the button's was.
                 .frame(width: max(width, TitleBarLayout.buttonWidth), alignment: .leading)
@@ -321,6 +322,7 @@ struct ToolbarSearchField: View {
         let prompt: String
         @Binding var isFocused: Bool
         let focusRequest: Int
+        let close: () -> Void
         /// Focus state has to live in the toolbar item's own view: a `FocusState` in the
         /// Browser doesn't reach a field the toolbar hosts.
         @FocusState private var hasKeyboard: Bool
@@ -332,6 +334,7 @@ struct ToolbarSearchField: View {
                     .accessibilityHidden(true)
                 TextField("Search", text: $query, prompt: Text(prompt))
                     .textFieldStyle(.plain)
+                    .accessibilityLabel(String(localized: "Search"))
                     .foregroundStyle(.primary)
                     .focused($hasKeyboard)
                     // Esc clears and lets go in one step, as the system field did. A plain text
@@ -340,10 +343,7 @@ struct ToolbarSearchField: View {
                     // and letting go here would commit the half-typed text into the query (#242).
                     .onKeyPress(.escape) {
                         if anchor.isComposing() { return .ignored }
-                        query = ""
-                        hasKeyboard = false
-                        isFocused = false
-                        anchor.releaseField()
+                        closeSearch()
                         return .handled
                     }
                 if !query.isEmpty {
@@ -356,12 +356,17 @@ struct ToolbarSearchField: View {
                     .foregroundStyle(.secondary)
                     .help("Clear Search")
                 }
+                Button("Close Search", systemImage: "xmark", action: closeSearch)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.plain)
+                    .help("Close Search")
             }
             .padding(.horizontal, Space.m)
-            // The whole capsule takes the click, not only the text.
-            .contentShape(.capsule)
-            .onTapGesture { takeKeyboard() }
-            .background { anchor }
+            // Only the background takes this gesture: a close-button click must not refocus.
+            .background {
+                Color.clear.contentShape(.capsule).onTapGesture { takeKeyboard() }
+                anchor
+            }
             .onChange(of: hasKeyboard) { _, has in if isFocused != has { isFocused = has } }
             .onChange(of: isFocused, initial: true) { _, wants in
                 if hasKeyboard != wants { hasKeyboard = wants }
@@ -370,6 +375,14 @@ struct ToolbarSearchField: View {
                 if wants { anchor.focusField() } else { anchor.cancelPendingFocus() }
             }
             .onChange(of: focusRequest) { takeKeyboard() }
+        }
+
+        private func closeSearch() {
+            anchor.releaseField()
+            query = ""
+            hasKeyboard = false
+            isFocused = false
+            close()
         }
 
         private func takeKeyboard() {

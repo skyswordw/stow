@@ -1,10 +1,18 @@
-import Foundation
+import AppKit
 
-/// "Harbor Rebrand Handoff": Try the Sample opens the bundled genuine ZIP (`bundledURL`); design-review
+/// Public, immutable sample assets; normal app builds never download in the background.
+nonisolated enum SampleDownload {
+    static let revision = "33d533e7a74c0f6c862ce49a8d0fc72e93a71e90"
+    static let url = URL(string: "https://github.com/Beastry/stow/raw/\(revision)/Resources/Sample/Harbor%20Rebrand%20Handoff.zip")!
+    static let creditsURL = URL(string: "https://github.com/Beastry/stow/tree/\(revision)/Resources/Sample")!
+}
+
+
+/// "Harbor Rebrand Handoff": the genuine ZIP is downloadable; Debug builds bundle design-review
 /// scenes still use `make()` for an in-memory listing (including fictional Prototype/Audio entries that
 /// are not in the release ZIP). Real preview files live under Resources/Sample (see `SampleContent`).
 enum SampleArchive {
-    /// The genuine ZIP Try the Sample opens. Sizes and Extract/Install go through the normal engine.
+    /// Development/test fixture only. Release builds omit the ZIP and expanded assets.
     static var bundledURL: URL? {
         let name = "Harbor Rebrand Handoff"
         if let url = Bundle.main.url(forResource: name, withExtension: "zip", subdirectory: "Sample") {

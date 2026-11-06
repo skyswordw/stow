@@ -106,7 +106,9 @@ struct WindowCloseCommandTests {
     }
 
     @Test func trayClosesThroughItsControllerAndKeepsItsItems() throws {
-        let app = AppState(), command = WindowCloseCommand()
+        let store = UserDefaults(suiteName: "TrayClose.\(UUID())")!
+        store.set(true, forKey: SettingsKeys.trayEnabled)
+        let app = AppState(traySettings: store), command = WindowCloseCommand()
         app.tray.show()
         defer { app.tray.hide() }
         let panel = try #require(NSApp.windows.compactMap { $0 as? TrayPanel }.first {

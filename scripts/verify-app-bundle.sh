@@ -28,6 +28,13 @@ fail() { if [[ -n "${GITHUB_ACTIONS:-}" ]]; then echo "::error::$*"; else echo "
 
 [[ -d $app ]] || { fail "$app is not a directory"; exit 1; }
 
+# Development fixtures must never return to a production package.
+if [[ -e "$app/Contents/Resources/Sample" ]]; then
+  fail "production bundle contains Sample fixtures"
+else
+  ok "production bundle omits Sample fixtures"
+fi
+
 # --- Layout + Universal 2 ---------------------------------------------------------------------
 if scripts/check-universal.sh "$app" > /tmp/stow-universal.$$ 2>&1; then
   ok "every binary is arm64 + x86_64 ($(tail -1 /tmp/stow-universal.$$))"

@@ -306,7 +306,11 @@ struct BrowserView: View {
         ToolbarItem {
             ToolbarSearchField(query: $model.query, prompt: searchPrompt, isFocused: $isSearchFocused,
                                focusRequest: searchFocusRequest, width: shownSearchWidth,
-                               isOpen: isSearchOpen, activate: activateSearch)
+                               isOpen: isSearchOpen, activate: activateSearch, close: {
+                                   model.query = ""
+                                   isSearchFocused = false
+                                   isSearchExpanded = false
+                               })
         }
         .overflowPriority(keepsVisible: true)
 

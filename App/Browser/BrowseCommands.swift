@@ -10,21 +10,26 @@ struct BrowseCommands: Commands {
     @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
 
     var body: some Commands {
-        let browser = app.passwords.question == nil ? app.browser : nil
+        let draft = ArchiveDraft.focused(in: NSApp.keyWindow)
+        let browser = draft == nil && app.passwords.question == nil ? app.browser : nil
         let _ = routing.snapshot
         let archiveOwnsFocus = browser.map {
             routing.archiveManager(in: NSApp.keyWindow) === $0.editingUndoManager
         } ?? false
+        let draftOwnsFocus = draft.map { routing.archiveManager(in: NSApp.keyWindow) === $0.undoManager } ?? false
         CommandGroup(replacing: .saveItem) {
             // Replacing this group also removes macOS's Close command (#225).
             Button("Close") { closing.perform(in: NSApp.keyWindow, app: app) }
                 .keyboardShortcut("w")
                 .disabled(!closing.isEnabled)
             Divider()
-            Button("Save") { app.passwords.performCommand { if let browser { Task { await browser.saveEdits() } } } }
+            Button("Save") {
+                if let draft { draft.prepareSave() }
+                else { app.passwords.performCommand { if let browser { Task { await browser.saveEdits() } } } }
+            }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("s")
-                .disabled(browser?.editSession.canSave != true)
+                .disabled(draft.map { !$0.canSave || app.packing.isRunning } ?? (browser?.editSession.canSave != true))
             Button("Save a Copy…") { app.passwords.performCommand { if let browser { Task { await browser.saveCopyOfArchive() } } } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("s", modifiers: [.command, .shift])
@@ -75,14 +80,17 @@ struct BrowseCommands: Commands {
         CommandGroup(after: .pasteboard) {
             // Keep menu invocations available in read-only archives so they explain the refusal;
             // item context menus disable mutations and expose the same reason as help.
-            Button("Add Files…") { app.passwords.performCommand { browser?.chooseAddFiles() } }
+            Button("Add Files…") {
+                if let draft { draft.chooseSources() } else { app.passwords.performCommand { browser?.chooseAddFiles() } }
+            }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("a", modifiers: [.command, .shift])
-                .disabled(browser == nil || browser?.editSession.isSaving == true)
+                .disabled(draft.map { $0.isImporting || $0.isSaving } ?? (browser == nil || browser?.editSession.isSaving == true))
                 .help(browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Add Files…"))
             // Only from the archive's own window (full or Glance): pressed in the Tray or Settings,
             // ⌘⌫ must not stage deleting whatever is selected in an archive behind it.
             Button("Delete") {
+                if let draft, draftOwnsFocus { draft.removeSelection(); return }
                 app.passwords.performCommand {
                     if let browser, routing.archiveManager(in: NSApp.keyWindow) === browser.editingUndoManager {
                         browser.editSession.delete(Array(browser.selection))
@@ -90,9 +98,10 @@ struct BrowseCommands: Commands {
                 }
             }
                 .disabled(app.passwords.question != nil)
-                .keyboardShortcut(archiveOwnsFocus ? KeyboardShortcut(.delete, modifiers: .command) : nil)
-                .disabled(browser?.editSession.canDelete(selectionIsEmpty: browser?.selection.isEmpty ?? true,
-                                                         archiveOwnsFocus: archiveOwnsFocus) != true)
+                .keyboardShortcut((archiveOwnsFocus || draftOwnsFocus) ? KeyboardShortcut(.delete, modifiers: .command) : nil)
+                .disabled(draft.map { !draftOwnsFocus || $0.selection.isEmpty || $0.isImporting || $0.isSaving }
+                          ?? (browser?.editSession.canDelete(selectionIsEmpty: browser?.selection.isEmpty ?? true,
+                                                            archiveOwnsFocus: archiveOwnsFocus) != true))
                 .help(browser?.editSession.refusal(for: Array(browser?.selection ?? [])) ?? (browser?.editSession.format == nil ? browser?.editSession.readOnlyReason ?? "" : String(localized: "Delete")))
             // Return already opens the selected item in all three browser modes.
             Button("Rename") { app.passwords.performCommand { if let browser, let entry = browser.selectedEntries.first { browser.beginRename(entry) } } }

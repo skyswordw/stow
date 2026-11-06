@@ -1,5 +1,21 @@
 # Stow — Design Language
 
+## Tray, creation and entry-point functional handoff — #286
+
+The [functional implementation brief](Handoff/286-functional-followups.md) records the new interfaces and bounded
+native evidence for #287–#294. Tray gains a master switch and optional residency; the user
+reconfirmed outside-click dismissal without an idle timer. Welcome exposes Open/Create/Settings;
+New/Create opens an editable draft sharing Pack internals, while gathered inputs keep quick Pack.
+Sample leaves production bundles and becomes an explicit browser download. Search gains a
+separate Close action. These changes supersede primary Welcome sample placement and mandatory
+production bundling; they do not require copying ArcZip's visual composition.
+
+Claude Code owns final visual treatment and motion. The draft workspace, settings form and
+functional controls are implementation scaffolding, not approved visual designs. Preserve the
+state/routing/close/undo/security contracts in the brief; the Pack sentence is not a required
+composition for the new draft workflow. See #286 for task dependencies and #38 for remaining
+physical-input/signed-integration checks. No collaborator session or visual acceptance is claimed.
+
 > Working name. Check trademarks before launch.
 
 **Ownership:** Claude Code owns UI visual design and motion. Codex provides interaction

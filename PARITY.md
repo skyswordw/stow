@@ -117,7 +117,8 @@ Legend: ✅ verified within the stated scope · ❌ confirmed native failure · 
 | Create disk image (DMG) | ✅ Pack › DMG (for Macs) | Default HFS+ via `hdiutil makehybrid` (no mounting, sandbox-safe), compressed by level (Store → UDRO, Fast → UDZO-1, Balanced → UDZO, Maximum → ULFO, Smallest → ULMO); optional APFS with HFS+ fallback; Applications → /Applications shortcut (#77). Optional Finder window chrome implemented (#85; 🧪 macOS/Finder validation pending): `.DS_Store` icon positions, solid-color background, best-effort app-derived volume icon, all staged without mounting. Picture backgrounds excluded (Carbon Alias needs a mounted volume; sandbox). No split. ⏳ AES password (#84; sandbox MediaKit) |
 | Quick Compress with defaults (Finder) | ✅ Services and Finder menu pack through the create engine (`EnginePacker`) | names like Finder (“Report.zip”, “Archive 2.zip”) |
 
-Entry points: New Archive (⌘N) file picker, drops on the welcome window, the Tray's Pack button.
+New Archive (⌘N) and Welcome Create open an editable draft; Save uses the shared packing engine.
+Welcome drops and Tray Pack retain the quick-pack path. See #293 for workflow and native acceptance.
 Progress and result appear in an Actions-style capsule (Stop, Show in Finder).
 
 ## 5. Editing existing archives
@@ -165,7 +166,7 @@ when unpinned. Functional code is local; Claude Code visual/motion review remain
 | Menu-bar icon, auto-show on drag, collapse after inactivity (configurable), pin open | 🧪 menu-bar icon (optional), shows when dragged files reach it — under the icon, or at the screen's edge with a small hint when there's no icon (mouse-drag monitor + drag pasteboard, no Accessibility permission); goes back when a drag that brought it out ends with no drop; hides on outside clicks/application switches unless Keep Tray Open is enabled | ArcZip’s Box waits for the drag to come near its icon (#180). Stow protects active drags and related surfaces; its idle setting is retired. |
 | Folder browsing, previews, multi-select, drag out | 🧪 browse into folders, Quick Look (Space) and Finder thumbnails, ⌘/⇧ selection, drags every selected item out | |
 | Actions: compress, extract, collect into a folder (then rename), share, reveal, send to main window | 🧪 Pack, Extract Here, Collect into a Folder (name asked first), Share, Show in Finder, Send to Main Window, Clear | ➕ Collect copies — the originals stay where they were |
-| Border colour setting | 🧪 Settings › General › Tray | accent, blue, green, pink, purple, graphite |
+| Border colour setting | 🧪 Settings › Tray | accent, blue, green, pink, purple, graphite |
 
 ## 9. System integration
 
@@ -174,7 +175,7 @@ when unpinned. Functional code is local; Claude Code visual/motion review remain
 | Finder context menu (Finder Sync) incl. optional external drives; Repair Finder menu (re-register, restart Finder) | ✅ menu, external-drive setting · 🎨 repair (sandbox: LSRegisterURL/pluginkit refused, so it opens the extension switch and explains relaunching Finder) | Extract Here, Extract To…, Open in Stow, Compress with Stow… |
 | Services: Extract Here, Extract To…, Quick Compress, Compress…, Send to app | ✅ (Quick Compress waits on the create engine) | results revealed in Finder; progress on the Dock icon |
 | File associations UI: choose formats, set/restore default app, report result | ✅ implemented; user exercised per-type confirmation · 🧪 exact result/restore matrix | Settings › File Types; remembers previous apps, skips types already assigned and reports refusals. User confirmed the macOS confirmation-per-type flow; full selected-format/restore acceptance is not claimed. |
-| Launch at login, Dock icon hides with last window | ✅ (opt-in) | login item shows macOS's real status |
+| Launch at login, optional Box-only residency | 🧪 optional Tray residency (#289); login remains opt-in | Last-window/active-work coordination implemented; full native/signed matrix remains #38 |
 | URL scheme for extension → app hand-off (one-time requests) | ✅ | ➕ 128-bit one-time tokens, 60 s, no paths in URLs |
 | Reading files dropped from other apps (WeChat etc.), scoped source authorization | ✅ real WeChat drag/double-click and bounded signed grant checks · 🧪 remaining matrix | #214/#223 add scoped file/folder selection and retry; #264 provides a non-modal unsaved-bookmark notice. User-performed WeChat drag and double-click opened a real RAR; source and drag-copy hashes matched. Signed folder restart/sibling/removal checks passed; remaining repaired-build, split and entry-point cases stay in #212. |
 
@@ -183,7 +184,7 @@ when unpinned. Functional code is local; Claude Code visual/motion review remain
 | ArcZip | Stow | Notes |
 | --- | --- | --- |
 | General: appearance (light/dark/auto), default view, CPU cores | 🧪 pending verification | |
-| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Actions panes; Glance has its own page and Tray controls live in General. #162 is closed; broader native keyboard acceptance remains #38 |
+| Compression defaults, Extraction defaults, Flow, Box, Mini panes | 🧪 built, pending verification | Packing, Extraction, Installing and Actions panes; Glance has its own page and Tray has its own page and master enable switch (#288). #162 is closed; broader native keyboard acceptance remains #38 |
 | Password field: show by default (for CJK input) | 🧪 pending verification | |
 | Advanced: temp-file usage & cleanup, reset all preferences | 🧪 pending verification | |
 | Onboarding: intro, file associations, Finder extension, permissions, interactive Box demo | 🧪 pending verification | |

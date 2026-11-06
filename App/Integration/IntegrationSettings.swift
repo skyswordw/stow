@@ -14,7 +14,6 @@ final class IntegrationSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         showsOnExternalDrives = defaults.bool(forKey: Keys.externalDrives)
-        hidesDockIconWithoutWindows = defaults.bool(forKey: Keys.hideDock)
         refresh()
     }
 
@@ -22,12 +21,10 @@ final class IntegrationSettings {
         isReloadingPreferences = true
         defer { isReloadingPreferences = false }
         showsOnExternalDrives = defaults.bool(forKey: Keys.externalDrives)
-        hidesDockIconWithoutWindows = defaults.bool(forKey: Keys.hideDock)
     }
 
     private enum Keys {
         static let externalDrives = "FinderMenuOnExternalDrives"
-        static let hideDock = "HideDockIconWithoutWindows"
     }
 
     // MARK: - Finder
@@ -109,7 +106,7 @@ final class IntegrationSettings {
     var loginItemSummary: String {
         if let loginItemError { return loginItemError }
         return switch loginItemStatus {
-        case .enabled: String(localized: "Stow opens quietly when you log in, so Finder actions start instantly.")
+        case .enabled: String(localized: "Stow opens quietly at login when Tray is enabled.")
         case .requiresApproval: String(localized: "macOS needs your OK in Login Items settings.")
         case .notFound: String(localized: "macOS can’t find this copy of Stow. Move it to Applications and try again.")
         default: String(localized: "Stow opens when you use it.")
@@ -120,54 +117,8 @@ final class IntegrationSettings {
         SMAppService.openSystemSettingsLoginItems()
     }
 
-    // MARK: - Dock
-
-    var hidesDockIconWithoutWindows: Bool {
-        didSet {
-            if !isReloadingPreferences { defaults.set(hidesDockIconWithoutWindows, forKey: Keys.hideDock) }
-            DockPolicy.shared.update()
-        }
-    }
-
     func refresh() {
         finderExtensionEnabled = FIFinderSyncController.isExtensionEnabled
         loginItemStatus = SMAppService.mainApp.status
-    }
-}
-
-/// Hides the Dock icon once the last window closes (when people ask for that) and brings it back
-/// with the next window. Stow keeps running either way, so Finder actions don't pay for a launch.
-final class DockPolicy {
-    static let shared = DockPolicy()
-    private var observers: [NSObjectProtocol] = []
-
-    func install() {
-        let center = NotificationCenter.default
-        observers = [
-            center.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { note in
-                let closing = note.object as? NSWindow
-                MainActor.assumeIsolated { DockPolicy.shared.update(closing: closing) }
-            },
-            center.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { _ in
-                MainActor.assumeIsolated { DockPolicy.shared.update() }
-            },
-        ]
-        update()
-    }
-
-    func update(closing: NSWindow? = nil) {
-        let windows = NSApp.windows.filter { $0 !== closing && Self.counts($0) }.count
-        let policy: NSApplication.ActivationPolicy = Self.shouldHide(
-            setting: IntegrationSettings.shared.hidesDockIconWithoutWindows, openWindows: windows) ? .accessory : .regular
-        if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
-    }
-
-    static func shouldHide(setting: Bool, openWindows: Int) -> Bool {
-        setting && openWindows == 0
-    }
-
-    /// Real windows: not the Tray panel, alerts or sheets.
-    private static func counts(_ window: NSWindow) -> Bool {
-        window.isVisible && !(window is NSPanel) && window.sheetParent == nil && window.canBecomeMain
     }
 }

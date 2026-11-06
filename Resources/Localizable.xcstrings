@@ -12899,6 +12899,292 @@
           }
         }
       }
+    },
+    "Enable Tray": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用托盘"
+          }
+        }
+      }
+    },
+    "When enabled, Tray stays available after you close Stow’s windows. Launching at login is a separate setting.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用后，关闭 Stow 窗口仍可使用托盘。登录时启动需单独设置。"
+          }
+        }
+      }
+    },
+    "Tray Settings…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "托盘设置…"
+          }
+        }
+      }
+    },
+    "Open Tray": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开托盘"
+          }
+        }
+      }
+    },
+    "Open Stow": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Stow"
+          }
+        }
+      }
+    },
+    "Create Archive…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "创建压缩包…"
+          }
+        }
+      }
+    },
+    "Create Archive": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "创建压缩包"
+          }
+        }
+      }
+    },
+    "Quit Stow": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 Stow"
+          }
+        }
+      }
+    },
+    "Close Search": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭搜索"
+          }
+        }
+      }
+    },
+    "An operation is still running": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仍有任务正在运行"
+          }
+        }
+      }
+    },
+    "Wait for it to finish, or cancel it in Stow before quitting.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请等待任务完成，或先在 Stow 中取消任务再退出。"
+          }
+        }
+      }
+    },
+    "Stow opens quietly at login when Tray is enabled.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用托盘时，Stow 会在登录后静默启动。"
+          }
+        }
+      }
+    },
+    "Tray controls whether Stow stays available after its windows close.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "是否启用托盘决定了关闭窗口后 Stow 是否继续运行。"
+          }
+        }
+      }
+    },
+    "Untitled Archive": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未命名压缩包"
+          }
+        }
+      }
+    },
+    "Save this new archive?": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要保存这个新压缩包吗？"
+          }
+        }
+      }
+    },
+    "Your source files are unchanged. The unsaved archive draft will be discarded if you don’t save.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "源文件不会改变。如果不保存，尚未保存的压缩包草稿将被丢弃。"
+          }
+        }
+      }
+    },
+    "Save…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存…"
+          }
+        }
+      }
+    },
+    "Discard": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "丢弃"
+          }
+        }
+      }
+    },
+    "Archive Name": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包名称"
+          }
+        }
+      }
+    },
+    "Archive Format": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包格式"
+          }
+        }
+      }
+    },
+    "Unsaved archive": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未保存的压缩包"
+          }
+        }
+      }
+    },
+    "Add files or folders to create an archive.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加文件或文件夹，开始创建压缩包。"
+          }
+        }
+      }
+    },
+    "Adding files…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在添加文件…"
+          }
+        }
+      }
+    },
+    "Download Sample…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载示例…"
+          }
+        }
+      }
+    },
+    "Sample Credits and Licenses": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "示例素材来源与许可"
+          }
+        }
+      }
+    },
+    "Settings…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置…"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
