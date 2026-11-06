@@ -138,7 +138,7 @@ struct BrowserView: View {
                        isEncrypted: model.archive.isEncrypted, saveShowsTitle: model.editSession.canSave)
     }
 
-    /// Opening or closing Search moves its width over a few frames (`SearchWidthMotion`); a window
+    /// Opening or closing Search moves its width over a few frames (`ToolbarWidthMotion`); a window
     /// resize, ⌘F or Reduce Motion sets it at once.
     private func followSearchWidth(_ target: CGFloat) {
         let open = isSearchOpen
@@ -146,7 +146,7 @@ struct BrowserView: View {
         searchWasOpen = open
         searchWidthMove?.cancel()
         searchWidthMove = nil
-        guard toggled, let duration = SearchWidthMotion.duration(opening: open, byKeyboard: Motion.byKeyboard,
+        guard toggled, let duration = ToolbarWidthMotion.duration(opening: open, byKeyboard: Motion.byKeyboard,
                                                                 reduceMotion: reduceMotion) else {
             shownSearchWidth = target
             return
@@ -156,7 +156,7 @@ struct BrowserView: View {
             let began = ContinuousClock.now
             while !Task.isCancelled {
                 let fraction = (ContinuousClock.now - began) / .seconds(duration)
-                shownSearchWidth = start + (target - start) * SearchWidthMotion.progress(fraction)
+                shownSearchWidth = start + (target - start) * ToolbarWidthMotion.progress(fraction)
                 if fraction >= 1 { break }
                 try? await Task.sleep(for: .milliseconds(8))
             }

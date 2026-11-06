@@ -183,29 +183,14 @@ struct ArchiveEditingControls: View {
         .help(deleteHelp(selection))
         .accessibilityLabel(String(localized: "Delete"))
 
-        Group {
-            if edits.canSave {
-                // Says its name while there's something to save: an icon alone in a filled
-                // circle reads as a pressed button, especially in a window that isn't active.
-                saveButton
-                    .labelStyle(.titleAndIcon)
-                    .buttonStyle(.borderedProminent)
-            } else {
-                saveButton.disabled(true)
-            }
+        // Says its name while there's something to save (`ToolbarNamedAction`). The arrow goes
+        // into the box; Extract's (`arrow.up.bin`) comes out of it. A custom disk couldn't match
+        // the system symbols beside it (#242).
+        ToolbarNamedAction("Save", systemImage: "square.and.arrow.down", isNamed: edits.canSave) {
+            Task { await model.saveEdits() }
         }
         .help(saveHelp)
         .accessibilityLabel(String(localized: "Save Changes"))
-    }
-
-    private var saveButton: some View {
-        Button {
-            Task { await model.saveEdits() }
-        } label: {
-            // The arrow goes into the box; Extract's (`arrow.up.bin`) comes out of it. A custom disk
-            // couldn't match the system symbols beside it (#242).
-            Label("Save", systemImage: "square.and.arrow.down")
-        }
     }
 
     private func deleteHelp(_ selection: [String]) -> String {

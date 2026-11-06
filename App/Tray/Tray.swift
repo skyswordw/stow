@@ -155,7 +155,7 @@ final class TrayController {
     }
 
     func showStatusMenu() {
-        guard let button = statusItem?.button, let target = statusTarget else { return }
+        guard let statusItem, let button = statusItem.button, let target = statusTarget else { return }
         let token = beginRelatedInteraction()
         defer { endRelatedInteraction(token) }
         // Native and short (#290), grouped the way an app menu is: what it opens, then Settings…,
@@ -176,7 +176,13 @@ final class TrayController {
             }
         }
         target.pendingCommand = nil
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
+        // Let the status item track the menu itself, as every other menu extra does: it opens
+        // straight under the icon with the icon highlighted. popUp(positioning:at:in:) opened it
+        // over the menu bar first and then moved it down a frame later. performClick returns
+        // once the menu closes; detaching the menu keeps left-click toggling the Tray.
+        statusItem.menu = menu
+        button.performClick(nil)
+        statusItem.menu = nil
         let command = target.pendingCommand
         target.pendingCommand = nil
         // popUp has returned and the related-interaction token is released before presentation.

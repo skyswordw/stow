@@ -138,7 +138,7 @@ plain path-row and bottom-path studies.
   controls never move. It stays open while it has the keyboard or a query and closes when it
   lets go empty. Opening by click grows the capsule over 0.26 s (closing 0.18 s), ease-out with no
   overshoot, stepped frame by frame because the toolbar doesn't follow SwiftUI animations; ⌘F, Esc
-  and Reduce Motion change it at once (`SearchWidthMotion`). It's the Browser's own field (the
+  and Reduce Motion change it at once (`ToolbarWidthMotion`). It's the Browser's own field (the
   system toolbar field always settles last, at the window's end) with the system field's
   contracts: one query, Esc clears it and returns the keyboard to the files in one step. Open, it
   carries two controls that never share a glyph (#294): **Clear** is the system field's filled
@@ -179,7 +179,11 @@ width for the path.
 Delete and Save sit in their own capsule after the view modes from the moment an
 archive opens, disabled when there's nothing to delete or save, so editing is found before the
 first edit. Save is the one Save in the full window: with changes pending it becomes a prominent
-**Save** pill (accent, with its name); the bottom bar keeps the change count, "Nothing changes on
+**Save** pill (accent, with its name). The name unrolls from the icon over 0.26 s (folds back over
+0.18 s), stepped like Search so the controls before it slide aside instead of jumping; a key press
+or Reduce Motion makes the change at once (`ToolbarNamedAction`). The draft's **Pack…** does the
+same, and stays lit behind its own sheet: a prominent toolbar button that goes disabled is redrawn
+by the toolbar and blinks out for a moment. The bottom bar keeps the change count, "Nothing changes on
 disk until you save." and Revert, and shows saving progress. Glance has no title bar, so its bar
 keeps its own Save. Delete stays quiet: it only stages a change. Add Files, Rename and Replace
 stay in the Edit menu and the item's context menu. The
