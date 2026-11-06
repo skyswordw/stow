@@ -148,6 +148,7 @@ final class BrowserModel {
         guard transfer.source !== self, transfer.sourceIsCurrent, !isClosed,
               level === destination, destination.edits.requireEditable(), !isTransferring else { return }
         if case .running = activity?.phase { return }
+        activityTask?.cancel()
         let id = UUID()
         activity = Activity(step: .copyTo(folder: archive.name), itemCount: transfer.entries.count, phase: .running(0))
         let task = Task { @MainActor in

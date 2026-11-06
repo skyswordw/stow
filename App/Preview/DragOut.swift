@@ -140,7 +140,11 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     private var dragging: [String] = []
 
     nonisolated func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
-        MainActor.assumeIsolated { onBegin?(dragging) }
+        nonisolated(unsafe) let session = session
+        MainActor.assumeIsolated {
+            ArchiveTransfer.began(token: transferToken, on: session.draggingPasteboard)
+            onBegin?(dragging)
+        }
     }
 
     nonisolated func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint,

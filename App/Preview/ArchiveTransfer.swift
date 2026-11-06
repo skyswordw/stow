@@ -7,6 +7,24 @@ final class ArchiveTransfer {
     nonisolated static let typeIdentifier = "app.stow.archive-selection"
     nonisolated static let contentType = UTType(exportedAs: typeIdentifier, conformingTo: .data)
     static var pending: [String: ArchiveTransfer] = [:]
+    private static var activePasteboard: NSPasteboard?
+    private static var activeChangeCount: Int?
+    private static var activeToken: String?
+
+    static func began(token: String?, on pasteboard: NSPasteboard) {
+        activeToken = token
+        activePasteboard = pasteboard
+        activeChangeCount = pasteboard.changeCount
+    }
+
+    /// SwiftUI's file-promise bridge can expose only a file URL provider, stripping additional
+    /// representations from NSFilePromiseProvider. Read our capability synchronously while the
+    /// original AppKit drag is still active. Never consult a previous drag's pasteboard.
+    static func takeNativeDrop() -> ArchiveTransfer? {
+        guard let pasteboard = activePasteboard, pasteboard.changeCount == activeChangeCount,
+              let token = activeToken else { return nil }
+        return pending.removeValue(forKey: token)
+    }
     let source: BrowserModel
     let level: BrowserModel.Level
     let archive: Archive
@@ -28,6 +46,9 @@ final class ArchiveTransfer {
     }
 
     static func finish(_ token: String?, cancelled: Bool) {
+        activePasteboard = nil
+        activeChangeCount = nil
+        activeToken = nil
         guard let token else { return }
         if cancelled { pending[token] = nil }
         else {

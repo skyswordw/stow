@@ -211,6 +211,29 @@ struct ArchiveTransferTests {
         #expect(!source.editSession.isEdited)
     }
 
+    @Test func nativeDragSurvivesProviderNormalizationButCannotLeakIntoAnotherGesture() throws {
+        let source = BrowserModel(archive: Archive(name: "a.zip", format: .zip, files: []))
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally() }
+        // SwiftUI normalizes a file promise to a file URL provider, dropping its extra UTI.
+        // The source delegate's active native gesture is the trusted capability boundary.
+        board.setString("file:///tmp/placeholder", forType: .fileURL)
+        let first = ArchiveTransfer.register(source: source, entries: [])
+        ArchiveTransfer.began(token: first, on: board)
+        #expect(ArchiveTransfer.takeNativeDrop()?.source === source)
+        #expect(ArchiveTransfer.takeNativeDrop() == nil, "Nested drop targets cannot consume a gesture twice")
+        ArchiveTransfer.finish(first, cancelled: false)
+        #expect(ArchiveTransfer.takeNativeDrop() == nil)
+
+        let second = ArchiveTransfer.register(source: source, entries: [])
+        ArchiveTransfer.began(token: second, on: board)
+        board.clearContents()
+        board.setString("file:///tmp/external", forType: .fileURL)
+        #expect(ArchiveTransfer.takeNativeDrop() == nil, "A new external drag must not reuse the internal capability")
+        ArchiveTransfer.finish(second, cancelled: true)
+        #expect(ArchiveTransfer.pending[second] == nil)
+    }
+
     @Test func externalSourceChangeIsRejectedEvenBeforeTheWatcherNotifies() async throws {
         let temp = try TemporaryFolder()
         defer { temp.cleanUp() }

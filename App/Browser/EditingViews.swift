@@ -334,6 +334,10 @@ private struct ArchiveDrop: ViewModifier {
             .onDrop(of: [.fileURL, ArchiveTransfer.contentType], isTargeted: $targeted) { providers in
                 guard model.editSession.requireEditable() else { return true }
                 let destination = model.level
+                if let transfer = ArchiveTransfer.takeNativeDrop() {
+                    model.receiveTransfer(transfer, into: folder, level: destination)
+                    return true
+                }
                 let local = providers.filter { $0.hasItemConformingToTypeIdentifier(ArchiveTransfer.typeIdentifier) }
                 if !local.isEmpty {
                     Task { @MainActor in
