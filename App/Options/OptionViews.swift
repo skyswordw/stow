@@ -12,7 +12,7 @@ struct ExtractionOptionsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Extract All puts things", selection: $allFolder) {
+                Picker("Extract All puts items", selection: $allFolder) {
                     Text("In a folder when there’s more than one item").tag(Preferences.ExtractAllFolder.automatic)
                     Text("Always in a folder named after the archive").tag(Preferences.ExtractAllFolder.always)
                 }

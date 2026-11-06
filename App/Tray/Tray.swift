@@ -1486,7 +1486,7 @@ struct TrayView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Collect into a Folder").font(.headline)
                 Text(tray.isCollectingTemporarily
-                     ? "Stow copies into a temporary folder for packing. Choose Where to keep it."
+                     ? "Stow copies the items into a temporary folder that’s deleted after packing. To keep them, choose a folder in Where."
                      : "Stow puts copies in a new folder. The originals stay where they are.")
                     .font(.callout)
                     .foregroundStyle(.secondary)

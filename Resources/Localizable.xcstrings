@@ -86,7 +86,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚未授权文件夹。打开、解压或压缩需要访问文件夹时，Stow 会请你选择文件夹。"
+            "value": "尚未授权文件夹。打开、解压缩或压缩需要访问文件夹时，Stow 会请你选择文件夹。"
           }
         }
       }
@@ -675,7 +675,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法读取归档"
+            "value": "无法读取压缩包"
           }
         }
       }
@@ -691,7 +691,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "归档大小限制"
+            "value": "压缩包大小限制"
           }
         }
       }
@@ -723,7 +723,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "归档数量限制"
+            "value": "压缩包数量限制"
           }
         }
       }
@@ -739,7 +739,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "有 1 个内部归档未被搜索。"
+            "value": "有 1 个内部压缩包未被搜索。"
           }
         }
       }
@@ -755,7 +755,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "有 %lld 个内部归档未被搜索。"
+            "value": "有 %lld 个内部压缩包未被搜索。"
           }
         }
       }
@@ -803,7 +803,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在所在文件夹中显示此归档，不打开它"
+            "value": "在所在文件夹中显示此压缩包，不打开它"
           }
         }
       }
@@ -829,7 +829,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请选择包含所有分卷的文件夹，以便 Stow 读取完整归档。"
+            "value": "请选择包含所有分卷的文件夹，以便 Stow 读取完整压缩包。"
           }
         }
       }
@@ -839,7 +839,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "归档分卷缺失或不一致。请将所有编号分卷放在同一文件夹中，然后重新打开 .001 分卷。"
+            "value": "压缩包分卷缺失或不一致。请将所有编号分卷放在同一文件夹中，然后重新打开 .001 分卷。"
           }
         }
       }
@@ -849,7 +849,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "“%@”需要所有归档分卷"
+            "value": "“%@”需要所有分卷"
           }
         }
       }
@@ -869,7 +869,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stow 无法读取归档。请尝试重新打开。你的文件未被更改。"
+            "value": "Stow 无法读取压缩包。请尝试重新打开。你的文件未被更改。"
           }
         }
       }
@@ -879,7 +879,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法读取归档"
+            "value": "无法读取压缩包"
           }
         }
       }
@@ -899,7 +899,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "可以浏览文件名。输入密码即可预览或解压文件。"
+            "value": "可以浏览文件名。输入密码即可预览或解压缩文件。"
           }
         }
       }
@@ -990,7 +990,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "输入压缩包密码以预览或解压文件"
+            "value": "输入压缩包密码以预览或解压缩文件"
           }
         }
       }
@@ -1040,7 +1040,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "如需仅为 Stow 使用英语或简体中文，请打开“系统设置”→“通用”→“语言与地区”→“应用程序”，添加 Stow 并选择语言。请先完成当前任务、保存修改，再退出并重新打开 Stow。"
+            "value": "如需仅为 Stow 使用英语或简体中文，请打开“系统设置”→“通用”→“语言与地区”→“应用程序”，添加 Stow 并选择语言。请先完成当前任务、存储修改，再退出并重新打开 Stow。"
           }
         }
       }
@@ -1690,7 +1690,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "%2$@ 压缩包结尾之后的 %1$@ 数据不属于它，解压时会被忽略。"
+            "value": "%2$@ 压缩包结尾之后的 %1$@ 数据不属于它，解压缩时会被忽略。"
           }
         }
       }
@@ -1790,7 +1790,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "开头的 %1$@ 不属于这个 %2$@ 压缩包。自解压压缩包就是这样制作的，但这也可能藏有别的东西。Stow 只读取和解压压缩包本身。"
+            "value": "开头的 %1$@ 不属于这个 %2$@ 压缩包。自解压压缩包就是这样制作的，但这也可能藏有别的东西。Stow 只读取和解压缩压缩包本身。"
           }
         }
       }
@@ -3536,16 +3536,6 @@
         }
       }
     },
-    "An archive opens here; several are extracted. Anything else gets packed.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拖入单个压缩包以打开，多个则解压缩；其他项目将被压缩。"
-          }
-        }
-      }
-    },
     "Android package": {
       "localizations": {
         "zh-Hans": {
@@ -4921,16 +4911,6 @@
         }
       }
     },
-    "Extract All puts things": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "全部解压缩时，将内容放入"
-          }
-        }
-      }
-    },
     "Extract Archives…": {
       "localizations": {
         "zh-Hans": {
@@ -5896,16 +5876,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "保留两者"
-          }
-        }
-      }
-    },
-    "Keep both and the new one is named “%@”. Replace moves the old one to the Trash.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留两者会将新文件命名为“%@”。替换会将旧文件移到废纸篓。"
           }
         }
       }
@@ -9617,16 +9587,6 @@
         }
       }
     },
-    "A replacement folder on the archive’s volume is unavailable. Save a copy instead.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法在压缩包所在卷上创建替换目录。请改为保存副本。"
-          }
-        }
-      }
-    },
     "A staged item points outside the staging tree.": {
       "localizations": {
         "zh-Hans": {
@@ -9802,7 +9762,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此名称使用未知的文本编码，因此 Stow 无法安全地重命名或删除它。"
+            "value": "此名称使用未知的文本编码，因此 Stow 无法安全地重新命名或删除它。"
           }
         }
       }
@@ -9872,7 +9832,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重命名"
+            "value": "重新命名"
           }
         }
       }
@@ -9952,7 +9912,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已重命名"
+            "value": "已重新命名"
           }
         }
       }
@@ -10474,7 +10434,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此处无法制作加密磁盘映像。请在非沙盒构建中重试，或不使用密码打包。"
+            "value": "此处无法制作加密磁盘映像。请在非沙盒构建中重试，或不设密码压缩。"
           }
         }
       }
@@ -10719,16 +10679,6 @@
         }
       }
     },
-    "A limit is a request; some formats may still use fewer cores.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "上限只是请求；某些格式仍可能使用更少核心。"
-          }
-        }
-      }
-    },
     "No Mac support files": {
       "localizations": {
         "zh-Hans": {
@@ -10805,7 +10755,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已收集，用于打包"
+            "value": "已收集，用于压缩"
           }
         }
       }
@@ -10827,18 +10777,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打包后删除"
-          }
-        }
-      }
-    },
-    "Stow copies into a temporary folder for packing. Choose Where to keep it.": {
-      "comment": "Collect form subtitle when Where is Temporary (#179).",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stow 会复制到临时文件夹以便打包。若要保留，请选择位置。"
+            "value": "压缩后删除"
           }
         }
       }
@@ -10852,7 +10791,7 @@
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "这些项目来自 %lld 个文件夹。临时文件夹会把它们收在一起以便打包。"
+                  "value": "这些项目来自 %lld 个文件夹。临时文件夹会把它们收在一起以便压缩。"
                 }
               }
             }
@@ -10975,7 +10914,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "它们保存在“__MACOSX”文件夹中，Mac 解压时会读回。"
+            "value": "它们保存在“__MACOSX”文件夹中，Mac 解压缩时会读回。"
           }
         }
       }
@@ -11125,7 +11064,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重置此页面…"
+            "value": "还原此页面…"
           }
         }
       }
@@ -11135,7 +11074,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "要重置此页面的偏好设置吗？"
+            "value": "要还原此页面的设置吗？"
           }
         }
       }
@@ -11145,7 +11084,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重置页面"
+            "value": "还原页面"
           }
         }
       }
@@ -11155,7 +11094,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "“重置此页面”只清除该页的偏好设置。“全部重置”会恢复 Stow 的全部偏好设置。文件类型仍保留以前的默认 app，方便你改回去。文件夹权限、钥匙串密码和登录项另行管理。"
+            "value": "“还原此页面”只清除该页的设置，“还原所有设置”会还原 Stow 的全部设置。文件类型仍会记住之前使用的 App，方便你恢复。文件夹权限、钥匙串密码和登录项单独管理。"
           }
         }
       }
@@ -11165,7 +11104,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "将此页面恢复为默认设置。其他页面、压缩包、文件夹授权和已记住的以前的默认 app 会保留。"
+            "value": "将此页面还原为默认设置。其他页面、压缩包、文件夹授权和已记住的原有 App 会保留。"
           }
         }
       }
@@ -11609,7 +11548,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "包含尚未保存的更改"
+            "value": "包含尚未存储的更改"
           }
         }
       }
@@ -11649,7 +11588,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "上次保存时的数值"
+            "value": "上次存储时的数值"
           }
         }
       }
@@ -11660,16 +11599,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "更多压缩包信息"
-          }
-        }
-      }
-    },
-    "Compared with the file contents before compression. Includes archive overhead when reported.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "与压缩前的文件内容大小相比；如果压缩包提供的是整体大小，也包含格式本身的额外数据。"
           }
         }
       }
@@ -11729,7 +11658,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存后可查看"
+            "value": "存储后可查看"
           }
         }
       }
@@ -11989,7 +11918,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重置这些选项"
+            "value": "还原这些选项"
           }
         }
       }
@@ -12515,7 +12444,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "复制副本，原件保留在原处"
+            "value": "拷贝副本，原件保留在原处"
           }
         }
       }
@@ -12555,7 +12484,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存更改"
+            "value": "存储更改"
           }
         }
       }
@@ -12565,7 +12494,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "将更改保存到“%@”（⌘S）"
+            "value": "将更改存储到“%@”（⌘S）"
           }
         }
       }
@@ -12816,16 +12745,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开压缩包时使用"
-          }
-        }
-      }
-    },
-    "Last Used Window opens archives in the window you last switched to, the full Browser or Glance, even after you quit Stow. Window › Switch to Glance (⌥⌘G) moves an open archive between the two.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“上次使用的窗口”会在你上次切换到的窗口中打开压缩包，即完整浏览器窗口或速览，退出 Stow 后也一样。“窗口 › 切换到速览”（⌥⌘G）可让已打开的压缩包在两者之间切换。"
           }
         }
       }
@@ -13101,17 +13020,6 @@
         }
       }
     },
-    "Tray controls whether Stow stays available after its windows close.": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "是否启用托盘决定了关闭窗口后 Stow 是否继续运行。"
-          }
-        }
-      }
-    },
     "Untitled Archive": {
       "extractionState": "manual",
       "localizations": {
@@ -13129,18 +13037,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "要保存这个新压缩包吗？"
-          }
-        }
-      }
-    },
-    "Your source files are unchanged. The unsaved archive draft will be discarded if you don’t save.": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "源文件不会改变。如果不保存，尚未保存的压缩包草稿将被丢弃。"
+            "value": "要存储这个新压缩包吗？"
           }
         }
       }
@@ -13151,7 +13048,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存…"
+            "value": "存储…"
           }
         }
       }
@@ -13195,7 +13092,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚未保存的压缩包"
+            "value": "尚未存储的压缩包"
           }
         }
       }
@@ -13475,17 +13372,6 @@
         }
       }
     },
-    "Your browser saves it; open the ZIP to try Stow.": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "由浏览器保存，打开这个 ZIP 即可试用 Stow。"
-          }
-        }
-      }
-    },
     "Start a new archive and add files to it (⌘N)": {
       "extractionState": "manual",
       "localizations": {
@@ -13493,6 +13379,120 @@
           "stringUnit": {
             "state": "translated",
             "value": "新建压缩包并向其中添加文件（⌘N）"
+          }
+        }
+      }
+    },
+    "Stow can’t write a temporary file next to the archive. Save a copy instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 无法在压缩包旁写入临时文件。请改为存储副本。"
+          }
+        }
+      }
+    },
+    "Last Used Window opens archives in whichever window you used last — the full Browser or Glance — even after Stow quits. Window › Switch to Glance (⌥⌘G) moves an open archive between the two.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“上次使用的窗口”会在你上次使用的窗口（完整浏览器窗口或速览）中打开压缩包，退出 Stow 后也会记住。“窗口 › 切换到速览”（⌥⌘G）可让已打开的压缩包在两者之间切换。"
+          }
+        }
+      }
+    },
+    "Compared with the files before compression. When the archive reports only its total size, the format’s own overhead is included.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与压缩前的文件大小相比。如果压缩包只提供整体大小，其中也包含格式本身的额外数据。"
+          }
+        }
+      }
+    },
+    "Whether Stow keeps running after its windows close is set in Tray settings.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭窗口后 Stow 是否继续运行，可在托盘设置中更改。"
+          }
+        }
+      }
+    },
+    "One archive opens here, several are extracted, and other files are packed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单个压缩包在此打开，多个会直接解压缩，其他文件会压缩成新压缩包。"
+          }
+        }
+      }
+    },
+    "It downloads in your browser. Open the ZIP to try Stow.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件会在浏览器中下载，打开这个 ZIP 即可试用 Stow。"
+          }
+        }
+      }
+    },
+    "Stow copies the items into a temporary folder that’s deleted after packing. To keep them, choose a folder in Where.": {
+      "comment": "Collect form subtitle when Where is Temporary (#179).",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stow 会把这些项目拷贝到临时文件夹，压缩后删除。若要保留，请在“位置”中选择文件夹。"
+          }
+        }
+      }
+    },
+    "If you don’t save, this new archive is discarded. The files you added aren’t changed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果不存储，这个新压缩包将被丢弃。你添加的文件不会改变。"
+          }
+        }
+      }
+    },
+    "Keep Both names the new one “%@”. Replace moves the old one to the Trash.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“保留两者”会将新文件命名为“%@”。“替换”会将旧文件移到废纸篓。"
+          }
+        }
+      }
+    },
+    "Extract All puts items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部解压缩时，将项目放入"
+          }
+        }
+      }
+    },
+    "Some formats can’t use every core, so they may use fewer.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "某些格式无法用满所有核心，实际可能用得更少。"
           }
         }
       }
