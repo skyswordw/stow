@@ -8,9 +8,14 @@ import SwiftUI
 /// the draft's. View › as Icons/List/Columns and Edit › Find… reach it through the draft.
 @Observable
 final class DraftBrowsing {
-    var folder = ""
-    var viewMode = BrowserModel.ViewMode.list
-    var query = ""
+    var folder = "" { didSet { if oldValue != folder { locationChanged?() } } }
+    var viewMode = BrowserModel.ViewMode.list { didSet { if oldValue != viewMode { locationChanged?() } } }
+    var query = "" { didSet { if oldValue != query { locationChanged?() } } }
+    @ObservationIgnored var locationChanged: (() -> Void)?
+    var gridColumns = 1
+    var scrollTarget: String?
+    private var cursor: String?
+    private var anchor: String?
     /// Bumped by ⌘F, like the Browser's `searchFocusRequest`.
     var searchFocusRequest = 0
     private(set) var back: [String] = []
@@ -37,8 +42,9 @@ final class DraftBrowsing {
         nodes = index
         // A removed folder (or Undo of its add) takes you to the nearest one still planned.
         while !folder.isEmpty, index[folder]?.file.isFolder != true { folder = ArchiveEntry.parent(of: folder) }
-        back.removeAll { !$0.isEmpty && index[$0] == nil }
-        forward.removeAll { !$0.isEmpty && index[$0] == nil }
+        back.removeAll { !$0.isEmpty && index[$0]?.file.isFolder != true }
+        forward.removeAll { !$0.isEmpty && index[$0]?.file.isFolder != true }
+        locationChanged?()
     }
 
     func children(of path: String) -> [DraftNode] {
@@ -55,7 +61,8 @@ final class DraftBrowsing {
     }
 
     func go(to path: String) {
-        guard path != folder else { return }
+        guard path != folder, path.isEmpty || nodes[path]?.file.isFolder == true else { return }
+        query = ""
         back.append(folder)
         forward = []
         folder = path
@@ -63,17 +70,75 @@ final class DraftBrowsing {
 
     func goBack() {
         guard let previous = back.popLast() else { return }
+        query = ""
         forward.append(folder)
         folder = previous
     }
 
     func goForward() {
         guard let next = forward.popLast() else { return }
+        query = ""
         back.append(folder)
         folder = next
     }
 
     func goUp() { if canGoUp { go(to: ArchiveEntry.parent(of: folder)) } }
+
+    /// Columns show the ancestor columns too; every other mode only selects visible rows/hits.
+    var selectablePaths: Set<String> {
+        guard viewMode == .columns, !isSearching else { return Set(visible.map(\.id)) }
+        return Set(([""] + segments.map(\.path)).flatMap { children(of: $0).map(\.id) })
+    }
+
+    func move(_ direction: BrowserModel.Direction, selection: Set<String>, extending: Bool) -> Set<String> {
+        if viewMode == .columns, !isSearching {
+            let current = cursor.flatMap { selection.contains($0) ? nodes[$0] : nil }
+                ?? selection.sorted().first.flatMap { nodes[$0] }
+            var next = current
+            if let current {
+                let parent = ArchiveEntry.parent(of: current.id)
+                let siblings = children(of: parent)
+                switch direction {
+                case .up, .down:
+                    if let index = siblings.firstIndex(where: { $0.id == current.id }) {
+                        next = siblings[max(0, min(siblings.count - 1, index + (direction == .down ? 1 : -1)))]
+                    }
+                case .right:
+                    if current.file.isFolder { next = children(of: current.id).first ?? current }
+                case .left:
+                    if !parent.isEmpty { next = nodes[parent] }
+                }
+            } else { next = visible.first }
+            guard let next else { return selection }
+            go(to: next.file.isFolder ? next.id : ArchiveEntry.parent(of: next.id))
+            cursor = next.id
+            anchor = next.id
+            scrollTarget = next.id
+            return [next.id]
+        }
+        let items = visible
+        guard !items.isEmpty else { return [] }
+        let step: Int
+        switch direction {
+        case .up: step = viewMode == .grid ? -max(1, gridColumns) : -1
+        case .down: step = viewMode == .grid ? max(1, gridColumns) : 1
+        case .left: guard viewMode == .grid else { return selection }; step = -1
+        case .right: guard viewMode == .grid else { return selection }; step = 1
+        }
+        let current = cursor.flatMap { id in selection.contains(id) ? items.firstIndex { $0.id == id } : nil }
+            ?? items.firstIndex { selection.contains($0.id) }
+        let index = current.map { max(0, min(items.count - 1, $0 + step)) } ?? (step > 0 ? 0 : items.count - 1)
+        let id = items[index].id
+        let start = anchor.flatMap { id in selection.contains(id) ? items.firstIndex { $0.id == id } : nil } ?? current ?? index
+        cursor = id
+        scrollTarget = id
+        if extending {
+            anchor = items[start].id
+            return Set(items[min(start, index)...max(start, index)].map(\.id))
+        }
+        anchor = id
+        return [id]
+    }
 
     /// A folder opens; a file shows where it is (a search hit's folder), as the Browser's Open does
     /// for a file it can't preview here.
@@ -214,33 +279,42 @@ struct DraftGrid: View {
         GeometryReader { proxy in
             let metrics = GridMetrics(width: proxy.size.width)
             let items = browsing.visible
-            ScrollView {
-                LazyVGrid(columns: Array(repeating: GridItem(.fixed(metrics.tileWidth), spacing: GridMetrics.spacing, alignment: .top),
-                                         count: metrics.columns),
-                          alignment: .leading, spacing: GridMetrics.spacing) {
-                    ForEach(items) { node in
-                        DraftTile(node: node, isSelected: draft.selection.contains(node.id),
-                                  hasArrived: arrived.contains(node.id),
-                                  location: browsing.isSearching ? ArchiveEntry.parent(of: node.id) : nil)
-                            .frame(width: metrics.tileWidth, height: GridMetrics.tileHeight, alignment: .top)
-                            .onTapGesture(count: 2) {
-                                if node.file.isFolder { draft.selection = [] }
-                                browsing.open(node)
-                            }
-                            .simultaneousGesture(TapGesture().onEnded { select(node) })
-                            .contextMenu { DraftItemMenu(draft: draft, paths: menuPaths(for: node)) }
+            ScrollViewReader { scroller in
+                ScrollView {
+                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(metrics.tileWidth), spacing: GridMetrics.spacing, alignment: .top),
+                                             count: metrics.columns),
+                              alignment: .leading, spacing: GridMetrics.spacing) {
+                        ForEach(items) { node in
+                            DraftTile(node: node, isSelected: draft.selection.contains(node.id),
+                                      hasArrived: arrived.contains(node.id),
+                                      location: browsing.isSearching ? ArchiveEntry.parent(of: node.id) : nil)
+                                .frame(width: metrics.tileWidth, height: GridMetrics.tileHeight, alignment: .top)
+                                .id(node.id)
+                                .onTapGesture(count: 2) {
+                                    draft.open(node)
+                                }
+                                .simultaneousGesture(TapGesture().onEnded { select(node) })
+                                .contextMenu { DraftItemMenu(draft: draft, paths: menuPaths(for: node)) }
+                        }
                     }
+                    .padding(GridMetrics.inset)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(GridMetrics.inset)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    Color.clear.contentShape(.rect).onTapGesture { draft.selection = [] }
+                }
+                .onChange(of: browsing.scrollTarget) { _, target in
+                    if let target { scroller.scrollTo(target) }
+                }
             }
-            .background {
-                Color.clear.contentShape(.rect).onTapGesture { draft.selection = [] }
-            }
+            .onAppear { browsing.gridColumns = metrics.columns }
+            .onChange(of: metrics.columns) { _, value in browsing.gridColumns = value }
         }
     }
 
     private func select(_ node: DraftNode) {
+        // A double-click may have opened its folder before the simultaneous single-click fires.
+        guard browsing.visible.contains(where: { $0.id == node.id }) else { return }
         if NSEvent.modifierFlags.contains(.command) {
             if draft.selection.contains(node.id) { draft.selection.remove(node.id) } else { draft.selection.insert(node.id) }
         } else {
@@ -322,7 +396,9 @@ private struct DraftThumbnail: View {
             let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 84, height: 84),
                                                        scale: NSScreen.main?.backingScaleFactor ?? 2, representationTypes: .all)
             request.iconMode = true
-            image = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request).nsImage
+            let result = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request).nsImage
+            guard !Task.isCancelled else { return }
+            image = result
         }
     }
 }
@@ -356,26 +432,32 @@ struct DraftColumns: View {
 
     private func column(_ parent: String) -> some View {
         let onTheWay = Self.child(of: parent, toward: browsing.folder)
-        return ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(browsing.children(of: parent)) { node in
-                    let selected = draft.selection.contains(node.id)
-                    DraftColumnRow(node: node, isSelected: selected, isOnTheWay: !selected && node.id == onTheWay,
-                                   hasArrived: arrived.contains(node.id))
-                        .id(node.id)
-                        .onTapGesture { select(node) }
-                        .contextMenu {
-                            DraftItemMenu(draft: draft, paths: draft.selection.contains(node.id) ? draft.selection : [node.id])
-                        }
+        return ScrollViewReader { scroller in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(browsing.children(of: parent)) { node in
+                        let selected = draft.selection.contains(node.id)
+                        DraftColumnRow(node: node, isSelected: selected, isOnTheWay: !selected && node.id == onTheWay,
+                                       hasArrived: arrived.contains(node.id))
+                            .id(node.id)
+                            .onTapGesture { select(node) }
+                            .contextMenu {
+                                DraftItemMenu(draft: draft, paths: draft.selection.contains(node.id) ? draft.selection : [node.id])
+                            }
+                    }
                 }
+                .padding(.vertical, Space.xs)
             }
-            .padding(.vertical, Space.xs)
-        }
-        .id(parent)
-        .background {
-            Color.clear.contentShape(.rect).onTapGesture {
-                browsing.go(to: parent)
-                draft.selection = []
+            .id(parent)
+            .onChange(of: browsing.scrollTarget) { _, target in
+                guard let target, browsing.children(of: parent).contains(where: { $0.id == target }) else { return }
+                scroller.scrollTo(target)
+            }
+            .background {
+                Color.clear.contentShape(.rect).onTapGesture {
+                    browsing.go(to: parent)
+                    draft.selection = []
+                }
             }
         }
     }
@@ -458,5 +540,43 @@ struct DraftItemMenu: View {
                 NSWorkspace.shared.activateFileViewerSelecting(urls)
             }
         }
+    }
+}
+
+extension View {
+    /// Keep file navigation on the focused files surface; title/search field editing stays native.
+    func draftKeys(_ draft: ArchiveDraft, handlesArrows: Bool = true) -> some View {
+        self
+            .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow]) { press in
+                guard handlesArrows, !draft.isImporting, !draft.isSaving,
+                      press.modifiers.isDisjoint(with: [.command, .option, .control]) else { return .ignored }
+                let direction: BrowserModel.Direction = switch press.key {
+                case .upArrow: .up
+                case .downArrow: .down
+                case .leftArrow: .left
+                default: .right
+                }
+                draft.selection = draft.browsing.move(direction, selection: draft.selection,
+                                                       extending: press.modifiers.contains(.shift))
+                return .handled
+            }
+            .onKeyPress(.return) {
+                guard !draft.isImporting, !draft.isSaving, draft.selection.count == 1,
+                      let path = draft.selection.first, let node = draft.browsing.nodes[path] else { return .ignored }
+                draft.open(node)
+                return .handled
+            }
+            .onKeyPress(characters: CharacterSet(charactersIn: "a"), phases: .down) { press in
+                guard handlesArrows, press.modifiers == .command,
+                      !draft.isImporting, !draft.isSaving else { return .ignored }
+                draft.selection = Set(draft.browsing.visible.map(\.id))
+                return .handled
+            }
+            .onKeyPress(keys: [.delete], phases: .down) { press in
+                guard !draft.isImporting, !draft.isSaving, !draft.selection.isEmpty,
+                      press.modifiers.isDisjoint(with: [.command, .option, .control]) else { return .ignored }
+                draft.removeSelection()
+                return .handled
+            }
     }
 }

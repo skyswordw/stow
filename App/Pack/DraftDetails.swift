@@ -221,7 +221,9 @@ private struct DraftPreview: View {
         .task(id: file.source) {
             thumbnail = nil
             guard let url = file.source, !file.isFolder, !file.isLink else { return }
-            thumbnail = await PreviewService.quickLookThumbnail(of: url, side: 240)
+            let result = await PreviewService.quickLookThumbnail(of: url, side: 240)
+            guard !Task.isCancelled else { return }
+            thumbnail = result
         }
     }
 }

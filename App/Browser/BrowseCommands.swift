@@ -145,28 +145,30 @@ struct BrowseCommands: Commands {
             Divider()
         }
         CommandMenu("Go") {
-            Button("Back") { app.passwords.performCommand { browser?.goBack() } }
+            Button("Back") { app.passwords.performCommand { if let draft { draft.browsing.goBack() } else { browser?.goBack() } } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("[")
-                .disabled(browser?.canGoBack != true)
-            Button("Forward") { app.passwords.performCommand { browser?.goForward() } }
+                .disabled(draft.map { !$0.browsing.canGoBack } ?? (browser?.canGoBack != true))
+            Button("Forward") { app.passwords.performCommand { if let draft { draft.browsing.goForward() } else { browser?.goForward() } } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("]")
-                .disabled(browser?.canGoForward != true)
-            Button("Enclosing Folder") { app.passwords.performCommand { browser?.goUp() } }
+                .disabled(draft.map { !$0.browsing.canGoForward } ?? (browser?.canGoForward != true))
+            Button("Enclosing Folder") { app.passwords.performCommand { if let draft { draft.browsing.goUp() } else { browser?.goUp() } } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut(.upArrow, modifiers: .command)
-                .disabled(browser?.canGoUp != true)
+                .disabled(draft.map { !$0.browsing.canGoUp } ?? (browser?.canGoUp != true))
             Divider()
             Button("Open") {
                 app.passwords.performCommand {
-                    if let browser, browser.selectedEntries.count == 1 { browser.open(browser.selectedEntries[0]) }
+                    if let draft, draft.selection.count == 1,
+                       let path = draft.selection.first, let node = draft.browsing.nodes[path] { draft.open(node) }
+                    else if let browser, browser.selectedEntries.count == 1 { browser.open(browser.selectedEntries[0]) }
                     else { browser?.openWithDefaultApp(browser?.selectedEntries ?? []) }
                 }
             }
                 .disabled(app.passwords.question != nil)
             .keyboardShortcut(.downArrow, modifiers: .command)
-            .disabled(browser?.selection.isEmpty != false)
+            .disabled(draft.map { $0.selection.count != 1 } ?? (browser?.selection.isEmpty != false))
             Button("Quick Look") { app.passwords.performCommand { browser?.toggleQuickLook() } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("y")

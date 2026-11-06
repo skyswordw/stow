@@ -101,8 +101,8 @@ struct ArchiveDraftView: View {
                 return .handled
             }
             .onChange(of: draft.files, initial: true) { old, new in
-                tree = DraftNode.tree(from: new)
-                browsing.update(tree: tree)
+                tree = browsing.roots
+                DraftFacts.invalidate(for: old + new)
                 noteArrivals(old: old, new: new)
             }
             .background {
@@ -282,9 +282,11 @@ struct ArchiveDraftView: View {
                 // View-mode switches are keyboard-speed: no animation. Search lists its results,
                 // as the Browser's Columns do.
                 switch browsing.isSearching && browsing.viewMode == .columns ? .list : browsing.viewMode {
-                case .grid: DraftGrid(draft: draft, browsing: browsing, arrived: arrived).takesKeyboard($listFocused, isSearchFocused: $isSearchFocused)
+                case .grid: DraftGrid(draft: draft, browsing: browsing, arrived: arrived)
+                        .takesKeyboard($listFocused, isSearchFocused: $isSearchFocused).draftKeys(draft)
                 case .list: list
-                case .columns: DraftColumns(draft: draft, browsing: browsing, arrived: arrived).takesKeyboard($listFocused, isSearchFocused: $isSearchFocused)
+                case .columns: DraftColumns(draft: draft, browsing: browsing, arrived: arrived)
+                        .takesKeyboard($listFocused, isSearchFocused: $isSearchFocused).draftKeys(draft)
                 }
             }
         }
@@ -391,8 +393,7 @@ struct ArchiveDraftView: View {
                 DraftItemMenu(draft: draft, paths: paths)
             } primaryAction: { paths in
                 if paths.count == 1, let path = paths.first, let node = browsing.nodes[path] {
-                    if node.file.isFolder || browsing.isSearching { draft.selection = node.file.isFolder ? [] : [node.id] }
-                    browsing.open(node)
+                    draft.open(node)
                 }
             }
             .disabled(isBusy)
@@ -400,6 +401,7 @@ struct ArchiveDraftView: View {
             .onAppear { if !isSearchFocused { listFocused = true } }
             // The files hold the keyboard, not the name or Search, when the window opens (#215).
             .filesTakeKeyboard($listFocused, isSearchFocused: $isSearchFocused)
+            .draftKeys(draft, handlesArrows: false)
             // What an add brought in may be below the fold: bring the last of it into view.
             .onChange(of: arrived) { _, arrived in
                 guard let last = browsing.visible.last(where: { arrived.contains($0.id) }) else { return }
@@ -600,6 +602,11 @@ enum DraftFacts {
         var modified: Date?
     }
     @MainActor private static var cache: [String: Facts] = [:]
+
+    /// A new import or Undo can refer to changed originals at a previously displayed path.
+    @MainActor static func invalidate(for files: [PackFile]) {
+        for file in files { if let source = file.source { cache.removeValue(forKey: source.path) } }
+    }
 
     @MainActor static func of(_ file: PackFile) -> Facts {
         guard let url = file.source else {

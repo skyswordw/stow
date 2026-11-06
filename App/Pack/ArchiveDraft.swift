@@ -35,7 +35,13 @@ final class ArchiveDraft: Identifiable {
     }
     var canSave: Bool { !files.isEmpty && !isImporting && !isChoosingSources && !isSaving && !isClosed && packRequest == nil }
 
-    init() { undoManager.groupsByEvent = false }
+    init() {
+        undoManager.groupsByEvent = false
+        browsing.locationChanged = { [weak self] in
+            guard let self else { return }
+            selection.formIntersection(browsing.selectablePaths)
+        }
+    }
 
     func chooseSources() {
         guard !isImporting, !isChoosingSources, !isSaving, !isClosed else { return }
@@ -145,6 +151,13 @@ final class ArchiveDraft: Identifiable {
         }, action: String(localized: "Remove"))
     }
 
+    func open(_ node: DraftNode) {
+        guard browsing.nodes[node.id] != nil else { return }
+        browsing.open(node)
+        // Search navigation may have cleared an old selection before revealing this item.
+        selection = browsing.selectablePaths.contains(node.id) ? [node.id] : []
+    }
+
     private func replaceFiles(_ replacement: [PackFile], action: String) {
         let previous = files
         let grouping = !undoManager.isUndoing && !undoManager.isRedoing
@@ -155,6 +168,7 @@ final class ArchiveDraft: Identifiable {
         undoManager.setActionName(action)
         if grouping { undoManager.endUndoGrouping() }
         files = replacement
+        browsing.update(tree: DraftNode.tree(from: files))
         selection.formIntersection(Set(files.map(\.path)))
     }
 
@@ -192,6 +206,7 @@ final class ArchiveDraft: Identifiable {
         switch result {
         case .success:
             files = []
+            browsing.update(tree: [])
             selection = []
             name = String(localized: "Untitled Archive")
             format = .zip

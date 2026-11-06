@@ -5,6 +5,79 @@ import Testing
 @MainActor
 @Suite("New archive drafts", .serialized)
 struct ArchiveDraftTests {
+    @Test func navigationAndSearchCannotDeleteHiddenSelections() async throws {
+        let temp = try TemporaryFolder()
+        defer { temp.cleanUp() }
+        let folder = temp.url.appending(path: "Folder")
+        let root = temp.url.appending(path: "root.txt")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("child".utf8).write(to: folder.appending(path: "child.txt"))
+        try Data("root".utf8).write(to: root)
+        let draft = ArchiveDraft()
+        defer { draft.close() }
+        await draft.add([folder, root])
+        draft.selection = ["root.txt"]
+        draft.browsing.go(to: "Folder")
+        #expect(draft.selection.isEmpty)
+        draft.removeSelection()
+        #expect(draft.files.count == 3, "Delete must not act on an item hidden by navigation")
+        draft.selection = ["Folder/child.txt"]
+        draft.browsing.query = "root"
+        #expect(draft.selection.isEmpty)
+        draft.removeSelection()
+        #expect(draft.files.count == 3)
+        draft.browsing.query = "child"
+        draft.browsing.go(to: "")
+        draft.browsing.query = "child"
+        draft.open(try #require(draft.browsing.nodes["Folder/child.txt"]))
+        #expect(draft.browsing.folder == "Folder" && !draft.browsing.isSearching)
+        #expect(draft.selection == ["Folder/child.txt"])
+    }
+
+    @Test func columnSelectionStaysVisibleButDoesNotLeakIntoList() {
+        let draft = ArchiveDraft()
+        defer { draft.close() }
+        draft.browsing.update(tree: DraftNode.tree(from: [
+            PackFile(path: "Folder", size: 0, isFolder: true),
+            PackFile(path: "Folder/child.txt", size: 5)
+        ]))
+        draft.browsing.viewMode = .columns
+        draft.selection = ["Folder"]
+        draft.browsing.go(to: "Folder")
+        #expect(draft.selection == ["Folder"], "The folder is still visible in the previous column")
+        draft.browsing.viewMode = .list
+        #expect(draft.selection.isEmpty)
+        draft.browsing.go(to: "missing")
+        #expect(draft.browsing.folder == "Folder")
+    }
+
+    @Test func gridAndColumnKeyboardNavigationUsesDisplayedItems() {
+        let browsing = DraftBrowsing()
+        browsing.update(tree: DraftNode.tree(from: [
+            PackFile(path: "Folder", size: 0, isFolder: true),
+            PackFile(path: "Folder/child.txt", size: 5),
+            PackFile(path: "a.txt", size: 1), PackFile(path: "b.txt", size: 2)
+        ]))
+        browsing.viewMode = .grid
+        browsing.gridColumns = 2
+        var selection = browsing.move(.down, selection: [], extending: false)
+        #expect(selection == ["Folder"])
+        selection = browsing.move(.right, selection: selection, extending: true)
+        #expect(selection == ["Folder", "a.txt"])
+        selection = browsing.move(.down, selection: selection, extending: false)
+        #expect(selection == ["b.txt"])
+        browsing.viewMode = .columns
+        selection = browsing.move(.right, selection: ["Folder"], extending: false)
+        #expect(selection == ["Folder/child.txt"] && browsing.folder == "Folder")
+        selection = browsing.move(.left, selection: selection, extending: false)
+        #expect(selection == ["Folder"])
+        selection = browsing.move(.down, selection: selection, extending: false)
+        #expect(selection == ["a.txt"] && browsing.folder == "")
+        browsing.query = "child"
+        selection = browsing.move(.down, selection: [], extending: false)
+        #expect(selection == ["Folder/child.txt"], "Columns search uses the result list")
+    }
+
     @Test func importsCollisionsAndUndoWithoutChangingSources() async throws {
         let temp = try TemporaryFolder()
         defer { temp.cleanUp() }
