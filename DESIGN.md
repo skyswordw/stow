@@ -12,6 +12,15 @@ Open Stow/Settings must come to the front. Dock lists existing recent archives d
 of its menu, followed by current windows with the current-window checkmark; recent files do not
 require an Open Recent submenu (user correction, 2026-11-06).
 
+## Independent archive windows — 2026-11-06
+
+The user chose one independent window per archive, with side-by-side Browser workspaces and
+cross-archive drag **copy** into the destination's pending edits. Source files remain unchanged;
+the target supports Undo/Redo and writes only on Save. Reuse the current Browser vocabulary and
+composition. Follow [the functional handoff](Handoff/multiple-archive-windows.md) for session,
+password, close/quit and staging contracts. Codex owns those functional changes; Claude Code
+retains visual and motion ownership. This supersedes earlier single-archive window assumptions.
+
 ## Tray, creation and entry-point functional handoff — #286
 
 The [functional implementation brief](Handoff/286-functional-followups.md) records the new interfaces and bounded

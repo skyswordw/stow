@@ -1,5 +1,12 @@
 # UI and motion handoff — Claude Code
 
+## Independent archive windows — current user decision
+
+The user chose one independent window per archive on 2026-11-06. Follow
+[multiple-archive-windows.md](multiple-archive-windows.md) for functional ownership and the
+cross-archive drag-copy contract. Reuse the Browser composition; visual/motion treatment remains
+with Claude Code. Dock recent entries appear directly at the top (#307).
+
 ## Current user correction — creation and entry points
 
 Follow [the 2026-11-05 Pack creation brief](pack-creation-direction-2026-11-05.md). The user

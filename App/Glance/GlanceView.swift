@@ -494,6 +494,7 @@ struct GlanceCommands: Commands {
     let app: AppState
 
     var body: some Commands {
+        let app = self.app.commandSession
         let glance = app.glance
         CommandGroup(after: .windowArrangement) {
             Divider()
@@ -505,7 +506,7 @@ struct GlanceCommands: Commands {
                 Button("Switch to Glance") { app.passwords.performCommand { glance.collapse() } }
                     .disabled(app.passwords.question != nil)
                     .keyboardShortcut("g", modifiers: [.command, .option])
-                    .disabled(app.browser == nil)
+                    .disabled(app.workspace.session(owning: NSApp.keyWindow)?.browser == nil)
             }
             Toggle("Keep Glance on Top", isOn: Binding(get: { glance.isPinned }, set: { value in app.passwords.performCommand { glance.isPinned = value } }))
                 .disabled(app.passwords.question != nil)

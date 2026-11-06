@@ -331,8 +331,16 @@ private struct ArchiveDrop: ViewModifier {
     @State private var targeted = false
     func body(content: Content) -> some View {
         content
-            .onDrop(of: [.fileURL], isTargeted: $targeted) { providers in
+            .onDrop(of: [.fileURL, ArchiveTransfer.contentType], isTargeted: $targeted) { providers in
                 guard model.editSession.requireEditable() else { return true }
+                let destination = model.level
+                if let transfer = ArchiveTransfer.takeNativeDrop() {
+                    model.receiveTransfer(transfer, into: folder, level: destination)
+                    return true
+                }
+                // A private representation outside the current native gesture is stale or
+                // foreign. Never revive a capability asynchronously from a previous drag.
+                guard !providers.contains(where: { $0.hasItemConformingToTypeIdentifier(ArchiveTransfer.typeIdentifier) }) else { return false }
                 // Preserve provider order and register the whole gesture as one undo action.
                 Task { @MainActor in
                     var urls: [URL] = []
@@ -344,7 +352,8 @@ private struct ArchiveDrop: ViewModifier {
                         }
                         if let url { urls.append(url) }
                     }
-                    model.editSession.add(urls, into: folder)
+                    guard !model.isClosed, model.level === destination else { return }
+                    destination.edits.add(urls, into: folder)
                 }
                 return true
             }

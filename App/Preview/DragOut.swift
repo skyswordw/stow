@@ -17,6 +17,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     private var monitor: Any?
     private var press: (point: NSPoint, entry: ArchiveEntry.ID)?
     private var started = false
+    private var transferToken: String?
     private var selectionSnapshot: SelectionSnapshot?
 
     private struct SelectionSnapshot {
@@ -88,9 +89,11 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         let entries = prepareDrag(from: id)
         guard !entries.isEmpty else { return false }
         let point = view.convert(event.locationInWindow, from: nil)
+        transferToken = ArchiveTransfer.register(source: model, entries: entries)
         let items = entries.enumerated().map { index, entry in
             let type = entry.isFolder && !entry.isPackage ? UTType.folder : entry.contentType
-            let provider = NSFilePromiseProvider(fileType: type.identifier, delegate: self)
+            let provider = ArchiveDragPromise(fileType: type.identifier, delegate: self)
+            provider.transferToken = transferToken
             provider.userInfo = entry.path
             let item = NSDraggingItem(pasteboardWriter: provider)
             let icon = model.previews.cachedThumbnail(for: entry, in: model.archive, side: 96)
@@ -114,6 +117,8 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     }
 
     func finishDrag(pasteboard: NSPasteboard, operation: NSDragOperation) {
+        ArchiveTransfer.finish(transferToken)
+        transferToken = nil
         if operation.isEmpty { pasteboard.clearContents() }
         let token = selectionSnapshot?.token
         restoreSelection(token: token)
@@ -135,7 +140,11 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     private var dragging: [String] = []
 
     nonisolated func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
-        MainActor.assumeIsolated { onBegin?(dragging) }
+        nonisolated(unsafe) let session = session
+        MainActor.assumeIsolated {
+            ArchiveTransfer.began(token: transferToken, on: session.draggingPasteboard)
+            onBegin?(dragging)
+        }
     }
 
     nonisolated func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint,
@@ -151,7 +160,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 
     nonisolated func draggingSession(_ session: NSDraggingSession,
                                      sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-        context == .outsideApplication ? .copy : []
+        .copy
     }
 
     // MARK: - NSFilePromiseProviderDelegate

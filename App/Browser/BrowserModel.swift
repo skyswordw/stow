@@ -135,6 +135,44 @@ final class BrowserModel {
     var nestedLoader: NestedSearch.Loader?
     private var searchTask: Task<Void, Never>?
     private var activityTask: Task<Void, Never>?
+    var isClosed = false
+    var transferTasks: [UUID: Task<Void, Never>] = [:]
+    var isTransferring: Bool { !transferTasks.isEmpty }
+
+    func cancelTransfers() {
+        isClosed = true
+        for task in transferTasks.values { task.cancel() }
+    }
+
+    func receiveTransfer(_ transfer: ArchiveTransfer, into folder: String, level destination: Level) {
+        guard transfer.source !== self, transfer.sourceIsCurrent, !isClosed,
+              level === destination, destination.edits.requireEditable(), !isTransferring else { return }
+        if case .running = activity?.phase { return }
+        activityTask?.cancel()
+        let id = UUID()
+        activity = Activity(step: .copyTo(folder: archive.name), itemCount: transfer.entries.count, phase: .running(0))
+        let task = Task { @MainActor in
+            defer {
+                self.transferTasks[id] = nil
+                transfer.source.transferTasks[id] = nil
+            }
+            do {
+                try await transfer.copy(to: self, level: destination, folder: folder) { fraction in
+                    Task { @MainActor in
+                        if self.transferTasks[id] != nil { self.advance(to: fraction) }
+                    }
+                }
+                self.activity?.phase = .done
+                self.dismissLater()
+            } catch {
+                if Task.isCancelled || EngineError(error).failure == .cancelled { self.activity = nil }
+                else { self.report(EngineError(error), step: .copyTo(folder: destination.archive.name), count: transfer.entries.count) }
+            }
+        }
+        transferTasks[id] = task
+        transfer.source.transferTasks[id] = task
+        activityTask = task
+    }
     /// The last step run, for a failure's Try Again / Choose Another Folder.
     private var lastRun: (() -> Void)?
     private var typeahead = (text: "", at: Date.distantPast)

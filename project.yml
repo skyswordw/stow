@@ -132,6 +132,11 @@ targets:
             CFBundleTypeRole: Viewer
             LSHandlerRank: Alternate
             LSItemContentTypes: [com.apple.disk-image-udif, public.iso-image, app.stow.wim-image, app.stow.vhd-image, com.apple.xar-archive, com.apple.installer-package-archive, com.redhat.rpm-archive, app.stow.deb-archive, app.stow.msi-installer, com.sun.java-archive, public.archive.apk]
+        UTExportedTypeDeclarations:
+          # SwiftUI resolves accepted drop identifiers through Uniform Type Identifiers before
+          # registering the native target. Raw pasteboard data alone does not declare this type.
+          - UTTypeIdentifier: app.stow.archive-selection
+            UTTypeConformsTo: [public.data]
         UTImportedTypeDeclarations:
           # macOS itself doesn't declare RAR (or the types below, up to split-archive; see
           # Tests/SystemTypesTests.swift); without this the type only resolves when some other

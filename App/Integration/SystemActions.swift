@@ -147,8 +147,7 @@ final class SystemActions {
         guard let action = await Prompts.explain(failure), let archive else { return }
         switch action {
         case .openInStow:
-            app?.showMainWindow()
-            app?.open(archive)
+            app?.openInBrowser(archive)
         case .showInFinder:
             NSWorkspace.shared.activateFileViewerSelecting([archive])
         case .openInFinder:
