@@ -460,7 +460,7 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 | A step has started but measured nothing yet | A quarter arc turns in the progress ring; it stands still under Reduce Motion | 1 turn/s, linear |
 | Actions shown/hidden or its stack opened/closed by a key (arrows, ⌘A, Esc) | **None** | — |
 | Actions stack fans out (pointer rests 140 ms on it, or its edges clicked) | Spring: each action rises from behind the front button, scale 0.9 → 1 + opacity; folds back with an ease-out 450 ms after the pointer leaves (ArcZip lingers 0.5–1 s; it also opens at once, which flashes on every pass, so Stow waits 140 ms). Choosing an action or a new selection folds it at once, unanimated. Fade only under Reduce Motion | `response 0.32, damping 1.0` in, 180 ms out |
-| Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in | `response 0.25, damping 0.9` |
+| Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in; on Welcome, Open and Create Archive fade to 35 % in place (nothing moves) so the drop is the one ask | `response 0.25, damping 0.9` |
 | Tray rows a drop (or Add Files…) brought in, new or already there | Accent ring and faint tint **at once**; fade out after 1.2 s; scrolled into view if below the fold (no scroll animation under Reduce Motion) | fade `Motion.status` 200 ms |
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |
 | Tray panel show/hide, including an outside click or app switch hiding it | Same edge in, same edge out: scale 0.96 → 1 from the menu bar + opacity (`Motion.presence`). Hiding on an outside click uses the same quick exit: the click has already reached what it was aimed at, and the Tray only gets out of its way | `appear` in, `exit` out; **none** for ⌥⌘T and Esc |
@@ -550,6 +550,27 @@ transition frame by frame, by click and as after a key press, for review.
   used last) at its last size and place and closes the welcome; the Close Archive command brings the welcome back. Closing the Browser window
   with the traffic light or ⌘W ends that archive session and leaves Stow running without a window;
   reopening Stow from the Dock shows Welcome. Only one of them is open at a time.
+- **Welcome's actions** (#291) sit inside the drop zone, under what dropping does: **Open
+  Archive…** and **Create Archive…** side by side at one width, Create the prominent glass button
+  on the trailing side, as a Mac pair puts its primary. Both reach the same routes as ⌘O and ⌘N
+  (`AppState.beginNewArchive()` for Create; a repeated click focuses the one draft). Their tooltips
+  name the shortcut. With keyboard navigation on, the window starts on Create. **Settings** belongs
+  to the app, not to what's dropped, so it is an icon-only gear in the top-trailing corner that
+  mirrors the traffic lights: their vertical centre, and the close button's leading inset as the
+  gear glyph's trailing inset (measured from the window's own close button, so it follows the
+  system's metrics). Its glyph is a traffic light's size (14 pt, medium weight to carry the
+  filled lights' weight); it is secondary and borderless, with a faint 22 pt hover circle; under
+  Increase Contrast it is full strength with a hairline ring of that circle. Its accessibility name is "Settings…" and its
+  tooltip names ⌘,. The actions keep their words: they are the primary choices. A short window
+  drops the format chips first, then the icon; the two actions always stay. The sample is not on
+  Welcome. *Supersedes* the earlier Open Archive… / Try the Sample pair and its prominent sample
+  button, and the first #299 draft's bottom-leading "⚙ Settings…" footer (user feedback: the
+  corner suits it, and a text label there felt uncoordinated).
+- **The sample** (#292) is a web download, so it lives with the app's web pages: **Help ›
+  Download Sample Archive** beside **Sample Credits and Licenses**, and the same button in Welcome
+  to Stow with a caption that says the browser saves it and the ZIP is then opened normally. No
+  ellipsis (nothing is asked before the browser takes over), no shortcut, no in-app progress or
+  error: the browser shows both. It left the File menu, which holds commands that act here.
 
 ## Not doing (on purpose)
 

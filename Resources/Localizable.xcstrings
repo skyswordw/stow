@@ -13222,17 +13222,6 @@
         }
       }
     },
-    "Download Sample…": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下载示例…"
-          }
-        }
-      }
-    },
     "Sample Credits and Licenses": {
       "extractionState": "manual",
       "localizations": {
@@ -13438,6 +13427,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "下一步会请你选择文件夹。"
+          }
+        }
+      }
+    },
+    "Opens the download in your browser": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在浏览器中打开下载"
+          }
+        }
+      }
+    },
+    "Open Stow’s settings (⌘,)": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Stow 设置（⌘,）"
+          }
+        }
+      }
+    },
+    "Download Sample Archive": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载示例压缩包"
+          }
+        }
+      }
+    },
+    "Choose an archive to open (⌘O)": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择要打开的压缩包（⌘O）"
+          }
+        }
+      }
+    },
+    "Your browser saves it; open the ZIP to try Stow.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由浏览器保存，打开这个 ZIP 即可试用 Stow。"
+          }
+        }
+      }
+    },
+    "Start a new archive and add files to it (⌘N)": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建压缩包并向其中添加文件（⌘N）"
           }
         }
       }

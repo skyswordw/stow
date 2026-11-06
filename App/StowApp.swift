@@ -781,9 +781,6 @@ struct StowCommands: Commands {
             Button("Extract Archives…") { app.passwords.performCommand { app.isChoosingBatch = true } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("e", modifiers: [.command, .option])
-            Button("Download Sample…") { app.downloadSample() }
-                .disabled(app.passwords.question != nil)
-                .keyboardShortcut("o", modifiers: [.command, .shift])
             Divider()
             Button("Close Archive") { app.passwords.performCommand { app.closeArchive() } }
                 .disabled(app.passwords.question != nil)
@@ -792,6 +789,12 @@ struct StowCommands: Commands {
         }
         CommandGroup(after: .help) {
             Button("Welcome to Stow") { OnboardingRouter.shared.open() }
+            // The sample is a web download now, so it lives with the app's other web pages in Help,
+            // not in File beside commands that open archives here. No ellipsis: nothing is asked
+            // before the browser takes over.
+            Divider()
+            Button("Download Sample Archive") { app.downloadSample() }
+                .disabled(app.passwords.question != nil)
             Button("Sample Credits and Licenses") { NSWorkspace.shared.open(SampleDownload.creditsURL) }
         }
         CommandGroup(after: .windowArrangement) {
