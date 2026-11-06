@@ -120,6 +120,8 @@ struct BrowserView: View {
             .editingNotice(model, isActive: !app.glance.isShown) { app.extractAndRepack(model) }
             .background {
                 WindowReader { window in
+                    window.isExcludedFromWindowsMenu = false
+                    NSApp.addWindowsItem(window, title: model.archive.name, filename: false)
                     editingDelegate.attach(window, model: model)
                     model.quickLook.attach(to: window)
                     model.dragOut.install(in: window)

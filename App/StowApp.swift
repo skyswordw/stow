@@ -15,7 +15,17 @@ final class AppState {
     let passwords = PasswordPrompt()
     let glance = GlanceController()
     /// Tests and demo scenes keep their own history, leaving the user's stored list untouched.
-    let recents = RecentArchives.forApplication()
+    let recents: RecentArchives
+    let sessionID = UUID()
+    weak var workspaceOwner: AppState?
+    var additionalSessions: [AppState] = []
+    var focusedSessionID: UUID?
+    var lastArchiveSessionID: UUID?
+    @ObservationIgnored var archiveWindowController: ArchiveWindowController?
+    @ObservationIgnored weak var archiveWindow: NSWindow?
+    @ObservationIgnored private var focusObservers: [NSObjectProtocol] = []
+    var openingURL: URL?
+    var presentsArchiveWindows = true
     var browser: BrowserModel?
     /// A native window close leaves Stow running without presenting a replacement window.
     private(set) var mainWindowDismissed = false
@@ -31,7 +41,7 @@ final class AppState {
     }
     private var finishingBrowsers: [FinishingArchive] = []
     var hasLifetimeWork: Bool {
-        isBusy || packRequest != nil || isChoosingArchive || isChoosingBatch
+        additionalSessions.contains(where: \.hasLifetimeWork) || isBusy || packRequest != nil || isChoosingArchive || isChoosingBatch
             || tray.hasRelatedInteraction || archiveDraft?.packRequest != nil
             || archiveDraft?.isChoosingSources == true
             || finishingBrowsers.contains { if case .failed = $0.model.activity?.phase { true } else { false } }
@@ -67,32 +77,56 @@ final class AppState {
     var showMainWindow: () -> Void = {}
     let batch = BatchQueue()
 
-    init(traySettings: UserDefaults = .standard) {
-        tray = TrayController(settings: traySettings)
-        tray.app = self
+    init(traySettings: UserDefaults = .standard, workspaceOwner: AppState? = nil) {
+        self.workspaceOwner = workspaceOwner
+        tray = workspaceOwner?.tray ?? TrayController(settings: traySettings)
+        recents = workspaceOwner?.recents ?? RecentArchives.forApplication()
+        if workspaceOwner == nil { tray.app = self }
         system.app = self
         glance.app = self
+        sourceReadAccess = SourceReadAccess.forWindow { [weak self] in
+            guard let self else { return nil }
+            return self.glance.isShown ? self.glance.window : self.archiveWindow
+        }
         packing.onDirectoryCleaned = { [weak self] url in
             self?.tray.removeCleanedTemporaryGroup(at: url)
         }
-        TrayTemporaryGroups.purgeAbandoned(keeping: [])
+        if workspaceOwner == nil { TrayTemporaryGroups.purgeAbandoned(keeping: []) }
         batch.onOpen = { [weak self] url in
             self?.openPreferred(url)
         }
-        // Copies opened in a default app last time.
+        guard workspaceOwner == nil else { return }
+        for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
+            focusObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    let session = self.session(owning: NSApp.keyWindow)
+                    self.focusedSessionID = session?.sessionID
+                    if let session { self.lastArchiveSessionID = session.sessionID }
+                }
+            })
+        }
+        // Copies opened in a default app last time. Child sessions must not erase live files.
         TemporaryOpen.removeAll()
         OtherAppFiles.removeReceived()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
                                                queue: .main) { _ in MainActor.assumeIsolated { PackageHandoff.removeAll() } }
     }
 
+    isolated deinit {
+        for observer in focusObservers { NotificationCenter.default.removeObserver(observer) }
+        sourceGrant?.release()
+        scopedURL?.stopAccessingSecurityScopedResource()
+    }
+
     /// Extracting, packing, opening or a browser action is running. Updates wait for it (#35), and
     /// Settings holds off cleaning temporary files.
     var isBusy: Bool {
+        if additionalSessions.contains(where: \.isBusy) { return true }
         if archiveDraft?.isImporting == true || archiveDraft?.isSaving == true { return true }
         if pendingCommands > 0 || system.pendingRequests > 0 || system.running > 0
-            || finishingBrowsers.contains(where: { if case .running = $0.model.activity?.phase { true } else { false } }) { return true }
-        if packing.isRunning || batch.isActive || isOpening || browser?.isUnlocking == true || passwords.question != nil { return true }
+            || finishingBrowsers.contains(where: { if $0.model.isTransferring { true } else if case .running = $0.model.activity?.phase { true } else { false } }) { return true }
+        if packing.isRunning || batch.isActive || isOpening || browser?.isUnlocking == true || browser?.isTransferring == true || passwords.question != nil { return true }
         if case .running = browser?.activity?.phase { return true }
         return false
     }
@@ -106,6 +140,7 @@ final class AppState {
         openingID = id
         isOpening = true
         openingName = url.lastPathComponent
+        openingURL = url
         let scoped = url.startAccessingSecurityScopedResource()
         openingTask = Task {
             var recovered: SourceReadAccess.Grant?
@@ -237,11 +272,14 @@ final class AppState {
     /// a Cancel button. Files already on this Mac go straight through, with nothing shown.
     private func waitForCloudDownload(_ url: URL) async throws(EngineError) {
         let download = CloudDownload(url: url)
+        let percent = DownloadPercent()
+        var probe = CloudPlaceholder.live
+        probe.fraction = { percent.fraction(for: $0) }
         defer {
             if cloudDownload === download { cloudDownload = nil }
-            DownloadPercent.shared.stop()
+            percent.stop()
         }
-        try await CloudPlaceholder.waitForDownload(url, isCancelled: { download.isCancelled }) { fraction in
+        try await CloudPlaceholder.waitForDownload(url, probe: probe, isCancelled: { download.isCancelled }) { fraction in
             if cloudDownload !== download { cloudDownload = download }
             download.fraction = fraction
         }
@@ -319,6 +357,7 @@ final class AppState {
     }
 
     func beginNewArchive() {
+        if let workspaceOwner { workspaceOwner.beginNewArchive(); return }
         guard passwords.question == nil else { return }
         if archiveDraft == nil { archiveDraft = ArchiveDraft() }
         showCreationWindow()
@@ -340,12 +379,12 @@ final class AppState {
         }
     }
 
-    /// URLs macOS opened Stow with. Archives open in the browser (the first one; Stow has one window).
+    /// Every file in a Finder open request gets its own archive session.
     func receive(_ urls: [URL]) {
         for url in urls where Handoff.isHandoff(url) {
             system.receive(url)
         }
-        if let archive = urls.first(where: \.isFileURL) {
+        for archive in urls.filter(\.isFileURL) {
             NSApp.activate()
             openPreferred(archive)
         }
@@ -353,6 +392,15 @@ final class AppState {
 
     /// Establish the destination and loading state before showing a window.
     func openPreferred(_ url: URL) {
+        let destination = workspace.sessionForOpening(url)
+        if destination.isOpening || destination.browser != nil || destination.openFailure != nil {
+            destination.presentArchive()
+            return
+        }
+        destination.openInPreferredWindow(url)
+    }
+
+    func openInPreferredWindow(_ url: URL) {
         if SettingsKeys.archiveWindow(in: presentationDefaults) == .glance {
             glance.open(url)
         } else {
@@ -432,6 +480,10 @@ final class AppState {
             guard browser === model, openingID == opening else { return }
             mainWindowDismissed = false
             clearArchive()
+            if workspaceOwner != nil {
+                mainWindowDismissed = true
+                archiveWindow?.close()
+            }
         }
     }
 
@@ -449,13 +501,24 @@ final class AppState {
         // Closing a window must not make an accepted operation unreachable on reopen.
         if browser == nil, !isOpening, let work = finishingBrowsers.popLast() {
             browser = work.model
+            browser?.isClosed = false
             scopedURL = work.scopedURL
             sourceGrant = work.grant
         }
     }
 
     func releaseFinishedWork() {
+        for session in additionalSessions { session.releaseFinishedWork() }
+        additionalSessions.removeAll {
+            let finished = $0.mainWindowDismissed && !$0.usesBrowserWindow && !$0.glance.isShown && !$0.hasLifetimeWork
+            if finished {
+                $0.archiveWindow?.contentViewController = nil
+                $0.archiveWindowController = nil
+            }
+            return finished
+        }
         finishingBrowsers.removeAll {
+            if $0.model.isTransferring { return false }
             if case .running = $0.model.activity?.phase { return false }
             // A failed accepted operation remains reachable on reopening, including its retry state.
             if case .failed = $0.model.activity?.phase { return false }
@@ -467,7 +530,11 @@ final class AppState {
 
     private func clearArchive() {
         releaseFinishedWork()
-        if let browser, case .running = browser.activity?.phase {
+        browser?.cancelTransfers()
+        if let browser, browser.isTransferring || {
+            if case .running = browser.activity?.phase { return true }
+            return false
+        }() {
             finishingBrowsers.append(FinishingArchive(model: browser, scopedURL: scopedURL, grant: sourceGrant))
             scopedURL = nil
             sourceGrant = nil
@@ -479,6 +546,7 @@ final class AppState {
         releaseScope()
         browser = nil
         openingName = nil
+        openingURL = nil
         openFailure = nil
     }
 
@@ -573,6 +641,10 @@ struct StowApp: App {
         app.showMainWindow = { [weak app] in
             guard let app else { return }
             app.prepareToShowMainWindow()
+            if !app.usesBrowserWindow, let other = app.additionalSessions.last(where: { $0.usesBrowserWindow || $0.glance.isShown }) {
+                other.presentArchive()
+                return
+            }
             let id = app.usesBrowserWindow ? "main" : "welcome"
             ApplicationLifecycle.shared.presentWindow(id) { open(id: id) }
         }
@@ -609,6 +681,8 @@ struct RootView: View {
         .background {
             WindowReader { window in
                 rootWindow = window
+                app.archiveWindow = window
+                window.tabbingMode = .disallowed
                 // State restoration is off, so the Browser keeps its size and place this way.
                 window.setFrameAutosaveName("Browser")
             }
@@ -683,8 +757,8 @@ struct AppRoot: ViewModifier {
             }
             .passwordSheet(app.passwords, isActive: isHost && !app.glance.isShown)
             .fileImporter(isPresented: isHost ? $app.isChoosingArchive : .constant(false),
-                          allowedContentTypes: [.archive, .diskImage, .data]) { result in
-                if case .success(let url) = result { app.openPreferred(url) }
+                          allowedContentTypes: [.archive, .diskImage, .data], allowsMultipleSelection: true) { result in
+                if case .success(let urls) = result { urls.forEach { app.openPreferred($0) } }
             }
             .sheet(item: isHost ? $app.openFailure : .constant(nil)) { open in
                 FailureCard(failure: open.failure) { action in
@@ -701,6 +775,8 @@ struct AppRoot: ViewModifier {
     /// over. Glance showing the archive keeps the Browser away. A key press switches them without
     /// window animation (DESIGN.md › Motion).
     private func handOver(noArchive: Bool) {
+        // AppKit-owned secondary windows never close or replace another session's SwiftUI scene.
+        guard app.workspaceOwner == nil else { return }
         guard !app.mainWindowDismissed else { return }
         if app.glance.isShown {
             dismissWindow(id: host == .welcome ? "welcome" : "main")
@@ -709,11 +785,12 @@ struct AppRoot: ViewModifier {
         let leaving: String, arriving: String?
         switch host {
         case .welcome where !noArchive: (leaving, arriving) = ("welcome", app.glance.isShown ? nil : "main")
-        case .browser where noArchive: (leaving, arriving) = ("main", "welcome")
+        case .browser where noArchive:
+            (leaving, arriving) = ("main", app.additionalSessions.contains(where: { $0.usesBrowserWindow || $0.glance.isShown }) ? nil : "welcome")
         default: return
         }
         WindowSwitch.animation = Motion.byKeyboard ? .none : .default
-        for window in GlanceController.mainWindows { window.animationBehavior = WindowSwitch.animation }
+        for window in app.glance.ownedMainWindows { window.animationBehavior = WindowSwitch.animation }
         if let arriving {
             ApplicationLifecycle.shared.presenting(arriving)
             openWindow(id: arriving)
@@ -759,6 +836,7 @@ struct StowCommands: Commands {
     let app: AppState
 
     var body: some Commands {
+        let app = self.app.commandSession
         // Sparkle (#35). Read here, in the Commands body, so the item enables once the updater starts.
         CommandGroup(after: .appInfo) {
             Button("Check for Updates…") { AppUpdater.shared.checkForUpdates() }
@@ -782,7 +860,7 @@ struct StowCommands: Commands {
             Button("Close Archive") { app.passwords.performCommand { app.closeArchive() } }
                 .disabled(app.passwords.question != nil)
                 .keyboardShortcut("w", modifiers: [.command, .shift])
-                .disabled(app.browser == nil)
+                .disabled(app.workspace.session(owning: NSApp.keyWindow)?.browser == nil)
         }
         CommandGroup(after: .help) {
             Button("Welcome to Stow") { OnboardingRouter.shared.open() }

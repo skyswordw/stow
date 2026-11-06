@@ -121,8 +121,7 @@ struct ArchiveDraftView: View {
                     if app.archiveDraft === draft { app.archiveDraft = nil }
                     if quitting { NSApp.terminate(nil) }
                     else if let first = urls.first {
-                        app.open(first)
-                        app.showMainWindow()
+                        app.openInBrowser(first)
                     }
                 }.environment(app)
             }

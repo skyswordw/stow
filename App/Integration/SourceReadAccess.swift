@@ -88,6 +88,12 @@ final class SourceReadAccess {
 }
 
 extension SourceReadAccess {
+    static func forWindow(_ window: @escaping @MainActor () -> NSWindow?) -> SourceReadAccess {
+        SourceReadAccess(choose: { file in
+            try await SourceAccessPanel.choose(file, fileOnly: false, preferredParent: window(), restrictParent: true)
+        })
+    }
+
     /// Design review only (DemoScene): shows the recovery picker for `file` and discards the answer.
     static func showPanelForDemo(_ file: URL, fileOnly: Bool) async {
         _ = try? await SourceAccessPanel.choose(file, fileOnly: fileOnly)
@@ -103,8 +109,8 @@ enum SourceAccessPresentation {
             guard window.isVisible, window.attachedSheet == nil, window.sheetParent == nil,
                   !(window is NSPanel) else { return nil }
             let id = window.identifier?.rawValue ?? ""
-            if id == GlanceController.windowIdentifier { return 0 }
-            if id == "main" || id.hasPrefix("main-") { return 1 }
+            if id == GlanceController.windowIdentifier || id.hasPrefix("glance-") { return 0 }
+            if id == "main" || id.hasPrefix("main-") || id.hasPrefix("archive-") { return 1 }
             if id == "welcome" || id.hasPrefix("welcome-") { return 2 }
             return nil
         }
@@ -167,7 +173,8 @@ fileprivate final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
     }
 
     /// `fileOnly` starts with "Allow only this archive" checked; only design-review scenes pass true.
-    static func choose(_ file: URL, fileOnly: Bool) async throws -> URL? {
+    static func choose(_ file: URL, fileOnly: Bool, preferredParent: NSWindow? = nil,
+                       restrictParent: Bool = false) async throws -> URL? {
         try Task.checkCancellation()
         let delegate = SourceAccessPanel(file: file)
         let panel = NSOpenPanel()
@@ -189,8 +196,9 @@ fileprivate final class SourceAccessPanel: NSObject, NSOpenSavePanelDelegate {
         return try await withTaskCancellationHandler {
             let response = await withCheckedContinuation { continuation in
                 // Always use asynchronous presentation so cancellation can dismiss the picker.
-                if let parent = SourceAccessPresentation.parent(keyWindow: NSApp.keyWindow,
-                                                               windows: NSApp.windows) {
+                let candidates = restrictParent ? [preferredParent].compactMap { $0 } : NSApp.windows
+                if let parent = SourceAccessPresentation.parent(keyWindow: restrictParent ? preferredParent : NSApp.keyWindow,
+                                                               windows: candidates) {
                     panel.beginSheetModal(for: parent) { continuation.resume(returning: $0) }
                 } else {
                     panel.begin { continuation.resume(returning: $0) }

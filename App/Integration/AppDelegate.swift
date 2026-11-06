@@ -61,7 +61,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if app?.isBusy == true {
             if app?.archiveDraft?.isSaving == true || app?.archiveDraft?.isImporting == true {
                 app?.showCreationWindow()
-            } else { app?.showMainWindow() }
+            } else {
+                let busy = app?.archiveSessions.last(where: { $0.isBusy })
+                busy?.presentArchive()
+            }
             let alert = NSAlert()
             alert.messageText = String(localized: "An operation is still running")
             alert.informativeText = String(localized: "Wait for it to finish, or cancel it in Stow before quitting.")
@@ -74,12 +77,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard draft.allowDiscardOrSave(quitting: true) else { return .terminateCancel }
             app.discardArchiveDraft()
         }
-        guard app?.browser?.levels.contains(where: { $0.edits.isEdited }) == true else { return .terminateNow }
+        let dirty = app?.archiveSessions.filter { $0.browser?.levels.contains(where: { $0.edits.isEdited }) == true } ?? []
+        guard !dirty.isEmpty else { return .terminateNow }
         guard !checkingTermination else { return .terminateLater }
         checkingTermination = true
-        app?.showMainWindow()
         Task {
-            let allowed = await app?.browser?.confirmDiscardingEdits() ?? true
+            var allowed = true
+            for session in dirty {
+                session.presentArchive()
+                if !(await session.browser?.confirmDiscardingEdits() ?? true) {
+                    allowed = false
+                    break
+                }
+            }
             checkingTermination = false
             sender.reply(toApplicationShouldTerminate: allowed)
         }
@@ -89,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Clicking Stow in Finder, Launchpad or the Dock with no window open brings the window back.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         guard !hasVisibleWindows, let app else { return true }
-        app.showMainWindow()
+        app.presentMostRecentArchive()
         // We routed the reopen ourselves. Default handling can also present another scene,
         // briefly showing both Welcome and Browser.
         return false
@@ -162,7 +172,7 @@ final class DockMenuController: NSObject {
     static func includes(_ window: NSWindow) -> Bool {
         guard window.isVisible || window.isMiniaturized else { return false }
         let id = window.identifier?.rawValue ?? ""
-        return ["main", "welcome", "creation", "glance", "com_apple_SwiftUI_Settings_window"].contains {
+        return ["main", "archive", "welcome", "creation", "glance", "com_apple_SwiftUI_Settings_window"].contains {
             id == $0 || id.hasPrefix($0 + "-")
         }
     }

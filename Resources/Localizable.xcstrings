@@ -13641,6 +13641,16 @@
           }
         }
       }
+    },
+    "The archive changed during the drag. Try dragging the items again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖动期间压缩包已发生变化，请重新拖动这些项目。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

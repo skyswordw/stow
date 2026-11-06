@@ -34,6 +34,23 @@ final class EditSession {
     @ObservationIgnored private var cachedPending: ArchiveListing?
     @ObservationIgnored private var watcher = ArchiveWatcher()
     private var scoped: [URL] = []
+    private var transferDirectories: [URL] = []
+
+    func retainTransferDirectory(_ url: URL) { transferDirectories.append(url) }
+
+    private func removeTransferDirectories() {
+        for url in transferDirectories { try? FileManager.default.removeItem(at: url) }
+        transferDirectories = []
+    }
+
+    /// Private export for a drag; the live session, source file and Undo history stay unchanged.
+    func copyForTransfer(to destination: URL, password: String?) async throws -> ArchiveListing {
+        guard !isSaving, let url else { throw EngineError(.cancelled) }
+        try? FileManager.default.removeItem(at: destination)
+        return try await ArchiveSaver.saveCopy(from: url, to: destination, operations: operations,
+                                               items: packItems(), password: password,
+                                               encryptNewItems: true, identity: identity) { _ in }
+    }
     private var sourceFiles: [String: [PackFile]] = [:]
 
     init(base: ArchiveListing, url: URL?, name: String? = nil, nested: Bool = false) {
@@ -50,6 +67,7 @@ final class EditSession {
     isolated deinit {
         for url in scoped { url.stopAccessingSecurityScopedResource() }
         watcher.stop()
+        removeTransferDirectories()
     }
 
     var isEdited: Bool { !operations.isEmpty }
@@ -243,6 +261,7 @@ final class EditSession {
         operations = []
         undoManager?.removeAllActions(withTarget: self)
         staged = [:]; sourceFiles = [:]
+        removeTransferDirectories()
         for url in scoped { url.stopAccessingSecurityScopedResource() }
         scoped = []
         onChange?()
@@ -271,6 +290,7 @@ final class EditSession {
         operations = []
         undoManager?.removeAllActions(withTarget: self)
         staged = [:]; sourceFiles = [:]
+        removeTransferDirectories()
         for scopedURL in scoped { scopedURL.stopAccessingSecurityScopedResource() }
         scoped = []
         startWatching(url)
@@ -336,6 +356,7 @@ final class EditSession {
             operations = []
             undoManager?.removeAllActions(withTarget: self)
             staged = [:]; sourceFiles = [:]
+        removeTransferDirectories()
             for scopedURL in scoped { scopedURL.stopAccessingSecurityScopedResource() }
             scoped = []
             startWatching(url)

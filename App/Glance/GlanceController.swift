@@ -97,7 +97,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
     private(set) var anchor = UnitPoint.center
 
     /// Closes the full window. A seam for tests; Glance and the full window never both show the browser.
-    @ObservationIgnored var closeMainWindow: () -> Void = { GlanceController.mainWindows.forEach { $0.close() } }
+    @ObservationIgnored var closeMainWindow: () -> Void = {}
     /// Brings the full window back (AppState's `showMainWindow` unless a test swaps it).
     @ObservationIgnored var openMainWindow: (() -> Void)?
     /// Tests keep Glance off screen; the state still changes the same way.
@@ -114,6 +114,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
 
     override init() {
         super.init()
+        closeMainWindow = { [weak self] in self?.ownedMainWindows.forEach { $0.close() } }
         for name in [NSWindow.didBecomeKeyNotification, NSWindow.didChangeOcclusionStateNotification] {
             NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
                 let window = (note.object as? NSWindow).map(WindowBox.init)
@@ -125,7 +126,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
     /// The full window came up while Glance was showing the browser. At launch that's SwiftUI's
     /// own presentation, so it goes; later it's someone choosing the full window, so Glance goes.
     private func mainWindowAppeared(_ window: NSWindow) {
-        guard window.isVisible, Self.mainWindows.contains(window) else { return }
+        guard window.isVisible, ownedMainWindows.contains(window) else { return }
         defer { sawMainWindow = true }
         if mainWindowAnimation != .default {
             // It's up; whatever opens it next (the Dock, the Window menu) gets the usual opening.
@@ -176,7 +177,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
         close()
         mainWindowAnimation = byKeyboard ? .none : .default
         // A full window SwiftUI kept around is ordered in again; a new one gets it in `prepareMainWindow`.
-        for window in Self.mainWindows { window.animationBehavior = mainWindowAnimation }
+        for window in ownedMainWindows { window.animationBehavior = mainWindowAnimation }
         (openMainWindow ?? app?.showMainWindow)?()
     }
 
@@ -192,7 +193,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
 
     /// The browser hands over its window as soon as it exists, before SwiftUI puts it on screen.
     func prepareMainWindow(_ window: NSWindow) {
-        guard Self.mainWindows.contains(window) else { return }
+        guard ownedMainWindows.contains(window) else { return }
         window.animationBehavior = mainWindowAnimation
     }
 
@@ -288,7 +289,7 @@ final class GlanceController: NSObject, NSWindowDelegate {
         let window = GlanceWindow(contentRect: CGRect(origin: .zero, size: GlancePlacement.defaultSize),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                                   backing: .buffered, defer: true)
-        window.identifier = NSUserInterfaceItemIdentifier(Self.windowIdentifier)
+        window.identifier = NSUserInterfaceItemIdentifier(app?.workspaceOwner == nil ? Self.windowIdentifier : "glance-" + (app?.sessionID.uuidString ?? UUID().uuidString))
         window.isReleasedWhenClosed = false
         // No title bar to see: the header inside the window names the archive and moves it.
         window.titlebarAppearsTransparent = true
@@ -310,6 +311,12 @@ final class GlanceController: NSObject, NSWindowDelegate {
         window.setContentSize(GlancePlacement.defaultSize)
         updateWindowControls(of: window)
         return window
+    }
+
+    var ownedMainWindows: [NSWindow] {
+        guard let app else { return [] }
+        if let window = app.archiveWindow { return [window] }
+        return app.workspaceOwner == nil ? Self.mainWindows : []
     }
 
     static let windowIdentifier = "glance"

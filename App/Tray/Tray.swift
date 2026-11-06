@@ -639,8 +639,7 @@ final class TrayController {
             selection = []
             anchor = nil
         } else if item.isArchive, let url = item.url {
-            app?.showMainWindow()
-            app?.open(url)
+            app?.openInBrowser(url)
         } else if let url = item.url {
             NSWorkspace.shared.open(url)
         }
@@ -866,9 +865,8 @@ final class TrayController {
     func sendToMainWindow() {
         let urls = targetURLs
         guard !urls.isEmpty else { return }
-        app?.showMainWindow()
         if opensArchiveInMainWindow {
-            app?.open(urls[0])
+            urls.forEach { app?.openInBrowser($0) }
         } else {
             app?.pack(urls)
         }
@@ -988,7 +986,7 @@ private final class StatusTarget: NSObject, NSMenuItemValidation {
 
     func perform(_ command: Command) {
         switch command {
-        case .openStow: tray?.app?.showMainWindow()
+        case .openStow: tray?.app?.presentMostRecentArchive()
         case .createArchive: tray?.app?.beginNewArchive()
         case .settings: SettingsRouter.shared.show(.tray)
         case .quit: NSApp.terminate(nil)

@@ -10,8 +10,10 @@ struct BrowseCommands: Commands {
     @AppStorage(SettingsKeys.nextStepsHidden) private var hiddenSteps = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
 
     var body: some Commands {
+        let app = self.app.commandSession
         let draft = ArchiveDraft.focused(in: NSApp.keyWindow)
-        let browser = draft == nil && app.passwords.question == nil ? app.browser : nil
+        let browser = draft == nil && app.passwords.question == nil
+            && app.workspace.session(owning: NSApp.keyWindow) === app ? app.browser : nil
         let _ = routing.snapshot
         let archiveOwnsFocus = browser.map {
             routing.archiveManager(in: NSApp.keyWindow) === $0.editingUndoManager

@@ -346,8 +346,25 @@ private struct ArchiveDrop: ViewModifier {
     @State private var targeted = false
     func body(content: Content) -> some View {
         content
-            .onDrop(of: [.fileURL], isTargeted: $targeted) { providers in
+            .onDrop(of: ["public.file-url", ArchiveTransfer.typeIdentifier], isTargeted: $targeted) { providers in
                 guard model.editSession.requireEditable() else { return true }
+                let destination = model.level
+                let local = providers.filter { $0.hasItemConformingToTypeIdentifier(ArchiveTransfer.typeIdentifier) }
+                if !local.isEmpty {
+                    Task { @MainActor in
+                        // Every item from one drag has the same capability. Consume the batch once.
+                        guard let first = local.first else { return }
+                        let data: Data? = await withCheckedContinuation { continuation in
+                            first.loadDataRepresentation(forTypeIdentifier: ArchiveTransfer.typeIdentifier) { data, _ in
+                                continuation.resume(returning: data)
+                            }
+                        }
+                        guard let data, let token = String(data: data, encoding: .utf8),
+                              let transfer = ArchiveTransfer.pending.removeValue(forKey: token) else { return }
+                        model.receiveTransfer(transfer, into: folder, level: destination)
+                    }
+                    return true
+                }
                 // Preserve provider order and register the whole gesture as one undo action.
                 Task { @MainActor in
                     var urls: [URL] = []
@@ -359,7 +376,8 @@ private struct ArchiveDrop: ViewModifier {
                         }
                         if let url { urls.append(url) }
                     }
-                    model.editSession.add(urls, into: folder)
+                    guard !model.isClosed, model.level === destination else { return }
+                    destination.edits.add(urls, into: folder)
                 }
                 return true
             }
