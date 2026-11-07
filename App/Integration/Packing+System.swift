@@ -12,14 +12,20 @@ enum Packers {
     static var current: any ArchivePacking = EnginePacker()
 }
 
-/// Quick Compress: the default Pack sentence (ZIP for Windows PCs, which opens everywhere),
-/// saved next to the items.
+/// Quick Compress uses a snapshot of the configured recipient's defaults, saved beside the items.
+/// It remains a single unencrypted output; password and split choices require the Pack window.
 enum QuickCompress {
-    static let options = PackOptions()
+    static var options: PackOptions { options(in: .standard) }
+
+    static func options(in store: UserDefaults) -> PackOptions {
+        var options = PackPreferences.options(in: store)
+        options.split = .none
+        return options
+    }
 
     /// "Report.pdf" → "Report.zip"; a folder "Photos" → "Photos.zip"; several items → "Archive.zip".
     /// Numbered like Finder does when the name is taken.
-    static func destination(for items: [URL], exists: (URL) -> Bool) -> URL {
+    static func destination(for items: [URL], format: PackFormat = .zip, exists: (URL) -> Bool) -> URL {
         let folder = items[0].deletingLastPathComponent()
         let stem: String
         if items.count == 1 {
@@ -30,10 +36,11 @@ enum QuickCompress {
         } else {
             stem = "Archive"
         }
-        let ext = options.format.fileExtension
+        let ext = format.fileExtension
         var attempt = 1
         while true {
-            let candidate = folder.appending(path: Extraction.numbered("\(stem).\(ext)", attempt))
+            let numberedStem = attempt == 1 ? stem : "\(stem) \(attempt)"
+            let candidate = folder.appending(path: "\(numberedStem).\(ext)")
             if !exists(candidate) || attempt >= 10_000 { return candidate }
             attempt += 1
         }

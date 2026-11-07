@@ -6,7 +6,8 @@ import Observation
 final class ArchiveDraft: Identifiable {
     let id = UUID()
     var name = String(localized: "Untitled Archive")
-    var format = PackFormat.zip
+    var format: PackFormat
+    private let initialOptions: PackOptions
     private(set) var files: [PackFile] = []
     var selection: Set<String> = []
     private(set) var isImporting = false
@@ -31,11 +32,14 @@ final class ArchiveDraft: Identifiable {
     }
 
     var isEdited: Bool {
-        !files.isEmpty || name != String(localized: "Untitled Archive") || format != .zip
+        !files.isEmpty || name != String(localized: "Untitled Archive") || format != initialOptions.format
     }
     var canSave: Bool { !files.isEmpty && !isImporting && !isChoosingSources && !isSaving && !isClosed && packRequest == nil }
 
-    init() {
+    init(options: PackOptions = PackPreferences.options()) {
+        initialOptions = options
+        format = options.format
+        configuration = Configuration(options: options, name: name, overrides: [:])
         undoManager.groupsByEvent = false
         browsing.locationChanged = { [weak self] in
             guard let self else { return }
@@ -209,8 +213,8 @@ final class ArchiveDraft: Identifiable {
             browsing.update(tree: [])
             selection = []
             name = String(localized: "Untitled Archive")
-            format = .zip
-            configuration = nil
+            format = initialOptions.format
+            configuration = Configuration(options: initialOptions, name: name, overrides: [:])
             undoManager.removeAllActions()
         case .failure(let error):
             // A failed/cancelled Save-and-Quit ends that quit attempt. A later ordinary Save

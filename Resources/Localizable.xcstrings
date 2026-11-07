@@ -13651,6 +13651,182 @@
           }
         }
       }
+    },
+    "Changes in the Pack window apply only to that archive. Change defaults here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打包窗口中的更改仅用于当前压缩包。请在此处更改默认设置。"
+          }
+        }
+      }
+    },
+    "Couldn’t move the original archive to the Trash.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将原压缩包移到废纸篓。"
+          }
+        }
+      }
+    },
+    "Couldn’t save the Tray result.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存托盘结果。"
+          }
+        }
+      }
+    },
+    "Enter the password to extract this archive, or skip it and continue with the others.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入密码以解压此压缩包，或跳过它并继续处理其他压缩包。"
+          }
+        }
+      }
+    },
+    "Passwords that work are reused for this batch and saved in your Keychain.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "验证成功的密码会在本批任务中复用，并保存到钥匙串。"
+          }
+        }
+      }
+    },
+    "Passwords that work are reused only for this batch, then forgotten.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "验证成功的密码仅在本批任务中复用，任务结束后即清除。"
+          }
+        }
+      }
+    },
+    "Save To…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存到…"
+          }
+        }
+      }
+    },
+    "Save the selected temporary result to a folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将选中的临时结果保存到文件夹"
+          }
+        }
+      }
+    },
+    "Saved “%@”.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存“%@”。"
+          }
+        }
+      }
+    },
+    "Saving Tray result…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在保存托盘结果…"
+          }
+        }
+      }
+    },
+    "Skip Archive": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过此压缩包"
+          }
+        }
+      }
+    },
+    "Some items were not extracted.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分项目未解压。"
+          }
+        }
+      }
+    },
+    "Some parts could not be restored. Recover them from the Trash: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分分卷无法还原。请从废纸篓恢复：%@"
+          }
+        }
+      }
+    },
+    "The original archive or its parts changed. They were kept to avoid removing different files.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原压缩包或其分卷已发生变化。为避免误删其他文件，已将其保留。"
+          }
+        }
+      }
+    },
+    "The original archive was kept. Review the extracted files before trying again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原压缩包已保留。请先检查已解压的文件，再重试。"
+          }
+        }
+      }
+    },
+    "Zstandard always compresses; Store uses its fastest level.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zstandard 始终会压缩；选择“不压缩”时会使用最快的压缩级别。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

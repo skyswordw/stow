@@ -24,7 +24,8 @@ struct SettingsTests {
                 "glance.openFromFinder", "browse.archiveWindowMode", "browse.lastArchiveWindow", "glance.pinned", "glance.colourfulControls", "glance.material",
                 "tray.enabled", "tray.menuBarIcon", "tray.showWhileDragging", "tray.border", "tray.pinned",
                 "nextSteps.shown", "nextSteps.hidden", "SUEnableAutomaticChecks", "SUAutomaticallyUpdate",
-                "PackLevel.general", "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
+                "PackLevel.general", "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web",
+                "PackFormat.general", "PackFormat.windows", "PackFormat.mac", "PackFormat.linux", "PackFormat.web"
             ]
             let keys = SettingsKeys.resettable.map(\.key)
             #expect(Set(keys) == expected)
@@ -45,6 +46,72 @@ struct SettingsTests {
             #expect(SettingsKeys.flag(SettingsKeys.trayShowWhileDragging, in: store))
             #expect(!SettingsKeys.flag(SettingsKeys.trayPinned, in: store))
             #expect(SettingsKeys.trayBorder(in: store) == .accent)
+        }
+    }
+
+    @Test @MainActor func existingPackingLevelsMigrateWithoutChangingTheDefaultFormat() throws {
+        try withStore { store in
+            store.set(Audience.linux.rawValue, forKey: "PackAudience")
+            store.set(CompressionLevel.maximum.rawValue, forKey: "PackLevel.linux")
+            let options = PackPreferences.options(in: store)
+            #expect(options.audience == .linux && options.format == .zip && options.level == .maximum)
+            #expect(store.object(forKey: "PackFormat.linux") == nil)
+            for audience in Audience.allCases {
+                store.set("removed-format", forKey: "PackFormat.\(audience.rawValue)")
+                store.set("invalid-level", forKey: "PackLevel.\(audience.rawValue)")
+                #expect(PackPreferences.format(for: audience, in: store) == .zip)
+                #expect(PackPreferences.level(for: audience, in: store) == .balanced)
+            }
+        }
+    }
+
+    @Test @MainActor func packingDefaultsAllowAdvancedFormatsAndDoNotFollowJobEdits() throws {
+        try withStore { store in
+            store.set(Audience.windows.rawValue, forKey: "PackAudience")
+            PackPreferences.setFormat(.tarXz, for: .windows, in: store)
+            PackPreferences.setLevel(.maximum, for: .windows, in: store)
+            PackPreferences.setFormat(.sevenZip, for: .mac, in: store)
+            PackPreferences.setLevel(.fast, for: .mac, in: store)
+            let saved = store.dictionaryRepresentation()
+            var job = PackPreferences.options(in: store)
+            #expect(job.format == .tarXz && job.audience == .windows && job.level == .maximum)
+            job.level = .fastest
+            job.setFormat(.zip)
+            PackPreferences.applyDefaults(to: &job, for: .mac, in: store)
+            #expect(job.format == .sevenZip && job.level == .fast)
+            job.setCustomFormat(.tarZst)
+            PackPreferences.applyDefaults(to: &job, for: .windows, in: store)
+            #expect(job.format == .tarZst && job.hasCustomFormat && job.level == .maximum)
+            #expect(NSDictionary(dictionary: store.dictionaryRepresentation()).isEqual(to: saved))
+            let next = PackPreferences.options(in: store)
+            #expect(next.format == .tarXz && next.level == .maximum && next.audience == .windows)
+        }
+    }
+
+    @Test @MainActor func packEntryPointsUseOneDefaultsSnapshotAndRespectExplicitFormat() throws {
+        try withStore { store in
+            store.set(Audience.linux.rawValue, forKey: "PackAudience")
+            PackPreferences.setFormat(.tarXz, for: .linux, in: store)
+            PackPreferences.setLevel(.smallest, for: .linux, in: store)
+            store.set(SplitSize.mb100.rawValue, forKey: SettingsKeys.volumeSize)
+            let sheet = PackPreferences.options(in: store)
+            let quick = QuickCompress.options(in: store)
+            #expect(sheet.format == quick.format && sheet.level == quick.level && sheet.audience == quick.audience)
+            #expect(sheet.split == .mb100 && quick.split == .none)
+            let target = QuickCompress.destination(for: [URL(filePath: "/u/Report.pdf")], format: quick.format) { _ in false }
+            #expect(target.path == "/u/Report.tar.xz")
+            #expect(EnginePacker.archiveName(for: target, format: quick.format) == "Report")
+            let numbered = QuickCompress.destination(for: [URL(filePath: "/u/Report.pdf")], format: quick.format) {
+                ["/u/Report.tar.xz", "/u/Report 2.tar.xz"].contains($0.path)
+            }
+            #expect(numbered.path == "/u/Report 3.tar.xz")
+            #expect(EnginePacker.archiveName(for: numbered, format: quick.format) == "Report 3")
+            let explicit = PackPreferences.options(initialFormat: .dmg, in: store)
+            #expect(explicit.format == .dmg && explicit.hasCustomFormat && explicit.audience == .linux)
+            #expect(explicit.split == .none)
+            PackPreferences.setFormat(.tar, for: .linux, in: store)
+            #expect(PackPreferences.options(in: store).level == .store)
+            #expect(PackPreferences.level(for: .linux, in: store) == .smallest)
         }
     }
 
@@ -221,7 +288,8 @@ struct SettingsTests {
             let entries = SettingsKeys.resettableEntries(for: .packing)
             #expect(Set(entries.map(\.key)) == Set([
                 "PackAudience", "PackVerify", "PackCPUCores", SettingsKeys.volumeSize,
-                "PackLevel.general", "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web"
+                "PackLevel.general", "PackLevel.windows", "PackLevel.mac", "PackLevel.linux", "PackLevel.web",
+                "PackFormat.general", "PackFormat.windows", "PackFormat.mac", "PackFormat.linux", "PackFormat.web"
             ]))
             store.set("mac", forKey: "PackAudience")
             store.set(true, forKey: "PackVerify")
@@ -229,6 +297,7 @@ struct SettingsTests {
             store.set(123456, forKey: SettingsKeys.volumeSize)
             for audience in Audience.allCases {
                 store.set(-1, forKey: "PackLevel.\(audience.rawValue)")
+                store.set("invalid", forKey: "PackFormat.\(audience.rawValue)")
             }
             SettingsKeys.reset(.pane(.general), in: store)
             for entry in entries {

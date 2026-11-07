@@ -84,9 +84,11 @@ struct PackingSettingsView: View {
                     ForEach(Audience.allCases) { item in Text(item.phrase.sentenceCased).tag(item.rawValue) }
                 }
             }
-            Section("Compression level for each recipient preset") {
-                ForEach(Audience.allCases) { item in LevelSetting(audience: item) }
+            Section {
+                Text("Changes in the Pack window apply only to that archive. Change defaults here.")
+                    .foregroundStyle(.secondary)
             }
+            ForEach(Audience.allCases) { item in PackingDefaultSetting(audience: item) }
             // What comes out, then how hard the Mac works on it: the order of the Pack sheet's More Options.
             Section {
                 Picker("Split archives", selection: volumeSelection) {
@@ -122,16 +124,35 @@ struct PackingSettingsView: View {
     }
 }
 
-private struct LevelSetting: View {
+private struct PackingDefaultSetting: View {
     let audience: Audience
     @AppStorage private var level: Int
+    @AppStorage private var format: String
+
     init(audience: Audience) {
         self.audience = audience
         _level = AppStorage(wrappedValue: CompressionLevel.balanced.rawValue, "PackLevel.\(audience.rawValue)")
+        _format = AppStorage(wrappedValue: PackFormat.zip.rawValue, "PackFormat.\(audience.rawValue)")
     }
+
+    private var selectedFormat: PackFormat { PackFormat(rawValue: format) ?? .zip }
+
     var body: some View {
-        Picker(audience.phrase.sentenceCased, selection: $level) {
-            ForEach(CompressionLevel.allCases) { item in Text(item.title).tag(item.rawValue) }
+        Section(audience.phrase.sentenceCased) {
+            Picker("Format", selection: Binding(get: { selectedFormat }, set: { format = $0.rawValue })) {
+                ForEach(PackFormat.allCases) { item in Text(item.displayName).tag(item) }
+            }
+            Picker("Compression", selection: Binding(
+                get: { selectedFormat.isCompressed ? CompressionLevel(rawValue: level) ?? .balanced : .store },
+                set: { level = $0.rawValue }
+            )) {
+                ForEach(CompressionLevel.allCases) { item in Text(item.title).tag(item) }
+            }
+            .disabled(!selectedFormat.isCompressed)
+            if !selectedFormat.isCompressed {
+                Text("A TAR collects files without compressing them.")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

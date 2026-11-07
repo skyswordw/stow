@@ -50,6 +50,12 @@ final class TrayController {
     }
     /// The folder Collect just made, so the summary can say where it went; cleared by the next action.
     private(set) var collected: URL?
+    private(set) var isSavingTemporaryResult = false
+    @ObservationIgnored private var saveTask: Task<Void, Never>?
+    @ObservationIgnored private var savePanel: NSOpenPanel?
+    /// Successful exports remain browsable/shareable, including through Remove/Undo, for this
+    /// Tray session. No persistent folder permission is created merely by choosing Save To.
+    @ObservationIgnored private var exportedResultScopes: [URL] = []
     /// Rows a drop (or Add Files…) just named — new ones and ones already on the Tray — so the
     /// view can point them out for a moment. Cleared by itself.
     private(set) var arrived: Set<UUID> = []
@@ -475,6 +481,7 @@ final class TrayController {
     }
 
     isolated deinit {
+        for folder in exportedResultScopes { folder.stopAccessingSecurityScopedResource() }
         dismissal.stop()
         if let dragMonitor { NSEvent.removeMonitor(dragMonitor) }
         if let dragEndMonitor { NSEvent.removeMonitor(dragEndMonitor) }
@@ -554,6 +561,7 @@ final class TrayController {
     }
 
     func clear() {
+        guard !isSavingTemporaryResult else { return }
         path = []
         takeOff(Set(items.map(\.id)), actionName: String(localized: "Clear Tray"))
     }
@@ -562,6 +570,7 @@ final class TrayController {
     /// Owned temporary groups (#179) are deleted from disk when their row leaves; Undo only
     /// restores the row when the folder is still present.
     private func takeOff(_ ids: Set<UUID>, actionName: String) {
+        guard !isSavingTemporaryResult else { return }
         let removed = items.enumerated().filter { ids.contains($0.element.id) }.map { (index: $0.offset, item: $0.element) }
         guard !removed.isEmpty else { return }
         let selected = selection
@@ -678,6 +687,7 @@ final class TrayController {
     // MARK: - Actions
 
     func pack() {
+        guard !isSavingTemporaryResult else { return }
         let urls = targetURLs
         if urls.isEmpty { // sample items
             app?.packRequest = PackRequest(files: targets.map { PackFile(path: $0.name, size: $0.size) })
@@ -702,6 +712,7 @@ final class TrayController {
     /// Asks for the folder's name inside the Tray. Defaults to an app-managed temporary group
     /// (#179); Where remains available to Keep / save the group somewhere persistent.
     func beginCollecting(remembered: URL? = GatherDestination.remembered()) {
+        guard !isSavingTemporaryResult else { return }
         let urls = targetURLs
         guard !urls.isEmpty else { return }
         failure = nil
@@ -766,6 +777,7 @@ final class TrayController {
     /// Copies the items into a new folder where people chose, named by them, and puts that
     /// folder on the Tray in their place. Copies, never moves: the originals stay where they were.
     func collectIntoFolder() async {
+        guard !isSavingTemporaryResult else { return }
         guard let typed = collectingName else { return }
         let chosen = targets.filter { $0.url != nil }
         let urls = chosen.compactMap(\.url)
@@ -834,6 +846,95 @@ final class TrayController {
         selection = []
         withAnimation(Motion.current(Motion.status)) { collected = destination }
         mark([made.id], announcing: Self.collectedTitle(destination, temporary: temporary))
+    }
+
+    /// Save To acts on one complete owned result, never on a folder's children or unrelated inputs.
+    var temporaryResultToSave: TrayItem? {
+        // An existing Pack sheet, gather or retryable job may own this group's cleanup. Wait
+        // for packing to finish/dismiss instead of racing its source removal with export.
+        // Read the concrete states, not AppState.isBusy (which itself includes Tray saving).
+        let hasPackingWork = app?.archiveSessions.contains {
+            $0.pendingCommands > 0 || $0.packRequest != nil || $0.packing.activity != nil
+                || $0.archiveDraft?.packRequest != nil || $0.archiveDraft?.isSaving == true
+        } ?? false
+        guard !hasPackingWork, path.isEmpty, targets.count == 1, let item = targets.first,
+              item.isTemporaryGroup, let url = item.url, TrayExport.isOwnedResult(url) else { return nil }
+        return item
+    }
+
+    func beginSavingTemporaryResult() {
+        guard !isSavingTemporaryResult, saveTask == nil, temporaryResultToSave != nil else { return }
+        saveTask = Task { [weak self] in
+            await self?.saveTemporaryResult()
+            self?.saveTask = nil
+        }
+    }
+
+    func cancelSavingTemporaryResult() {
+        saveTask?.cancel()
+        savePanel?.cancel(nil)
+    }
+
+    /// The injected boundaries let transaction tests exercise cancellation without desktop panels.
+    func saveTemporaryResult(chooseDestination: (() async -> URL?)? = nil,
+                             copy: @escaping @Sendable (URL, URL) async throws -> URL = { try await TrayExport.save($0, into: $1) }) async {
+        guard !isSavingTemporaryResult, let item = temporaryResultToSave, let source = item.url else { return }
+        isSavingTemporaryResult = true
+        let interaction = beginRelatedInteraction()
+        defer {
+            savePanel = nil
+            isSavingTemporaryResult = false
+            endRelatedInteraction(interaction)
+        }
+        failure = nil
+        let destination: URL?
+        if let chooseDestination {
+            destination = await chooseDestination()
+        } else {
+            let picker = NSOpenPanel()
+            savePanel = picker
+            picker.canChooseFiles = false
+            picker.canChooseDirectories = true
+            picker.canCreateDirectories = true
+            picker.prompt = String(localized: "Save Here")
+            picker.message = String(localized: "Choose where to save “\(item.name)”.")
+            picker.directoryURL = settings.string(forKey: TrayExport.destinationKey).map { URL(filePath: $0) }
+            NSApp.activate()
+            let response = if let panel { await picker.beginSheetModal(for: panel) } else { await picker.begin() }
+            destination = response == .OK ? picker.url : nil
+        }
+        guard let destination, !Task.isCancelled else { return }
+        let scoped = destination.startAccessingSecurityScopedResource()
+        var retainsScope = false
+        defer { if scoped && !retainsScope { destination.stopAccessingSecurityScopedResource() } }
+        do {
+            let result = try await copy(source, destination)
+            // Copy has committed: even if Cancel arrives now, keep and report the valid output.
+            if scoped {
+                exportedResultScopes.append(destination)
+                retainsScope = true
+            }
+            settings.set(destination.path, forKey: TrayExport.destinationKey)
+            if let index = items.firstIndex(where: { $0.id == item.id }) {
+                let saved = TrayItem(url: result)
+                items[index] = saved
+                if selection.remove(item.id) != nil { selection.insert(saved.id) }
+                collected = result
+                mark([saved.id], announcing: String(localized: "Saved “\(saved.name)”."))
+            }
+            // A preview or an already-open Pack request can still own the temporary path.
+            // Reclaim it in the normal abandoned-group sweep on the next launch, not here.
+            if !isPinned { hide() }
+        } catch is CancellationError {
+            // The private copy was discarded; rows, selection and the original remain.
+        } catch let retained as TrayCollection.RetainedCopies {
+            failure = Failure(String(localized: "Couldn’t save the Tray result."),
+                              advice: String(localized: "Partial copies remain in “\(retained.folder.path)”. Remove that folder before trying again."),
+                              code: ErrorCode(.copy, .unknown))
+            failure?.diagnostic = String(describing: retained.copyError) + "\nCleanup: " + String(describing: retained.cleanupError)
+        } catch {
+            failure = Failure(error, .copy, name: item.name, destination: destination)
+        }
     }
 
     /// "Collected in “Desktop”", or a temporary note when the group is app-owned (#179).
@@ -1191,7 +1292,7 @@ struct TrayView: View {
                     .buttonStyle(ActionButtonStyle(iconOnly: true, height: Self.controlSize))
                     .help("Close the Tray. Its files stay for next time.")
                     // While a folder name is being typed, Escape cancels that instead.
-                    .keyboardShortcut(tray.collectingName == nil ? .cancelAction : nil)
+                    .keyboardShortcut(tray.collectingName == nil && !tray.isSavingTemporaryResult ? .cancelAction : nil)
             }
             .labelStyle(.iconOnly)
         }
@@ -1384,6 +1485,9 @@ struct TrayView: View {
             .disabled(tray.targetURLs.isEmpty)
         }
         Section {
+            Button("Save To…") { tray.beginSavingTemporaryResult() }
+                .disabled(tray.temporaryResultToSave == nil || tray.isSavingTemporaryResult)
+                .help("Save the selected temporary result to a folder")
             Button("Share…") { tray.share(from: nil) }
             Button("Show in Finder") { tray.reveal() }
             Button(tray.mainWindowActionTitle) { tray.sendToMainWindow() }
@@ -1425,7 +1529,15 @@ struct TrayView: View {
     @ViewBuilder
     private var footer: some View {
         Group {
-            if let failure = tray.failure {
+            if tray.isSavingTemporaryResult {
+                HStack {
+                    ProgressView().controlSize(.small)
+                    Text("Saving Tray result…")
+                    Spacer()
+                    Button("Cancel") { tray.cancelSavingTemporaryResult() }
+                        .keyboardShortcut(.cancelAction)
+                }
+            } else if let failure = tray.failure {
                 ActivityLabel(phase: .failed(failure), title: failure.title, dismiss: { tray.failure = nil })
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else if tray.collectingName != nil {

@@ -19,10 +19,11 @@ struct PasswordHook {
     }
 
     /// Asks through the app's password sheet, worded for what the password is for.
-    init(prompt: PasswordPrompt) {
+    init(prompt: PasswordPrompt, prepare: @escaping () -> Void = {}) {
         pendingQuestion = { prompt.question != nil }
         ask = { name, purpose, retry in
-            await prompt.ask(.init(archiveName: name, purpose: purpose, isRetry: retry))
+            prepare()
+            return await prompt.ask(.init(archiveName: name, purpose: purpose, isRetry: retry))
         }
         isWired = true
     }

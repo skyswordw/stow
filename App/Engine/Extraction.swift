@@ -29,6 +29,12 @@ enum Extraction {
         var placement = Placement.Result()
         var restoredMetadata = AppleDouble.Restored()
 
+        /// Skipped conflicts or safety-filtered payloads are incomplete extraction. In particular,
+        /// a successful engine return is not permission to dispose of the only original (#313).
+        var isComplete: Bool {
+            placement.skipped == 0 && report.removedItems.isEmpty && report.removedLinks.isEmpty
+        }
+
         /// Checkup lines for what the audit removed and what Mac details came back.
         var findings: [CheckupFinding] {
             Checkup.findings(for: report) + Checkup.findings(for: restoredMetadata)

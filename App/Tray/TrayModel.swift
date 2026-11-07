@@ -82,6 +82,66 @@ nonisolated enum TrayCollection {
     }
 }
 
+/// Exports one owned result without moving its only copy. Copy into the destination volume,
+/// then publish with an exclusive rename so another writer can never be overwritten.
+nonisolated enum TrayExport {
+    static let destinationKey = "tray.lastExportDestination"
+
+    static func isOwnedResult(_ url: URL, root: URL = TrayTemporaryGroups.root()) -> Bool {
+        let source = url.resolvingSymlinksInPath().standardizedFileURL
+        let root = root.resolvingSymlinksInPath().standardizedFileURL
+        let values = try? url.resourceValues(forKeys: [.isSymbolicLinkKey])
+        return source.path.hasPrefix(root.path + "/") && values?.isSymbolicLink != true
+    }
+
+    @concurrent
+    static func save(_ source: URL, into parent: URL) async throws -> URL {
+        try copy(source, into: parent, checkCancellation: { try Task.checkCancellation() })
+    }
+
+    static func copy(_ source: URL, into parent: URL, ownedRoot: URL = TrayTemporaryGroups.root(), fileManager: FileManager = .default,
+                     checkCancellation: () throws -> Void = {}) throws -> URL {
+        guard isOwnedResult(source, root: ownedRoot) else { throw CocoaError(.fileReadNoPermission) }
+        let rootPath = ownedRoot.resolvingSymlinksInPath().standardizedFileURL.path
+        let parentPath = parent.resolvingSymlinksInPath().standardizedFileURL.path
+        guard parentPath != rootPath && !parentPath.hasPrefix(rootPath + "/") else {
+            throw TrayCollection.RecursiveDestination()
+        }
+        try checkCancellation()
+        let staging = parent.appending(path: ".stow-tray-export-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: staging, withIntermediateDirectories: false)
+        do {
+            let staged = staging.appending(path: source.lastPathComponent)
+            try fileManager.copyItem(at: source, to: staged)
+            try checkCancellation()
+            for attempt in 1...10_000 {
+                try checkCancellation()
+                let base = source.lastPathComponent as NSString
+                let name = attempt == 1 ? source.lastPathComponent
+                    : base.pathExtension.isEmpty ? "\(base) \(attempt)"
+                    : "\(base.deletingPathExtension) \(attempt).\(base.pathExtension)"
+                let target = parent.appending(path: name)
+                if renamex_np(staged.path, target.path, UInt32(RENAME_EXCL)) == 0 {
+                    // The result is committed. Cleanup of an empty private directory must not
+                    // turn success into a retry that would create a second exported copy.
+                    try? fileManager.removeItem(at: staging)
+                    return target
+                }
+                let code = errno
+                guard code == EEXIST || code == ENOTEMPTY else {
+                    throw NSError(domain: NSPOSIXErrorDomain, code: Int(code))
+                }
+            }
+            throw CocoaError(.fileWriteFileExists)
+        } catch {
+            let copyError = error
+            do { try fileManager.removeItem(at: staging) }
+            catch { throw TrayCollection.RetainedCopies(folder: staging, copyError: copyError, cleanupError: error) }
+            throw copyError
+        }
+    }
+}
+
 /// One thing on the Tray: a real file or folder, or a sample row for design review.
 nonisolated struct TrayItem: Identifiable, Hashable, Sendable {
     let id = UUID()

@@ -176,7 +176,8 @@ struct AftercareTests {
         defer { folder.cleanUp() }
         let archive = folder.url.appending(path: "kept.zip")
         try Data("zip".utf8).write(to: archive)
-        let trashed = await ArchiveAftercare.apply(.keep, key: "unused", to: [archive], action: "")
+        let source = try #require(ArchiveAftercare.Source.capture(archive))
+        let trashed = await ArchiveAftercare.apply(.keep, key: "unused", sources: [source], action: "")
         #expect(trashed.isEmpty)
         #expect(FileManager.default.fileExists(atPath: archive.path))
     }
@@ -186,7 +187,8 @@ struct AftercareTests {
         defer { folder.cleanUp() }
         let archive = folder.url.appending(path: "StowTest-trash-\(UUID().uuidString).zip")
         try Data("zip".utf8).write(to: archive)
-        let trashed = await ArchiveAftercare.apply(.trash, key: "unused", to: [archive], action: "")
+        let source = try #require(ArchiveAftercare.Source.capture(archive))
+        let trashed = await ArchiveAftercare.apply(.trash, key: "unused", sources: [source], action: "")
         #expect(trashed == [archive])
         #expect(!FileManager.default.fileExists(atPath: archive.path))
     }

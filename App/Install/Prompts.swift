@@ -155,17 +155,131 @@ final class ConflictPolicy {
 
 /// Keep, trash or ask about the archive once its contents are out.
 enum ArchiveAftercare {
-    /// Returns the archives that went to the Trash.
-    static func apply(_ setting: Preferences.AfterwardsArchive, key: String, to archives: [URL],
+    /// Captured before the operation. Cleanup is limited to exact, unchanged regular files;
+    /// a neighboring archive or a later replacement cannot become part of the cleanup set.
+    struct Source {
+        let archive: URL
+        let files: [File]
+
+        struct File: Equatable {
+            let url: URL
+            let device: UInt64
+            let inode: UInt64
+            let size: UInt64
+            let modified: Date
+
+            static func capture(_ url: URL) -> File? {
+                guard let values = try? FileManager.default.attributesOfItem(atPath: url.path),
+                      values[.type] as? FileAttributeType == .typeRegular,
+                      let device = values[.systemNumber] as? NSNumber,
+                      let inode = values[.systemFileNumber] as? NSNumber,
+                      let size = values[.size] as? NSNumber,
+                      let modified = values[.modificationDate] as? Date else { return nil }
+                return File(url: url, device: device.uint64Value, inode: inode.uint64Value,
+                            size: size.uint64Value, modified: modified)
+            }
+        }
+
+        static func capture(_ archive: URL) -> Source? {
+            guard let urls = members(of: archive) else { return nil }
+            let files = urls.compactMap(File.capture)
+            guard files.count == urls.count, !files.isEmpty else { return nil }
+            return Source(archive: archive, files: files)
+        }
+
+        var isUnchanged: Bool {
+            guard Self.members(of: archive) == files.map(\.url) else { return false }
+            return files.allSatisfy { File.capture($0.url) == $0 }
+        }
+
+        private static func members(of archive: URL) -> [URL]? {
+            if SplitArchive.baseName(archive.lastPathComponent) != nil {
+                return try? SplitArchive.parts(for: archive)
+            }
+            // Other multipart families do not yet have an authoritative membership model.
+            // Retain them instead of deleting only the first part or guessing with a wildcard.
+            let name = archive.lastPathComponent.lowercased()
+            let ext = archive.pathExtension.lowercased()
+            if name.range(of: #"\.part[0-9]+\.rar$"#, options: .regularExpression) != nil
+                || ext.range(of: #"^([rz][0-9]+|[0-9]{3,})$"#, options: .regularExpression) != nil { return nil }
+            if ext == "rar" || ext == "zip" {
+                let folder = archive.deletingLastPathComponent()
+                guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return nil }
+                let stem = archive.deletingPathExtension().lastPathComponent.lowercased()
+                let first = stem + (ext == "rar" ? ".r00" : ".z01")
+                if names.contains(where: { $0.lowercased() == first }) { return nil }
+            }
+            return [archive]
+        }
+    }
+
+    /// Returns original archive URLs only when their entire captured set reached the Trash.
+    static func apply(_ setting: Preferences.AfterwardsArchive, key: String, sources: [Source],
                       action: String) async -> [URL] {
-        guard !archives.isEmpty else { return [] }
+        guard !sources.isEmpty else { return [] }
         var trash = setting == .trash
         if setting == .ask {
-            let answer = await Prompts.trashArchives(archives.map(\.lastPathComponent), after: action)
+            let answer = await Prompts.trashArchives(sources.map { $0.archive.lastPathComponent }, after: action)
             trash = answer.trash
             if answer.remember { Preferences.set(trash ? Preferences.AfterwardsArchive.trash : .keep, for: key) }
         }
-        guard trash else { return [] }
-        return archives.filter { (try? FileManager.default.trashItem(at: $0, resultingItemURL: nil)) != nil }
+        guard trash, !Task.isCancelled else { return [] }
+        var removed: [URL] = []
+        var seen = Set<URL>()
+        for source in sources where seen.insert(source.archive).inserted {
+            do {
+                try moveToTrash(source)
+                removed.append(source.archive)
+            } catch {
+                if error is CancellationError { break }
+                _ = await Prompts.explain(Failure(
+                    String(localized: "Couldn’t move the original archive to the Trash."),
+                    advice: error.localizedDescription, code: ErrorCode(.extract, .unknown)))
+            }
+        }
+        return removed
+    }
+
+    /// Injectable destinations let tests exercise rollback without touching the user's Trash.
+    static func moveToTrash(_ source: Source,
+                            trash: @MainActor (URL) throws -> URL = trashFile,
+                            restore: @MainActor (URL, URL) throws -> Void = { try FileManager.default.moveItem(at: $0, to: $1) }) throws {
+        guard source.isUnchanged else { throw CleanupError.changed }
+        var moved: [(original: URL, trashed: URL)] = []
+        do {
+            for file in source.files {
+                try Task.checkCancellation()
+                guard Source.File.capture(file.url) == file else { throw CleanupError.changed }
+                moved.append((file.url, try trash(file.url)))
+            }
+        } catch {
+            var retained: [URL] = []
+            for file in moved.reversed() {
+                do { try restore(file.trashed, file.original) }
+                catch { retained.append(file.trashed) }
+            }
+            if !retained.isEmpty { throw CleanupError.retainedInTrash(retained) }
+            throw error
+        }
+    }
+
+    private static func trashFile(_ url: URL) throws -> URL {
+        var result: NSURL?
+        try FileManager.default.trashItem(at: url, resultingItemURL: &result)
+        guard let result else { throw CleanupError.changed }
+        return result as URL
+    }
+
+    private enum CleanupError: LocalizedError {
+        case changed
+        case retainedInTrash([URL])
+        var errorDescription: String? {
+            switch self {
+            case .changed:
+                String(localized: "The original archive or its parts changed. They were kept to avoid removing different files.")
+            case .retainedInTrash(let urls):
+                String(localized: "Some parts could not be restored. Recover them from the Trash: \(urls.map(\.lastPathComponent).joined(separator: ", "))")
+            }
+        }
     }
 }

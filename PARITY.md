@@ -1,5 +1,12 @@
 # Feature parity: ArcZip → Stow
 
+**2026-11-06 follow-up:** the user approved the [ArcZip 1.1.5–1.2.2 assessment](Handoff/arczip-update-gap-assessment-2026-11-06.md).
+The [roadmap follow-up](ROADMAP.md#approved-arczip-follow-up--2026-11-06) tracks the first functional
+wave and evidence limits. Basic Zstd/TAR.ZST support below does **not** imply Zstd-in-7Z decoding:
+the latter has a reproduced unsupported-method gap (#316). exFAT acceptance is environment-blocked
+(#317), not a confirmed product failure. Older implementation checkmarks remain scoped to their
+stated evidence.
+
 Goal: everything ArcZip does, done at least as well, plus what it doesn't do. Stow is open source
 and free — there is no Free/Pro split, so every row below ships to everyone.
 

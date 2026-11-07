@@ -5,6 +5,29 @@ import Testing
 @MainActor
 @Suite("New archive drafts", .serialized)
 struct ArchiveDraftTests {
+    @Test func draftKeepsItsDefaultSnapshotAndAnExplicitFormatThroughCancellation() async throws {
+        let temp = try TemporaryFolder()
+        defer { temp.cleanUp() }
+        let file = temp.url.appending(path: "note.txt")
+        try Data("draft".utf8).write(to: file)
+        var defaults = PackOptions()
+        defaults.audience = .linux
+        defaults.format = .tarXz
+        defaults.level = .maximum
+        let draft = ArchiveDraft(options: defaults)
+        defer { draft.close() }
+        #expect(draft.format == .tarXz && !draft.isEdited)
+        #expect(draft.configuration?.options == defaults)
+        await draft.add([file])
+        draft.format = .sevenZip
+        draft.prepareSave()
+        #expect(draft.packRequest?.initialFormat == .sevenZip)
+        draft.packRequest = nil
+        draft.prepareSave()
+        #expect(draft.packRequest?.initialFormat == .sevenZip)
+        #expect(draft.configuration?.options.level == .maximum)
+    }
+
     @Test func navigationAndSearchCannotDeleteHiddenSelections() async throws {
         let temp = try TemporaryFolder()
         defer { temp.cleanUp() }

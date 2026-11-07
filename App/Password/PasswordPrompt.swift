@@ -10,7 +10,7 @@ import Foundation
 @Observable
 final class PasswordPrompt {
     struct Question: Identifiable, Equatable {
-        enum Purpose { case open, extract, unlock }
+        enum Purpose { case open, extract, unlock, batchExtract }
 
         let id = UUID()
         let archiveName: String
