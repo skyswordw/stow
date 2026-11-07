@@ -136,6 +136,9 @@ final class BrowserModel {
     private var searchTask: Task<Void, Never>?
     private var activityTask: Task<Void, Never>?
     var isClosed = false
+    /// A drag over the list or Glance table would land in the folder on show: the files
+    /// surface draws its drop edge, as it does over the path and floating controls.
+    var listDropTargetsFolder = false
     var transferTasks: [UUID: Task<Void, Never>] = [:]
     var isTransferring: Bool { !transferTasks.isEmpty }
 

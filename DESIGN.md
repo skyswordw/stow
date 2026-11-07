@@ -248,8 +248,9 @@ are rows too and travel the same way; the icon grid's tiles travel as Finder's i
 of their pictures with the count (ArcZip Mini shows the same pile, without names, for every view).
 Where a drop would do nothing (an archive's own items over itself) nothing lights up and the items
 slide back to their rows. Over another archive's list, a folder's row takes the drop into that
-folder with the system's row highlight; anywhere else the whole list lights up, meaning the folder on
-show, as in Finder. The icon grid and columns follow the same rule with the accent edge: a folder
+folder with the system's row highlight; anywhere else the files surface draws the accent edge it
+shows over the path and floating controls, meaning the folder on show. (The table's own outline
+for that was square inside the rounded window and ran under the path capsule, so it is turned off.) The icon grid and columns follow the same rule with the accent edge: a folder
 tile or row is a target of its own, a file is not (the surface or column around it lights up
 instead). Peek stays away while files are being dragged and for 0.6 s after a drop lands, so a
 drop never opens a preview the pointer didn't ask for; the next hover waits the usual delay.

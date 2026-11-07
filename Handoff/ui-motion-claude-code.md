@@ -20,7 +20,9 @@ pointer events at real speed, not a hand on a mouse):
 - Drops on the source list, grid or column get no highlight and slide back onto the rows.
 - List → Finder delivers exact bytes; Glance shows "Extracted to drop".
 - Finder → Glance onto a folder row: that row is highlighted and the files land in that folder.
-  Elsewhere the whole list is outlined.
+  Elsewhere the files surface's rounded accent edge lights up, the same as over the path; it
+  goes out when the drag leaves or drops. (`listDropTargetsFolder`, kept honest by a check
+  while it is lit, since a table tells its data source nothing on exit.)
 - Undo, Redo and Undo each move a drop as one step.
 - Grid and Columns → another archive's Glance: copied ("Copied to Other.zip"), with Keep Both naming
   when a name is already taken.

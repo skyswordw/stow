@@ -427,22 +427,59 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: any NSDraggingInfo,
                      proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
         DragActivity.touch()
-        guard let model, model.acceptsDrop(from: info.draggingPasteboard) else { return [] }
-        // Anywhere on a folder's row is into that folder, as in Finder; anywhere else is the
-        // folder on show, and the whole list says so.
+        guard let model, model.acceptsDrop(from: info.draggingPasteboard) else {
+            showSurfaceEdge(false)
+            return []
+        }
+        // Anywhere on a folder's row is into that folder, with the system's row highlight, as
+        // in Finder. Anywhere else is the folder on show: the files surface draws the same
+        // rounded accent edge it shows over the path and floating controls, rather than the
+        // table's square outline, which ran under the path capsule in a rounded window.
         let point = outlineView.convert(info.draggingLocation, from: nil)
         let row = outlineView.row(at: point)
         if let entry = entry(atRow: row, in: outlineView, model: model), entry.isNavigable {
+            outlineView.draggingDestinationFeedbackStyle = .regular
             outlineView.setDropItem(outlineView.item(atRow: row), dropChildIndex: NSOutlineViewDropOnItemIndex)
+            showSurfaceEdge(false)
         } else {
+            outlineView.draggingDestinationFeedbackStyle = .none
             outlineView.setDropItem(nil, dropChildIndex: NSOutlineViewDropOnItemIndex)
+            showSurfaceEdge(true)
         }
         return .copy
+    }
+
+    private var edgeWatch: Task<Void, Never>?
+
+    /// Lights the files surface's drop edge for the folder on show. A table tells its data source
+    /// nothing when a drag leaves or is cancelled, and asks again only when the pointer moves, so
+    /// while the edge is lit this checks that the drag is still held over this table.
+    private func showSurfaceEdge(_ isOn: Bool) {
+        edgeWatch?.cancel()
+        edgeWatch = nil
+        if model?.listDropTargetsFolder != isOn { model?.listDropTargetsFolder = isOn }
+        guard isOn else { return }
+        edgeWatch = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(80))
+                guard let self, !Task.isCancelled else { return }
+                if !self.dragIsOverTable { self.showSurfaceEdge(false); return }
+            }
+        }
+    }
+
+    private var dragIsOverTable: Bool {
+        guard NSEvent.pressedMouseButtons & 1 != 0, let table, let window = table.window else { return false }
+        let pointer = NSEvent.mouseLocation
+        guard NSWindow.windowNumber(at: pointer, belowWindowWithWindowNumber: 0) == window.windowNumber else { return false }
+        let local = table.convert(window.convertPoint(fromScreen: pointer), from: nil)
+        return table.visibleRect.contains(local)
     }
 
     func outlineView(_ outlineView: NSOutlineView, acceptDrop info: any NSDraggingInfo,
                      item: Any?, childIndex index: Int) -> Bool {
         DragActivity.touch()
+        showSurfaceEdge(false)
         guard let model else { return false }
         let folder = entry(for: item, in: outlineView).flatMap { $0.isNavigable ? $0.path : nil } ?? model.folder
         return model.acceptDrop(from: info.draggingPasteboard, into: folder)

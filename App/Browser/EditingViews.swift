@@ -328,12 +328,18 @@ extension EditSession {
 private struct ArchiveDrop: ViewModifier {
     let model: BrowserModel
     let folder: String
+    /// The files surface: also lit while the list's table takes a drop into the folder on show.
+    let isSurface: Bool
     @State private var targeted = false
     func body(content: Content) -> some View {
         content
             .onDrop(of: [.fileURL, ArchiveTransfer.contentType],
                     delegate: ArchiveDropDelegate(model: model, folder: folder, targeted: $targeted))
-            .overlay { if targeted { RoundedRectangle(cornerRadius: 8).stroke(.tint, lineWidth: 2).allowsHitTesting(false) } }
+            .overlay {
+                if targeted || (isSurface && model.listDropTargetsFolder) {
+                    RoundedRectangle(cornerRadius: 8).stroke(.tint, lineWidth: 2).allowsHitTesting(false)
+                }
+            }
     }
 }
 
@@ -438,7 +444,12 @@ extension View {
 
     /// Drops into `folder`. Disabled, the view isn't a target of its own and the one around it takes the drop.
     @ViewBuilder func archiveDrop(model: BrowserModel, folder: String, isEnabled: Bool = true) -> some View {
-        if isEnabled { modifier(ArchiveDrop(model: model, folder: folder)) } else { self }
+        if isEnabled { modifier(ArchiveDrop(model: model, folder: folder, isSurface: false)) } else { self }
+    }
+
+    /// The whole files surface: drops into the folder on show, including through the list's table.
+    func archiveSurfaceDrop(model: BrowserModel) -> some View {
+        modifier(ArchiveDrop(model: model, folder: model.folder, isSurface: true))
     }
 }
 
