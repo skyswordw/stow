@@ -568,7 +568,9 @@ transition frame by frame, by click and as after a key press, for review.
   Options** straight after them. A planned check has a hollow dotted check ("Will verify archive
   contents"); the filled check and "contents verified" belong to the finished pack only. Inside, hairlines divide a few groups: what comes
   out (compression, parts, verify), a disk image's layout, what the password covers, what a Mac
-  adds, CPU cores. A purpose's own defaults are checkboxes showing what will happen; one changed
+  adds, CPU threads: one number field with its reach beside it (“of 8”), a caption on why you'd
+  lower it, and that it's a ceiling some formats stay under in its tooltip; a value out of reach is
+  corrected by a footer line that names the setting, since More Options may be closed. A purpose's own defaults are checkboxes showing what will happen; one changed
   from the purpose says so under it. While something differs, Reset also closes the open section,
   under its last row, with its reach in words: the purpose's usual choices, for this archive only;
   compression stays as set and Settings don't change. Nothing to reset, no Reset. Choices a format can't offer say why in plain words instead of only in a

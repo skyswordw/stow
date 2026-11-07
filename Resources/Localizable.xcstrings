@@ -3806,16 +3806,6 @@
         }
       }
     },
-    "CPU cores for packing": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "压缩使用的 CPU 核心数"
-          }
-        }
-      }
-    },
     "Cabinet archive": {
       "localizations": {
         "zh-Hans": {
@@ -10699,36 +10689,6 @@
         }
       }
     },
-    "CPU cores": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CPU 核心"
-          }
-        }
-      }
-    },
-    "1 core": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 个核心"
-          }
-        }
-      }
-    },
-    "%lld cores": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 个核心"
-          }
-        }
-      }
-    },
     "No Mac support files": {
       "localizations": {
         "zh-Hans": {
@@ -10929,26 +10889,6 @@
         }
       }
     },
-    "1 CPU core": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 个 CPU 核心"
-          }
-        }
-      }
-    },
-    "%lld CPU cores": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 个 CPU 核心"
-          }
-        }
-      }
-    },
     "Include .DS_Store and other Finder files": {
       "localizations": {
         "zh-Hans": {
@@ -10975,36 +10915,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已改为不同于%@的常用选择。"
-          }
-        }
-      }
-    },
-    "As in Settings (all cores)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "同设置（全部核心）"
-          }
-        }
-      }
-    },
-    "As in Settings (1 core)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "同设置（1 个核心）"
-          }
-        }
-      }
-    },
-    "As in Settings (%lld cores)": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "同设置（%lld 个核心）"
           }
         }
       }
@@ -13483,16 +13393,6 @@
         }
       }
     },
-    "Some formats can’t use every core, so they may use fewer.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "某些格式无法用满所有核心，实际可能用得更少。"
-          }
-        }
-      }
-    },
     "Add more files and folders. You can also drop them on the list.": {
       "comment": "Help for the floating Add Files… button in a new-archive draft.",
       "localizations": {
@@ -13662,46 +13562,6 @@
         }
       }
     },
-    "CPU thread count": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CPU 线程数量"
-          }
-        }
-      }
-    },
-    "Available: %lld threads.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可用：%lld 个线程。"
-          }
-        }
-      }
-    },
-    "Enter a whole thread count from 1 to %lld.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请输入 1 至 %lld 之间的整数作为线程数。"
-          }
-        }
-      }
-    },
-    "Some formats can’t use every thread, so they may use fewer.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "某些格式无法用满所有线程，实际可能用得更少。"
-          }
-        }
-      }
-    },
     "1 CPU thread": {
       "localizations": {
         "zh-Hans": {
@@ -13718,6 +13578,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 个 CPU 线程"
+          }
+        }
+      }
+    },
+    "of %lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %lld 个"
+          }
+        }
+      }
+    },
+    "Use fewer to keep your Mac responsive while it packs.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调少一些，压缩时 Mac 做其他事会更流畅。"
+          }
+        }
+      }
+    },
+    "Packing uses at most this many at once. Some formats use fewer.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩时最多同时用这么多线程，有些格式会用得更少。"
+          }
+        }
+      }
+    },
+    "Enter a whole number from 1 to %lld for CPU threads.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU 线程数请填 1 到 %lld 之间的整数。"
+          }
+        }
+      }
+    },
+    "CPU threads for packing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩使用的 CPU 线程数"
           }
         }
       }

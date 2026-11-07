@@ -114,7 +114,8 @@ struct PackSheet: View {
             VStack(alignment: .leading, spacing: Space.l) {
                 nameRow
                 if !cpuLimit.isValid(available: availableCores) {
-                    Label(String(localized: "Enter a whole thread count from 1 to \(availableCores)."), systemImage: "exclamationmark.circle")
+                    // Names the setting: with More Options closed, this line is all that shows.
+                    Label(String(localized: "Enter a whole number from 1 to \(availableCores) for CPU threads."), systemImage: "exclamationmark.circle")
                         .font(.callout)
                         .foregroundStyle(.red)
                 }
@@ -669,15 +670,23 @@ struct PackSheet: View {
             }
 
             groupDivider
+            // The field's own range sits beside it ("of 8"), so the caption can say why someone
+            // would change it; that it's a ceiling some formats stay under goes in the tooltip.
             optionRow("CPU threads") {
-                TextField("CPU thread count", text: Binding(get: { cpuLimit.text }, set: { cpuLimit.edit($0) }))
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 90)
-                    .accessibilityLabel(Text("CPU thread count"))
-                    .help(String(localized: "Enter a whole thread count from 1 to \(availableCores)."))
-                    .revealsKeyboardFocus()
-                caption(String(localized: "Available: \(availableCores) threads."))
-                caption(String(localized: "Some formats can’t use every thread, so they may use fewer."))
+                HStack(alignment: .firstTextBaseline, spacing: Space.s) {
+                    TextField("CPU threads", text: Binding(get: { cpuLimit.text }, set: { cpuLimit.edit($0) }),
+                              prompt: Text(verbatim: "1–\(availableCores)"))
+                        .textFieldStyle(.roundedBorder)
+                        .monospacedDigit()
+                        .frame(width: 60)
+                        .accessibilityLabel(Text("CPU threads"))
+                        .help(String(localized: "Packing uses at most this many at once. Some formats use fewer."))
+                        .revealsKeyboardFocus()
+                    Text("of \(availableCores)")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                caption(String(localized: "Use fewer to keep your Mac responsive while it packs."))
             }
 
             // Open, Reset sits under the rows it puts back, with its reach in words rather than
@@ -910,7 +919,12 @@ struct PackSheet: View {
     // MARK: Actions
 
     private func restore() {
-        defer { cpuLimit = CPUCoreLimitInput(threads: options.threads, inherited: inheritedThreadLimit, available: availableCores) }
+        defer {
+            cpuLimit = CPUCoreLimitInput(threads: options.threads, inherited: inheritedThreadLimit, available: availableCores)
+            // Design review: -StowPackCPUText <text> types that into the CPU field; "none" clears it
+            // (an empty launch argument never arrives).
+            if let text = UserDefaults.standard.string(forKey: "StowPackCPUText") { cpuLimit.edit(text == "none" ? "" : text) }
+        }
         if let configuration = draft?.configuration {
             options = configuration.options
             name = request.suggestedName
@@ -940,7 +954,7 @@ struct PackSheet: View {
         default: break
         }
         // Design review: -StowPackMore YES opens More Options alone; -StowPackChanged YES changes two
-        // choices from the purpose (support files, CPU cores); -StowPackSplitEditor sentence|options
+        // choices from the purpose (support files, CPU threads); -StowPackSplitEditor sentence|options
         // opens the part-size editor from that control once the sheet is up.
         let defaults = UserDefaults.standard
         if defaults.bool(forKey: "StowPackMore") { showMore = true }
