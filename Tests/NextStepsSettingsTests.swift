@@ -286,4 +286,15 @@ struct ArchiveActionsTests {
         listing.select([])
         #expect(listing.archiveTarget == nil)
     }
+
+    /// Both windows give Quick Look its own button beside the stack: the next action takes its
+    /// slot, and ⋯ still lists it.
+    @Test func quickLookApartLeavesTheStackToOtherActions() {
+        var settings = NextStepsSettings.defaults
+        settings.set(.pack, shown: true)
+        let image = settings.layout(for: [entry("Photos/Pier.jpg")], quickLookApart: true)
+        #expect(image.suggestions == [.pack])
+        #expect(!image.behind.contains(.quickLook))
+        #expect(image.more.contains(.quickLook))
+    }
 }

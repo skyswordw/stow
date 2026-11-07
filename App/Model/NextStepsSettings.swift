@@ -140,9 +140,13 @@ nonisolated struct NextStepsSettings: Equatable, Sendable {
         var more: [NextStep] { behind + alternatives }
     }
 
-    func layout(for entries: [ArchiveEntry], dropTargets: [DiskImageLayout.DropTarget] = []) -> Layout {
+    /// `quickLookApart`: Quick Look has its own button in the archive capsule beside the stack
+    /// (both windows), so it isn't one of the stack's actions; the next one takes its place, and
+    /// ⋯ still lists it.
+    func layout(for entries: [ArchiveEntry], dropTargets: [DiskImageLayout.DropTarget] = [],
+                quickLookApart: Bool = false) -> Layout {
         let all = NextStep.applicable(for: entries, dropTargets: dropTargets)
-        let shown = all.filter { shows($0.kind) }
+        let shown = all.filter { shows($0.kind) && !(quickLookApart && $0 == .quickLook) }
         let primary = shown.contains(.extract) ? .extract : shown.first
         let suggestions = Array(shown.filter { $0 != primary }.prefix(Self.maxSuggestions))
         let onCapsule = Set(suggestions + [primary].compactMap(\.self))

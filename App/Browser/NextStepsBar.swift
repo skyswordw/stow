@@ -11,6 +11,10 @@ import SwiftUI
 /// (Internal names keep "Next Steps": the feature's settings keys and types predate the rename.)
 struct NextStepsBar: View {
     let model: BrowserModel
+    /// Glance: the front action alone, without the others stacked behind it or ⋯. Quick Look is
+    /// in Glance's own capsule beside Extract All; a row's right-click menu and File › Actions
+    /// list the rest.
+    var single = false
     @Namespace private var glass
     @AppStorage(SettingsKeys.nextStepsHidden) private var hidden = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
 
@@ -52,11 +56,13 @@ struct NextStepsBar: View {
             }
         } else {
             let layout = NextStepsSettings(hidden: NextStepsSettings.decode(hidden))
-                .layout(for: entries, dropTargets: model.archive.dropTargets)
+                .layout(for: entries, dropTargets: model.archive.dropTargets, quickLookApart: true)
             HStack(alignment: .bottom, spacing: Space.s) {
-                NextStepsMoreMenu(model: model, alternatives: layout.more)
+                // Glance has no room for ⋯ beside its archive capsule; a row's right-click menu
+                // and File › Actions list every action there, as ⋯ does here.
+                if !single { NextStepsMoreMenu(model: model, alternatives: layout.more) }
                 if let front = layout.front {
-                    ActionStack(front: front, behind: layout.behind, selection: model.selection,
+                    ActionStack(front: front, behind: single ? [] : layout.behind, selection: model.selection,
                                 scope: entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items"),
                                 unavailable: model.actionsUnavailableReason,
                                 isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
@@ -141,9 +147,8 @@ private struct ActionStack: View {
             }
             frontButton
                 .background(alignment: .top) {
-                    // Faded in place rather than removed, so the edges stay under the front
-                    // button while the others rise out of it.
-                    edgesView.opacity(isOpen ? 0 : 1)
+                    // Kept rather than removed: each edge travels up with the action it belongs to.
+                    edgesView
                 }
                 .onContinuousHover(perform: arrival)
                 .zIndex(1)
@@ -191,11 +196,21 @@ private struct ActionStack: View {
         VStack(spacing: 0) {
             ForEach(Array(behind.enumerated()).reversed(), id: \.element) { index, step in
                 ZStack {
-                    if isOpen {
+                    // Kept while the frame is still grown: folding sinks each one back into its
+                    // edge as a change of its own place, and it's removed once it's there, hidden.
+                    // Glass that's removed with motion disappears at once rather than following it.
+                    if isOpen || isGrown {
                         Button(step.title, systemImage: step.symbol) { fold(); run(step) }
                             .buttonStyle(StackButtonStyle(prominent: false, highlighted: pointedChoice == step))
                             .accessibilityLabel(step.title)
+                            .modifier(isOpen || reduceMotion ? EdgeLift.none : edgeStart(for: index))
+                            .opacity(isOpen ? 1 : 0)
+                            .allowsHitTesting(isOpen)
+                            .accessibilityHidden(!isOpen)
                             .transition(rise(from: index))
+                            // The glass follows the rise instead of materializing in place: its
+                            // blur-in read as a second card appearing above the edges.
+                            .glassEffectTransition(reduceMotion ? .materialize : .identity)
                             .help(unavailable ?? String(localized: "\(step.title): \(scope)"))
                             .disabled(unavailable != nil)
                     }
@@ -254,34 +269,54 @@ private struct ActionStack: View {
 
     /// The edges of the buttons behind the front one, a little narrower each step back, like a
     /// stack of cards. Drawing only: the strip above takes the click.
+    ///
+    /// As the stack fans out, each edge travels with its action — up to the action's place and out
+    /// to its full width — while its tint fades off it, so the edge you saw becomes the button
+    /// rather than vanishing as another one appears. Folding brings it back down the same way.
+    /// Under Reduce Motion the edges only fade.
     private var edgesView: some View {
-        ZStack(alignment: .top) {
+        let travels = isOpen && !reduceMotion
+        return ZStack(alignment: .top) {
             ForEach((0..<edges).reversed(), id: \.self) { depth in
                 StackEdge(depth: depth, dimmed: unavailable != nil)
-                    .scaleEffect(1 - 0.07 * CGFloat(depth + 1), anchor: .top)
-                    .offset(y: -CGFloat(depth + 1) * 4.5)
+                    .scaleEffect(travels ? 1 : Self.edgeScale(depth), anchor: .top)
+                    .offset(y: travels ? -CGFloat(depth + 1) * Self.row : -Self.edgeLift(depth))
+                    .opacity(isOpen ? 0 : 1)
             }
-            if stripHasFocus, edges > 0 {
+            if stripHasFocus, edges > 0, !isOpen {
                 // Round the backmost edge, so the part above the front button traces the stack's
                 // top; the front button covers the rest.
                 Capsule()
                     .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 3)
                     .padding(-3)
                     .frame(height: StackButtonStyle.height)
-                    .scaleEffect(x: 1 - 0.07 * CGFloat(edges), y: 1, anchor: .top)
-                    .offset(y: -CGFloat(edges) * 4.5)
+                    .scaleEffect(x: Self.edgeScale(edges - 1), y: 1, anchor: .top)
+                    .offset(y: -Self.edgeLift(edges - 1))
             }
         }
         .allowsHitTesting(false)
     }
 
-    /// Up from behind the front button (`index` steps away), with the system's fade under Reduce Motion.
-    /// Each starts a little smaller and centred on the front button, so its label is hidden under
-    /// the front button's accent until it clears the top edge, and sinks back the same way.
+    /// How narrow an edge is, `depth` steps behind the front button…
+    private static func edgeScale(_ depth: Int) -> CGFloat { 1 - 0.07 * CGFloat(depth + 1) }
+    /// …and how far its top shows above the front button's.
+    private static func edgeLift(_ depth: Int) -> CGFloat { 4.5 * CGFloat(depth + 1) }
+
+    /// Up out of its edge (`index` steps behind the front button): each action starts exactly where
+    /// its edge shows — the same top, the same narrower width — and grows to full width as it rises
+    /// to its place, with the edge travelling over it. The ones past the last edge come out of that
+    /// edge. Its label starts hidden under the front button's accent and clears the top edge on the
+    /// way up; it sinks back the same way. Only the system's fade under Reduce Motion.
     private func rise(from index: Int) -> AnyTransition {
         guard !reduceMotion else { return .opacity }
-        let distance = CGFloat(index + 1) * Self.row
-        return .offset(y: distance).combined(with: .scale(scale: 0.9)).combined(with: .opacity)
+        return .modifier(active: edgeStart(for: index), identity: EdgeLift.none).combined(with: .opacity)
+    }
+
+    /// Where the action `index` steps behind the front button is while it's folded: its edge's
+    /// place, measured from its own place above the front button.
+    private func edgeStart(for index: Int) -> EdgeLift {
+        let edge = min(index, edges - 1)
+        return EdgeLift(y: CGFloat(index + 1) * Self.row - Self.edgeLift(edge), scale: Self.edgeScale(edge))
     }
 
     /// Where the pointer is in the window, from the window's own idea of it (top-left origin, like
@@ -372,6 +407,19 @@ private struct ActionStack: View {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) { isOpen = false }
+    }
+}
+
+/// An action of the stack in its edge's place: narrower from the top, and lower.
+private struct EdgeLift: ViewModifier {
+    let y: CGFloat
+    let scale: CGFloat
+    static let none = EdgeLift(y: 0, scale: 1)
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(scale, anchor: .top)
+            .offset(y: y)
     }
 }
 
@@ -486,9 +534,13 @@ struct ActionButtonStyle: ButtonStyle {
     var height: CGFloat = Self.height
     /// A switch that's on (Glance's Pin on Top): the symbol in the accent with a ring round it.
     var isOn = false
+    /// Semibold whether or not it's prominent, for a button whose accent comes and goes beside
+    /// others (Glance's Extract All): only the fill fades, and the words keep their width.
+    var steadyWeight = false
 
     func makeBody(configuration: Configuration) -> some View {
-        ActionButtonBody(configuration: configuration, prominent: prominent, iconOnly: iconOnly, height: height, isOn: isOn)
+        ActionButtonBody(configuration: configuration, prominent: prominent, iconOnly: iconOnly, height: height, isOn: isOn,
+                         semibold: prominent || steadyWeight)
     }
 }
 
@@ -498,13 +550,14 @@ private struct ActionButtonBody: View {
     let iconOnly: Bool
     let height: CGFloat
     let isOn: Bool
+    let semibold: Bool
     @State private var isHovering = false
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         configuration.label
-            .font(.body.weight(prominent ? .semibold : .regular))
+            .font(.body.weight(semibold ? .semibold : .regular))
             .foregroundStyle(prominent ? AnyShapeStyle(.white) : isOn ? AnyShapeStyle(.accentText) : AnyShapeStyle(.primary))
             .padding(.horizontal, iconOnly ? 0 : Space.m)
             .frame(minWidth: height, minHeight: height)
@@ -592,6 +645,20 @@ extension BrowserModel {
     }
 
     /// Extract All waits for a running step: starting it would stop that step part-way.
+    /// Why Glance's Quick Look can't open the selection: nothing of this archive is selected, the
+    /// archive is still being listed, or a password is being asked for.
+    var quickLookUnavailableReason: String? {
+        if let reason = actionsUnavailableReason { return reason }
+        if selectedEntries.isEmpty || passwords.isAsking { return String(localized: "Select files to Quick Look them") }
+        return nil
+    }
+
+    /// What a selection's actions apply to, for their help tags ("notes.txt", "3 items").
+    var selectionScope: String {
+        let entries = selectedEntries
+        return entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items")
+    }
+
     var extractAllUnavailableReason: String? {
         if let reason = actionsUnavailableReason { return reason }
         if case .running = activity?.phase { return String(localized: "Available when the current step finishes") }

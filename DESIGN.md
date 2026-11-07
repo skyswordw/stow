@@ -154,8 +154,11 @@ plain path-row and bottom-path studies.
   system symbol like Delete's `trash`, so the two share one weight and size; a custom floppy disk never
   matched (user's choice, 2026-11-01). Extract's arrow comes *out* of a bin, so the two read apart.
   Named "Save Changes" with ⌘S in its help. Disabled when there's nothing to save.
-- **Extraction is a box with an arrow out of it** (`arrow.up.bin`): Extract All and the Actions
-  stack's Extract, with their words kept. Pack keeps its box.
+- **Extract All is a box with an arrow out of it** (`arrow.up.bin`); **a selection's Extract is a
+  bolt** (`bolt.fill`), in the Actions stack, ⋯, the menus and Settings › Actions alike (user's
+  call, 2026-11-07, after ArcZip's Mini). The whole box versus the chosen items pulled straight
+  out: the two never share an icon, so they can stand side by side. Words kept on both. Pack
+  keeps its box.
 - **Path.** The floating capsule over the files keeps Back · Forward · Up and the route. A short
   path takes its natural width; the whole route shows while it fits. A deep one folds the folders
   after the archive into a **⋯ menu**, one at a time, keeping the archive it starts from and where
@@ -196,8 +199,9 @@ ArcZip observations behind this.
 | Navigation, floating over the files | Back · Forward · Up and the path; a short path takes only its width, a deep path uses the whole row and folds its middle folders into a ⋯ menu |
 | Files | The main surface: grid, list or columns. In the list, the name takes the spare width before size, kind and date grow |
 | Details (always there, right) | An inset panel, not a strip of the window, 8 pt off the window's edges with an 18 pt radius. Its heading names the subject with a glyph and words: **Archive Info**, **File Info**, **Folder Info** or **Selection Info**. Then a content-sized preview, the name and kind, and properties as label ↔ value rows with hairlines (Size, Packed file data with the saving underneath, Modified, **Location in archive** stacked under its label at full width: “Showcase.zip › Showcase › Docs”). A note that qualifies a figure sits under that figure, in the accent when it counts unsaved changes. An app leads Developer Verification with the developer, then what was verified. **Archive Info** when nothing is selected: the three figures, the password control, then routine facts and ordinary notes behind More Archive Information. No toggle, no close button, no action buttons |
-| Archive controls, floating bottom leading | **Glance** in a glass circle of its own (switching windows isn't done to the archive), then **Extract All** (box-with-arrow icon) in its capsule, mirroring ⋯ beside the Actions stack |
-| Actions, floating bottom trailing | ⋯ More, then the **stack**: the front action in the accent with the edges of the others showing behind it. No name or size: Details says what's selected. With nothing selected, **Install App** alone when the archive is one app |
+| Window switch, floating bottom leading | **Glance** in a glass circle of its own: switching windows isn't done to the archive. Glance has Open in Full Window among its window controls in the same corner |
+| Archive capsule, floating bottom trailing | **Quick Look** (eye, icon only) · **Extract All**, fixed and never changing, as in Glance (user's call, 2026-11-07: the full window follows Glance's layout). Quick Look is dimmed until items of this archive are selected, and gone only when hidden in Settings › Actions; Extract All keeps the accent until Actions shows, staying semibold so only its fill fades |
+| Actions, just before the capsule | ⋯ More, then the **stack**: the front action in the accent with the edges of the others showing behind it, easing out of the capsule. Quick Look isn't one of the stack's actions here or in Glance (it has the capsule's eye; ⋯ still lists it), so the next flow — Copy to, Open Inside, Install, Extract — takes its slot. No name or size: Details says what's selected. With nothing selected, **Install App** alone when the archive is one app |
 
 **The Actions stack.** The front button is what the selection is most likely for: **Install** for
 an app, fonts or an installer package, otherwise **Extract**. The other shown steps wait behind it,
@@ -216,12 +220,12 @@ does. It's the app Stow selects on opening: the only app or package at the top, 
 two other items, or any number on a disk image. It shows as a single button, with no edges and
 no ⋯, since Extract All is already beside it. Its help tag names the app, and it runs the same
 install, with the same confirmations and checks, on that app only. Hiding Install App or Actions
-in Settings removes it; File › Actions still lists it. Glance shows the same pair: Extract All,
-then Install App.
+in Settings removes it; File › Actions still lists it. Glance shows Install App just before its
+Quick Look · Extract All capsule.
 
 One prominent action at a time: Extract All carries the accent while Actions is down; once
 Actions is up, for a selection or an archive's app, the stack's front does and Extract All stays
-put, unaccented (in Glance, a selection's stack takes its place; see Glance layout). Archive facts live in one place, Archive Info, reached from Details with nothing
+put, unaccented (in Glance it keeps its weight and only the fill fades; see Glance layout). Archive facts live in one place, Archive Info, reached from Details with nothing
 selected and the title menu. Everything floating shares one family: glass
 capsules, buttons concentric inside them (button radius + inset = capsule radius), all 38 pt tall.
 Details is a solid reading surface with the same light rim, brighter along its top edge.
@@ -294,8 +298,8 @@ and retain the archive level and Browser view preference.
 | Navigation, floating under the header | The Browser's capsule: Back · Forward · Up │ the path from the archive down, running the window's width (no Search beside it); a deep path folds its middle folders into a ⋯ menu and keeps where you are in view (#242) |
 | Files | Name and size, straight on the window's one surface: Liquid Glass with a wash of the window colour for legibility, or classic frosted (Settings › Glance); solid under Reduce Transparency. No card, no frame. The badge and the rows' icons share the 16 pt margin |
 | Window controls, floating bottom leading | **Close** · **Pin on Top** · **Open in Full Window** in one glass capsule of icon buttons, like the navigation capsule's. Pinned: the pin fills in the accent with a ring round it |
-| Archive controls, floating after them | **Extract All**, one extraction button at a time: while a selection's Actions offer its Extract, Extract All steps aside (sinking as the stack rises) and comes back as the selection clears, because beside the stack it had room only for its icon, which is Extract's icon, and read as a second Extract. User's choice, 2026-11-02, over ArcZip Mini's way (both buttons, Extract All in words): it holds at any width and for any stack, without widening Glance. File › Extract All (⇧⌘E, under File › Extract ⌘E) reaches the whole archive meanwhile, without clearing the selection (#249). With Extract hidden in Settings › Actions (it waits in ⋯), Extract All stays, so the bar always has one extraction button. When the row still has no room for its words (beside a progress capsule, whose ring and words don't repeat its icon), it keeps its icon alone. While changes are pending or saving it drops the accent, so the bar's Save, right under it, is the one prominent action |
-| Actions, floating bottom trailing | The full window's stack and rules: one prominent action at a time, Install App alone for an archive that's one app |
+| Archive capsule, floating bottom trailing | **Quick Look** (eye, icon only) · **Extract All**, in one glass capsule that never moves or changes (user's call, 2026-11-07, after ArcZip's Mini, whose Preview · Extract All capsule stays put and dims Preview with nothing selected). Quick Look is dimmed until items of this archive are selected; its help tag names them. Extract All carries the accent until a selection's action shows, or while changes are pending or saving (the bar's Save is then the one); it stays semibold either way, so only the fill fades and the capsule keeps its width. Without room for its words, Extract All keeps its icon alone. File › Extract All is ⇧⌘E (#249) |
+| Selection's action, just before the capsule | The front action alone — **⚡ Extract**, or Install App for an app — easing out of the capsule; no stack edges and no ⋯ (no room beside the capsule at 440 pt): a row's right-click menu and File › Actions list every action. Supersedes #248's one extraction button at a time: with Extract's bolt, Extract and Extract All no longer read as the same button. With nothing selected, an archive that's one app shows Install App here. A step's progress takes this place |
 | Under the files | The full window's unsaved-changes and changed-on-disk bars |
 
 **Colourful window controls** (Settings › Glance) fill the same three buttons, in the same
@@ -486,13 +490,13 @@ Values from Apple's fluid-interface guidance and Emil Kowalski's design-engineer
 
 | Moment | Motion | Value |
 | --- | --- | --- |
-| Actions region appears (full window and Glance) | Spring, from bottom, scale 0.96 → 1 + opacity | `response 0.32, damping 1.0` |
+| Actions region appears or goes (full window and Glance) | Eases out of the archive capsule beside it: from 14 pt to the right, scale 0.94 → 1 from its trailing edge + opacity; back 6 pt with scale 0.97, quicker (`AnyTransition.emerge`). The capsule never moves; Extract All's accent fades across. **None** for arrow keys, ⌘A and Esc | `appear` in, `exit` out; accent `status` 200 ms |
 | Actions content changes on selection | **None** (frequent) — numbers use numeric text transition | — |
 | Floating chrome leaves (Actions, pack capsule, batch panel) | Ease-out fade with a smaller drop — faster than it came | 180 ms |
 | A step finishes or fails on its own | Ease-out, never a spring (nobody touched it) | 200 ms |
 | A step has started but measured nothing yet | A quarter arc turns in the progress ring; it stands still under Reduce Motion | 1 turn/s, linear |
 | Actions shown/hidden or its stack opened/closed by a key (arrows, ⌘A, Esc) | **None** | — |
-| Actions stack fans out (pointer rests 140 ms on it, or its edges clicked) | Spring: each action rises from behind the front button, scale 0.9 → 1 + opacity; folds back with an ease-out 450 ms after the pointer leaves (ArcZip lingers 0.5–1 s; it also opens at once, which flashes on every pass, so Stow waits 140 ms). Choosing an action or a new selection folds it at once, unanimated. Fade only under Reduce Motion | `response 0.32, damping 1.0` in, 180 ms out |
+| Actions stack fans out (pointer rests 140 ms on it, or its edges clicked) | Spring: each action rises out of its edge: it starts at the edge's top and width, behind the front button, and grows to full width on its way up while the edge travels with it and its tint fades off, so the edge becomes the button (its glass follows the rise rather than materializing). Folding sinks it back into the edge the same way; it's removed only once hidden there. Folds back with an ease-out 450 ms after the pointer leaves (ArcZip lingers 0.5–1 s; it also opens at once, which flashes on every pass, so Stow waits 140 ms). Choosing an action or a new selection folds it at once, unanimated. Fade only under Reduce Motion | `response 0.32, damping 1.0` in, 180 ms out |
 | Drop target on drag-over | Spring scale 1.0 → 1.015, accent tint fades in; on Welcome, Open and Create Archive fade to 35 % in place (nothing moves) so the drop is the one ask | `response 0.25, damping 0.9` |
 | Tray rows a drop (or Add Files…) brought in, new or already there | Accent ring and faint tint **at once**; fade out after 1.2 s; scrolled into view if below the fold (no scroll animation under Reduce Motion) | fade `Motion.status` 200 ms |
 | Hover preview | 450 ms delay for the first; **instant & unanimated** for neighbours while one is open; closes instantly | 140 ms fade |

@@ -98,6 +98,16 @@ extension AnyTransition {
             : .asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)).combined(with: .offset(y: 12)),
                           removal: .opacity.combined(with: .offset(y: 6)))
     }
+
+    /// Eases out of the archive capsule beside it (a selection's actions, bottom right in both
+    /// windows): from a little to the right, slightly smaller, fading in; back the same way,
+    /// quicker. A plain fade under Reduce Motion.
+    static func emerge(reduceMotion: Bool) -> AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.94, anchor: .trailing)).combined(with: .offset(x: 14)),
+                          removal: .opacity.combined(with: .scale(scale: 0.97, anchor: .trailing)).combined(with: .offset(x: 6)))
+    }
 }
 
 extension View {

@@ -1,10 +1,10 @@
 import Testing
 @testable import Stow
 
-/// Glance shows one extraction button at a time (#248): Extract All steps aside only while the
-/// selection's Actions offer Extract, so the bar never shows two of them, or none.
+/// Glance's archive capsule (2026-11-07, replacing #248's one extraction button at a time): Quick
+/// Look and Extract All stay fixed at the trailing end, and a selection adds its own ⚡ Extract.
 @MainActor
-@Suite("Glance extraction button")
+@Suite("Glance extraction controls")
 struct GlanceExtractTests {
     private func model(selecting paths: Set<String>) -> BrowserModel {
         let model = BrowserModel(archive: SampleArchive.make())
@@ -15,29 +15,27 @@ struct GlanceExtractTests {
 
     private let photos: Set<String> = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
 
-    @Test func aSelectionsExtractTakesOverFromExtractAll() {
-        #expect(GlanceLayout.selectionExtracts(model(selecting: photos), settings: .defaults))
+    /// Extract and Extract All never share an icon, so both can show at once without reading as two
+    /// of the same button.
+    @Test func extractAndExtractAllHaveTheirOwnIcons() {
+        #expect(NextStep.extract.symbol != ArchiveActions.extractAllSymbol)
     }
 
-    @Test func nothingSelectedKeepsExtractAll() {
-        #expect(!GlanceLayout.selectionExtracts(model(selecting: []), settings: .defaults))
+    @Test func quickLookWaitsForASelection() {
+        #expect(model(selecting: []).quickLookUnavailableReason != nil)
     }
 
-    @Test func actionsTurnedOffKeepExtractAll() {
-        var settings = NextStepsSettings.defaults
-        settings.isShown = false
-        #expect(!GlanceLayout.selectionExtracts(model(selecting: photos), settings: settings))
+    @Test func quickLookOpensSelectedFiles() {
+        #expect(model(selecting: photos).quickLookUnavailableReason == nil)
     }
 
-    /// Hidden, Extract waits in ⋯: without Extract All the bar would have no extraction button.
-    @Test func extractHiddenFromActionsKeepsExtractAll() {
-        var settings = NextStepsSettings.defaults
-        settings.set(.extract, shown: false)
-        #expect(!GlanceLayout.selectionExtracts(model(selecting: photos), settings: settings))
+    /// Results inside other archives only offer to go there; there's nothing of this archive to preview.
+    @Test func quickLookWaitsOnResultsInsideOtherArchives() {
+        #expect(model(selecting: ["Nested.zip/inner.txt"]).quickLookUnavailableReason != nil)
     }
 
-    /// Results inside other archives only offer to go there; there's no Extract beside them.
-    @Test func resultsInsideOtherArchivesKeepExtractAll() {
-        #expect(!GlanceLayout.selectionExtracts(model(selecting: ["Nested.zip/inner.txt"]), settings: .defaults))
+    @Test func helpNamesWhatQuickLookOpens() {
+        #expect(model(selecting: ["Photos/Lighthouse.jpg"]).selectionScope == "Lighthouse.jpg")
+        #expect(model(selecting: photos).selectionScope == String(localized: "\(2) items"))
     }
 }

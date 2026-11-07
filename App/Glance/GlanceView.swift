@@ -169,58 +169,46 @@ struct GlanceView: View {
         }
     }
 
-    /// The window's controls on the leading side, then the archive's Extract All, and Actions on
-    /// the trailing side, with one prominent action at a time: Extract All carries the accent until
-    /// Actions shows, to install an archive that's one app, or until there are changes to save,
-    /// when the bar's Save (or Save a Copy…) is the one.
-    ///
-    /// One extraction button at a time: while a selection's Actions offer its Extract, Extract All
-    /// steps aside and comes back as the selection clears (File › Extract All, ⇧⌘E, reaches it
-    /// meanwhile). Glance has no
-    /// room for "Extract All" in words beside the stack, and its icon alone is Extract's icon, so
-    /// the bar read as two Extract buttons. When the row still runs out of room (beside a progress
-    /// capsule), Extract All keeps its icon and drops its words.
+    /// The window's controls on the leading side; the archive's capsule — Quick Look and Extract
+    /// All — fixed at the trailing end, as ArcZip's Mini keeps Preview and Extract All (user's
+    /// call, 2026-11-07). It never moves or changes: Quick Look is dimmed until something is
+    /// selected. A selection adds its own action just before it — ⚡ Extract, or Install App for
+    /// an app — easing out of the capsule (a row's right-click menu and File › Actions list the rest); nothing else moves, so nothing
+    /// swaps or jumps. The bolt keeps it apart from Extract All's box. One prominent action at a
+    /// time: Extract All carries the accent until the selection's action shows, or until there are
+    /// changes to save, when the bar's Save (or Save a Copy…) is the one. A step's progress takes
+    /// the selection's place. When the row runs out of room, Extract All keeps its icon alone.
     @ViewBuilder
     private var floatingControls: some View {
         let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
             .archiveLayout(installable: model.archiveTarget).front != nil
         let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
-        let selectionExtracts = GlanceLayout.selectionExtracts(
-            model, settings: NextStepsSettings(isShown: showsNextSteps, hidden: NextStepsSettings.decode(hiddenSteps)))
         // Edits pending or being saved: the bar under the files holds the accent.
         let savesEdits = model.editSession.isEdited || model.editSession.isSaving
         let extractsProminently = !showsActions && !savesEdits
         HStack(alignment: .bottom, spacing: Space.s) {
             GlanceWindowControls(glance: glance)
                 .accessibilitySortPriority(0.6)
-            ZStack {
-                if !selectionExtracts {
-                    ViewThatFits(in: .horizontal) {
-                        ArchiveActions(model: model, prominent: extractsProminently)
-                        ArchiveActions(model: model, prominent: extractsProminently, compact: true)
-                    }
-                    // The accent fades across as a status change; a ⌘S or Delete key press just swaps it.
-                    .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion),
-                               value: savesEdits)
-                    // Sinks as the selection's stack rises at the other end, and rises again as it goes.
-                    .transition(.rise(reduceMotion: reduceMotion))
-                }
-            }
-            // Arrow keys, ⌘A and Esc swap them without motion, as they do the stack.
-            .animation(Motion.presence(!selectionExtracts, reduceMotion: reduceMotion), value: selectionExtracts)
-            .accessibilitySortPriority(0.5)
             Spacer(minLength: 0)
             ZStack {
                 if showsActions {
                     // One Actions view in every state, so Install morphs into its progress like a selection's.
-                    NextStepsBar(model: model)
+                    NextStepsBar(model: model, single: true)
                         .accessibilityElement(children: .contain)
-                        .accessibilitySortPriority(0)
-                        .transition(.rise(reduceMotion: reduceMotion))
+                        .accessibilitySortPriority(0.5)
+                        .transition(.emerge(reduceMotion: reduceMotion))
                 }
             }
-            // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
+            // Eases out for a click, quicker back in; none for arrow keys, ⌘A or Esc.
             .animation(Motion.presence(showsActions, reduceMotion: reduceMotion), value: showsActions)
+            ViewThatFits(in: .horizontal) {
+                ArchiveActions(model: model, prominent: extractsProminently)
+                ArchiveActions(model: model, prominent: extractsProminently, compact: true)
+            }
+            // The accent passes to the selection's action as a status change; a key press just swaps it.
+            .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion),
+                       value: extractsProminently)
+            .accessibilitySortPriority(0.4)
         }
         .padding([.horizontal, .bottom], GlanceLayout.inset)
     }
@@ -232,16 +220,6 @@ enum GlanceLayout {
     static let inset = Space.s + Space.xs
     /// The header's leading and trailing margin; the badge lines up with the rows' icons.
     static let margin = Space.l
-
-    /// Whether the selection's Actions offer an Extract of their own, so Extract All steps aside
-    /// (#248): Actions on, Extract not hidden in Settings › Actions (hidden, it waits in ⋯ and the
-    /// bar would have no extraction button at all), and items of this archive selected (results
-    /// inside other archives only offer to go there). Stops at the first selected item: ⌘A in a
-    /// big archive shouldn't sort the selection again here.
-    static func selectionExtracts(_ model: BrowserModel, settings: NextStepsSettings) -> Bool {
-        settings.isShown && settings.shows(.extract)
-            && model.selection.contains { model.archive.entry(at: $0) != nil }
-    }
 }
 
 /// The archive Glance shows: its format badge, its name and what it is, wherever you are inside

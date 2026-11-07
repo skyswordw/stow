@@ -245,28 +245,36 @@ struct BrowserView: View {
         }
     }
 
-    /// The glass along the bottom: the whole archive on the leading side, Actions on the trailing
-    /// side. One prominent action at a time: Extract All carries the accent until Actions shows,
-    /// for a selection or, with nothing selected, to install an archive that's one app.
+    /// The glass along the bottom, laid out as Glance's: the way to Glance on the leading side; the
+    /// archive's capsule — Quick Look and Extract All — fixed on the trailing side; and a
+    /// selection's Actions just before it, easing out of it. Here there's room for the whole
+    /// stack, ⋯ and the edges of the other actions behind the front one. One prominent action at
+    /// a time: Extract All carries the accent until Actions shows, for a selection or, with
+    /// nothing selected, to install an archive that's one app.
     @ViewBuilder
     private var floatingControls: some View {
         let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
             .archiveLayout(installable: model.archiveTarget).front != nil
         let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
         HStack(alignment: .bottom, spacing: Space.s) {
-            ArchiveActions(model: model, prominent: !showsActions, switchTo: .glance { app.glance.collapse() })
-                .accessibilitySortPriority(0.5)
+            ArchiveWindowSwitch { app.glance.collapse() }
+                .accessibilitySortPriority(0.6)
             Spacer(minLength: 0)
             ZStack {
                 if showsActions {
                     NextStepsBar(model: model)
                         .accessibilityElement(children: .contain)
-                        .accessibilitySortPriority(0)
-                        .transition(.rise(reduceMotion: reduceMotion))
+                        .accessibilitySortPriority(0.5)
+                        .transition(.emerge(reduceMotion: reduceMotion))
                 }
             }
-            // Springs in for a click, eases out faster, and doesn't move at all for arrow keys, ⌘A or Esc.
+            // Eases out for a click, quicker back in; none for arrow keys, ⌘A or Esc.
             .animation(Motion.presence(showsActions, reduceMotion: reduceMotion), value: showsActions)
+            ArchiveActions(model: model, prominent: !showsActions)
+                // The accent passes to the stack as a status change; a key press just swaps it.
+                .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion),
+                           value: showsActions)
+                .accessibilitySortPriority(0.4)
         }
         // The same distance from the window's edges as the path above and Details beside (#242).
         .padding(.horizontal, FloatingGlass.edgeInset)

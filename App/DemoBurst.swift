@@ -15,7 +15,7 @@ import SwiftUI
 ///
 /// `-StowBurstCrop x,y,w,h` crops every frame, in points from the windows' top-left corner;
 /// negative x or y count from the right or bottom edge. Transitions:
-/// actions (scene next-steps), glance (list), archive-info and notices (details-planned),
+/// actions (scene next-steps), glance (list), glance-select (glance), archive-info and notices (details-planned),
 /// notice (source-access-unsaved), lock (encrypted), tray (tray), tray-pin (tray), batch (batch),
 /// opening (browser-opening), draft-pack (draft), draft-quit (draft-empty).
 enum DemoBurst {
@@ -126,6 +126,16 @@ enum DemoBurst {
                 Step(at: 1800, name: "to Browser", cause: .click) { app.glance.expand(byKeyboard: false) },
                 Step(at: 3300, name: "to Glance", cause: .key) { app.glance.collapse(near: point, animated: false) },
                 Step(at: 4800, name: "to Browser", cause: .key) { app.glance.expand(byKeyboard: true) },
+            ]
+        case "glance-select":
+            // Selecting and clearing in Glance (scene glance): the selection's Extract stack and
+            // Extract All swap in the same place at the trailing end.
+            let photos: Set<ArchiveEntry.ID> = ["Photos/Lighthouse.jpg", "Photos/Pier at Dawn.jpg"]
+            return [
+                Step(at: 300, name: "clear the selection", cause: .click) { browser?.select([]) },
+                Step(at: 1100, name: "select two photos", cause: .click) { browser?.select(photos) },
+                Step(at: 1900, name: "clear (Esc)", cause: .key) { browser?.select([]) },
+                Step(at: 2700, name: "select (⌘A)", cause: .key) { browser?.select(photos) },
             ]
         case "archive-info":
             return [

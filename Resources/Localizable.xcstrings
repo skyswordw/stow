@@ -11189,6 +11189,16 @@
         }
       }
     },
+    "Select files to Quick Look them": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择文件即可快速查看"
+          }
+        }
+      }
+    },
     "An app": {
       "localizations": {
         "zh-Hans": {

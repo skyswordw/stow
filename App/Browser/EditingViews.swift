@@ -184,7 +184,7 @@ struct ArchiveEditingControls: View {
         .accessibilityLabel(String(localized: "Delete"))
 
         // Says its name while there's something to save (`ToolbarNamedAction`). The arrow goes
-        // into the box; Extract's (`arrow.up.bin`) comes out of it. A custom disk couldn't match
+        // into the box; Extract All's (`arrow.up.bin`) comes out of it. A custom disk couldn't match
         // the system symbols beside it (#242).
         ToolbarNamedAction("Save", systemImage: "square.and.arrow.down", isNamed: edits.canSave) {
             Task { await model.saveEdits() }
