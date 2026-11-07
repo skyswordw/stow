@@ -1,5 +1,9 @@
 # UI and motion handoff — Claude Code
 
+## Pack CPU threads — current user decision
+
+Use one numeric input, initialized from Settings, with a concise available-thread count. The user rejected separate mode/custom controls and presets. Follow [the functional brief](cpu-thread-input.md). Codex owns validation, per-job scope and keyboard behavior; Claude Code retains visual/motion treatment.
+
 ## Independent archive windows — current user decision
 
 The user chose one independent window per archive on 2026-11-06. Follow

@@ -13651,6 +13651,76 @@
           }
         }
       }
+    },
+    "CPU threads": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU 线程数"
+          }
+        }
+      }
+    },
+    "CPU thread count": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU 线程数量"
+          }
+        }
+      }
+    },
+    "Available: %lld threads.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可用：%lld 个线程。"
+          }
+        }
+      }
+    },
+    "Enter a whole thread count from 1 to %lld.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入 1 至 %lld 之间的整数作为线程数。"
+          }
+        }
+      }
+    },
+    "Some formats can’t use every thread, so they may use fewer.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "某些格式无法用满所有线程，实际可能用得更少。"
+          }
+        }
+      }
+    },
+    "1 CPU thread": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 个 CPU 线程"
+          }
+        }
+      }
+    },
+    "%lld CPU threads": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个 CPU 线程"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
