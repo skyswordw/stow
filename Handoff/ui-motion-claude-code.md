@@ -30,11 +30,11 @@ pointer events at real speed, not a hand on a mouse):
   own list.
 
 - Escape during a drag (user, by hand): the drag stops and slides back with nothing dropped, as in
-  Finder. macOS does this for the active app's drag; Stow adds nothing. A first report that Esc
-  didn't stop it was most likely a drag out of a background Stow window while Finder was active,
-  where the key goes to Finder; that case and Finder's own behaviour there aren't confirmed yet.
+  Finder — with Stow active, and from a pinned Glance in the background while Finder is active.
+  macOS handles it; Stow adds no code. An earlier report that Esc didn't stop a drag didn't
+  reproduce.
 
-Not checked: Escape for a drag out of a background window, the macOS 26 path, and VoiceOver (#93).
+Not checked: the macOS 26 path, and VoiceOver (#93).
 
 ## Independent archive windows — current user decision
 
