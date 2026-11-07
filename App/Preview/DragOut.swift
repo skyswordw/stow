@@ -13,10 +13,14 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     weak var model: BrowserModel?
     /// The entry under the pointer, as tiles and rows report it.
     var hovered: ArchiveEntry.ID?
-    private weak var window: NSWindow?
+    // Browser and Glance retain their view trees across switches. Neither attachment may
+    // replace the other; use the event's window when starting the native session.
+    // A reused window can also receive a new archive while the old model finishes work.
+    private static let owners = NSMapTable<NSWindow, DragOutController>.weakToWeakObjects()
     private var monitor: Any?
-    private var press: (point: NSPoint, entry: ArchiveEntry.ID)?
+    private var press: (point: NSPoint, entry: ArchiveEntry.ID, windowNumber: Int)?
     private var started = false
+    private weak var activeGesture: TableDragGesture?
     private var transferToken: String?
     private var selectionSnapshot: SelectionSnapshot?
 
@@ -29,9 +33,8 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     }
 
     func install(in window: NSWindow) {
-        guard self.window !== window else { return }
-        self.window = window
-        if let monitor { NSEvent.removeMonitor(monitor) }
+        Self.owners.setObject(self, forKey: window)
+        guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             // Local monitors run on the main thread, inside event dispatch.
             let box = EventBox(event: event)
@@ -48,23 +51,59 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 
     func handle(_ event: NSEvent?) -> NSEvent? {
         guard let event else { return nil }
-        if started, event.type == .leftMouseDragged { return nil }
-        guard event.window === window, model?.archive.source != nil else { return event }
+        // AppKit activates a requested native session during event dispatch. Returning nil
+        // here starves it of the initiating/subsequent drag events until mouse-up.
+        if started { return event }
+        if let entry = dragCandidate(for: event) { _ = beginDrag(from: entry, event: event) }
+        return event
+    }
+
+    /// Track a press through the drag threshold before handing it to AppKit. Events from
+    /// another document must never turn this document's pending press into a drag.
+    func dragCandidate(for event: NSEvent) -> ArchiveEntry.ID? {
+        guard let window = event.window, Self.owners.object(forKey: window) === self, model?.archive.source != nil else {
+            if event.type == .leftMouseDown { press = nil }
+            return nil
+        }
         switch event.type {
         case .leftMouseDown:
             selectionSnapshot = nil
-            press = hovered.map { (event.locationInWindow, $0) }
+            press = model?.renamingPath == nil
+                ? entry(at: event.locationInWindow, in: window).map { (event.locationInWindow, $0, window.windowNumber) } : nil
             started = false
         case .leftMouseDragged:
-            guard let press, !started else { return started ? nil : event }
+            guard let press, !started, press.windowNumber == window.windowNumber else { return nil }
             let moved = hypot(event.locationInWindow.x - press.point.x, event.locationInWindow.y - press.point.y)
-            guard moved > 4 else { return event }
-            return beginDrag(from: press.entry, event: event) ? nil : event
+            return moved > 4 ? press.entry : nil
         default:
             press = nil
             started = false
         }
-        return event
+        return nil
+    }
+
+    /// Native tables can deliver a press before SwiftUI updates its hover state (including
+    /// on activation). Resolve the row at the press, across all columns, rather than relying
+    /// on a previous hover callback. A blank table area must not reuse a stale hovered entry.
+    private func entry(at point: NSPoint, in window: NSWindow) -> ArchiveEntry.ID? {
+        var hit = (window.contentView?.superview ?? window.contentView)?.hitTest(point)
+        while let view = hit {
+            let table = (view as? NSTableView)
+                ?? ((view as? NSClipView)?.documentView as? NSTableView)
+                ?? ((view as? NSScrollView)?.documentView as? NSTableView)
+            if let table {
+                // Native tables own their tracking loop and file-promise session.
+                if table.gestureRecognizers.contains(where: { $0 is TableDragGesture }) { return nil }
+                let local = table.convert(point, from: nil)
+                guard table.visibleRect.contains(local), let model,
+                      table.numberOfRows == model.visibleEntries.count else { return nil }
+                let row = table.row(at: local)
+                guard model.visibleEntries.indices.contains(row) else { return nil }
+                return model.visibleEntries[row].id
+            }
+            hit = view.superview
+        }
+        return hovered
     }
 
     func prepareDrag(from id: ArchiveEntry.ID) -> [ArchiveEntry] {
@@ -84,8 +123,8 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         return entries
     }
 
-    private func beginDrag(from id: ArchiveEntry.ID, event: NSEvent) -> Bool {
-        guard let model, let view = window?.contentView else { return false }
+    func beginDrag(from id: ArchiveEntry.ID, event: NSEvent, gesture: NSGestureRecognizer? = nil) -> Bool {
+        guard !started, let model, let view = gesture?.view ?? event.window?.contentView else { return false }
         let entries = prepareDrag(from: id)
         guard !entries.isEmpty else { return false }
         let point = view.convert(event.locationInWindow, from: nil)
@@ -104,7 +143,15 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
             return item
         }
         model.quickLook.close()
-        view.beginDraggingSession(with: items, event: event, source: self)
+        activeGesture = gesture as? TableDragGesture
+        if #available(macOS 27, *), let gesture {
+            guard view.beginDraggingSession(items: items, gesture: gesture, source: self) != nil else {
+                finishDrag(pasteboard: nil, operation: [])
+                return false
+            }
+        } else {
+            view.beginDraggingSession(with: items, event: event, source: self)
+        }
         return true
     }
 
@@ -116,15 +163,17 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         if model.selection != ids { model.select(ids) }
     }
 
-    func finishDrag(pasteboard: NSPasteboard, operation: NSDragOperation) {
+    func finishDrag(pasteboard: NSPasteboard?, operation: NSDragOperation) {
         ArchiveTransfer.finish(transferToken)
         transferToken = nil
-        if operation.isEmpty { pasteboard.clearContents() }
+        if operation.isEmpty { pasteboard?.clearContents() }
         let token = selectionSnapshot?.token
         restoreSelection(token: token)
         dragging = []
         press = nil
         started = false
+        activeGesture?.nativeSessionEnded()
+        activeGesture = nil
         DispatchQueue.main.async { [weak self] in
             guard let self, self.selectionSnapshot?.token == token else { return }
             self.restoreSelection(token: token)
@@ -192,3 +241,114 @@ private struct EventBox: @unchecked Sendable {
     let event: NSEvent?
 }
 
+/// Observe the table's gesture before its own tracking consumes mouse movement. Leave
+/// selection, double-click, context menus and editing with SwiftUI's native table.
+final class TableDragGesture: NSGestureRecognizer {
+    typealias StartSession = (ArchiveEntry.ID, NSEvent, TableDragGesture) -> Bool
+
+    private weak var model: BrowserModel?
+    private var down: NSEvent?
+    private var dragEvent: NSEvent?
+    private var entry: ArchiveEntry.ID?
+    private var selection: Set<ArchiveEntry.ID>?
+    private var sessionActive = false
+    private let startSession: StartSession?
+
+    init(startSession: StartSession? = nil) {
+        self.startSession = startSession
+        super.init(target: nil, action: nil)
+        target = self
+        action = #selector(recognizedDrag)
+        // A row press belongs to this decision until it is a click or a file drag.
+        delaysPrimaryMouseButtonEvents = true
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    func attach(_ table: NSTableView, model: BrowserModel) {
+        if self.model !== model { clearPress() }
+        self.model = model
+        for old in table.gestureRecognizers where old is TableDragGesture && old !== self {
+            table.removeGestureRecognizer(old)
+        }
+        if view !== table {
+            detach()
+            table.addGestureRecognizer(self)
+        }
+    }
+
+    func detach() { view?.removeGestureRecognizer(self) }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let table = view as? NSTableView, let model, model.archive.source != nil,
+              model.renamingPath == nil, !event.modifierFlags.contains(.control) else { state = .failed; return }
+        let point = table.convert(event.locationInWindow, from: nil)
+        let row = table.row(at: point)
+        guard table.visibleRect.contains(point), model.visibleEntries.indices.contains(row),
+              model.archive.entry(at: model.visibleEntries[row].id) != nil else { state = .failed; return }
+        down = event
+        entry = model.visibleEntries[row].id
+        selection = model.selection.contains(model.visibleEntries[row].id) ? model.selection : nil
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard state == .possible, let down, entry != nil else { return }
+        let moved = hypot(event.locationInWindow.x - down.locationInWindow.x,
+                          event.locationInWindow.y - down.locationInWindow.y)
+        guard moved > 4 else { return }
+        dragEvent = event
+        state = .began
+    }
+
+    @objc private func recognizedDrag() {
+        // AppKit calls this after resolving competing recognizers. A released/cancelled
+        // press must never start a delayed session and leave a floating drag image behind.
+        guard state == .began, !sessionActive, let event = dragEvent, let entry, let model else { return }
+        if let selection { model.select(selection) }
+        sessionActive = true
+        let began = startSession?(entry, event, self)
+            ?? model.dragOut.beginDrag(from: entry, event: event, gesture: self)
+        if !began {
+            sessionActive = false
+            if state == .began { state = .failed }
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if state == .possible { state = .failed }
+        else if !sessionActive, state == .began || state == .changed { state = .cancelled }
+        // Once handed off, AppKit and the dragging-source completion own termination.
+    }
+
+    override func mouseCancelled(with event: NSEvent) {
+        nativeSessionEnded()
+        if state == .possible { state = .failed }
+    }
+
+    func nativeSessionEnded() {
+        sessionActive = false
+        clearPress()
+        if state == .began || state == .changed { state = .cancelled }
+    }
+
+    override func canBePrevented(by preventingGestureRecognizer: NSGestureRecognizer) -> Bool { false }
+
+    override func shouldBeRequiredToFail(by other: NSGestureRecognizer) -> Bool {
+        guard other.view === view else { return false }
+        if let pan = other as? NSPanGestureRecognizer { return pan.buttonMask & 1 != 0 }
+        if let click = other as? NSClickGestureRecognizer { return click.buttonMask & 1 != 0 }
+        return false
+    }
+
+    private func clearPress() {
+        down = nil
+        dragEvent = nil
+        entry = nil
+        selection = nil
+    }
+
+    override func reset() {
+        super.reset()
+        sessionActive = false
+        clearPress()
+    }
+}

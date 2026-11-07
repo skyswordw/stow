@@ -1,5 +1,40 @@
 # UI and motion handoff — Claude Code
 
+## Browser/Glance drag handoff — current user direction, #332
+
+The user stopped Codex testing and requested Claude Code to take over the next interaction,
+defect and motion pass: [#332](https://github.com/Beastry/stow/issues/332). The current visual
+result was rejected. Draft #320 is a reviewable experiment, not an approved design or a required
+implementation. Claude may replace it. No Claude session has been started or acceptance claimed.
+
+Include the earlier Browser drop-feedback/cross-archive workflow (#308/#311), preserving its
+accepted copy/Undo/Redo/Save behavior, alongside Glance's repeated-drag/range-selection conflict,
+lingering drag image and Peek suppression. Verify real repeated gestures independently before
+requesting final user acceptance. Full VoiceOver remains deferred; #93 stays separate.
+
+## Glance drag-out and Peek interruption — #318 (experimental checkpoint)
+
+The user confirmed Browser/Glance drag parity and suppression of Peek while pressing or
+dragging files. Follow [the current implementation and evidence](318-drag-peek-verification.md).
+The first window-routing/hover-hit fixes were insufficient in the user's native acceptance.
+A later build allowed the first drag, but subsequent drags could become range selection and
+leave a drag image behind. The latest queued-action/reset candidate has no physical acceptance.
+
+Tables now use a native gesture to start file-promise dragging, preserving multi-selection and
+resolving the pressed row across columns. Each retained window keeps its archive owner; stale
+host gestures and presses from a replaced archive cannot take over. The existing grid/column
+monitor lets AppKit receive the native drag events. Pending or visible Peek is cancelled on
+press, drag and window deactivation; ordinary hover-only scanning retains its current timing.
+
+Native receiver callbacks delivered a single file, multiple files and a folder with exact
+fixture bytes, including Keep Both, a size-column drag after a Browser/Glance round trip, and
+cancellation without an extra file. The temporary receiver and diagnostic logging were removed.
+This evidence is separate from physical Finder-drop and motion acceptance, which automation
+has not established. Dedicated VoiceOver work remains deferred and #93 stays open.
+
+Codex owns functional routing, cancellation and regression tests. Claude Code retains visual
+and motion ownership; no layout/material changes, animation tuning or design review are claimed.
+
 ## Independent archive windows — current user decision
 
 The user chose one independent window per archive on 2026-11-06. Follow
