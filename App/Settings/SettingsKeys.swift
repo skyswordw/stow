@@ -124,6 +124,8 @@ nonisolated enum SettingsKeys {
         .init(key: updatesAutomaticallyDownload, defaultValue: .bool(false))
     ] + Audience.allCases.map {
         Entry(key: "PackLevel.\($0.rawValue)", defaultValue: .integer(Int64(CompressionLevel.balanced.rawValue)))
+    } + Audience.allCases.map {
+        Entry(key: "PackFormat.\($0.rawValue)", defaultValue: .string(PackFormat.zip.rawValue))
     }
 
     static func reset(in store: UserDefaults) {
@@ -158,7 +160,7 @@ nonisolated enum SettingsKeys {
             keys = [Preferences.Key.afterInstall, Preferences.Key.removeQuarantine]
         case .packing:
             keys = Set(["PackAudience", "PackVerify", volumeSize, "PackCPUCores"]
-                       + Audience.allCases.map { "PackLevel.\($0.rawValue)" })
+                       + Audience.allCases.flatMap { ["PackLevel.\($0.rawValue)", "PackFormat.\($0.rawValue)"] })
         case .nextSteps:
             keys = [nextStepsShown, nextStepsHidden]
         case .previews:

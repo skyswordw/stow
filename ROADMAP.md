@@ -8,6 +8,30 @@ must follow are in [DESIGN.md](DESIGN.md).
 
 ---
 
+## Approved ArcZip follow-up — 2026-11-06
+
+The user approved the ranked [update assessment](Handoff/arczip-update-gap-assessment-2026-11-06.md).
+The current GitHub planning index is [#39](https://github.com/Beastry/stow/issues/39).
+Functional implementation for the first wave is in this change, pending merge/release:
+
+| Priority | Task | Status |
+| --- | --- | --- |
+| P1 | [#312](https://github.com/Beastry/stow/issues/312): batch password prompts and session reuse | Implemented, including Finder/Tray routes and skipped-source retention |
+| P1 | [#313](https://github.com/Beastry/stow/issues/313): complete, success-aware split cleanup | Implemented for authoritative numbered ZIP/7Z sets; unknown multipart families remain untouched |
+| P1 | [#314](https://github.com/Beastry/stow/issues/314): per-purpose format/level defaults | Implemented across Pack, drafts and Quick Compress; job changes do not overwrite defaults |
+| P1 | [#315](https://github.com/Beastry/stow/issues/315): export existing temporary Tray results | Implemented with destination-side staging, no-clobber numbering and source retention |
+| P1 investigation | [#316](https://github.com/Beastry/stow/issues/316): Zstd-coded 7Z | Decoder gap reproduced; dedicated decoder support is recommended as follow-up, not included in this functional wave |
+| P1 investigation | [#317](https://github.com/Beastry/stow/issues/317): exFAT extraction | Healthy disposable image created; host driver could not mount it. [Evidence](Handoff/exfat-verification-2026-11-06.md). No Stow defect or acceptance claimed |
+
+Approved P2 backlog: count-based splitting, hover media playback, staged password-library
+improvements, multi-password archives, optional common batch-output folder, archive comments,
+optional double-click extraction, and evidence-led compression/placement optimization.
+P3: release-note discoverability and demand-driven Traditional Chinese localization.
+Do not duplicate implemented multiwindow, draft, selected-path stripping or basic Keychain work.
+
+Codex / Grok Bot owns functional behavior and tests. New functional controls remain subject to
+Claude Code's visual/motion review. Dedicated VoiceOver acceptance remains deferred.
+
 ## Where we are
 
 **Implemented today:** real archives open, browse, preview and extract through a sandboxed 7-Zip

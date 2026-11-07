@@ -77,6 +77,9 @@ nonisolated enum SplitArchive {
         if error.failure == .notAnArchive { return EngineError(.missingVolume) }
         if error.failure == .failed {
             let text = error.message.lowercased()
+            // A complete split archive may use an unavailable codec (#316). The generic
+            // 7-Zip failure prefix is not evidence that a volume is missing in that case.
+            if text.contains("unsupported method") { return error }
             if ["unexpected end", "headers error", "data error", "crc failed", "cannot find volume", "missing volume", "7-zip couldn’t finish"].contains(where: text.contains) {
                 return EngineError(.missingVolume)
             }

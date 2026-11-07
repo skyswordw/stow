@@ -168,15 +168,49 @@ enum PackPreferences {
         set { defaults.set(newValue.rawValue, forKey: "PackAudience") }
     }
 
-    /// Each audience remembers its own level.
-    static func level(for audience: Audience) -> CompressionLevel {
-        let key = "PackLevel.\(audience.rawValue)"
-        guard defaults.object(forKey: key) != nil else { return .balanced }
-        return CompressionLevel(rawValue: defaults.integer(forKey: key)) ?? .balanced
+    /// Existing installations had no saved format: keep their ZIP starting point. Recommendations
+    /// remain suggestions, so every supported format is valid for every audience.
+    static func format(for audience: Audience, in store: UserDefaults = .standard) -> PackFormat {
+        store.string(forKey: "PackFormat.\(audience.rawValue)").flatMap(PackFormat.init(rawValue:)) ?? .zip
     }
 
-    static func setLevel(_ level: CompressionLevel, for audience: Audience) {
-        defaults.set(level.rawValue, forKey: "PackLevel.\(audience.rawValue)")
+    static func setFormat(_ format: PackFormat, for audience: Audience, in store: UserDefaults = .standard) {
+        store.set(format.rawValue, forKey: "PackFormat.\(audience.rawValue)")
+    }
+
+    /// Existing per-audience levels retain their keys; adding formats needs no destructive migration.
+    static func level(for audience: Audience, in store: UserDefaults = .standard) -> CompressionLevel {
+        let key = "PackLevel.\(audience.rawValue)"
+        guard let number = store.object(forKey: key) as? NSNumber else { return .balanced }
+        return CompressionLevel(rawValue: number.intValue) ?? .balanced
+    }
+
+    static func setLevel(_ level: CompressionLevel, for audience: Audience, in store: UserDefaults = .standard) {
+        store.set(level.rawValue, forKey: "PackLevel.\(audience.rawValue)")
+    }
+
+    /// A snapshot for a new Pack sheet, draft or Quick Compress operation. Job edits never write
+    /// back; Settings is the explicit place to change defaults.
+    static func options(initialFormat: PackFormat? = nil, in store: UserDefaults = .standard) -> PackOptions {
+        let audience = store.string(forKey: "PackAudience").flatMap(Audience.init(rawValue:)) ?? .windows
+        var options = PackOptions()
+        applyDefaults(to: &options, for: audience, in: store)
+        if let initialFormat {
+            options.setCustomFormat(initialFormat)
+            options.level = initialFormat.isCompressed ? level(for: audience, in: store) : .store
+        }
+        options.verify = store.bool(forKey: "PackVerify")
+        options.split = options.format.supportsSplit ? SettingsKeys.splitSize(in: store) : .none
+        return options
+    }
+
+    /// Guided purpose changes select that purpose's defaults; an explicit advanced format survives.
+    static func applyDefaults(to options: inout PackOptions, for audience: Audience,
+                              in store: UserDefaults = .standard) {
+        let custom = options.hasCustomFormat
+        options.setAudience(audience)
+        if !custom { options.setFormat(format(for: audience, in: store)) }
+        options.level = options.format.isCompressed ? level(for: audience, in: store) : .store
     }
 
     static var verify: Bool {

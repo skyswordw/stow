@@ -412,7 +412,7 @@ nonisolated struct PackOptions: Equatable, Sendable {
         keepsMacMetadata = nil
         encryptFilenames = true
         threads = nil
-        level = PackPreferences.level(for: audience)
+        level = format.isCompressed ? PackPreferences.level(for: audience) : .store
         verify = PackPreferences.verify
         split = format.supportsSplit ? SettingsKeys.splitSize() : .none
         diskImageFilesystem = .hfsPlus

@@ -78,6 +78,15 @@ final class SystemActions {
     /// `destination` nil: next to each archive.
     private func extract(_ archives: [URL], to destination: URL?) async {
         var placed: [URL] = []
+        var completed: [ArchiveAftercare.Source] = []
+        let session = BatchPasswordSession()
+        defer { session.clear() }
+        let passwords = app.map { owner in
+            PasswordHook(prompt: owner.passwords, prepare: { [weak owner] in
+                guard let owner, !owner.glance.isShown else { return }
+                owner.showMainWindow()
+            })
+        } ?? .none
         for url in archives {
             var folder = destination ?? url.deletingLastPathComponent()
             if destination == nil {
@@ -86,29 +95,47 @@ final class SystemActions {
             }
             guard await FolderAccess.shared.readable(url, for: .extract(url.lastPathComponent)) else { return }
             do {
-                placed += try await track { report in
-                    let listing = try await ArchiveEngine.shared.list(url)
-                    let archive = await Self.makeArchive(listing, url: url)
-                    return try await Extraction.run(archive, selection: nil, to: folder, onProgress: report).placed
+                var source: ArchiveAftercare.Source?
+                let result = try await track { report in
+                    try await session.retrying(url, passwords: passwords) { password in
+                        let listing = try await ArchiveEngine.shared.list(url, password: password)
+                        var archive = await Self.makeArchive(listing, url: url)
+                        archive.source?.password = password
+                        source = ArchiveAftercare.Source.capture(url)
+                        return try await Extraction.run(archive, selection: nil, to: folder, onProgress: report)
+                    }
+                }
+                placed += result.placed
+                if result.isComplete, let source { completed.append(source) }
+                if !result.isComplete {
+                    _ = await Prompts.explain(Failure(
+                        String(localized: "Some items were not extracted."),
+                        advice: String(localized: "The original archive was kept. Review the extracted files before trying again."),
+                        code: ErrorCode(.extract, .unknown)))
                 }
             } catch {
                 await explain(EngineError(error), archive: url, destination: folder)
             }
         }
+        session.clear()
+        _ = await ArchiveAftercare.apply(Preferences.current.afterExtractAll, key: Preferences.Key.afterExtractAll,
+                                         sources: completed, action: String(localized: "It was extracted."))
         Self.log.info("Extracted \(archives.count) archives into \(placed.count) items")
         if !placed.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(placed) }
     }
 
     private func quickCompress(_ items: [URL]) async {
+        // Destination and engine must use the same snapshot if Settings changes during authorization.
+        let options = QuickCompress.options
         let folder = items[0].deletingLastPathComponent()
         guard let writable = await FolderAccess.shared.writableFolder(folder, for: .compress) else { return }
-        let target = QuickCompress.destination(for: items.map { writable.appending(path: $0.lastPathComponent) }) {
+        let target = QuickCompress.destination(for: items.map { writable.appending(path: $0.lastPathComponent) }, format: options.format) {
             FileManager.default.fileExists(atPath: $0.path)
         }
         do {
             let packer = packer
             try await track { report in
-                try await packer.pack(items, options: QuickCompress.options, to: target, onProgress: report)
+                try await packer.pack(items, options: options, to: target, onProgress: report)
             }
             NSWorkspace.shared.activateFileViewerSelecting([target])
         } catch {

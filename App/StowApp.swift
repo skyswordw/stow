@@ -92,6 +92,10 @@ final class AppState {
             self?.tray.removeCleanedTemporaryGroup(at: url)
         }
         if workspaceOwner == nil { TrayTemporaryGroups.purgeAbandoned(keeping: []) }
+        batch.passwords = PasswordHook(prompt: passwords, prepare: { [weak self] in
+            guard let self else { return }
+            if !self.glance.isShown { self.showMainWindow() }
+        })
         batch.onOpen = { [weak self] url in
             self?.openPreferred(url)
         }
@@ -123,6 +127,7 @@ final class AppState {
     /// Settings holds off cleaning temporary files.
     var isBusy: Bool {
         if additionalSessions.contains(where: \.isBusy) { return true }
+        if tray.isSavingTemporaryResult { return true }
         if archiveDraft?.isImporting == true || archiveDraft?.isSaving == true { return true }
         if pendingCommands > 0 || system.pendingRequests > 0 || system.running > 0
             || finishingBrowsers.contains(where: { if $0.model.isTransferring { true } else if case .running = $0.model.activity?.phase { true } else { false } }) { return true }

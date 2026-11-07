@@ -31,6 +31,12 @@ final class BatchQueue {
 
     /// Opens an archive in Stow's window (set by `AppState`), where its password can be entered.
     var onOpen: ((URL) -> Void)?
+    var passwords = PasswordHook.none
+    /// Production aftercare remains preference-driven. Tests inject a recorder instead of Trash.
+    var aftercare: ([ArchiveAftercare.Source], String) async -> Void = { sources, action in
+        _ = await ArchiveAftercare.apply(Preferences.current.afterExtractAll, key: Preferences.Key.afterExtractAll,
+                                         sources: sources, action: action)
+    }
 
     var isActive: Bool { jobs.contains { !$0.isFinished } }
     var finishedCount: Int { jobs.filter(\.isFinished).count }
@@ -154,29 +160,38 @@ final class BatchQueue {
 
     private func drain() async {
         let policy = ConflictPolicy()
-        var extracted: [URL] = []
+        let session = BatchPasswordSession()
+        var extracted: [ArchiveAftercare.Source] = []
         while let next = jobs.first(where: { $0.phase == .waiting }) {
-            if await run(next, policy) { extracted.append(next.url) }
+            if let source = await run(next, policy, session) { extracted.append(source) }
         }
+        session.clear()
         let count = extracted.count
         // A new enqueue during aftercare owns its own grants until its worker finishes.
         let completedScopes = scoped
         scoped.removeAll()
-        _ = await ArchiveAftercare.apply(Preferences.current.afterExtractAll, key: Preferences.Key.afterExtractAll,
-                                         to: extracted, action: count == 1 ? String(localized: "It was extracted.") : String(localized: "All \(count) were extracted."))
+        await aftercare(extracted, count == 1 ? String(localized: "It was extracted.") : String(localized: "All \(count) were extracted."))
         for url in completedScopes { url.stopAccessingSecurityScopedResource() }
         // Results remain available until Clear, including stopped jobs and offscreen rows.
     }
 
-    /// True when the archive was extracted.
-    private func run(_ job: Job, _ policy: ConflictPolicy) async -> Bool {
+    /// Only a complete extraction returns a source eligible for cleanup.
+    private func run(_ job: Job, _ policy: ConflictPolicy, _ session: BatchPasswordSession) async -> ArchiveAftercare.Source? {
         update(job.id) { $0.phase = .running(0) }
+        var source: ArchiveAftercare.Source?
+        let passwords = passwords
         let task = Task<Extraction.Result, any Error> { [weak self] in
-            let listing = try await ArchiveEngine.shared.list(job.url)
-            let archive = Archive(listing: listing, url: job.url)
-            return try await Extraction.run(archive, selection: nil, to: job.destination,
-                                            options: .current(resolve: policy.resolver)) { fraction in
-                Task { @MainActor in self?.advance(job.id, to: fraction) }
+            try await session.retrying(job.url, passwords: passwords) { password in
+                let listing = try await ArchiveEngine.shared.list(job.url, password: password)
+                var archive = Archive(listing: listing, url: job.url)
+                archive.source?.password = password
+                // Listing acquires any required split-folder grant. Capture before extraction,
+                // not afterward: replaced archives must never be mistaken for the extracted input.
+                source = ArchiveAftercare.Source.capture(job.url)
+                return try await Extraction.run(archive, selection: nil, to: job.destination,
+                                                options: .current(resolve: policy.resolver)) { fraction in
+                    Task { @MainActor in self?.advance(job.id, to: fraction) }
+                }
             }
         }
         running[job.id] = task
@@ -185,14 +200,17 @@ final class BatchQueue {
             let result = try await task.value
             update(job.id) {
                 $0.placed = result.placed
-                $0.phase = .done
+                $0.phase = result.isComplete ? .done : .failed(Failure(
+                    String(localized: "Some items were not extracted."),
+                    advice: String(localized: "The original archive was kept. Review the extracted files before trying again."),
+                    action: .tryAgain, code: ErrorCode(.extract, .unknown)))
             }
-            return true
+            return result.isComplete ? source : nil
         } catch {
             let error = EngineError(error)
             let failure = Failure(error, .extract, name: job.name, destination: job.destination)
             update(job.id) { $0.phase = error.failure == .cancelled ? .cancelled : .failed(failure) }
-            return false
+            return nil
         }
     }
 
@@ -205,5 +223,57 @@ final class BatchQueue {
     private func update(_ id: Job.ID, _ change: (inout Job) -> Void) {
         guard let index = jobs.firstIndex(where: { $0.id == id }) else { return }
         change(&jobs[index])
+    }
+}
+
+/// Successful passwords belong to one drain of the queue, never to another batch or a static
+/// cache. Validate listing AND extraction before reusing one: a ZIP's public names prove nothing.
+final class BatchPasswordSession {
+    private(set) var successful: [String] = []
+
+    func clear() { successful.removeAll() }
+
+    func retrying<T>(_ url: URL, passwords: PasswordHook,
+                     _ operation: (String?) async throws -> T) async throws(EngineError) -> T {
+        var candidates = successful
+        let recalled = ArchivePasswordVault.recalled(for: url)
+        if let recalled, !candidates.contains(recalled) { candidates.insert(recalled, at: 0) }
+        var password: String?
+        var manual = false
+        while true {
+            do {
+                if Task.isCancelled { throw EngineError(.cancelled) }
+                let result = try await operation(password)
+                if Task.isCancelled { throw EngineError(.cancelled) }
+                if let password {
+                    successful.removeAll { $0 == password }
+                    successful.insert(password, at: 0)
+                    ArchivePasswordVault.remember(password, for: url)
+                }
+                return result
+            } catch {
+                let error = EngineError(error)
+                guard !Task.isCancelled else { throw EngineError(.cancelled) }
+                guard error.needsPassword else { throw error }
+                if let password, password == recalled { ArchivePasswordVault.forget(url: url) }
+                if !candidates.isEmpty {
+                    password = candidates.removeFirst()
+                    continue
+                }
+                guard passwords.isWired else { throw error }
+                // A Browser request in this session owns its question until answered. Never
+                // replace it, and cancellation while waiting must not dismiss somebody else's UI.
+                while passwords.isAsking {
+                    do { try await Task.sleep(for: .milliseconds(40)) }
+                    catch { throw EngineError(.cancelled) }
+                }
+                if Task.isCancelled { throw EngineError(.cancelled) }
+                guard let next = await passwords.ask(url.lastPathComponent, .batchExtract, manual) else {
+                    throw EngineError(.cancelled)
+                }
+                password = next
+                manual = true
+            }
+        }
     }
 }

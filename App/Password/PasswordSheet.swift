@@ -41,7 +41,7 @@ struct PasswordSheet: View {
             }
             .padding(.leading, 32 + Space.m)
         } buttons: {
-            Button("Cancel", role: .cancel) { answer(nil) }
+            Button(question.purpose == .batchExtract ? String(localized: "Skip Archive") : String(localized: "Cancel"), role: .cancel) { answer(nil) }
                 .keyboardShortcut(.cancelAction)
             Button(submitTitle, action: submit)
                 .keyboardShortcut(.defaultAction)
@@ -62,6 +62,7 @@ struct PasswordSheet: View {
         switch question.purpose {
         case .open: String(localized: "Its list of files is encrypted. Enter the password to see what’s inside.")
         case .extract: String(localized: "Its files are encrypted. Enter the password to extract them.")
+        case .batchExtract: String(localized: "Enter the password to extract this archive, or skip it and continue with the others.")
         // Asked from an archive whose file names are already showing: say they stay browsable.
         case .unlock: String(localized: "You can browse its file names. Enter the password to preview or extract the files.")
         }
@@ -70,16 +71,21 @@ struct PasswordSheet: View {
     private var submitTitle: String {
         switch question.purpose {
         case .open: String(localized: "Open")
-        case .extract: String(localized: "Extract")
+        case .extract, .batchExtract: String(localized: "Extract")
         case .unlock: String(localized: "Unlock")
         }
     }
 
     private var footnote: String {
+        if question.purpose == .batchExtract {
+            return ArchivePasswordVault.isEnabled
+                ? String(localized: "Passwords that work are reused for this batch and saved in your Keychain.")
+                : String(localized: "Passwords that work are reused only for this batch, then forgotten.")
+        }
         if ArchivePasswordVault.isEnabled {
-            String(localized: "If this unlocks it, Stow saves the password in your Keychain for next time.")
+            return String(localized: "If this unlocks it, Stow saves the password in your Keychain for next time.")
         } else {
-            String(localized: "Stow keeps it only while this archive is open.")
+            return String(localized: "Stow keeps it only while this archive is open.")
         }
     }
 

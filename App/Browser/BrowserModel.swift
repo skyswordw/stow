@@ -1147,6 +1147,7 @@ final class BrowserModel {
         activityTask?.cancel()
         activityTask = Task { [weak self] in
             guard let self else { return }
+            let sourceForAftercare = archive.source.flatMap { ArchiveAftercare.Source.capture($0.url) }
             let finished: Finished
             do {
                 try await prepare?()
@@ -1174,8 +1175,8 @@ final class BrowserModel {
             activity?.title = finished.title
             withAnimation(Motion.current(Motion.status)) { activity?.phase = .done }
 
-            if let aftercare = finished.aftercare, let source = archive.source?.url {
-                let trashed = await ArchiveAftercare.apply(aftercare.setting, key: aftercare.key, to: [source],
+            if let aftercare = finished.aftercare {
+                let trashed = await ArchiveAftercare.apply(aftercare.setting, key: aftercare.key, sources: sourceForAftercare.map { [$0] } ?? [],
                                                            action: aftercare.action)
                 if !trashed.isEmpty {
                     try? await Task.sleep(for: .seconds(1.2))
@@ -1217,8 +1218,9 @@ final class BrowserModel {
             }
             if let password { self?.rememberPassword(password) }
             var finished = Finished(placed: result.placed, findings: result.findings)
-            if result.placed.isEmpty { finished.title = String(localized: "Nothing new — everything was already there") }
-            if selection == nil {
+            if !result.isComplete { finished.title = String(localized: "Some items were not extracted.") }
+            else if result.placed.isEmpty { finished.title = String(localized: "Nothing new — everything was already there") }
+            if selection == nil && result.isComplete {
                 finished.aftercare = (Preferences.current.afterExtractAll, Preferences.Key.afterExtractAll, String(localized: "Everything was extracted."))
             }
             return finished

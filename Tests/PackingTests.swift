@@ -69,6 +69,42 @@ private func pack(_ tree: SourceTree, audience: Audience, format: PackFormat, pa
 @Suite("Packing", .enabled(if: SevenZip.bundled() != nil, "7zz isn't bundled — run scripts/fetch-7zip.sh"))
 @MainActor
 struct PackingTests {
+    @Test func quickCompressUsesCompoundFormatWithoutDuplicatingItsSuffix() async throws {
+        let temp = try TemporaryFolder()
+        defer { temp.cleanUp() }
+        let input = temp.url.appending(path: "note.txt")
+        let bytes = Data("quick packing defaults".utf8)
+        try bytes.write(to: input)
+        let name = "PackingDefaults.\(UUID().uuidString)"
+        let store = try #require(UserDefaults(suiteName: name))
+        defer { store.removePersistentDomain(forName: name) }
+        store.set(Audience.linux.rawValue, forKey: "PackAudience")
+        PackPreferences.setFormat(.tarXz, for: .linux, in: store)
+        PackPreferences.setLevel(.fast, for: .linux, in: store)
+        let options = QuickCompress.options(in: store)
+        let output = QuickCompress.destination(for: [input], format: options.format) {
+            FileManager.default.fileExists(atPath: $0.path)
+        }
+        try await EnginePacker().pack([input], options: options, to: output) { _ in }
+        #expect(output.lastPathComponent == "note.tar.xz")
+        #expect(FileManager.default.fileExists(atPath: output.path))
+        #expect(!FileManager.default.fileExists(atPath: temp.url.appending(path: "note.tar.tar.xz").path))
+        let listing = try await ArchiveEngine.shared.list(output)
+        let archive = Archive(listing: listing, url: output)
+        let destination = temp.url.appending(path: "Extracted", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
+        let result = try await Extraction.run(archive, selection: nil, to: destination) { _ in }
+        let extracted = try #require(result.placed.first)
+        #expect(try Data(contentsOf: extracted) == bytes)
+        let next = QuickCompress.destination(for: [input], format: options.format) {
+            FileManager.default.fileExists(atPath: $0.path)
+        }
+        #expect(next.lastPathComponent == "note 2.tar.xz")
+        try await EnginePacker().pack([input], options: options, to: next) { _ in }
+        #expect(FileManager.default.fileExists(atPath: next.path))
+        #expect(FileManager.default.fileExists(atPath: output.path))
+    }
+
     /// #23: a folder packed as a DMG for Macs opens as a disk with the folder's contents at the top,
     /// links and permissions intact. Made by hdiutil in the sandboxed test host, as in the app.
     @Test func makesADiskImageFromAFolder() async throws {
