@@ -101,7 +101,7 @@ struct PackingSettingsView: View {
                     SplitSizeEditor(initial: current) { volume = Int($0.rawValue) }
                 }
                 Toggle("Verify archive contents after packing", isOn: $verify)
-                Picker("CPU cores for packing", selection: $cores) {
+                Picker("CPU threads for packing", selection: $cores) {
                     Text("All").tag(0)
                     ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { Text("\($0)").tag($0) }
                 }
