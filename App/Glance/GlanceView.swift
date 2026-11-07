@@ -169,73 +169,48 @@ struct GlanceView: View {
         }
     }
 
-    /// The window's controls on the leading side; the archive's Extract All and Actions on the
-    /// trailing side, with one prominent action at a time: Extract All carries the accent until
-    /// Actions shows, to install an archive that's one app, or until there are changes to save,
-    /// when the bar's Save (or Save a Copy…) is the one.
-    ///
-    /// Extraction stays in one place, bottom right: a selection's Extract stack takes Extract All's
-    /// place there and gives it back as the selection clears, cross-fading on the same trailing
-    /// edge instead of jumping across the window (File › Extract All, ⇧⌘E, reaches the whole
-    /// archive meanwhile). One extraction button at a time: Glance has no room for "Extract All" in
-    /// words beside the stack, and its icon alone is Extract's icon. While a step runs, its
-    /// progress takes the same place. When the row still runs out of room, Extract All keeps its
-    /// icon and drops its words.
+    /// The window's controls on the leading side; the archive's capsule — Quick Look and Extract
+    /// All — fixed at the trailing end, as ArcZip's Mini keeps Preview and Extract All (user's
+    /// call, 2026-11-07). It never moves or changes: Quick Look is dimmed until something is
+    /// selected. A selection adds its own action just before it — ⚡ Extract, or Install App for
+    /// an app — easing out of the capsule (a row's right-click menu and File › Actions list the rest); nothing else moves, so nothing
+    /// swaps or jumps. The bolt keeps it apart from Extract All's box. One prominent action at a
+    /// time: Extract All carries the accent until the selection's action shows, or until there are
+    /// changes to save, when the bar's Save (or Save a Copy…) is the one. A step's progress takes
+    /// the selection's place. When the row runs out of room, Extract All keeps its icon alone.
     @ViewBuilder
     private var floatingControls: some View {
         let installsArchive = showsNextSteps && NextStepsSettings(hidden: NextStepsSettings.decode(hiddenSteps))
             .archiveLayout(installable: model.archiveTarget).front != nil
         let showsActions = (!model.selection.isEmpty && showsNextSteps) || model.activity != nil || installsArchive
-        let selectionExtracts = GlanceLayout.selectionExtracts(
-            model, settings: NextStepsSettings(isShown: showsNextSteps, hidden: NextStepsSettings.decode(hiddenSteps)))
         // Edits pending or being saved: the bar under the files holds the accent.
         let savesEdits = model.editSession.isEdited || model.editSession.isSaving
         let extractsProminently = !showsActions && !savesEdits
-        let extractAll = GlanceLayout.extractAllPlacement(showsActions: showsActions, selectionExtracts: selectionExtracts,
-                                                          hasActivity: model.activity != nil)
         HStack(alignment: .bottom, spacing: Space.s) {
             GlanceWindowControls(glance: glance)
                 .accessibilitySortPriority(0.6)
             Spacer(minLength: 0)
-            // Both on the same trailing edge, so swapping one for the other moves nothing.
-            ZStack(alignment: .bottomTrailing) {
-                if extractAll == .alone {
-                    extractAllButton(prominent: extractsProminently, savesEdits: savesEdits, matchesStack: true)
-                        .accessibilitySortPriority(0.5)
-                        .transition(.opacity)
-                }
+            ZStack {
                 if showsActions {
-                    HStack(alignment: .bottom, spacing: Space.s) {
-                        // Beside the stack only when the stack has no Extract of its own (Extract
-                        // hidden in Settings, an archive's one app to install).
-                        if extractAll == .besideActions {
-                            extractAllButton(prominent: false, savesEdits: savesEdits)
-                                .accessibilitySortPriority(0.5)
-                        }
-                        // One Actions view in every state, so Install morphs into its progress like a selection's.
-                        NextStepsBar(model: model, sharesExtractionWidth: true)
-                            .accessibilityElement(children: .contain)
-                            .accessibilitySortPriority(0)
-                    }
-                    .transition(.opacity)
+                    // One Actions view in every state, so Install morphs into its progress like a selection's.
+                    NextStepsBar(model: model, single: true)
+                        .accessibilityElement(children: .contain)
+                        .accessibilitySortPriority(0.5)
+                        .transition(GlanceLayout.emerge(reduceMotion: reduceMotion))
                 }
             }
-            // A quick cross-fade in place for a click; arrow keys, ⌘A and Esc swap them without motion.
+            // Eases out for a click, quicker back in; none for arrow keys, ⌘A or Esc.
+            .animation(Motion.presence(showsActions, reduceMotion: reduceMotion), value: showsActions)
+            ViewThatFits(in: .horizontal) {
+                ArchiveActions(model: model, prominent: extractsProminently, quickLook: true)
+                ArchiveActions(model: model, prominent: extractsProminently, compact: true, quickLook: true)
+            }
+            // The accent passes to the selection's action as a status change; a key press just swaps it.
             .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion),
-                       value: showsActions)
+                       value: extractsProminently)
+            .accessibilitySortPriority(0.4)
         }
         .padding([.horizontal, .bottom], GlanceLayout.inset)
-    }
-
-    /// `matchesStack`: alone in extraction's place, as wide as the stack that takes it.
-    private func extractAllButton(prominent: Bool, savesEdits: Bool, matchesStack: Bool = false) -> some View {
-        ViewThatFits(in: .horizontal) {
-            ArchiveActions(model: model, prominent: prominent, matchesStack: matchesStack)
-            ArchiveActions(model: model, prominent: prominent, compact: true)
-        }
-        // The accent fades across as a status change; a ⌘S or Delete key press just swaps it.
-        .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion),
-                   value: savesEdits)
     }
 }
 
@@ -246,25 +221,14 @@ enum GlanceLayout {
     /// The header's leading and trailing margin; the badge lines up with the rows' icons.
     static let margin = Space.l
 
-    /// Where Extract All is in Glance's bar: alone at the trailing end, just before Actions there, or
-    /// not shown, while a selection's stack offers Extract or a step's progress holds the place
-    /// (Extract All waits until the step finishes anyway, and appearing beside it would push it
-    /// aside).
-    enum ExtractAllPlacement { case alone, besideActions, hidden }
-
-    static func extractAllPlacement(showsActions: Bool, selectionExtracts: Bool, hasActivity: Bool) -> ExtractAllPlacement {
-        if !showsActions { return .alone }
-        return selectionExtracts || hasActivity ? .hidden : .besideActions
-    }
-
-    /// Whether the selection's Actions offer an Extract of their own, so Extract All steps aside
-    /// (#248): Actions on, Extract not hidden in Settings › Actions (hidden, it waits in ⋯ and the
-    /// bar would have no extraction button at all), and items of this archive selected (results
-    /// inside other archives only offer to go there). Stops at the first selected item: ⌘A in a
-    /// big archive shouldn't sort the selection again here.
-    static func selectionExtracts(_ model: BrowserModel, settings: NextStepsSettings) -> Bool {
-        settings.isShown && settings.shows(.extract)
-            && model.selection.contains { model.archive.entry(at: $0) != nil }
+    /// A selection's action coming out of the archive's capsule beside it: from a little to
+    /// the right, slightly smaller, fading in; it goes back the same way, quicker. A fade alone
+    /// under Reduce Motion.
+    static func emerge(reduceMotion: Bool) -> AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .asymmetric(
+            insertion: .opacity.combined(with: .scale(scale: 0.94, anchor: .trailing)).combined(with: .offset(x: 14)),
+            removal: .opacity.combined(with: .scale(scale: 0.97, anchor: .trailing)).combined(with: .offset(x: 6)))
     }
 }
 

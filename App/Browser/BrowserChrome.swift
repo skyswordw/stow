@@ -186,14 +186,18 @@ struct ArchiveOpeningStatus: View {
 /// window's primary action until Actions shows, whose front button then carries the accent; it
 /// keeps its place and words either way.
 struct ArchiveActions: View {
+    /// Extract All: the box with an arrow out of it. A selection's Extract is a bolt (`NextStep.extract`).
+    static let extractAllSymbol = "arrow.up.bin"
+
     let model: BrowserModel
     let prominent: Bool
     var switchTo: WindowSwitch?
     /// Extract All as its icon alone, for a row without room for its words (Glance at its smallest
     /// beside a progress capsule). Its name stays its accessibility label and help.
     var compact = false
-    /// As wide as the Actions stack that takes its place (Glance, `ExtractionWidth`).
-    var matchesStack = false
+    /// Glance: Quick Look in the same capsule, just before Extract All, there whether or not
+    /// anything is selected (dimmed until something is), so the capsule never changes.
+    var quickLook = false
 
     /// Where the leading button takes the archive.
     enum WindowSwitch {
@@ -216,24 +220,34 @@ struct ArchiveActions: View {
                 EmptyView()
             }
 
-            ZStack {
-                if matchesStack, !compact { ExtractionWidth() }
+            HStack(spacing: 2) {
+                if quickLook { quickLookButton }
                 Button {
                     model.extractAll()
                 } label: {
-                    Label("Extract All", systemImage: NextStep.extract.symbol)
+                    Label("Extract All", systemImage: Self.extractAllSymbol)
                         .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
                 }
-                .buttonStyle(ActionButtonStyle(prominent: prominent, iconOnly: compact, fills: matchesStack && !compact))
+                .buttonStyle(ActionButtonStyle(prominent: prominent, iconOnly: compact, steadyWeight: quickLook))
                 .accessibilityLabel(String(localized: "Extract All"))
                 .help(model.extractAllUnavailableReason ?? String(localized: "Extract everything to a folder you choose"))
                 .disabled(model.extractAllUnavailableReason != nil)
-                .padding(ActionButtonStyle.inset)
-                .accessibleGlass(in: .capsule)
             }
+            .padding(ActionButtonStyle.inset)
+            .accessibleGlass(in: .capsule)
         }
         .fixedSize()
         .accessibilityElement(children: .contain)
+    }
+
+    private var quickLookButton: some View {
+        let unavailable = model.quickLookUnavailableReason
+        return Button(NextStep.quickLook.title, systemImage: NextStep.quickLook.symbol) { model.toggleQuickLook() }
+            .labelStyle(.iconOnly)
+            .buttonStyle(ActionButtonStyle(iconOnly: true))
+            .accessibilityLabel(NextStep.quickLook.title)
+            .help(unavailable ?? String(localized: "\(NextStep.quickLook.title): \(model.selectionScope)"))
+            .disabled(unavailable != nil)
     }
 
     /// A glass circle the capsules' height, like ⋯ beside the Actions stack.

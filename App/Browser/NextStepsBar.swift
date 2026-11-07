@@ -11,8 +11,10 @@ import SwiftUI
 /// (Internal names keep "Next Steps": the feature's settings keys and types predate the rename.)
 struct NextStepsBar: View {
     let model: BrowserModel
-    /// Glance: the stack is as wide as Extract All, which it takes the place of (`ExtractionWidth`).
-    var sharesExtractionWidth = false
+    /// Glance: the front action alone, without the others stacked behind it or ⋯. Quick Look is
+    /// in Glance's own capsule beside Extract All; a row's right-click menu and File › Actions
+    /// list the rest.
+    var single = false
     @Namespace private var glass
     @AppStorage(SettingsKeys.nextStepsHidden) private var hidden = NextStepsSettings.encode(NextStepsSettings.defaultHidden)
 
@@ -43,8 +45,7 @@ struct NextStepsBar: View {
             // app. Alone: Extract All is beside it, and its help tag names the app.
             if let target = model.archiveTarget,
                let front = NextStepsSettings(hidden: NextStepsSettings.decode(hidden)).archiveLayout(installable: target).front {
-                ActionStack(front: front, behind: [], sharesExtractionWidth: sharesExtractionWidth,
-                            selection: model.selection, scope: target.name,
+                ActionStack(front: front, behind: [], selection: model.selection, scope: target.name,
                             unavailable: model.actionsUnavailableReason,
                             isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
                             isGrown: Binding { model.isActionStackGrown } set: { model.isActionStackGrown = $0 },
@@ -57,10 +58,11 @@ struct NextStepsBar: View {
             let layout = NextStepsSettings(hidden: NextStepsSettings.decode(hidden))
                 .layout(for: entries, dropTargets: model.archive.dropTargets)
             HStack(alignment: .bottom, spacing: Space.s) {
-                NextStepsMoreMenu(model: model, alternatives: layout.more)
+                // Glance has no room for ⋯ beside its archive capsule; a row's right-click menu
+                // and File › Actions list every action there, as ⋯ does here.
+                if !single { NextStepsMoreMenu(model: model, alternatives: layout.more) }
                 if let front = layout.front {
-                    ActionStack(front: front, behind: layout.behind, sharesExtractionWidth: sharesExtractionWidth,
-                                selection: model.selection,
+                    ActionStack(front: front, behind: single ? [] : layout.behind, selection: model.selection,
                                 scope: entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items"),
                                 unavailable: model.actionsUnavailableReason,
                                 isOpen: Binding { model.isActionStackOpen } set: { model.isActionStackOpen = $0 },
@@ -85,7 +87,6 @@ struct NextStepsBar: View {
 private struct ActionStack: View {
     let front: NextStep
     let behind: [NextStep]
-    var sharesExtractionWidth = false
     /// A new selection folds the stack again.
     let selection: Set<ArchiveEntry.ID>
     /// What the actions apply to ("notes.txt", "3 items"), for their help tags: the buttons don't
@@ -232,7 +233,6 @@ private struct ActionStack: View {
             // …up to a limit: a long name ("Copy to “…”") is shortened in the middle rather than
             // pushing the stack into Extract All or under Details.
             .frame(maxWidth: StackButtonStyle.maxWidth)
-            if sharesExtractionWidth { ExtractionWidth() }
             Button(front.title, systemImage: front.symbol) { fold(); run(front) }
                 .buttonStyle(StackButtonStyle(prominent: true))
                 // ⌘E as in File › Extract; the others keep their menu-bar keys.
@@ -494,22 +494,6 @@ extension StackLabel where L == Label<Text, Image> {
     }
 }
 
-/// Glance's one place for extraction, bottom right, holds Extract All or a selection's stack, and
-/// both are this wide, so swapping them never changes the button's size: Extract All and every
-/// action with a fixed name, measured as stack buttons (hidden). Only a longer name of the
-/// moment, "Copy to “…”", makes a stack wider.
-struct ExtractionWidth: View {
-    var body: some View {
-        ZStack {
-            StackLabel(label: Label(String(localized: "Extract All"), systemImage: NextStep.extract.symbol), prominent: true)
-            ForEach(NextStep.fixedTitled) { StackLabel(step: $0) }
-        }
-        .frame(maxWidth: StackButtonStyle.maxWidth)
-        .hidden()
-        .accessibilityHidden(true)
-    }
-}
-
 /// One edge in the stack: the top of a button waiting behind the front one. Not glass — glass
 /// can't sit on glass — but a material with the same hairline rim, so it reads as the same family.
 private struct StackEdge: View {
@@ -550,12 +534,13 @@ struct ActionButtonStyle: ButtonStyle {
     var height: CGFloat = Self.height
     /// A switch that's on (Glance's Pin on Top): the symbol in the accent with a ring round it.
     var isOn = false
-    /// Takes the width it's offered (Glance's Extract All, as wide as the stack in its place).
-    var fills = false
+    /// Semibold whether or not it's prominent, for a button whose accent comes and goes beside
+    /// others (Glance's Extract All): only the fill fades, and the words keep their width.
+    var steadyWeight = false
 
     func makeBody(configuration: Configuration) -> some View {
         ActionButtonBody(configuration: configuration, prominent: prominent, iconOnly: iconOnly, height: height, isOn: isOn,
-                         fills: fills)
+                         semibold: prominent || steadyWeight)
     }
 }
 
@@ -565,17 +550,17 @@ private struct ActionButtonBody: View {
     let iconOnly: Bool
     let height: CGFloat
     let isOn: Bool
-    let fills: Bool
+    let semibold: Bool
     @State private var isHovering = false
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         configuration.label
-            .font(.body.weight(prominent ? .semibold : .regular))
+            .font(.body.weight(semibold ? .semibold : .regular))
             .foregroundStyle(prominent ? AnyShapeStyle(.white) : isOn ? AnyShapeStyle(.accentText) : AnyShapeStyle(.primary))
             .padding(.horizontal, iconOnly ? 0 : Space.m)
-            .frame(minWidth: height, maxWidth: fills ? .infinity : nil, minHeight: height)
+            .frame(minWidth: height, minHeight: height)
             .background { background }
             .overlay {
                 // Increase Contrast outlines the primary, so it reads by shape as well as by colour.
@@ -660,6 +645,20 @@ extension BrowserModel {
     }
 
     /// Extract All waits for a running step: starting it would stop that step part-way.
+    /// Why Glance's Quick Look can't open the selection: nothing of this archive is selected, the
+    /// archive is still being listed, or a password is being asked for.
+    var quickLookUnavailableReason: String? {
+        if let reason = actionsUnavailableReason { return reason }
+        if selectedEntries.isEmpty || passwords.isAsking { return String(localized: "Select files to Quick Look them") }
+        return nil
+    }
+
+    /// What a selection's actions apply to, for their help tags ("notes.txt", "3 items").
+    var selectionScope: String {
+        let entries = selectedEntries
+        return entries.count == 1 ? entries[0].name : String(localized: "\(entries.count) items")
+    }
+
     var extractAllUnavailableReason: String? {
         if let reason = actionsUnavailableReason { return reason }
         if case .running = activity?.phase { return String(localized: "Available when the current step finishes") }
