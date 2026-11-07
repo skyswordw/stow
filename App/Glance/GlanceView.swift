@@ -196,14 +196,14 @@ struct GlanceView: View {
                     NextStepsBar(model: model, single: true)
                         .accessibilityElement(children: .contain)
                         .accessibilitySortPriority(0.5)
-                        .transition(GlanceLayout.emerge(reduceMotion: reduceMotion))
+                        .transition(.emerge(reduceMotion: reduceMotion))
                 }
             }
             // Eases out for a click, quicker back in; none for arrow keys, ⌘A or Esc.
             .animation(Motion.presence(showsActions, reduceMotion: reduceMotion), value: showsActions)
             ViewThatFits(in: .horizontal) {
-                ArchiveActions(model: model, prominent: extractsProminently, quickLook: true)
-                ArchiveActions(model: model, prominent: extractsProminently, compact: true, quickLook: true)
+                ArchiveActions(model: model, prominent: extractsProminently)
+                ArchiveActions(model: model, prominent: extractsProminently, compact: true)
             }
             // The accent passes to the selection's action as a status change; a key press just swaps it.
             .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion),
@@ -220,16 +220,6 @@ enum GlanceLayout {
     static let inset = Space.s + Space.xs
     /// The header's leading and trailing margin; the badge lines up with the rows' icons.
     static let margin = Space.l
-
-    /// A selection's action coming out of the archive's capsule beside it: from a little to
-    /// the right, slightly smaller, fading in; it goes back the same way, quicker. A fade alone
-    /// under Reduce Motion.
-    static func emerge(reduceMotion: Bool) -> AnyTransition {
-        guard !reduceMotion else { return .opacity }
-        return .asymmetric(
-            insertion: .opacity.combined(with: .scale(scale: 0.94, anchor: .trailing)).combined(with: .offset(x: 14)),
-            removal: .opacity.combined(with: .scale(scale: 0.97, anchor: .trailing)).combined(with: .offset(x: 6)))
-    }
 }
 
 /// The archive Glance shows: its format badge, its name and what it is, wherever you are inside

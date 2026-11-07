@@ -56,7 +56,7 @@ struct NextStepsBar: View {
             }
         } else {
             let layout = NextStepsSettings(hidden: NextStepsSettings.decode(hidden))
-                .layout(for: entries, dropTargets: model.archive.dropTargets)
+                .layout(for: entries, dropTargets: model.archive.dropTargets, quickLookApart: true)
             HStack(alignment: .bottom, spacing: Space.s) {
                 // Glance has no room for ⋯ beside its archive capsule; a row's right-click menu
                 // and File › Actions list every action there, as ⋯ does here.

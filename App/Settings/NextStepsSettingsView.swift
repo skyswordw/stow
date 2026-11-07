@@ -98,7 +98,8 @@ private enum ActionsExample: String, CaseIterable, Identifiable {
     func layout(with settings: NextStepsSettings) -> NextStepsSettings.Layout {
         switch self {
         case .nothingInAppArchive: settings.archiveLayout(installable: Self.entry("Harbor Prototype.app"))
-        default: settings.layout(for: entries)
+        // As the stack shows it: Quick Look has the archive capsule's eye.
+        default: settings.layout(for: entries, quickLookApart: true)
         }
     }
 

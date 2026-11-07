@@ -68,7 +68,8 @@ struct BrowseCommands: Commands {
             let archiveTarget = browser?.archiveTarget
             let layout = browser.map { browser in
                 browser.selection.isEmpty ? settings.archiveLayout(installable: archiveTarget)
-                    : settings.layout(for: browser.selectedEntries, dropTargets: browser.archive.dropTargets)
+                    : settings.layout(for: browser.selectedEntries, dropTargets: browser.archive.dropTargets,
+                                          quickLookApart: true)
             }
             let steps = layout.map { [$0.front].compactMap(\.self) + $0.more } ?? []
             Menu("Actions") {
