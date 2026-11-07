@@ -328,36 +328,102 @@ extension EditSession {
 private struct ArchiveDrop: ViewModifier {
     let model: BrowserModel
     let folder: String
+    /// The files surface: also lit while the list's table takes a drop into the folder on show.
+    let isSurface: Bool
     @State private var targeted = false
     func body(content: Content) -> some View {
         content
-            .onDrop(of: [.fileURL, ArchiveTransfer.contentType], isTargeted: $targeted) { providers in
-                guard model.editSession.requireEditable() else { return true }
-                let destination = model.level
-                if let transfer = ArchiveTransfer.takeNativeDrop() {
-                    model.receiveTransfer(transfer, into: folder, level: destination)
-                    return true
+            .onDrop(of: [.fileURL, ArchiveTransfer.contentType],
+                    delegate: ArchiveDropDelegate(model: model, folder: folder, targeted: $targeted))
+            .overlay {
+                if targeted || (isSurface && model.listDropTargetsFolder) {
+                    RoundedRectangle(cornerRadius: 8).stroke(.tint, lineWidth: 2).allowsHitTesting(false)
                 }
-                // A private representation outside the current native gesture is stale or
-                // foreign. Never revive a capability asynchronously from a previous drag.
-                guard !providers.contains(where: { $0.hasItemConformingToTypeIdentifier(ArchiveTransfer.typeIdentifier) }) else { return false }
-                // Preserve provider order and register the whole gesture as one undo action.
-                Task { @MainActor in
-                    var urls: [URL] = []
-                    for provider in providers {
-                        let url: URL? = await withCheckedContinuation { continuation in
-                            provider.loadDataRepresentation(forTypeIdentifier: "public.file-url") { data, _ in
-                                continuation.resume(returning: data.flatMap { URL(dataRepresentation: $0, relativeTo: nil) })
-                            }
-                        }
-                        if let url { urls.append(url) }
-                    }
-                    guard !model.isClosed, model.level === destination else { return }
-                    destination.edits.add(urls, into: folder)
-                }
-                return true
             }
-            .overlay { if targeted { RoundedRectangle(cornerRadius: 8).stroke(.tint, lineWidth: 2).allowsHitTesting(false) } }
+    }
+}
+
+private struct ArchiveDropDelegate: DropDelegate {
+    let model: BrowserModel
+    let folder: String
+    @Binding var targeted: Bool
+
+    /// No highlight for a drop that would do nothing (this archive's own items).
+    func validateDrop(info: DropInfo) -> Bool {
+        DragActivity.touch()
+        return model.acceptsDrop()
+    }
+    func dropEntered(info: DropInfo) { targeted = true }
+    func dropExited(info: DropInfo) {
+        DragActivity.touch()
+        targeted = false
+    }
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DragActivity.touch()
+        return DropProposal(operation: .copy)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        DragActivity.touch()
+        targeted = false
+        guard model.editSession.requireEditable() else { return true }
+        let destination = model.level
+        if let transfer = ArchiveTransfer.takeNativeDrop() {
+            model.receiveTransfer(transfer, into: folder, level: destination)
+            return true
+        }
+        let providers = info.itemProviders(for: [.fileURL, ArchiveTransfer.contentType])
+        // A private representation outside the current native gesture is stale or
+        // foreign. Never revive a capability asynchronously from a previous drag.
+        guard !providers.contains(where: { $0.hasItemConformingToTypeIdentifier(ArchiveTransfer.typeIdentifier) }) else { return false }
+        // Preserve provider order and register the whole gesture as one undo action.
+        Task { @MainActor in
+            var urls: [URL] = []
+            for provider in providers {
+                let url: URL? = await withCheckedContinuation { continuation in
+                    provider.loadDataRepresentation(forTypeIdentifier: "public.file-url") { data, _ in
+                        continuation.resume(returning: data.flatMap { URL(dataRepresentation: $0, relativeTo: nil) })
+                    }
+                }
+                if let url { urls.append(url) }
+            }
+            guard !model.isClosed, model.level === destination else { return }
+            destination.edits.add(urls, into: folder)
+        }
+        return true
+    }
+}
+
+extension BrowserModel {
+    /// Whether the drag in progress would add anything here. This archive's own items dragged
+    /// back in would not, so they get no highlight and slide back.
+    func acceptsDrop() -> Bool {
+        ArchiveTransfer.activeSource.map { $0 !== self } ?? true
+    }
+
+    /// Whether an AppKit drag would add anything here (see `acceptsDrop()`).
+    func acceptsDrop(from pasteboard: NSPasteboard) -> Bool {
+        guard acceptsDrop() else { return false }
+        if ArchiveTransfer.activeSource != nil { return true }
+        // A private token outside the current native gesture is stale or foreign.
+        guard pasteboard.availableType(from: [NSPasteboard.PasteboardType(ArchiveTransfer.typeIdentifier)]) == nil else { return false }
+        return pasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
+    }
+
+    /// An AppKit drop (the list and Glance tables): the same guards and single Undo step as
+    /// `ArchiveDrop`.
+    func acceptDrop(from pasteboard: NSPasteboard, into folder: String) -> Bool {
+        guard editSession.requireEditable() else { return true }
+        let destination = level
+        if let transfer = ArchiveTransfer.takeNativeDrop() {
+            receiveTransfer(transfer, into: folder, level: destination)
+            return true
+        }
+        guard pasteboard.availableType(from: [NSPasteboard.PasteboardType(ArchiveTransfer.typeIdentifier)]) == nil,
+              let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
+              !urls.isEmpty else { return false }
+        destination.edits.add(urls, into: folder)
+        return true
     }
 }
 
@@ -376,7 +442,15 @@ extension View {
         }
     }
 
-    func archiveDrop(model: BrowserModel, folder: String) -> some View { modifier(ArchiveDrop(model: model, folder: folder)) }
+    /// Drops into `folder`. Disabled, the view isn't a target of its own and the one around it takes the drop.
+    @ViewBuilder func archiveDrop(model: BrowserModel, folder: String, isEnabled: Bool = true) -> some View {
+        if isEnabled { modifier(ArchiveDrop(model: model, folder: folder, isSurface: false)) } else { self }
+    }
+
+    /// The whole files surface: drops into the folder on show, including through the list's table.
+    func archiveSurfaceDrop(model: BrowserModel) -> some View {
+        modifier(ArchiveDrop(model: model, folder: model.folder, isSurface: true))
+    }
 }
 
 /// Retained by the view, forwarding SwiftUI's window delegate methods to its original delegate.

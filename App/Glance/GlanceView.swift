@@ -149,7 +149,7 @@ struct GlanceView: View {
             .overlay(alignment: .bottom) { floatingControls }
             // Glance shares the Browser's editable files surface, including its navigation and
             // floating action band. ArchiveDrop retains format guards and groups each gesture.
-            .archiveDrop(model: model, folder: model.folder)
+            .archiveSurfaceDrop(model: model)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }
                 else if model.editSession.isEdited { UnsavedChangesBar(model: model) }
@@ -409,7 +409,7 @@ private struct GlanceList: View {
 
     var body: some View {
         ScrollViewReader { scroller in
-            Table(model.visibleEntries, selection: $model.selection) {
+            Table(of: ArchiveEntry.self, selection: $model.selection) {
                 TableColumn(String(localized: "Name")) { entry in
                     HStack(spacing: Space.s) {
                         RowIcon(entry: entry, model: model)
@@ -442,6 +442,12 @@ private struct GlanceList: View {
                 }
                 .width(min: 64, ideal: 80, max: 100)
                 .alignment(.trailing)
+            } rows: {
+                // Rows SwiftUI counts as draggable, so the table starts the drag; the promises
+                // themselves come from `ArchiveTableDragSource`.
+                ForEach(model.visibleEntries) { entry in
+                    TableRow(entry).itemProvider { NSItemProvider() }
+                }
             }
             .tableColumnHeaders(.hidden)
             .contextMenu(forSelectionType: ArchiveEntry.ID.self) { ids in

@@ -1,5 +1,41 @@
 # UI and motion handoff — Claude Code
 
+## Browser/Glance dragging — #332 (supersedes draft #320's gesture approach)
+
+Root cause of "later drags became range selection": SwiftUI's `Table` is an `NSOutlineView`
+whose own gesture recognizers choose between dragging rows and extending the selection, and its
+subclass refuses row drags unless SwiftUI thinks the rows are draggable. #320's extra recognizer
+raced them. Now `ArchiveTableDragSource` (App/Preview/DragOut.swift) stands in front of SwiftUI's
+data source, forwards everything else, supplies the same `ArchiveDragPromise` file promises and
+the cross-archive token, and takes drops natively (folder row → that folder, elsewhere → folder
+on show). Rows carry an empty `TableRow.itemProvider` only so SwiftUI allows the drag. Grid and
+Columns keep the event monitor with #320's per-window routing. Peek cancellation is #320's, plus
+`DragActivity`, which keeps previews away during and 0.6 s after any drag. DESIGN.md › Dragging
+files out and in has the visual rules.
+
+Checked 2026-11-07 in a running debug build with slow full-screen CUA strokes (synthetic
+pointer events at real speed, not a hand on a mouse):
+- Repeated drags from a two-row selection each carry both rows, and the selection stays.
+- A drag from another row carries that row alone.
+- Drops on the source list, grid or column get no highlight and slide back onto the rows.
+- List → Finder delivers exact bytes; Glance shows "Extracted to drop".
+- Finder → Glance onto a folder row: that row is highlighted and the files land in that folder.
+  Elsewhere the files surface's rounded accent edge lights up, the same as over the path; it
+  goes out when the drag leaves or drops. (`listDropTargetsFolder`, kept honest by a check
+  while it is lit, since a table tells its data source nothing on exit.)
+- Undo, Redo and Undo each move a drop as one step.
+- Grid and Columns → another archive's Glance: copied ("Copied to Other.zip"), with Keep Both naming
+  when a name is already taken.
+- ArcZip Mini, for comparison: one icon pile with a count badge and no names; no highlight over its
+  own list.
+
+- Escape during a drag (user, by hand): the drag stops and slides back with nothing dropped, as in
+  Finder — with Stow active, and from a pinned Glance in the background while Finder is active.
+  macOS handles it; Stow adds no code. An earlier report that Esc didn't stop a drag didn't
+  reproduce.
+
+Not checked: the macOS 26 path, and VoiceOver (#93).
+
 ## Independent archive windows — current user decision
 
 The user chose one independent window per archive on 2026-11-06. Follow

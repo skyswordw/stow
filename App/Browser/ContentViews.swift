@@ -106,7 +106,9 @@ struct ContentGrid: View {
             })
             .hoverPreview(for: entry, model: hover, browser: model)
             .contextMenu { EntryMenu(model: model, entry: entry) }
-            .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
+            // A folder takes drops itself; over a file the drop goes into the folder on show,
+            // and the whole surface says so.
+            .archiveDrop(model: model, folder: entry.path, isEnabled: entry.isNavigable)
     }
 
     /// Clicking empty space clears the selection; dragging across it draws the marquee.
@@ -292,7 +294,7 @@ struct ContentList: View {
 
     var body: some View {
         ScrollViewReader { scroller in
-            Table(model.visibleEntries, selection: $model.selection) {
+            Table(of: ArchiveEntry.self, selection: $model.selection) {
                 TableColumn(String(localized: "Name")) { entry in
                     HStack(spacing: Space.s) {
                         RowIcon(entry: entry, model: model)
@@ -317,7 +319,6 @@ struct ContentList: View {
                         model.open(entry)
                     }
                     .hoverPreview(for: entry, model: hover, browser: model)
-                    .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : model.folder)
                 }
                 // The name takes whatever room the others leave; their maximums keep it that way.
                 // The minimums together (with the cells' spacing) fit the files' narrowest width,
@@ -343,6 +344,12 @@ struct ContentList: View {
                         .foregroundStyle(.secondary)
                 }
                 .width(min: Self.modifiedWidth, ideal: max(110, Self.modifiedWidth), max: 140)
+            } rows: {
+                // Rows SwiftUI counts as draggable, so the table starts the drag; the promises
+                // themselves come from `ArchiveTableDragSource`.
+                ForEach(model.visibleEntries) { entry in
+                    TableRow(entry).itemProvider { NSItemProvider() }
+                }
             }
             .contextMenu(forSelectionType: ArchiveEntry.ID.self) { ids in
                 if let id = ids.first, let entry = model.archive.entry(at: id) {
@@ -396,12 +403,15 @@ struct TableClickSelection: NSViewRepresentable {
     func updateNSView(_ watcher: Watcher, context: Context) {
         watcher.model = model
         watcher.onFocus = onFocus
+        watcher.installDragSource()
     }
 
     final class Watcher: NSView {
         var model: BrowserModel
         var onFocus: (() -> Void)?
         private var monitor: Any?
+        /// The table whose rows drag out and take drops (see `ArchiveTableDragSource`).
+        private weak var dragTable: NSTableView?
         /// The selected row a plain press landed on, while it can still become a click.
         private var press: (row: Int, point: NSPoint)?
 
@@ -419,17 +429,36 @@ struct TableClickSelection: NSViewRepresentable {
             super.viewDidMoveToWindow()
             if let monitor { NSEvent.removeMonitor(monitor) }
             monitor = nil
-            guard window != nil else { return }
+            guard window != nil else {
+                if let dragTable { ArchiveTableDragSource.uninstall(from: dragTable) }
+                dragTable = nil
+                return
+            }
             monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] event in
                 // Local monitors run on the main thread, inside event dispatch.
                 let box = TableEventBox(event: event)
                 MainActor.assumeIsolated { self?.handle(box.event) }
                 return event
             }
+            // The table is laid out beside this view a moment later.
+            DispatchQueue.main.async { [weak self] in self?.installDragSource() }
+        }
+
+        override func layout() {
+            super.layout()
+            installDragSource()
+        }
+
+        func installDragSource() {
+            guard window != nil, let table = nearbyTable() else { return }
+            if let dragTable, dragTable !== table { ArchiveTableDragSource.uninstall(from: dragTable) }
+            dragTable = table
+            ArchiveTableDragSource.install(on: table, model: model)
         }
 
         isolated deinit {
             if let monitor { NSEvent.removeMonitor(monitor) }
+            if let dragTable { ArchiveTableDragSource.uninstall(from: dragTable) }
         }
 
         func handle(_ event: NSEvent) {
@@ -494,14 +523,15 @@ struct TableClickSelection: NSViewRepresentable {
             } ?? nearbyTable()
         }
 
+        /// The table this view sits behind: the nearest one in the views around it (it lives
+        /// inside its own scroll view, beside this one).
         private func nearbyTable() -> NSTableView? {
-            if let table = superview?.subviews.compactMap({ $0 as? NSTableView }).first {
-                return table
-            }
             var view: NSView? = superview
             while let current = view {
                 if let table = current as? NSTableView { return table }
-                if let table = current.subviews.compactMap({ $0 as? NSTableView }).first { return table }
+                for sibling in current.subviews where sibling !== self {
+                    if let table = tables(in: sibling).first { return table }
+                }
                 view = current.superview
             }
             return nil

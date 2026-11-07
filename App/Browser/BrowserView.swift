@@ -67,7 +67,7 @@ struct BrowserView: View {
             // Include the path and floating-controls band in the files column's drop surface.
             // Row-specific targets still route into their folder; the surrounding area uses the
             // current folder and the same read-only refusal / one-gesture Undo path (#305).
-            .archiveDrop(model: model, folder: model.folder)
+            .archiveSurfaceDrop(model: model)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
                     if model.editSession.showsExternalChange { ExternalChangeBar(model: model) }

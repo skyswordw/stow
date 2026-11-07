@@ -41,8 +41,20 @@ final class ArchiveTransfer {
 
     static func register(source: BrowserModel, entries: [ArchiveEntry]) -> String {
         let token = UUID().uuidString
-        pending[token] = ArchiveTransfer(source: source, entries: entries)
+        register(token: token, source: source, entries: entries)
         return token
+    }
+
+    /// A table's promises carry their token before the session begins.
+    static func register(token: String, source: BrowserModel, entries: [ArchiveEntry]) {
+        pending[token] = ArchiveTransfer(source: source, entries: entries)
+    }
+
+    /// The archive the drag in progress comes from, when it's one of Stow's own.
+    static var activeSource: BrowserModel? {
+        guard let pasteboard = activePasteboard, pasteboard.changeCount == activeChangeCount,
+              let token = activeToken else { return nil }
+        return pending[token]?.source
     }
 
     static func finish(_ token: String?) {
