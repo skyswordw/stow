@@ -29,8 +29,12 @@ pointer events at real speed, not a hand on a mouse):
 - ArcZip Mini, for comparison: one icon pile with a count badge and no names; no highlight over its
   own list.
 
-Not checked: Escape during a drag (synthetic keys don't reach the drag session), the macOS 26 path,
-and VoiceOver (#93).
+- Escape during a drag (user, by hand): the drag stops and slides back with nothing dropped, as in
+  Finder. macOS does this for the active app's drag; Stow adds nothing. A first report that Esc
+  didn't stop it was most likely a drag out of a background Stow window while Finder was active,
+  where the key goes to Finder; that case and Finder's own behaviour there aren't confirmed yet.
+
+Not checked: Escape for a drag out of a background window, the macOS 26 path, and VoiceOver (#93).
 
 ## Independent archive windows — current user decision
 
