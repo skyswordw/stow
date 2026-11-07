@@ -5,10 +5,11 @@ import SwiftUI
 /// open immediately so scanning down a list feels instant.
 @Observable
 final class HoverPreviewModel {
-    private(set) var presented: ArchiveEntry.ID? {
-        didSet {
-            if presented == nil { stopWatching() } else if oldValue == nil { startWatching() }
-        }
+    private(set) var presented: ArchiveEntry.ID?
+    @ObservationIgnored private let mouseButtons: () -> Int
+
+    init(mouseButtons: @escaping () -> Int = { NSEvent.pressedMouseButtons }) {
+        self.mouseButtons = mouseButtons
     }
 
     /// The popover doesn't dismiss itself: AppKit's outside-click dismissal also swallowed the
@@ -31,26 +32,34 @@ final class HoverPreviewModel {
         closeTask?.cancel()
         openTask?.cancel()
         // Not while a button is down: that's a drag or a marquee, not a look.
-        guard entry.kind.isPreviewable, NSEvent.pressedMouseButtons == 0 else {
-            close()
+        guard entry.kind.isPreviewable, mouseButtons() == 0 else {
+            interrupt()
             return
         }
+        startWatching()
         if isWarm {
             showQuietly(entry.id)
             return
         }
         openTask = Task { [weak self, openDelay] in
             try? await Task.sleep(for: openDelay)
-            guard !Task.isCancelled else { return }
-            self?.presented = entry.id
+            guard !Task.isCancelled, let self else { return }
+            guard self.mouseButtons() == 0 else {
+                self.interrupt()
+                return
+            }
+            self.openTask = nil
+            self.presented = entry.id
         }
     }
 
     func exit(_ entry: ArchiveEntry) {
         openTask?.cancel()
+        closeTask?.cancel()
         closeTask = Task { [weak self, closeGrace] in
             try? await Task.sleep(for: closeGrace)
-            guard !Task.isCancelled, let self, self.presented == entry.id else { return }
+            guard !Task.isCancelled, let self,
+                  self.presented == nil || self.presented == entry.id else { return }
             self.close()
         }
     }
@@ -58,6 +67,8 @@ final class HoverPreviewModel {
     /// Opens a preview straight away (design review runs have no pointer).
     func present(_ id: ArchiveEntry.ID) {
         openTask?.cancel()
+        closeTask?.cancel()
+        startWatching()
         if isWarm { showQuietly(id) } else { presented = id }
     }
 
@@ -80,19 +91,33 @@ final class HoverPreviewModel {
 
     /// Closing is instant: an exit never takes longer than the entrance.
     func close() {
+        openTask?.cancel()
+        openTask = nil
+        closeTask?.cancel()
+        closeTask = nil
+        stopWatching()
         if presented != nil { lastClosed = .now }
         withTransaction(Self.unanimated) { presented = nil }
     }
 
+    /// Acting on a file ends hover scanning. The next hover must earn its full delay.
+    func interrupt() {
+        close()
+        lastClosed = .distantPast
+    }
+
     private func startWatching() {
-        pressMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
+        guard pressMonitor == nil else { return }
+        // Watch while the first preview is still pending, not just after it appears.
+        pressMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown,
+                                                                  .leftMouseDragged, .rightMouseDragged, .otherMouseDragged]) { [weak self] event in
             // Local monitors run on the main thread, inside event dispatch.
-            MainActor.assumeIsolated { self?.close() }
+            MainActor.assumeIsolated { self?.interrupt() }
             return event
         }
         resignObserver = NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification,
                                                                 object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.close() }
+            MainActor.assumeIsolated { self?.interrupt() }
         }
     }
 

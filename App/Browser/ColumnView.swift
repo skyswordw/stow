@@ -86,11 +86,13 @@ private struct Column: View {
                                 }
                             }
                             .contextMenu { EntryMenu(model: model, entry: entry) }
-                            .archiveDrop(model: model, folder: entry.isNavigable ? entry.path : parent)
+                            // Over a file, the drop goes into this column's folder, and the column says so.
+                            .archiveDrop(model: model, folder: entry.path, isEnabled: entry.isNavigable)
                     }
                 }
                 .padding(.vertical, Space.xs)
             }
+            .archiveDrop(model: model, folder: parent)
             .background {
                 // Empty space in a column: nothing selected, this column is the last one.
                 Color.clear

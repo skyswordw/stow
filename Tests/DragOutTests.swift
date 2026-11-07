@@ -44,7 +44,7 @@ struct DragOutTests {
         let event = try #require(NSEvent.mouseEvent(with: .leftMouseDragged, location: .zero,
             modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil,
             eventNumber: 0, clickCount: 1, pressure: 1))
-        #expect(model.dragOut.handle(event) == nil)
+        #expect(model.dragOut.handle(event) === event)
         model.dragOut.finishDrag(pasteboard: pasteboard, operation: [])
         #expect(pasteboard.pasteboardItems?.isEmpty != false)
         #expect(other.string(forType: .string) == "untouched")
@@ -95,6 +95,70 @@ struct DragOutTests {
         model.select(["beta.txt"])
         await nextTurn()
         #expect(model.selection == ["beta.txt"])
+    }
+
+    @Test func retainedBrowserAndGlanceBothRouteDragEvents() throws {
+        let model = sourceModel()
+        let browser = NSWindow(), glance = NSWindow()
+        model.dragOut.install(in: browser)
+        model.dragOut.install(in: glance)
+        // No reinstallation or new view attachment when either retained window returns.
+        for window in [browser, glance, browser, glance] {
+            model.dragOut.hovered = "alpha.txt"
+            #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDown, in: window)) == nil)
+            #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: window, x: 2)) == nil)
+            #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: window, x: 12)) == "alpha.txt")
+            _ = model.dragOut.dragCandidate(for: try mouse(.leftMouseUp, in: window, x: 12))
+            #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: window, x: 20)) == nil)
+        }
+    }
+
+    @Test func anotherWindowCannotContinueOrReuseAPress() throws {
+        let model = sourceModel()
+        let browser = NSWindow(), glance = NSWindow(), other = NSWindow()
+        model.dragOut.install(in: browser)
+        model.dragOut.install(in: glance)
+        model.dragOut.hovered = "alpha.txt"
+        _ = model.dragOut.dragCandidate(for: try mouse(.leftMouseDown, in: browser))
+        #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: glance, x: 12)) == nil)
+        #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: other, x: 12)) == nil)
+        _ = model.dragOut.dragCandidate(for: try mouse(.leftMouseDown, in: other))
+        #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: browser, x: 12)) == nil)
+    }
+
+    @Test func reusedWindowOnlyRoutesToItsCurrentArchive() throws {
+        let old = sourceModel(), current = sourceModel(), window = NSWindow()
+        old.dragOut.install(in: window)
+        old.dragOut.hovered = "alpha.txt"
+        current.dragOut.install(in: window)
+        current.dragOut.hovered = "alpha.txt"
+        let down = try mouse(.leftMouseDown, in: window)
+        let drag = try mouse(.leftMouseDragged, in: window, x: 12)
+        _ = old.dragOut.dragCandidate(for: down)
+        _ = current.dragOut.dragCandidate(for: down)
+        #expect(old.dragOut.dragCandidate(for: drag) == nil)
+        #expect(current.dragOut.dragCandidate(for: drag) == "alpha.txt")
+    }
+
+    @Test func renamingDoesNotStartAnArchiveDrag() throws {
+        let model = sourceModel(), window = NSWindow()
+        model.dragOut.install(in: window)
+        model.dragOut.hovered = "alpha.txt"
+        model.beginRename(try #require(model.archive.entry(at: "alpha.txt")))
+        _ = model.dragOut.dragCandidate(for: try mouse(.leftMouseDown, in: window))
+        #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: window, x: 12)) == nil)
+    }
+
+    private func sourceModel() -> BrowserModel {
+        BrowserModel(archive: Archive(listing: ArchiveListing(type: "zip", entries: [
+            ListedEntry(path: "alpha.txt", isFolder: false, size: 1)
+        ]), url: URL(filePath: "/tmp/Drag-\(UUID().uuidString).zip")))
+    }
+
+    private func mouse(_ type: NSEvent.EventType, in window: NSWindow, x: CGFloat = 0, y: CGFloat = 0) throws -> NSEvent {
+        try #require(NSEvent.mouseEvent(with: type, location: NSPoint(x: x, y: y),
+            modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
+            eventNumber: 0, clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1))
     }
 
     private func makeModel() -> BrowserModel {
