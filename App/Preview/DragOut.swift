@@ -146,18 +146,27 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         guard !entries.isEmpty else { return false }
         let point = view.convert(event.locationInWindow, from: nil)
         transferToken = ArchiveTransfer.register(source: model, entries: entries)
+        // Columns are rows, so they travel as the list's do: icon and name, one per line. The
+        // grid's tiles travel as Finder's icon view's: a pile of their pictures.
+        let asRows = model.viewMode == .columns
         let items = entries.enumerated().map { index, entry in
             let item = NSDraggingItem(pasteboardWriter: promise(for: entry, token: transferToken))
-            let icon = model.previews.cachedThumbnail(for: entry, in: model.archive, side: 96)
+            if asRows {
+                DragImage.dress(item, icon: icon(for: entry), name: entry.name, maxWidth: 280,
+                                rowHeight: 20, at: NSPoint(x: point.x - 9, y: point.y - 10), appearance: view.effectiveAppearance)
+                return item
+            }
+            let picture = model.previews.cachedThumbnail(for: entry, in: model.archive, side: 96)
                 ?? NSWorkspace.shared.icon(for: Self.dragType(entry))
             let offset = CGFloat(min(index, 4)) * 6
             item.setDraggingFrame(NSRect(x: point.x - 32 + offset, y: point.y - 32 - offset, width: 64, height: 64),
-                                  contents: icon)
+                                  contents: picture)
             return item
         }
         model.quickLook.close()
         DragActivity.began(self)
-        view.beginDraggingSession(with: items, event: event, source: self)
+        let session = view.beginDraggingSession(with: items, event: event, source: self)
+        session.draggingFormation = asRows ? .list : .pile
         return true
     }
 
@@ -386,7 +395,9 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
         }
         model.dragOut.tableDragBegan(entries, token: token, on: session.draggingPasteboard)
         let dragged = rows.filter { row in entries.contains { $0.id == row.entry.id } }
-        session.draggingFormation = .default
+        // One line per item under the pointer, so every name stays readable; the system's
+        // default piles them and the names print over each other.
+        session.draggingFormation = .list
         session.animatesToStartingPositionsOnCancelOrFail = true
         session.enumerateDraggingItems(options: [.clearNonenumeratedImages], for: outlineView,
                                        classes: [NSPasteboardItem.self], searchOptions: [:]) { item, index, _ in
@@ -402,25 +413,13 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
     }
 
     /// Finder's list drag: the row's icon and name, lifted from where they sit in the row. The
-    /// other columns stay behind; a selection is the stack of its names.
+    /// other columns stay behind; a selection travels as a list of its names.
     private func dress(_ item: NSDraggingItem, as entry: ArchiveEntry, row: Int, in outline: NSOutlineView) {
         guard let icon = model?.dragOut.icon(for: entry) else { return }
         let cell = outline.frameOfCell(atColumn: 0, row: row)
-        let label = DragLabel.image(entry.name, maxWidth: max(80, cell.width - 34),
-                                    appearance: outline.effectiveAppearance)
-        let iconSide: CGFloat = 18
-        let frame = NSRect(x: cell.minX + 6, y: cell.minY, width: iconSide + Space.s + label.size.width, height: cell.height)
-        item.draggingFrame = frame
-        item.imageComponentsProvider = {
-            let iconComponent = NSDraggingImageComponent(key: .icon)
-            iconComponent.contents = icon
-            iconComponent.frame = NSRect(x: 0, y: (frame.height - iconSide) / 2, width: iconSide, height: iconSide)
-            let labelComponent = NSDraggingImageComponent(key: .label)
-            labelComponent.contents = label
-            labelComponent.frame = NSRect(x: iconSide + Space.s, y: (frame.height - label.size.height) / 2,
-                                          width: label.size.width, height: label.size.height)
-            return [iconComponent, labelComponent]
-        }
+        DragImage.dress(item, icon: icon, name: entry.name, maxWidth: max(80, cell.width - 34),
+                        rowHeight: cell.height, at: NSPoint(x: cell.minX + 6, y: cell.minY),
+                        appearance: outline.effectiveAppearance)
     }
 
     // MARK: Dropping in
@@ -447,6 +446,29 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
         guard let model else { return false }
         let folder = entry(for: item, in: outlineView).flatMap { $0.isNavigable ? $0.path : nil } ?? model.folder
         return model.acceptDrop(from: info.draggingPasteboard, into: folder)
+    }
+}
+
+/// A row's drag image: its icon and name, as Finder's list lifts them.
+enum DragImage {
+    static let iconSide: CGFloat = 18
+
+    /// `origin` is where the icon's row starts, in the dragging view's coordinates.
+    static func dress(_ item: NSDraggingItem, icon: NSImage, name: String, maxWidth: CGFloat,
+                      rowHeight: CGFloat, at origin: NSPoint, appearance: NSAppearance) {
+        let label = DragLabel.image(name, maxWidth: maxWidth, appearance: appearance)
+        let frame = NSRect(x: origin.x, y: origin.y, width: iconSide + Space.s + label.size.width, height: rowHeight)
+        item.draggingFrame = frame
+        item.imageComponentsProvider = {
+            let iconComponent = NSDraggingImageComponent(key: .icon)
+            iconComponent.contents = icon
+            iconComponent.frame = NSRect(x: 0, y: (frame.height - iconSide) / 2, width: iconSide, height: iconSide)
+            let labelComponent = NSDraggingImageComponent(key: .label)
+            labelComponent.contents = label
+            labelComponent.frame = NSRect(x: iconSide + Space.s, y: (frame.height - label.size.height) / 2,
+                                          width: label.size.width, height: label.size.height)
+            return [iconComponent, labelComponent]
+        }
     }
 }
 

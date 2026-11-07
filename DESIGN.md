@@ -242,7 +242,10 @@ Finder's list does, because the table itself starts the drag (its own gestures c
 and a range selection; a second watcher beside them made later drags select). From a selected row
 the whole selection goes, as many times in a row as you like; from any other row that row alone goes
 and becomes the selection. The drag image is each row's icon and name lifted from where they sit, not
-the Size, Kind and Modified cells; several rows travel as a stack and the system adds the count.
+the Size, Kind and Modified cells; several rows travel as a list under the pointer, one name per
+line, and the system adds the count (the default pile printed the names over each other). Columns
+are rows too and travel the same way; the icon grid's tiles travel as Finder's icon view's, a pile
+of their pictures with the count (ArcZip Mini shows the same pile, without names, for every view).
 Where a drop would do nothing (an archive's own items over itself) nothing lights up and the items
 slide back to their rows. Over another archive's list, a folder's row takes the drop into that
 folder with the system's row highlight; anywhere else the whole list lights up, meaning the folder on

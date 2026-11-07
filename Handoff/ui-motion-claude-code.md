@@ -13,12 +13,22 @@ Columns keep the event monitor with #320's per-window routing. Peek cancellation
 `DragActivity`, which keeps previews away during and 0.6 s after any drag. DESIGN.md › Dragging
 files out and in has the visual rules.
 
-Checked in a running debug build with background CUA strokes (not physical input): three
-repeated drags from a two-row selection each carried both rows and kept the selection; a drag
-from an unselected row carried that row alone; drops on the source list were refused and slid
-back; a list → Glance drop copied into the other archive's pending edits and Save kept exact
-bytes, source unchanged. Not checked here: Finder delivery, the grid/columns path (CUA can't
-hover first), drag image and drop highlight mid-gesture, ArcZip timing. Those need physical input.
+Checked 2026-11-07 in a running debug build with slow full-screen CUA strokes (synthetic
+pointer events at real speed, not a hand on a mouse):
+- Repeated drags from a two-row selection each carry both rows, and the selection stays.
+- A drag from another row carries that row alone.
+- Drops on the source list, grid or column get no highlight and slide back onto the rows.
+- List → Finder delivers exact bytes; Glance shows "Extracted to drop".
+- Finder → Glance onto a folder row: that row is highlighted and the files land in that folder.
+  Elsewhere the whole list is outlined.
+- Undo, Redo and Undo each move a drop as one step.
+- Grid and Columns → another archive's Glance: copied ("Copied to Other.zip"), with Keep Both naming
+  when a name is already taken.
+- ArcZip Mini, for comparison: one icon pile with a count badge and no names; no highlight over its
+  own list.
+
+Not checked: Escape during a drag (synthetic keys don't reach the drag session), the macOS 26 path,
+and VoiceOver (#93).
 
 ## Independent archive windows — current user decision
 
