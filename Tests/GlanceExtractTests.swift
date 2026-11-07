@@ -40,4 +40,24 @@ struct GlanceExtractTests {
     @Test func resultsInsideOtherArchivesKeepExtractAll() {
         #expect(!GlanceLayout.selectionExtracts(model(selecting: ["Nested.zip/inner.txt"]), settings: .defaults))
     }
+
+    // Where Extract All sits: always at the trailing end, where a selection's stack takes its place.
+
+    @Test func extractAllIsAloneWithoutActions() {
+        #expect(GlanceLayout.extractAllPlacement(showsActions: false, selectionExtracts: false, hasActivity: false) == .alone)
+    }
+
+    @Test func aStackWithExtractTakesExtractAllsPlace() {
+        #expect(GlanceLayout.extractAllPlacement(showsActions: true, selectionExtracts: true, hasActivity: false) == .hidden)
+    }
+
+    /// Install App for an archive that's one app, or a stack without Extract: Extract All stays beside it.
+    @Test func aStackWithoutExtractKeepsExtractAllBesideIt() {
+        #expect(GlanceLayout.extractAllPlacement(showsActions: true, selectionExtracts: false, hasActivity: false) == .besideActions)
+    }
+
+    /// A step's progress holds the place; Extract All would only wait, dimmed, and push it aside.
+    @Test func progressTakesExtractAllsPlace() {
+        #expect(GlanceLayout.extractAllPlacement(showsActions: true, selectionExtracts: false, hasActivity: true) == .hidden)
+    }
 }

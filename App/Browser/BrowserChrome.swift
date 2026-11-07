@@ -192,6 +192,8 @@ struct ArchiveActions: View {
     /// Extract All as its icon alone, for a row without room for its words (Glance at its smallest
     /// beside a progress capsule). Its name stays its accessibility label and help.
     var compact = false
+    /// As wide as the Actions stack that takes its place (Glance, `ExtractionWidth`).
+    var matchesStack = false
 
     /// Where the leading button takes the archive.
     enum WindowSwitch {
@@ -214,18 +216,21 @@ struct ArchiveActions: View {
                 EmptyView()
             }
 
-            Button {
-                model.extractAll()
-            } label: {
-                Label("Extract All", systemImage: NextStep.extract.symbol)
-                    .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+            ZStack {
+                if matchesStack, !compact { ExtractionWidth() }
+                Button {
+                    model.extractAll()
+                } label: {
+                    Label("Extract All", systemImage: NextStep.extract.symbol)
+                        .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+                }
+                .buttonStyle(ActionButtonStyle(prominent: prominent, iconOnly: compact, fills: matchesStack && !compact))
+                .accessibilityLabel(String(localized: "Extract All"))
+                .help(model.extractAllUnavailableReason ?? String(localized: "Extract everything to a folder you choose"))
+                .disabled(model.extractAllUnavailableReason != nil)
+                .padding(ActionButtonStyle.inset)
+                .accessibleGlass(in: .capsule)
             }
-            .buttonStyle(ActionButtonStyle(prominent: prominent, iconOnly: compact))
-            .accessibilityLabel(String(localized: "Extract All"))
-            .help(model.extractAllUnavailableReason ?? String(localized: "Extract everything to a folder you choose"))
-            .disabled(model.extractAllUnavailableReason != nil)
-            .padding(ActionButtonStyle.inset)
-            .accessibleGlass(in: .capsule)
         }
         .fixedSize()
         .accessibilityElement(children: .contain)

@@ -15,6 +15,11 @@ nonisolated enum NextStep: Hashable, Identifiable, Sendable {
 
     var id: Self { self }
 
+    /// The steps whose names don't depend on the moment (not Copy to “…” or Install 3 Fonts), so
+    /// a width can be set aside for any of them.
+    static let fixedTitled: [NextStep] = [.extract, .quickLook, .openInside, .pack, .moveToApplications,
+                                          .openInstaller, .installFonts(count: 1)]
+
     var title: String {
         switch self {
         case .installFonts(let count): count == 1 ? String(localized: "Install Font") : String(localized: "Install \(count) Fonts")
