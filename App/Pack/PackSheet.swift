@@ -520,146 +520,158 @@ struct PackSheet: View {
     }
 
     private func moreOptionsGroup(_ report: PackReport) -> some View {
-        DisclosureGroup(isExpanded: $showMore.keyboardAware) {
-            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.m, verticalSpacing: Space.l) {
-                configurationRows
-                groupDivider
-                optionRow("Compression") {
-                    Picker("Compression", selection: levelBinding) {
-                        ForEach(CompressionLevel.allCases) { Text($0.title).tag($0) }
+        // Keep the header's custom ring outside the expanded content. Applying it to the
+        // entire DisclosureGroup suppresses the children's native rings and makes every
+        // Tab stop look like the same large focused group.
+        VStack(alignment: .leading, spacing: 0) {
+            DisclosureGroup(isExpanded: $showMore.keyboardAware) {
+                EmptyView()
+            } label: {
+                // Full-strength title, and the current settings beside it while closed: the section is
+                // easy to find and says whether it's worth opening. The whole line opens it.
+                Text("More Options")
+                    .fontWeight(.medium)
+                    .onGeometryChange(for: CGFloat.self, of: { $0.frame(in: .named(Self.moreOptionsID)).minX }) { titleInset = $0 }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
+                    .onTapGesture {
+                        withAnimation(Motion.presence(!showMore, reduceMotion: reduceMotion)) { showMore.toggle() }
                     }
-                    .labelsHidden()
-                    .revealsKeyboardFocus()
-                    .fixedSize()
-                    .disabled(!options.format.isCompressed)
-                    caption(levelCaption)
-                }
-                // The same choices as the sentence's last words, bound to the same state.
-                optionRow("Split archives") {
-                    if options.format.supportsSplit {
-                        Picker("Split archives", selection: splitPickerSelection) {
-                            ForEach(SplitSize.allCases) { Text($0.phrase.sentenceCased).tag($0) }
-                            if options.split.isCustom {
-                                Text(options.split.phrase.sentenceCased).tag(options.split)
-                            }
-                            Divider()
-                            Text("Custom…").tag(Self.customSplitTag)
-                        }
-                        .labelsHidden()
-                        .revealsKeyboardFocus()
-                        .fixedSize()
-                        .popover(isPresented: isEditingSplit(from: .options), arrowEdge: .trailing) { splitEditor }
-                    } else {
-                        Text(SplitSize.none.phrase.sentenceCased)
-                    }
-                    if let text = splitCaption(report) { caption(text) }
-                }
-                optionRow("Verify") {
-                    Toggle("Verify archive contents after packing", isOn: $options.verify)
-                        .revealsKeyboardFocus()
-                    caption(String(localized: "Reads back the new archive to check its contents. Takes extra time; does not scan for malware."))
-                }
-
-                if options.format == .dmg {
-                    groupDivider
-                    optionRow("Disk format") {
-                        Picker("Disk format", selection: $options.diskImageFilesystem) {
-                            ForEach(DiskImageFilesystem.allCases) { Text($0.title).tag($0) }
-                        }
-                        .labelsHidden()
-                        .revealsKeyboardFocus()
-                        .fixedSize()
-                        caption(options.diskImageFilesystem.detail)
-                    }
-                    optionRow("Layout") {
-                        // Each caption stays with its own checkbox; the pairs sit further apart than
-                        // a checkbox and its caption, closer than two rows.
-                        VStack(alignment: .leading, spacing: Space.m) {
-                            VStack(alignment: .leading, spacing: Space.xs) {
-                                Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
-                                    .revealsKeyboardFocus()
-                                caption(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
-                            }
-                            VStack(alignment: .leading, spacing: Space.xs) {
-                                Toggle("Finder window layout", isOn: $options.diskImageFinderChrome)
-                                    .revealsKeyboardFocus()
-                                caption(String(localized: "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting."))
-                            }
-                        }
-                    }
-                }
-
-                groupDivider
-                // Who can see what. The password itself is chosen in the sentence; this says what it covers.
-                optionRow("Encryption") {
-                    if options.format == .sevenZip, options.usesPassword {
-                        Toggle("Encrypt file names", isOn: $options.encryptFilenames)
-                            .revealsKeyboardFocus()
-                    }
-                    caption(passwordCaption)
-                }
-
-                groupDivider
-                optionRow("Mac support files") {
-                    Toggle("Include .DS_Store and other Finder files", isOn: includesHelperFiles)
-                        .revealsKeyboardFocus()
-                    if changesHelperFiles { changedCaption }
-                }
-                if options.format == .zip {
-                    optionRow("Mac metadata") {
-                        Toggle("Store Finder tags and extended attributes", isOn: storesMacMetadata)
-                            .revealsKeyboardFocus()
-                        caption(String(localized: "They travel in a “__MACOSX” folder that a Mac reads back when extracting."))
-                        if changesMacMetadata { changedCaption }
-                    }
-                }
-
-                groupDivider
-                optionRow("CPU cores") {
-                    Picker("CPU cores", selection: $options.threads) {
-                        Text(settingsCores).tag(Int?.none)
-                        Divider()
-                        ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { n in
-                            Text(n == 1 ? String(localized: "1 core") : String(localized: "\(n) cores")).tag(Int?.some(n))
-                        }
-                    }
-                    .labelsHidden()
-                    .revealsKeyboardFocus()
-                    .fixedSize()
-                    caption(String(localized: "Some formats can’t use every core, so they may use fewer."))
-                }
-
-                // Open, Reset sits under the rows it puts back, with its reach in words rather than
-                // only in a tooltip: these choices, this archive; compression and Settings stay.
-                if isCustomized {
-                    groupDivider
-                    GridRow {
-                        Color.clear.frame(width: 0, height: 0)
-                        VStack(alignment: .leading, spacing: Space.xs) {
-                            resetButton.revealsKeyboardFocus()
-                            caption(String(localized: "Puts back the usual choices for \(options.audience.phrase), for this archive only. Compression stays as you set it, and Settings don’t change."))
-                        }
-                    }
-                    .transition(.opacity)
-                }
             }
-            .padding(.top, Space.m)
-            .padding(.leading, Space.xs)
-        } label: {
-            // Full-strength title, and the current settings beside it while closed: the section is
-            // easy to find and says whether it's worth opening. The whole line opens it.
-            Text("More Options")
-                .fontWeight(.medium)
-                .onGeometryChange(for: CGFloat.self, of: { $0.frame(in: .named(Self.moreOptionsID)).minX }) { titleInset = $0 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
-            .onTapGesture {
-                withAnimation(Motion.presence(!showMore, reduceMotion: reduceMotion)) { showMore.toggle() }
+            .font(.callout)
+            .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            if showMore {
+                moreOptionsContent(report)
             }
         }
-        .font(.callout)
-        // The disclosure's own ring sat over the chevron and cut through "More".
-        .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+
+    private func moreOptionsContent(_ report: PackReport) -> some View {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.m, verticalSpacing: Space.l) {
+            configurationRows
+            groupDivider
+            optionRow("Compression") {
+                Picker("Compression", selection: levelBinding) {
+                    ForEach(CompressionLevel.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden()
+                .revealsKeyboardFocus()
+                .fixedSize()
+                .disabled(!options.format.isCompressed)
+                caption(levelCaption)
+            }
+            // The same choices as the sentence's last words, bound to the same state.
+            optionRow("Split archives") {
+                if options.format.supportsSplit {
+                    Picker("Split archives", selection: splitPickerSelection) {
+                        ForEach(SplitSize.allCases) { Text($0.phrase.sentenceCased).tag($0) }
+                        if options.split.isCustom {
+                            Text(options.split.phrase.sentenceCased).tag(options.split)
+                        }
+                        Divider()
+                        Text("Custom…").tag(Self.customSplitTag)
+                    }
+                    .labelsHidden()
+                    .revealsKeyboardFocus()
+                    .fixedSize()
+                    .popover(isPresented: isEditingSplit(from: .options), arrowEdge: .trailing) { splitEditor }
+                } else {
+                    Text(SplitSize.none.phrase.sentenceCased)
+                }
+                if let text = splitCaption(report) { caption(text) }
+            }
+            optionRow("Verify") {
+                Toggle("Verify archive contents after packing", isOn: $options.verify)
+                    .revealsKeyboardFocus()
+                caption(String(localized: "Reads back the new archive to check its contents. Takes extra time; does not scan for malware."))
+            }
+
+            if options.format == .dmg {
+                groupDivider
+                optionRow("Disk format") {
+                    Picker("Disk format", selection: $options.diskImageFilesystem) {
+                        ForEach(DiskImageFilesystem.allCases) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden()
+                    .revealsKeyboardFocus()
+                    .fixedSize()
+                    caption(options.diskImageFilesystem.detail)
+                }
+                optionRow("Layout") {
+                    // Each caption stays with its own checkbox; the pairs sit further apart than
+                    // a checkbox and its caption, closer than two rows.
+                    VStack(alignment: .leading, spacing: Space.m) {
+                        VStack(alignment: .leading, spacing: Space.xs) {
+                            Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
+                                .revealsKeyboardFocus()
+                            caption(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
+                        }
+                        VStack(alignment: .leading, spacing: Space.xs) {
+                            Toggle("Finder window layout", isOn: $options.diskImageFinderChrome)
+                                .revealsKeyboardFocus()
+                            caption(String(localized: "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting."))
+                        }
+                    }
+                }
+            }
+
+            groupDivider
+            // Who can see what. The password itself is chosen in the sentence; this says what it covers.
+            optionRow("Encryption") {
+                if options.format == .sevenZip, options.usesPassword {
+                    Toggle("Encrypt file names", isOn: $options.encryptFilenames)
+                        .revealsKeyboardFocus()
+                }
+                caption(passwordCaption)
+            }
+
+            groupDivider
+            optionRow("Mac support files") {
+                Toggle("Include .DS_Store and other Finder files", isOn: includesHelperFiles)
+                    .revealsKeyboardFocus()
+                if changesHelperFiles { changedCaption }
+            }
+            if options.format == .zip {
+                optionRow("Mac metadata") {
+                    Toggle("Store Finder tags and extended attributes", isOn: storesMacMetadata)
+                        .revealsKeyboardFocus()
+                    caption(String(localized: "They travel in a “__MACOSX” folder that a Mac reads back when extracting."))
+                    if changesMacMetadata { changedCaption }
+                }
+            }
+
+            groupDivider
+            optionRow("CPU cores") {
+                Picker("CPU cores", selection: $options.threads) {
+                    Text(settingsCores).tag(Int?.none)
+                    Divider()
+                    ForEach(1...ProcessInfo.processInfo.activeProcessorCount, id: \.self) { n in
+                        Text(n == 1 ? String(localized: "1 core") : String(localized: "\(n) cores")).tag(Int?.some(n))
+                    }
+                }
+                .labelsHidden()
+                .revealsKeyboardFocus()
+                .fixedSize()
+                caption(String(localized: "Some formats can’t use every core, so they may use fewer."))
+            }
+
+            // Open, Reset sits under the rows it puts back, with its reach in words rather than
+            // only in a tooltip: these choices, this archive; compression and Settings stay.
+            if isCustomized {
+                groupDivider
+                GridRow {
+                    Color.clear.frame(width: 0, height: 0)
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        resetButton.revealsKeyboardFocus()
+                        caption(String(localized: "Puts back the usual choices for \(options.audience.phrase), for this archive only. Compression stays as you set it, and Settings don’t change."))
+                    }
+                }
+                .transition(.opacity)
+            }
+        }
+        .padding(.top, Space.m)
+        .padding(.leading, Space.xs)
+        .padding(.leading, titleInset)
     }
 
     /// The closed heading's facts, wrapping whole (never cut off: the changed ones come last and
@@ -1142,11 +1154,12 @@ private struct ReportView: View {
                         audience.normalizesNames
                             ? String(localized: "Characters Windows doesn’t allow are replaced. Your originals stay as they are.")
                             : String(localized: "Names that would clash are numbered. Your originals stay as they are."))
-                    DisclosureGroup("Review names", isExpanded: $showDetails) {
-                        renameList
+                    VStack(alignment: .leading, spacing: 0) {
+                        DisclosureGroup("Review names", isExpanded: $showDetails) { EmptyView() }
+                            .font(.callout)
+                            .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        if showDetails { renameList.padding(.leading, Space.l) }
                     }
-                    .font(.callout)
-                    .focusRing(in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                     .padding(.leading, 26)
                 }
             }
