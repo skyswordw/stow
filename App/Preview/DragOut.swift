@@ -156,6 +156,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
             return item
         }
         model.quickLook.close()
+        DragActivity.began(self)
         view.beginDraggingSession(with: items, event: event, source: self)
         return true
     }
@@ -165,6 +166,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         guard let model else { return }
         started = true
         press = nil
+        DragActivity.began(self)
         snapshotSelection()
         transferToken = token
         ArchiveTransfer.register(token: token, source: model, entries: entries)
@@ -183,6 +185,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     }
 
     func finishDrag(pasteboard: NSPasteboard?, operation: NSDragOperation) {
+        DragActivity.ended(self)
         ArchiveTransfer.finish(transferToken)
         transferToken = nil
         if operation.isEmpty { pasteboard?.clearContents() }
@@ -250,6 +253,25 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
                 completionHandler(error)
             }
         }
+    }
+}
+
+/// Whether files are being dragged over Stow's windows, or were a moment ago. Hover previews
+/// wait for the pointer to settle after a drag: a drop isn't a look.
+enum DragActivity {
+    private static var lastSeen: ContinuousClock.Instant?
+    /// Stow's own sessions in flight, by their source.
+    private static var sessions: Set<ObjectIdentifier> = []
+    /// How long after a drag a hover still belongs to it.
+    static let settle = Duration.milliseconds(600)
+
+    static func began(_ source: AnyObject) { sessions.insert(ObjectIdentifier(source)); touch() }
+    static func ended(_ source: AnyObject) { sessions.remove(ObjectIdentifier(source)); touch() }
+    /// A drag from elsewhere passed over a window or dropped on it.
+    static func touch() { lastSeen = .now }
+
+    static var isRecent: Bool {
+        !sessions.isEmpty || lastSeen.map { ContinuousClock.now - $0 < settle } ?? false
     }
 }
 
@@ -321,7 +343,7 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
     }
 
     nonisolated override func forwardingTarget(for selector: Selector!) -> Any? {
-        original.responds(to: selector) ? original : nil
+        return original.responds(to: selector) ? original : nil
     }
 
     // MARK: Rows
@@ -384,7 +406,8 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
     private func dress(_ item: NSDraggingItem, as entry: ArchiveEntry, row: Int, in outline: NSOutlineView) {
         guard let icon = model?.dragOut.icon(for: entry) else { return }
         let cell = outline.frameOfCell(atColumn: 0, row: row)
-        let label = DragLabel.image(entry.name, maxWidth: max(80, cell.width - 34))
+        let label = DragLabel.image(entry.name, maxWidth: max(80, cell.width - 34),
+                                    appearance: outline.effectiveAppearance)
         let iconSide: CGFloat = 18
         let frame = NSRect(x: cell.minX + 6, y: cell.minY, width: iconSide + Space.s + label.size.width, height: cell.height)
         item.draggingFrame = frame
@@ -404,6 +427,7 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
 
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: any NSDraggingInfo,
                      proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
+        DragActivity.touch()
         guard let model, model.acceptsDrop(from: info.draggingPasteboard) else { return [] }
         // Anywhere on a folder's row is into that folder, as in Finder; anywhere else is the
         // folder on show, and the whole list says so.
@@ -419,6 +443,7 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
 
     func outlineView(_ outlineView: NSOutlineView, acceptDrop info: any NSDraggingInfo,
                      item: Any?, childIndex index: Int) -> Bool {
+        DragActivity.touch()
         guard let model else { return false }
         let folder = entry(for: item, in: outlineView).flatMap { $0.isNavigable ? $0.path : nil } ?? model.folder
         return model.acceptDrop(from: info.draggingPasteboard, into: folder)
@@ -427,7 +452,7 @@ final class ArchiveTableDragSource: NSObject, NSOutlineViewDataSource {
 
 /// A drag image's name: the system font in the label colour, cut short in the middle.
 enum DragLabel {
-    static func image(_ name: String, maxWidth: CGFloat) -> NSImage {
+    static func image(_ name: String, maxWidth: CGFloat, appearance: NSAppearance) -> NSImage {
         let style = NSMutableParagraphStyle()
         style.lineBreakMode = .byTruncatingMiddle
         let attributes: [NSAttributedString.Key: Any] = [
@@ -437,8 +462,11 @@ enum DragLabel {
         ]
         let text = NSAttributedString(string: name, attributes: attributes)
         let size = NSSize(width: min(maxWidth, ceil(text.size().width)), height: ceil(text.size().height))
+        // Drawn when AppKit renders the drag, in the list's light or dark, not whatever is current then.
         return NSImage(size: size, flipped: false) { rect in
-            text.draw(with: rect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
+            appearance.performAsCurrentDrawingAppearance {
+                text.draw(with: rect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
+            }
             return true
         }
     }

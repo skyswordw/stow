@@ -7,9 +7,12 @@ import SwiftUI
 final class HoverPreviewModel {
     private(set) var presented: ArchiveEntry.ID?
     @ObservationIgnored private let mouseButtons: () -> Int
+    @ObservationIgnored private let isDragging: () -> Bool
 
-    init(mouseButtons: @escaping () -> Int = { NSEvent.pressedMouseButtons }) {
+    init(mouseButtons: @escaping () -> Int = { NSEvent.pressedMouseButtons },
+         isDragging: @escaping () -> Bool = { DragActivity.isRecent }) {
         self.mouseButtons = mouseButtons
+        self.isDragging = isDragging
     }
 
     /// The popover doesn't dismiss itself: AppKit's outside-click dismissal also swallowed the
@@ -31,8 +34,10 @@ final class HoverPreviewModel {
     func enter(_ entry: ArchiveEntry) {
         closeTask?.cancel()
         openTask?.cancel()
-        // Not while a button is down: that's a drag or a marquee, not a look.
-        guard entry.kind.isPreviewable, mouseButtons() == 0 else {
+        // Not while a button is down: that's a drag or a marquee, not a look. Nor while
+        // files are being dragged over the window, or as a drop lands: the pointer is
+        // carrying something, and SwiftUI can report it entering a row it never crossed.
+        guard entry.kind.isPreviewable, mouseButtons() == 0, !isDragging() else {
             interrupt()
             return
         }
@@ -44,7 +49,7 @@ final class HoverPreviewModel {
         openTask = Task { [weak self, openDelay] in
             try? await Task.sleep(for: openDelay)
             guard !Task.isCancelled, let self else { return }
-            guard self.mouseButtons() == 0 else {
+            guard self.mouseButtons() == 0, !self.isDragging() else {
                 self.interrupt()
                 return
             }

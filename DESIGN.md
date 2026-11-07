@@ -237,6 +237,20 @@ than fading. In a narrow window the words give way first: stacked labels shorten
 (280 pt at most), a failure card puts Copy Details under its action, and several results inside
 other archives say only "Select one result to show it".
 
+**Dragging files out and in (#332, replacing draft #320).** The list and Glance drag the way
+Finder's list does, because the table itself starts the drag (its own gestures choose between a drag
+and a range selection; a second watcher beside them made later drags select). From a selected row
+the whole selection goes, as many times in a row as you like; from any other row that row alone goes
+and becomes the selection. The drag image is each row's icon and name lifted from where they sit, not
+the Size, Kind and Modified cells; several rows travel as a stack and the system adds the count.
+Where a drop would do nothing (an archive's own items over itself) nothing lights up and the items
+slide back to their rows. Over another archive's list, a folder's row takes the drop into that
+folder with the system's row highlight; anywhere else the whole list lights up, meaning the folder on
+show, as in Finder. The icon grid and columns follow the same rule with the accent edge: a folder
+tile or row is a target of its own, a file is not (the surface or column around it lights up
+instead). Peek stays away while files are being dragged and for 0.6 s after a drop lands, so a
+drop never opens a preview the pointer didn't ask for; the next hover waits the usual delay.
+
 **Opening an archive (#265, user's choice 2026-11-02).** Finder, Quick Look, Recent and a drop on
 the welcome open an archive straight into its window, picked before anything shows: the window used
 last (the full Browser until someone switches to Glance, and still remembered after Stow quits), or

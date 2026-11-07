@@ -294,7 +294,7 @@ struct ContentList: View {
 
     var body: some View {
         ScrollViewReader { scroller in
-            Table(model.visibleEntries, selection: $model.selection) {
+            Table(of: ArchiveEntry.self, selection: $model.selection) {
                 TableColumn(String(localized: "Name")) { entry in
                     HStack(spacing: Space.s) {
                         RowIcon(entry: entry, model: model)
@@ -344,6 +344,12 @@ struct ContentList: View {
                         .foregroundStyle(.secondary)
                 }
                 .width(min: Self.modifiedWidth, ideal: max(110, Self.modifiedWidth), max: 140)
+            } rows: {
+                // Rows SwiftUI counts as draggable, so the table starts the drag; the promises
+                // themselves come from `ArchiveTableDragSource`.
+                ForEach(model.visibleEntries) { entry in
+                    TableRow(entry).itemProvider { NSItemProvider() }
+                }
             }
             .contextMenu(forSelectionType: ArchiveEntry.ID.self) { ids in
                 if let id = ids.first, let entry = model.archive.entry(at: id) {

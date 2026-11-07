@@ -1,5 +1,25 @@
 # UI and motion handoff — Claude Code
 
+## Browser/Glance dragging — #332 (supersedes draft #320's gesture approach)
+
+Root cause of "later drags became range selection": SwiftUI's `Table` is an `NSOutlineView`
+whose own gesture recognizers choose between dragging rows and extending the selection, and its
+subclass refuses row drags unless SwiftUI thinks the rows are draggable. #320's extra recognizer
+raced them. Now `ArchiveTableDragSource` (App/Preview/DragOut.swift) stands in front of SwiftUI's
+data source, forwards everything else, supplies the same `ArchiveDragPromise` file promises and
+the cross-archive token, and takes drops natively (folder row → that folder, elsewhere → folder
+on show). Rows carry an empty `TableRow.itemProvider` only so SwiftUI allows the drag. Grid and
+Columns keep the event monitor with #320's per-window routing. Peek cancellation is #320's, plus
+`DragActivity`, which keeps previews away during and 0.6 s after any drag. DESIGN.md › Dragging
+files out and in has the visual rules.
+
+Checked in a running debug build with background CUA strokes (not physical input): three
+repeated drags from a two-row selection each carried both rows and kept the selection; a drag
+from an unselected row carried that row alone; drops on the source list were refused and slid
+back; a list → Glance drop copied into the other archive's pending edits and Save kept exact
+bytes, source unchanged. Not checked here: Finder delivery, the grid/columns path (CUA can't
+hover first), drag image and drop highlight mid-gesture, ArcZip timing. Those need physical input.
+
 ## Independent archive windows — current user decision
 
 The user chose one independent window per archive on 2026-11-06. Follow

@@ -10,7 +10,7 @@ struct HoverPreviewTests {
     }
 
     @Test func closingDuringTheDelayCancelsPresentation() async throws {
-        let hover = HoverPreviewModel(mouseButtons: { 0 })
+        let hover = HoverPreviewModel(mouseButtons: { 0 }, isDragging: { false })
         hover.enter(entry())
         hover.close()
         try await Task.sleep(for: .milliseconds(550))
@@ -19,7 +19,7 @@ struct HoverPreviewTests {
 
     @Test func buttonPressedAfterEnteringPreventsDelayedPresentation() async throws {
         var buttons = 0
-        let hover = HoverPreviewModel(mouseButtons: { buttons })
+        let hover = HoverPreviewModel(mouseButtons: { buttons }, isDragging: { false })
         hover.enter(entry())
         // Covers a button change even if native tracking prevented delivery of a local event.
         buttons = 1
@@ -32,7 +32,7 @@ struct HoverPreviewTests {
     }
 
     @Test func interruptionEndsWarmScanningAndCancelsPendingWork() async throws {
-        let hover = HoverPreviewModel(mouseButtons: { 0 })
+        let hover = HoverPreviewModel(mouseButtons: { 0 }, isDragging: { false })
         hover.present("alpha.txt")
         hover.enter(entry("beta.txt"))
         #expect(hover.presented == "beta.txt")
@@ -46,7 +46,7 @@ struct HoverPreviewTests {
     }
 
     @Test func nativePressCancelsPendingPreviewWithoutConsumingTheEvent() async throws {
-        let hover = HoverPreviewModel(mouseButtons: { 0 })
+        let hover = HoverPreviewModel(mouseButtons: { 0 }, isDragging: { false })
         let window = NSWindow()
         var presses = 0
         let monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
@@ -65,7 +65,7 @@ struct HoverPreviewTests {
     }
 
     @Test func losingTheKeyWindowCancelsAPendingPreview() async throws {
-        let hover = HoverPreviewModel(mouseButtons: { 0 })
+        let hover = HoverPreviewModel(mouseButtons: { 0 }, isDragging: { false })
         hover.enter(entry())
         NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: NSWindow())
         try await Task.sleep(for: .milliseconds(550))
@@ -74,7 +74,7 @@ struct HoverPreviewTests {
 
     @Test func enteringWithAButtonDownClosesAnOpenPreview() {
         var buttons = 0
-        let hover = HoverPreviewModel(mouseButtons: { buttons })
+        let hover = HoverPreviewModel(mouseButtons: { buttons }, isDragging: { false })
         hover.present("alpha.txt")
         buttons = 1
         hover.enter(entry("beta.txt"))
@@ -86,11 +86,48 @@ struct HoverPreviewTests {
     }
 
     @Test func ordinaryHoverExitRetainsWarmNeighborBehavior() {
-        let hover = HoverPreviewModel(mouseButtons: { 0 })
+        let hover = HoverPreviewModel(mouseButtons: { 0 }, isDragging: { false })
         hover.present("alpha.txt")
         hover.close()
         hover.enter(entry("beta.txt"))
         #expect(hover.presented == "beta.txt")
         hover.close()
+    }
+}
+
+@MainActor
+@Suite("Hover preview after a drag (#332)", .serialized)
+struct HoverPreviewDragTests {
+    private func entry(_ name: String = "alpha.txt") -> ArchiveEntry {
+        ArchiveEntry(path: name, isFolder: false, size: 1, packedSize: 1, modified: .now)
+    }
+
+    @Test func noPreviewWhileADragIsOverTheWindowOrJustLanded() async throws {
+        var dragging = true
+        let hover = HoverPreviewModel(mouseButtons: { 0 }, isDragging: { dragging })
+        hover.enter(entry())
+        try await Task.sleep(for: .milliseconds(550))
+        #expect(hover.presented == nil)
+        // The drag ends with the pointer resting still: the delayed preview stays away.
+        hover.enter(entry())
+        dragging = false
+        try await Task.sleep(for: .milliseconds(550))
+        #expect(hover.presented == nil)
+        // A new hover once the drag is over waits its delay and opens.
+        hover.enter(entry("beta.txt"))
+        try await Task.sleep(for: .milliseconds(550))
+        #expect(hover.presented == "beta.txt")
+    }
+
+    @Test func activityStaysRecentUntilTheSessionEndsAndSettles() async throws {
+        let source = NSObject()
+        DragActivity.began(source)
+        #expect(DragActivity.isRecent)
+        try await Task.sleep(for: DragActivity.settle + .milliseconds(100))
+        #expect(DragActivity.isRecent)
+        // Ending twice is harmless; just after the end still counts as the drag.
+        DragActivity.ended(source)
+        DragActivity.ended(source)
+        #expect(DragActivity.isRecent)
     }
 }

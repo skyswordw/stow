@@ -343,12 +343,22 @@ private struct ArchiveDropDelegate: DropDelegate {
     @Binding var targeted: Bool
 
     /// No highlight for a drop that would do nothing (this archive's own items).
-    func validateDrop(info: DropInfo) -> Bool { model.acceptsDrop() }
+    func validateDrop(info: DropInfo) -> Bool {
+        DragActivity.touch()
+        return model.acceptsDrop()
+    }
     func dropEntered(info: DropInfo) { targeted = true }
-    func dropExited(info: DropInfo) { targeted = false }
-    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .copy) }
+    func dropExited(info: DropInfo) {
+        DragActivity.touch()
+        targeted = false
+    }
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DragActivity.touch()
+        return DropProposal(operation: .copy)
+    }
 
     func performDrop(info: DropInfo) -> Bool {
+        DragActivity.touch()
         targeted = false
         guard model.editSession.requireEditable() else { return true }
         let destination = model.level

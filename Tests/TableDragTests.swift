@@ -78,6 +78,9 @@ struct TableDragTests {
         defer { hosted.close() }
         let table = try await waitForTable(in: hosted.host, matching: browser)
         let source = try #require(table.dataSource as? ArchiveTableDragSource)
+        // SwiftUI's table refuses to drag rows it doesn't think are draggable.
+        let alphaRow = try row(of: "alpha.txt", in: browser)
+        #expect(table.canDragRows(with: [alphaRow], at: table.rect(ofRow: alphaRow).center))
         let alpha = try #require(table.item(atRow: try row(of: "alpha.txt", in: browser)))
         let promise = try #require(source.outlineView(table, pasteboardWriterForItem: alpha) as? ArchiveDragPromise)
         #expect(promise.userInfo as? String == "alpha.txt")
@@ -134,4 +137,8 @@ struct TableDragTests {
         #expect(browser.archive.entry(at: "Folder/one.txt") == nil)
         #expect(browser.archive.entry(at: "Folder/two.txt") == nil)
     }
+}
+
+private extension NSRect {
+    var center: NSPoint { NSPoint(x: midX, y: midY) }
 }
