@@ -276,6 +276,12 @@ own any more). Chinese calls the Tray 托盘 everywhere and the pin 保持打开
 
 ## Dragging and hover preview — #318
 
+**Current user direction, 2026-11-06:** Codex testing is paused. Claude Code leads the next
+Browser/Glance drag-interaction and motion correction in [#332](https://github.com/Beastry/stow/issues/332),
+including the earlier Browser cross-archive flow. Draft #320 is an experimental checkpoint,
+not approved visual guidance; Claude may replace its approach while preserving the functional
+contracts below and the accepted cross-archive copy/Undo/Save behavior from #311.
+
 Glance supports the same file, folder and multi-selection drag-out behavior as Browser,
 including repeated switches between retained windows. Peek is passive: a mouse press cancels
 pending presentation and dismisses an open preview without consuming the event. No hover

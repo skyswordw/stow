@@ -20,6 +20,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     private var monitor: Any?
     private var press: (point: NSPoint, entry: ArchiveEntry.ID, windowNumber: Int)?
     private var started = false
+    private weak var activeGesture: TableDragGesture?
     private var transferToken: String?
     private var selectionSnapshot: SelectionSnapshot?
 
@@ -123,7 +124,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     }
 
     func beginDrag(from id: ArchiveEntry.ID, event: NSEvent, gesture: NSGestureRecognizer? = nil) -> Bool {
-        guard let model, let view = gesture?.view ?? event.window?.contentView else { return false }
+        guard !started, let model, let view = gesture?.view ?? event.window?.contentView else { return false }
         let entries = prepareDrag(from: id)
         guard !entries.isEmpty else { return false }
         let point = view.convert(event.locationInWindow, from: nil)
@@ -142,6 +143,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
             return item
         }
         model.quickLook.close()
+        activeGesture = gesture as? TableDragGesture
         if #available(macOS 27, *), let gesture {
             guard view.beginDraggingSession(items: items, gesture: gesture, source: self) != nil else {
                 finishDrag(pasteboard: nil, operation: [])
@@ -170,6 +172,8 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         dragging = []
         press = nil
         started = false
+        activeGesture?.nativeSessionEnded()
+        activeGesture = nil
         DispatchQueue.main.async { [weak self] in
             guard let self, self.selectionSnapshot?.token == token else { return }
             self.restoreSelection(token: token)
@@ -240,20 +244,28 @@ private struct EventBox: @unchecked Sendable {
 /// Observe the table's gesture before its own tracking consumes mouse movement. Leave
 /// selection, double-click, context menus and editing with SwiftUI's native table.
 final class TableDragGesture: NSGestureRecognizer {
+    typealias StartSession = (ArchiveEntry.ID, NSEvent, TableDragGesture) -> Bool
+
     private weak var model: BrowserModel?
     private var down: NSEvent?
+    private var dragEvent: NSEvent?
     private var entry: ArchiveEntry.ID?
     private var selection: Set<ArchiveEntry.ID>?
+    private var sessionActive = false
+    private let startSession: StartSession?
 
-    init() { super.init(target: nil, action: nil) }
+    init(startSession: StartSession? = nil) {
+        self.startSession = startSession
+        super.init(target: nil, action: nil)
+        target = self
+        action = #selector(recognizedDrag)
+        // A row press belongs to this decision until it is a click or a file drag.
+        delaysPrimaryMouseButtonEvents = true
+    }
     required init?(coder: NSCoder) { fatalError() }
 
     func attach(_ table: NSTableView, model: BrowserModel) {
-        if self.model !== model {
-            down = nil
-            entry = nil
-            selection = nil
-        }
+        if self.model !== model { clearPress() }
         self.model = model
         for old in table.gestureRecognizers where old is TableDragGesture && old !== self {
             table.removeGestureRecognizer(old)
@@ -268,7 +280,7 @@ final class TableDragGesture: NSGestureRecognizer {
 
     override func mouseDown(with event: NSEvent) {
         guard let table = view as? NSTableView, let model, model.archive.source != nil,
-              model.renamingPath == nil else { state = .failed; return }
+              model.renamingPath == nil, !event.modifierFlags.contains(.control) else { state = .failed; return }
         let point = table.convert(event.locationInWindow, from: nil)
         let row = table.row(at: point)
         guard table.visibleRect.contains(point), model.visibleEntries.indices.contains(row),
@@ -279,26 +291,64 @@ final class TableDragGesture: NSGestureRecognizer {
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard state == .possible, let down, let entry, let model else { return }
+        guard state == .possible, let down, entry != nil else { return }
         let moved = hypot(event.locationInWindow.x - down.locationInWindow.x,
                           event.locationInWindow.y - down.locationInWindow.y)
         guard moved > 4 else { return }
+        dragEvent = event
         state = .began
+    }
+
+    @objc private func recognizedDrag() {
+        // AppKit calls this after resolving competing recognizers. A released/cancelled
+        // press must never start a delayed session and leave a floating drag image behind.
+        guard state == .began, !sessionActive, let event = dragEvent, let entry, let model else { return }
         if let selection { model.select(selection) }
-        if !model.dragOut.beginDrag(from: entry, event: event, gesture: self) { state = .failed }
+        sessionActive = true
+        let began = startSession?(entry, event, self)
+            ?? model.dragOut.beginDrag(from: entry, event: event, gesture: self)
+        if !began {
+            sessionActive = false
+            if state == .began { state = .failed }
+        }
     }
 
     override func mouseUp(with event: NSEvent) {
         if state == .possible { state = .failed }
-        else if state == .began || state == .changed { state = .ended }
+        else if !sessionActive, state == .began || state == .changed { state = .cancelled }
+        // Once handed off, AppKit and the dragging-source completion own termination.
+    }
+
+    override func mouseCancelled(with event: NSEvent) {
+        nativeSessionEnded()
+        if state == .possible { state = .failed }
+    }
+
+    func nativeSessionEnded() {
+        sessionActive = false
+        clearPress()
+        if state == .began || state == .changed { state = .cancelled }
     }
 
     override func canBePrevented(by preventingGestureRecognizer: NSGestureRecognizer) -> Bool { false }
 
-    override func reset() {
-        super.reset()
+    override func shouldBeRequiredToFail(by other: NSGestureRecognizer) -> Bool {
+        guard other.view === view else { return false }
+        if let pan = other as? NSPanGestureRecognizer { return pan.buttonMask & 1 != 0 }
+        if let click = other as? NSClickGestureRecognizer { return click.buttonMask & 1 != 0 }
+        return false
+    }
+
+    private func clearPress() {
         down = nil
+        dragEvent = nil
         entry = nil
         selection = nil
+    }
+
+    override func reset() {
+        super.reset()
+        sessionActive = false
+        clearPress()
     }
 }
