@@ -274,6 +274,7 @@ private struct FocusRingModifier<S: InsettableShape>: ViewModifier {
         content
             .focused($hasFocus)
             .focusEffectDisabled()
+            .revealsKeyboardFocus(hasFocus)
             .overlay {
                 if hasFocus {
                     shape.inset(by: -outset)

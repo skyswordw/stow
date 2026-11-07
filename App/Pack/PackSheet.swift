@@ -26,6 +26,8 @@ struct PackSheet: View {
     /// Where More Options' title starts after the disclosure triangle; the closed summary lines up with it.
     @State private var titleInset: CGFloat = 0
     @State private var middleHeight: CGFloat?
+    @State private var sheetWindow: NSWindow?
+    @State private var sheetSize = CGSize.zero
     @State private var overflow = ScrollEdges()
     /// Where the middle is scrolled to; opening More Options moves it.
     @State private var scrollPosition = ScrollPosition()
@@ -71,8 +73,9 @@ struct PackSheet: View {
                     .padding(Space.xs) // room for focus rings inside the clip…
                     .onGeometryChange(for: CGFloat.self, of: \.size.height) { middleHeight = $0 }
             }
+            .followsKeyboardFocus(margin: Space.xl)
             .scrollPosition($scrollPosition)
-            .frame(minHeight: middleMinHeight, idealHeight: middleHeight)
+            .frame(minHeight: middleMinHeight, idealHeight: middleMinHeight)
             .scrollBounceBehavior(.basedOnSize)
             .onScrollGeometryChange(for: ScrollEdges.self, of: ScrollEdges.init) { _, edges in overflow = edges }
             // Whichever edge has more beyond it fades out, so a cut-off section reads as "scroll for more".
@@ -107,7 +110,13 @@ struct PackSheet: View {
             }
         }
         .padding(Space.xxl)
-        .frame(minWidth: 580)
+        .frame(width: 580)
+        .fixedSize(horizontal: false, vertical: true)
+        // The default form sizing caps a sheet to its presenter and can clip the fixed
+        // sentence/footer. Fit the content using the screen-bounded scrolling middle.
+        .presentationSizing(.fitted)
+        .background { WindowReader { sheetWindow = $0; fitSheet() } }
+        .onGeometryChange(for: CGSize.self, of: \.size) { sheetSize = $0; fitSheet() }
         .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.token, reduceMotion: reduceMotion), value: options)
         .onChange(of: options.usesPassword) { _, uses in
             // Choosing "with a password" means typing one next.
@@ -126,6 +135,18 @@ struct PackSheet: View {
             if !handedOffCleanup, let directory = request.cleanupDirectory, !request.cleanupOnlyOnSuccess {
                 try? FileManager.default.removeItem(at: directory)
             }
+        }
+    }
+
+    /// AppKit can retain the sheet's initial frame after SwiftUI updates its min/max size.
+    /// Follow the fitted content, whose width and scrolling height are bounded above. Applying
+    /// an absolute size (never a delta) avoids feeding window-size changes back into layout.
+    private func fitSheet() {
+        DispatchQueue.main.async {
+            guard let window = sheetWindow, sheetSize.width > 0, sheetSize.height > 0,
+                  let content = window.contentView,
+                  abs(content.frame.width - sheetSize.width) > 1 || abs(content.frame.height - sheetSize.height) > 1 else { return }
+            window.setContentSize(sheetSize)
         }
     }
 
@@ -269,6 +290,7 @@ struct PackSheet: View {
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
                 .focused($focus, equals: .password)
+                .revealsKeyboardFocus(focus == .password)
                 .onSubmit { if needsConfirmation { focus = .confirmation } }
                 suggestButton
             }
@@ -279,6 +301,7 @@ struct PackSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .controlSize(.large)
                         .focused($focus, equals: .confirmation)
+                        .revealsKeyboardFocus(focus == .confirmation)
                     // Same width as Suggest above, so both fields line up end to end.
                     suggestButton.hidden().accessibilityHidden(true)
                 }
@@ -296,6 +319,7 @@ struct PackSheet: View {
             }
             // The same option, in the same place, as the sheet that asks for a password to open one.
             Toggle("Show password", isOn: Binding(get: { revealsPassword }, set: { setRevealsPassword($0) }))
+                .revealsKeyboardFocus()
                 .padding(.leading, 18 + Space.s)
         }
         .animation(Motion.byKeyboard ? nil : Motion.resolved(Motion.status, reduceMotion: reduceMotion), value: needsConfirmation)
@@ -313,6 +337,7 @@ struct PackSheet: View {
             setRevealsPassword(true)
         }
         .controlSize(.large)
+        .revealsKeyboardFocus()
     }
 
     private func setRevealsPassword(_ reveals: Bool) {
@@ -504,6 +529,7 @@ struct PackSheet: View {
                         ForEach(CompressionLevel.allCases) { Text($0.title).tag($0) }
                     }
                     .labelsHidden()
+                    .revealsKeyboardFocus()
                     .fixedSize()
                     .disabled(!options.format.isCompressed)
                     caption(levelCaption)
@@ -520,6 +546,7 @@ struct PackSheet: View {
                             Text("Custom…").tag(Self.customSplitTag)
                         }
                         .labelsHidden()
+                        .revealsKeyboardFocus()
                         .fixedSize()
                         .popover(isPresented: isEditingSplit(from: .options), arrowEdge: .trailing) { splitEditor }
                     } else {
@@ -529,6 +556,7 @@ struct PackSheet: View {
                 }
                 optionRow("Verify") {
                     Toggle("Verify archive contents after packing", isOn: $options.verify)
+                        .revealsKeyboardFocus()
                     caption(String(localized: "Reads back the new archive to check its contents. Takes extra time; does not scan for malware."))
                 }
 
@@ -539,6 +567,7 @@ struct PackSheet: View {
                             ForEach(DiskImageFilesystem.allCases) { Text($0.title).tag($0) }
                         }
                         .labelsHidden()
+                        .revealsKeyboardFocus()
                         .fixedSize()
                         caption(options.diskImageFilesystem.detail)
                     }
@@ -548,10 +577,12 @@ struct PackSheet: View {
                         VStack(alignment: .leading, spacing: Space.m) {
                             VStack(alignment: .leading, spacing: Space.xs) {
                                 Toggle("Applications shortcut", isOn: $options.diskImageApplicationsLink)
+                                    .revealsKeyboardFocus()
                                 caption(String(localized: "Adds a link to /Applications so people can drag apps in Finder."))
                             }
                             VStack(alignment: .leading, spacing: Space.xs) {
                                 Toggle("Finder window layout", isOn: $options.diskImageFinderChrome)
+                                    .revealsKeyboardFocus()
                                 caption(String(localized: "Adds icon positions, a solid window background, and a volume icon when an app icon is available, without mounting."))
                             }
                         }
@@ -563,6 +594,7 @@ struct PackSheet: View {
                 optionRow("Encryption") {
                     if options.format == .sevenZip, options.usesPassword {
                         Toggle("Encrypt file names", isOn: $options.encryptFilenames)
+                            .revealsKeyboardFocus()
                     }
                     caption(passwordCaption)
                 }
@@ -570,11 +602,13 @@ struct PackSheet: View {
                 groupDivider
                 optionRow("Mac support files") {
                     Toggle("Include .DS_Store and other Finder files", isOn: includesHelperFiles)
+                        .revealsKeyboardFocus()
                     if changesHelperFiles { changedCaption }
                 }
                 if options.format == .zip {
                     optionRow("Mac metadata") {
                         Toggle("Store Finder tags and extended attributes", isOn: storesMacMetadata)
+                            .revealsKeyboardFocus()
                         caption(String(localized: "They travel in a “__MACOSX” folder that a Mac reads back when extracting."))
                         if changesMacMetadata { changedCaption }
                     }
@@ -590,6 +624,7 @@ struct PackSheet: View {
                         }
                     }
                     .labelsHidden()
+                    .revealsKeyboardFocus()
                     .fixedSize()
                     caption(String(localized: "Some formats can’t use every core, so they may use fewer."))
                 }
@@ -601,7 +636,7 @@ struct PackSheet: View {
                     GridRow {
                         Color.clear.frame(width: 0, height: 0)
                         VStack(alignment: .leading, spacing: Space.xs) {
-                            resetButton
+                            resetButton.revealsKeyboardFocus()
                             caption(String(localized: "Puts back the usual choices for \(options.audience.phrase), for this archive only. Compression stays as you set it, and Settings don’t change."))
                         }
                     }
@@ -640,7 +675,7 @@ struct PackSheet: View {
                     .modifier(SpokenAs(label: index == 0 ? label : nil))
             }
             // Only while something differs: a Reset that's always there says nothing.
-            if isCustomized { resetButton }
+            if isCustomized { resetButton.revealsKeyboardFocus() }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -740,6 +775,7 @@ struct PackSheet: View {
                 ForEach(PackFormat.allCases) { Text($0.displayName).tag($0) }
             }
             .labelsHidden()
+            .revealsKeyboardFocus()
             .fixedSize()
         }
         optionRow("For") {
@@ -747,6 +783,7 @@ struct PackSheet: View {
                 ForEach(Audience.allCases) { Text($0.phrase.sentenceCased).tag($0) }
             }
             .labelsHidden()
+            .revealsKeyboardFocus()
             .fixedSize()
         }
         optionRow("Password") {
@@ -755,6 +792,7 @@ struct PackSheet: View {
                 Text("With a password").tag(true)
             }
             .labelsHidden()
+            .revealsKeyboardFocus()
             .fixedSize()
             .disabled(!options.format.supportsPassword)
             if !options.format.supportsPassword {
@@ -1158,6 +1196,7 @@ private struct ReportView: View {
                             .font(.caption)
                             .foregroundStyle(contrastStyle.metadata)
                         TextField(rename.suggested, text: binding(for: rename))
+                            .revealsKeyboardFocus()
                             .textFieldStyle(.roundedBorder)
                     }
                     .font(.callout.monospaced())

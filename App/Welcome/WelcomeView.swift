@@ -309,6 +309,7 @@ private struct RecentList: View {
                     }
                 }
             }
+            .followsKeyboardFocus(margin: Self.fade)
             .scrollBounceBehavior(.basedOnSize)
             .onScrollGeometryChange(for: Edges.self) { geometry in
                 let below = geometry.contentSize.height - geometry.visibleRect.maxY
