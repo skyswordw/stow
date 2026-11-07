@@ -44,7 +44,7 @@ struct DragOutTests {
         let event = try #require(NSEvent.mouseEvent(with: .leftMouseDragged, location: .zero,
             modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil,
             eventNumber: 0, clickCount: 1, pressure: 1))
-        #expect(model.dragOut.handle(event) == nil)
+        #expect(model.dragOut.handle(event) === event)
         model.dragOut.finishDrag(pasteboard: pasteboard, operation: [])
         #expect(pasteboard.pasteboardItems?.isEmpty != false)
         #expect(other.string(forType: .string) == "untouched")
@@ -194,6 +194,44 @@ struct DragOutTests {
         let count: Int
         init(count: Int) { self.count = count }
         func numberOfRows(in tableView: NSTableView) -> Int { count }
+    }
+
+    @Test func nativeGestureAttachmentReplacesStaleHostsWithoutChangingTheDataSource() {
+        let table = NSTableView(), model = sourceModel()
+        let data = TableRows(count: 1)
+        table.dataSource = data
+        let old = TableDragGesture(), current = TableDragGesture()
+        old.attach(table, model: model)
+        current.attach(table, model: model)
+        current.attach(table, model: model)
+        #expect(table.dataSource === data)
+        #expect(table.gestureRecognizers.filter { $0 is TableDragGesture }.count == 1)
+        #expect(old.view == nil)
+        old.detach()
+        #expect(current.view === table)
+        current.detach()
+        #expect(!table.gestureRecognizers.contains { $0 is TableDragGesture })
+    }
+
+    @Test func replacingTheArchiveInvalidatesANativePress() throws {
+        let first = sourceModel(), second = sourceModel()
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 240),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        let table = NSTableView(frame: NSRect(x: 0, y: 0, width: 400, height: 240))
+        let data = TableRows(count: 1)
+        table.dataSource = data
+        table.addTableColumn(NSTableColumn(identifier: NSUserInterfaceItemIdentifier("Name")))
+        window.contentView = table
+        table.reloadData()
+        let gesture = TableDragGesture()
+        gesture.attach(table, model: first)
+        defer { gesture.detach(); window.contentView = nil }
+        let row = table.rect(ofRow: 0)
+        let point = table.convert(NSPoint(x: row.midX, y: row.midY), to: nil)
+        gesture.mouseDown(with: try mouse(.leftMouseDown, in: window, x: point.x, y: point.y))
+        gesture.attach(table, model: second)
+        gesture.mouseDragged(with: try mouse(.leftMouseDragged, in: window, x: point.x + 12, y: point.y))
+        #expect(first.selection.isEmpty && second.selection.isEmpty)
     }
 
     private func sourceModel() -> BrowserModel {

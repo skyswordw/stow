@@ -3,25 +3,23 @@
 ## Glance drag-out and Peek interruption — #318
 
 The user confirmed Browser/Glance drag parity and suppression of Peek while pressing or
-dragging files. Drag routing now accepts both retained window attachments and starts the
-session from the actual event window. Pending or visible Peek is cancelled on mouse press,
-drag events and window deactivation; a subsequent hover starts with the existing first delay.
-Ordinary hover-only neighbor scanning retains its current behavior.
+dragging files. Follow [the current implementation and evidence](318-drag-peek-verification.md).
+The first window-routing/hover-hit fixes were insufficient in the user's native acceptance.
 
-Codex owns event routing, cancellation and regression tests. No layout, material or animation
-retuning is proposed; Claude Code retains visual/motion ownership and no review is claimed.
-Validation: the initial patch passed 57 targeted tests and all 722 CI tests after retrying an
-artifact-upload DNS failure. Native CUA follow-up reproduced an additional missed drag: the
-press arrived with no SwiftUI hovered entry, despite landing on a file row. Native table rows
-are now resolved from the press location, across name/size columns, with blank space excluded.
-The follow-up passed 23 drag/hover/extraction tests, including a new native table hit test.
-All 1276 strings have Simplified Chinese translations; this follow-up adds no strings.
+Tables now use a native gesture to start file-promise dragging, preserving multi-selection and
+resolving the pressed row across columns. Each retained window keeps its archive owner; stale
+host gestures and presses from a replaced archive cannot take over. The existing grid/column
+monitor lets AppKit receive the native drag events. Pending or visible Peek is cancelled on
+press, drag and window deactivation; ordinary hover-only scanning retains its current timing.
 
-The isolated review app retained the file selection after the corrected drag. CUA did not
-complete a cross-app Finder drop in either Stow or ArcZip Mini with the same ZIP fixture, so
-that result is not an end-to-end acceptance pass. A physical mouse check is pending with the
-user, with the corrected Glance and empty Finder destination prepared. No signed integration
-installation or VoiceOver acceptance was performed; #93 stays open.
+Native receiver callbacks delivered a single file, multiple files and a folder with exact
+fixture bytes, including Keep Both, a size-column drag after a Browser/Glance round trip, and
+cancellation without an extra file. The temporary receiver and diagnostic logging were removed.
+This evidence is separate from physical Finder-drop and motion acceptance, which automation
+has not established. Dedicated VoiceOver work remains deferred and #93 stays open.
+
+Codex owns functional routing, cancellation and regression tests. Claude Code retains visual
+and motion ownership; no layout/material changes, animation tuning or design review are claimed.
 
 ## Independent archive windows — current user decision
 

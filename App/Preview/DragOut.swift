@@ -50,8 +50,10 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
 
     func handle(_ event: NSEvent?) -> NSEvent? {
         guard let event else { return nil }
-        if started, event.type == .leftMouseDragged { return nil }
-        if let entry = dragCandidate(for: event), beginDrag(from: entry, event: event) { return nil }
+        // AppKit activates a requested native session during event dispatch. Returning nil
+        // here starves it of the initiating/subsequent drag events until mouse-up.
+        if started { return event }
+        if let entry = dragCandidate(for: event) { _ = beginDrag(from: entry, event: event) }
         return event
     }
 
@@ -89,6 +91,8 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
                 ?? ((view as? NSClipView)?.documentView as? NSTableView)
                 ?? ((view as? NSScrollView)?.documentView as? NSTableView)
             if let table {
+                // Native tables own their tracking loop and file-promise session.
+                if table.gestureRecognizers.contains(where: { $0 is TableDragGesture }) { return nil }
                 let local = table.convert(point, from: nil)
                 guard table.visibleRect.contains(local), let model,
                       table.numberOfRows == model.visibleEntries.count else { return nil }
@@ -118,8 +122,8 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         return entries
     }
 
-    private func beginDrag(from id: ArchiveEntry.ID, event: NSEvent) -> Bool {
-        guard let model, let view = event.window?.contentView else { return false }
+    func beginDrag(from id: ArchiveEntry.ID, event: NSEvent, gesture: NSGestureRecognizer? = nil) -> Bool {
+        guard let model, let view = gesture?.view ?? event.window?.contentView else { return false }
         let entries = prepareDrag(from: id)
         guard !entries.isEmpty else { return false }
         let point = view.convert(event.locationInWindow, from: nil)
@@ -138,7 +142,14 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
             return item
         }
         model.quickLook.close()
-        view.beginDraggingSession(with: items, event: event, source: self)
+        if #available(macOS 27, *), let gesture {
+            guard view.beginDraggingSession(items: items, gesture: gesture, source: self) != nil else {
+                finishDrag(pasteboard: nil, operation: [])
+                return false
+            }
+        } else {
+            view.beginDraggingSession(with: items, event: event, source: self)
+        }
         return true
     }
 
@@ -150,10 +161,10 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         if model.selection != ids { model.select(ids) }
     }
 
-    func finishDrag(pasteboard: NSPasteboard, operation: NSDragOperation) {
+    func finishDrag(pasteboard: NSPasteboard?, operation: NSDragOperation) {
         ArchiveTransfer.finish(transferToken)
         transferToken = nil
-        if operation.isEmpty { pasteboard.clearContents() }
+        if operation.isEmpty { pasteboard?.clearContents() }
         let token = selectionSnapshot?.token
         restoreSelection(token: token)
         dragging = []
@@ -226,3 +237,68 @@ private struct EventBox: @unchecked Sendable {
     let event: NSEvent?
 }
 
+/// Observe the table's gesture before its own tracking consumes mouse movement. Leave
+/// selection, double-click, context menus and editing with SwiftUI's native table.
+final class TableDragGesture: NSGestureRecognizer {
+    private weak var model: BrowserModel?
+    private var down: NSEvent?
+    private var entry: ArchiveEntry.ID?
+    private var selection: Set<ArchiveEntry.ID>?
+
+    init() { super.init(target: nil, action: nil) }
+    required init?(coder: NSCoder) { fatalError() }
+
+    func attach(_ table: NSTableView, model: BrowserModel) {
+        if self.model !== model {
+            down = nil
+            entry = nil
+            selection = nil
+        }
+        self.model = model
+        for old in table.gestureRecognizers where old is TableDragGesture && old !== self {
+            table.removeGestureRecognizer(old)
+        }
+        if view !== table {
+            detach()
+            table.addGestureRecognizer(self)
+        }
+    }
+
+    func detach() { view?.removeGestureRecognizer(self) }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let table = view as? NSTableView, let model, model.archive.source != nil,
+              model.renamingPath == nil else { state = .failed; return }
+        let point = table.convert(event.locationInWindow, from: nil)
+        let row = table.row(at: point)
+        guard table.visibleRect.contains(point), model.visibleEntries.indices.contains(row),
+              model.archive.entry(at: model.visibleEntries[row].id) != nil else { state = .failed; return }
+        down = event
+        entry = model.visibleEntries[row].id
+        selection = model.selection.contains(model.visibleEntries[row].id) ? model.selection : nil
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard state == .possible, let down, let entry, let model else { return }
+        let moved = hypot(event.locationInWindow.x - down.locationInWindow.x,
+                          event.locationInWindow.y - down.locationInWindow.y)
+        guard moved > 4 else { return }
+        state = .began
+        if let selection { model.select(selection) }
+        if !model.dragOut.beginDrag(from: entry, event: event, gesture: self) { state = .failed }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if state == .possible { state = .failed }
+        else if state == .began || state == .changed { state = .ended }
+    }
+
+    override func canBePrevented(by preventingGestureRecognizer: NSGestureRecognizer) -> Bool { false }
+
+    override func reset() {
+        super.reset()
+        down = nil
+        entry = nil
+        selection = nil
+    }
+}

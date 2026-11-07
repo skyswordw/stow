@@ -396,12 +396,14 @@ struct TableClickSelection: NSViewRepresentable {
     func updateNSView(_ watcher: Watcher, context: Context) {
         watcher.model = model
         watcher.onFocus = onFocus
+        watcher.installDragGesture()
     }
 
     final class Watcher: NSView {
         var model: BrowserModel
         var onFocus: (() -> Void)?
         private var monitor: Any?
+        private let dragGesture = TableDragGesture()
         /// The selected row a plain press landed on, while it can still become a click.
         private var press: (row: Int, point: NSPoint)?
 
@@ -419,7 +421,8 @@ struct TableClickSelection: NSViewRepresentable {
             super.viewDidMoveToWindow()
             if let monitor { NSEvent.removeMonitor(monitor) }
             monitor = nil
-            guard window != nil else { return }
+            guard window != nil else { dragGesture.detach(); return }
+            DispatchQueue.main.async { [weak self] in self?.installDragGesture() }
             monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] event in
                 // Local monitors run on the main thread, inside event dispatch.
                 let box = TableEventBox(event: event)
@@ -428,8 +431,19 @@ struct TableClickSelection: NSViewRepresentable {
             }
         }
 
+        override func layout() {
+            super.layout()
+            installDragGesture()
+        }
+
+        func installDragGesture() {
+            guard window != nil, let table = nearbyTable() ?? tables(in: window?.contentView).first else { return }
+            dragGesture.attach(table, model: model)
+        }
+
         isolated deinit {
             if let monitor { NSEvent.removeMonitor(monitor) }
+            dragGesture.detach()
         }
 
         func handle(_ event: NSEvent) {
@@ -465,6 +479,7 @@ struct TableClickSelection: NSViewRepresentable {
             guard table.bounds.contains(local) else { return }
             let row = table.row(at: local)
             guard row >= 0 else { return }
+            dragGesture.attach(table, model: model)
             onFocus?()
             window.makeFirstResponder(table)
             guard event.clickCount == 1,
