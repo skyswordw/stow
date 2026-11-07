@@ -13,9 +13,12 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     weak var model: BrowserModel?
     /// The entry under the pointer, as tiles and rows report it.
     var hovered: ArchiveEntry.ID?
-    private weak var window: NSWindow?
+    // Browser and Glance retain their view trees across switches. Neither attachment may
+    // replace the other; use the event's window when starting the native session.
+    // A reused window can also receive a new archive while the old model finishes work.
+    private static let owners = NSMapTable<NSWindow, DragOutController>.weakToWeakObjects()
     private var monitor: Any?
-    private var press: (point: NSPoint, entry: ArchiveEntry.ID)?
+    private var press: (point: NSPoint, entry: ArchiveEntry.ID, windowNumber: Int)?
     private var started = false
     private var transferToken: String?
     private var selectionSnapshot: SelectionSnapshot?
@@ -29,9 +32,8 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     }
 
     func install(in window: NSWindow) {
-        guard self.window !== window else { return }
-        self.window = window
-        if let monitor { NSEvent.removeMonitor(monitor) }
+        Self.owners.setObject(self, forKey: window)
+        guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             // Local monitors run on the main thread, inside event dispatch.
             let box = EventBox(event: event)
@@ -49,22 +51,32 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     func handle(_ event: NSEvent?) -> NSEvent? {
         guard let event else { return nil }
         if started, event.type == .leftMouseDragged { return nil }
-        guard event.window === window, model?.archive.source != nil else { return event }
+        if let entry = dragCandidate(for: event), beginDrag(from: entry, event: event) { return nil }
+        return event
+    }
+
+    /// Track a press through the drag threshold before handing it to AppKit. Events from
+    /// another document must never turn this document's pending press into a drag.
+    func dragCandidate(for event: NSEvent) -> ArchiveEntry.ID? {
+        guard let window = event.window, Self.owners.object(forKey: window) === self, model?.archive.source != nil else {
+            if event.type == .leftMouseDown { press = nil }
+            return nil
+        }
         switch event.type {
         case .leftMouseDown:
             selectionSnapshot = nil
-            press = hovered.map { (event.locationInWindow, $0) }
+            press = model?.renamingPath == nil
+                ? hovered.map { (event.locationInWindow, $0, window.windowNumber) } : nil
             started = false
         case .leftMouseDragged:
-            guard let press, !started else { return started ? nil : event }
+            guard let press, !started, press.windowNumber == window.windowNumber else { return nil }
             let moved = hypot(event.locationInWindow.x - press.point.x, event.locationInWindow.y - press.point.y)
-            guard moved > 4 else { return event }
-            return beginDrag(from: press.entry, event: event) ? nil : event
+            return moved > 4 ? press.entry : nil
         default:
             press = nil
             started = false
         }
-        return event
+        return nil
     }
 
     func prepareDrag(from id: ArchiveEntry.ID) -> [ArchiveEntry] {
@@ -85,7 +97,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
     }
 
     private func beginDrag(from id: ArchiveEntry.ID, event: NSEvent) -> Bool {
-        guard let model, let view = window?.contentView else { return false }
+        guard let model, let view = event.window?.contentView else { return false }
         let entries = prepareDrag(from: id)
         guard !entries.isEmpty else { return false }
         let point = view.convert(event.locationInWindow, from: nil)

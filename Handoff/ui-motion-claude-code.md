@@ -1,5 +1,21 @@
 # UI and motion handoff — Claude Code
 
+## Glance drag-out and Peek interruption — #318
+
+The user confirmed Browser/Glance drag parity and suppression of Peek while pressing or
+dragging files. Drag routing now accepts both retained window attachments and starts the
+session from the actual event window. Pending or visible Peek is cancelled on mouse press,
+drag events and window deactivation; a subsequent hover starts with the existing first delay.
+Ordinary hover-only neighbor scanning retains its current behavior.
+
+Codex owns event routing, cancellation and regression tests. No layout, material or animation
+retuning is proposed; Claude Code retains visual/motion ownership and no review is claimed.
+Validation: 57 targeted tests passed, including native mouse-event pass-through, retained-window
+routing, reused-window archive ownership, file-promise extraction and cross-archive copying.
+All 1276 strings have Simplified Chinese translations. ArcZip Mini was inspected with the same
+small ZIP fixture; end-to-end physical Finder drops and hover timing comparison remain pending.
+No signed integration installation or VoiceOver acceptance was performed; #93 stays open.
+
 ## Independent archive windows — current user decision
 
 The user chose one independent window per archive on 2026-11-06. Follow

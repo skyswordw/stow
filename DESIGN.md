@@ -274,6 +274,16 @@ takes no clicks and covers only the top of the first row. The help tags say the 
 length, and Settings › Tray explains it in the Showing and Hiding footer (no setting of its
 own any more). Chinese calls the Tray 托盘 everywhere and the pin 保持打开.
 
+## Dragging and hover preview — #318
+
+Glance supports the same file, folder and multi-selection drag-out behavior as Browser,
+including repeated switches between retained windows. Peek is passive: a mouse press cancels
+pending presentation and dismisses an open preview without consuming the event. No hover
+preview may appear during dragging or marquee selection. After an interaction, a fresh hover
+waits the normal first-preview delay; hover-only neighbor scanning stays immediate.
+These are functional requirements confirmed by the user on 2026-11-06. Claude Code retains
+visual and motion ownership; existing timing and appearance are otherwise unchanged.
+
 ## Glance layout (#159)
 
 Glance is the Browser made small: the same archive, folder, selection and history, the same
