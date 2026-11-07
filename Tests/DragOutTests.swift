@@ -149,14 +149,61 @@ struct DragOutTests {
         #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: window, x: 12)) == nil)
     }
 
+    @Test func nativeTablePressResolvesRowWithoutHoverAcrossColumns() throws {
+        let model = sourceModel()
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 240),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        let table = NSTableView(frame: NSRect(x: 0, y: 0, width: 400, height: 240))
+        let data = TableRows(count: model.visibleEntries.count)
+        table.dataSource = data
+        for name in ["Name", "Size"] {
+            let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(name))
+            column.width = 180
+            table.addTableColumn(column)
+        }
+        let scroll = NSScrollView(frame: table.frame)
+        scroll.documentView = table
+        window.contentView = scroll
+        table.reloadData()
+        model.dragOut.install(in: window)
+        defer { window.contentView = nil }
+        // No hover callback has run, as on a direct press after window activation.
+        for column in [0, 1] {
+            model.dragOut.hovered = nil
+            let rect = table.frameOfCell(atColumn: column, row: 0)
+            let point = table.convert(NSPoint(x: rect.midX, y: rect.midY), to: nil)
+            _ = model.dragOut.dragCandidate(for: try mouse(.leftMouseDown, in: window, x: point.x, y: point.y))
+            #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: window,
+                x: point.x + 12, y: point.y)) == model.visibleEntries[0].id)
+        }
+        // A stale hover from another row cannot override the actual pressed row.
+        model.dragOut.hovered = "stale.txt"
+        let row = table.rect(ofRow: 0)
+        let point = table.convert(NSPoint(x: row.midX, y: row.midY), to: nil)
+        _ = model.dragOut.dragCandidate(for: try mouse(.leftMouseDown, in: window, x: point.x, y: point.y))
+        #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: window,
+            x: point.x + 12, y: point.y)) == model.visibleEntries[0].id)
+        // Empty table space must not drag that stale hover either.
+        let blank = scroll.contentView.convert(NSPoint(x: 40, y: 180), to: nil)
+        _ = model.dragOut.dragCandidate(for: try mouse(.leftMouseDown, in: window, x: blank.x, y: blank.y))
+        #expect(model.dragOut.dragCandidate(for: try mouse(.leftMouseDragged, in: window,
+            x: blank.x + 12, y: blank.y)) == nil)
+    }
+
+    private final class TableRows: NSObject, NSTableViewDataSource {
+        let count: Int
+        init(count: Int) { self.count = count }
+        func numberOfRows(in tableView: NSTableView) -> Int { count }
+    }
+
     private func sourceModel() -> BrowserModel {
         BrowserModel(archive: Archive(listing: ArchiveListing(type: "zip", entries: [
             ListedEntry(path: "alpha.txt", isFolder: false, size: 1)
         ]), url: URL(filePath: "/tmp/Drag-\(UUID().uuidString).zip")))
     }
 
-    private func mouse(_ type: NSEvent.EventType, in window: NSWindow, x: CGFloat = 0) throws -> NSEvent {
-        try #require(NSEvent.mouseEvent(with: type, location: NSPoint(x: x, y: 0),
+    private func mouse(_ type: NSEvent.EventType, in window: NSWindow, x: CGFloat = 0, y: CGFloat = 0) throws -> NSEvent {
+        try #require(NSEvent.mouseEvent(with: type, location: NSPoint(x: x, y: y),
             modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
             eventNumber: 0, clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1))
     }

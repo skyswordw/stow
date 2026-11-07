@@ -10,11 +10,18 @@ Ordinary hover-only neighbor scanning retains its current behavior.
 
 Codex owns event routing, cancellation and regression tests. No layout, material or animation
 retuning is proposed; Claude Code retains visual/motion ownership and no review is claimed.
-Validation: 57 targeted tests passed, including native mouse-event pass-through, retained-window
-routing, reused-window archive ownership, file-promise extraction and cross-archive copying.
-All 1276 strings have Simplified Chinese translations. ArcZip Mini was inspected with the same
-small ZIP fixture; end-to-end physical Finder drops and hover timing comparison remain pending.
-No signed integration installation or VoiceOver acceptance was performed; #93 stays open.
+Validation: the initial patch passed 57 targeted tests and all 722 CI tests after retrying an
+artifact-upload DNS failure. Native CUA follow-up reproduced an additional missed drag: the
+press arrived with no SwiftUI hovered entry, despite landing on a file row. Native table rows
+are now resolved from the press location, across name/size columns, with blank space excluded.
+The follow-up passed 23 drag/hover/extraction tests, including a new native table hit test.
+All 1276 strings have Simplified Chinese translations; this follow-up adds no strings.
+
+The isolated review app retained the file selection after the corrected drag. CUA did not
+complete a cross-app Finder drop in either Stow or ArcZip Mini with the same ZIP fixture, so
+that result is not an end-to-end acceptance pass. A physical mouse check is pending with the
+user, with the corrected Glance and empty Finder destination prepared. No signed integration
+installation or VoiceOver acceptance was performed; #93 stays open.
 
 ## Independent archive windows — current user decision
 

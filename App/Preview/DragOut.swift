@@ -66,7 +66,7 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
         case .leftMouseDown:
             selectionSnapshot = nil
             press = model?.renamingPath == nil
-                ? hovered.map { (event.locationInWindow, $0, window.windowNumber) } : nil
+                ? entry(at: event.locationInWindow, in: window).map { (event.locationInWindow, $0, window.windowNumber) } : nil
             started = false
         case .leftMouseDragged:
             guard let press, !started, press.windowNumber == window.windowNumber else { return nil }
@@ -77,6 +77,28 @@ final class DragOutController: NSObject, NSFilePromiseProviderDelegate, NSDraggi
             started = false
         }
         return nil
+    }
+
+    /// Native tables can deliver a press before SwiftUI updates its hover state (including
+    /// on activation). Resolve the row at the press, across all columns, rather than relying
+    /// on a previous hover callback. A blank table area must not reuse a stale hovered entry.
+    private func entry(at point: NSPoint, in window: NSWindow) -> ArchiveEntry.ID? {
+        var hit = (window.contentView?.superview ?? window.contentView)?.hitTest(point)
+        while let view = hit {
+            let table = (view as? NSTableView)
+                ?? ((view as? NSClipView)?.documentView as? NSTableView)
+                ?? ((view as? NSScrollView)?.documentView as? NSTableView)
+            if let table {
+                let local = table.convert(point, from: nil)
+                guard table.visibleRect.contains(local), let model,
+                      table.numberOfRows == model.visibleEntries.count else { return nil }
+                let row = table.row(at: local)
+                guard model.visibleEntries.indices.contains(row) else { return nil }
+                return model.visibleEntries[row].id
+            }
+            hit = view.superview
+        }
+        return hovered
     }
 
     func prepareDrag(from id: ArchiveEntry.ID) -> [ArchiveEntry] {
