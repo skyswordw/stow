@@ -25,6 +25,9 @@ struct CPUCoreLimitInputTests {
         #expect(input.isValid(available: 10))
         #expect(input.overrideValue(available: 10) == nil)
         input.edit("3")
+        #expect(input.overrideValue(available: 10) == nil, "Focusing the unchanged field keeps inheritance")
+        input.edit("")
+        input.edit("3")
         #expect(input.overrideValue(available: 10) == 3,
                 "An explicit choice stays fixed even if the global setting later changes")
         input.edit("7")

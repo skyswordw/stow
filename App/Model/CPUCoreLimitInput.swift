@@ -25,6 +25,9 @@ struct CPUCoreLimitInput: Equatable {
     }
 
     mutating func edit(_ text: String) {
+        // SwiftUI may write the current string back when the native editor gains focus.
+        // Focusing an untouched default must not freeze it as a per-job override.
+        guard text != self.text else { return }
         isCustom = true
         self.text = text
     }
